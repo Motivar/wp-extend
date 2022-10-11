@@ -133,9 +133,10 @@ class Truongwp_Gallery_Meta_Box
 
         // Save data.
         if (isset($_POST['gallery_meta_box'])) {
-
             $value = array_map('absint', $_POST['gallery_meta_box']);
             update_post_meta($post_id, $this->meta_key(), $value);
+            $feat_img_id = $value[0];
+            set_post_thumbnail($post_id, $feat_img_id);
         } else {
             delete_post_meta($post_id, $this->meta_key());
         }
