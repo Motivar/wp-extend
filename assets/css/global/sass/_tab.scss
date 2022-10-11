@@ -1,0 +1,85 @@
+/* Style the awm-tab */
+.awm-tab-wrapper {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  transition: 0.3s;
+
+  * {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    transition: 0.3s;
+  }
+
+  .awm-tab {
+    overflow: hidden;
+    background-color: #f1f1f1;
+  }
+
+  width:100%;
+  position:relative;
+
+  .awm-tab-wrapper-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+
+  .awm-tab {
+    display: table !important;
+    width: 100% !important;
+  }
+
+  /* Style the buttons inside the awm-tab */
+  .awm_tablinks {
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 10px 15px;
+    font-size: 100%;
+    width: auto;
+    display: table-cell;
+    position: relative;
+
+    &:hover {
+      &:before {
+        content: '';
+        width: 100%;
+        border-bottom: solid 2px rgba(0, 0, 0, 0.4);
+        position: absolute;
+        bottom: 0px;
+        left: 0px;
+      }
+    }
+
+    &.active {
+      &:before {
+        content: '';
+        width: 100%;
+        border-bottom: solid 2px rgba(0, 0, 0, 1);
+        position: absolute;
+        bottom: 0px;
+        left: 0px;
+      }
+    }
+  }
+
+  /* Style the awm-tab content */
+  .awm_tabcontent {
+    display: none;
+    padding: 6px 12px;
+    width: 100%;
+    background: #f9f9f9;
+  }
+}
+
+.awm-meta-field {
+  &[data-type="awm_tab"] {
+    width: 100%;
+
+    >label {
+      display: none;
+    }
+  }
+}

@@ -1,0 +1,97 @@
+.awm-repeater {
+    .awm-repeater-contents {
+        position: relative;
+    }
+    .awm-repeater-content {
+        -webkit-box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        box-sizing: border-box;
+        * {
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+        }
+        &.cloned {
+            opacity: 0;
+        }
+        -webkit-transition: all 0.3s;
+        -moz-transition: all 0.3s;
+        -o-transition: all 0.3s;
+        transition: all 0.3s;
+        opacity:1;
+        width:100%;
+        margin:0 5px;
+        padding: 5px;
+        background: rgba(0, 0, 0, 0.05);
+        margin-top: 15px;
+        .awm-meta-field {
+            border-bottom: none !important;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+            position: relative;
+        }
+        .awm-actions {
+            width: 100%;
+            >div {
+                text-align: left;
+                display: inline-block;
+                .awm_action {
+                    padding: 2px;
+                    cursor: pointer;
+                    width: auto;
+                    &:hover {
+                        opacity: 0.5;
+                    }
+                }
+                &:not(:last-of-type):after {
+                    content: '';
+                    margin: 0px 5px;
+                    width: 100%;
+                    border-right: 1px solid black;
+                }
+            }
+        }
+        &.temp-source {
+            .awm-repeater-inputs,
+            .awm-repeater-remove,
+            .awm-repeater-move-down,
+            .awm-repeater-move-up {
+                display: none !important;
+            }
+            .awm-repeater-add {
+                display: block;
+            }
+            width: auto;
+            float: right;
+            border:solid 1px #111;
+        }
+    }
+    .awm-repeater-title {
+        font-weight: bold;
+    }
+    &[data-count="2"] {
+        .awm-repeater-inputs {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+    &[data-count="1"] {
+        .awm-repeater-inputs {
+            grid-template-columns: 1fr;
+        }
+    }
+    @media screen and (max-width: 599px) {
+        .awm-repeater-inputs {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+    @media screen and (max-width: 429px) {
+        .awm-repeater-inputs {
+            grid-template-columns: 1fr;
+        }
+    }
+    #postbox-container-1 & {
+        .awm-repeater-inputs {
+            grid-template-columns: 1fr;
+        }
+    }
+}

@@ -1,0 +1,13 @@
+.awm-meta-field.radio {
+  .awm-radio-option {
+    display: grid;
+    grid-template-columns: 25px 1fr;
+    align-items: center;
+    margin-bottom: 5px;
+
+    label {
+      margin-bottom: 0px;
+    }
+  }
+
+}

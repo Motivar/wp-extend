@@ -1,0 +1,15 @@
+.awm-field-type-configuration,
+.awm-position-configuration {
+    background: white;
+    min-height: 40px;
+}
+
+#awm-php-wrapper {
+    display: grid;
+    grid-template-columns: 1fr;
+    margin: 5px auto;
+    width: 95%;
+    >div {
+        margin: 10px;
+    }
+}

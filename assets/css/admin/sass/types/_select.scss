@@ -1,0 +1,30 @@
+.awm-meta-field {
+
+ /*custom select rules*/
+ .ss-main {
+.ss-search.ss-hide
+{
+display:none !important;
+}
+  .ss-arrow,
+  .ss-values,
+  .ss-add {
+   width: auto;
+   display: flex;
+  }
+
+  .ss-values {
+   width: calc(100% - 30px);
+  }
+
+  .ss-value {
+   display: flex;
+   width: unset;
+
+   >span {
+    display: inline;
+    width: auto;
+   }
+  }
+ }
+}

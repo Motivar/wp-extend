@@ -1,0 +1,33 @@
+.awm-meta-field.checkbox_multiple {
+ .awm-options-wrapper {
+  position: relative;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: center;
+  align-content: center;
+  grid-column-gap: 5px;
+
+  @media screen and (max-width: 599px) {
+   grid-template-columns: 1fr;
+  }
+
+  .awm-multiple-checkbox {
+   .insider {
+    .awm-input-label {
+     display: grid;
+     grid-template-columns: 30px auto;
+     align-items: center;
+     align-content: center;
+    }
+
+   }
+  }
+ }
+
+ #postbox-container-1 & {
+  .awm-options-wrapper {
+   grid-template-columns: 1fr;
+  }
+ }
+}

@@ -1,0 +1,18 @@
+.awm_map {
+    min-height: 300px;
+    -moz-transition: none;
+    -webkit-transition: none;
+    -o-transition: color 0 ease-in;
+    transition: none;
+    * {
+        -moz-transition: none;
+        -webkit-transition: none;
+        -o-transition: color 0 ease-in;
+        transition: none;
+    }
+}
+
+#awm_maplocation_search_box {
+    width: 100%;
+    margin-bottom: 10px;
+}

@@ -1,0 +1,42 @@
+#postbox-container-2,
+#dashboard-widgets,
+.wp-admin .awm-form {
+    .awm-show-content {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        &[count="2"] {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        &[count="1"] {
+            grid-template-columns: 1fr;
+        }
+        .awm-meta-field {
+            padding: 5px;
+            &.repeater,
+            &.textarea,
+            &.awm_tab,
+            &.map,
+            &.section,
+            &.checkbox_multiple,
+            &.message,
+            &.function,
+            &.html,
+            &.awm-meta-html {
+                grid-column: span 3;
+            }
+        }
+        @media screen and (max-width: 599px) {
+            &:not([count="1"]),
+            &:not([count="2"]) {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+        }
+        @media screen and (max-width: 429px) {
+            &:not([count="1"]),
+            &:not([count="2"]) {
+                grid-template-columns: 1fr !important;
+            }
+            grid-template-columns: 1fr !important;
+        }
+    }
+}

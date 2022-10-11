@@ -1,0 +1,53 @@
+.awm-needed>label span:not(.awm-radio-label)::after {
+    color: red;
+    content: " *";
+}
+
+.awm-form-error.awm-meta-field {
+    background: rgba(255, 0, 0, 0.2);
+}
+
+.awm_no_show {
+    display: none !important;
+}
+
+.awm-meta-field {
+    position: relative;
+    width: 100%;
+    .input-wrapper {
+        position: relative;
+        display: block;
+        margin-top: 5px;
+        input {
+            width: 95%;
+            margin: 0 auto;
+        }
+    }
+    .eye {
+        position: absolute;
+        right: 30px;
+        top: 40%;
+        width: 23px;
+        height: 23px;
+        border: solid 1px #000;
+        border-radius: 75% 15%;
+        transform: rotate(45deg) translateY(-50%);
+        cursor: pointer;
+        z-index: 99999999;
+    }
+    .eye:before {
+        content: '';
+        display: block;
+        position: absolute;
+        width: 9px;
+        height: 9px;
+        border: solid 1px #000;
+        border-radius: 50%;
+        left: 6px;
+        top: 6px;
+    }
+}
+
+.awm-lowercase {
+    text-transform: lowercase !important;
+}
