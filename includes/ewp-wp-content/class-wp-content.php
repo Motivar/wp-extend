@@ -70,7 +70,7 @@ class Extend_WP_WP_Content
     $metas = awm_get_db_content_meta('ewp_post_types', $post['content_id']);
     if (!empty($post['content_title'])) {
      $prefix = !empty($metas['prefix']) ? $metas['prefix'] : 'ewp';
-     $post_name = $prefix . '_' . flx_clean_string(strtolower($metas['post_name']));
+     $post_name = $prefix . '_' . awm_clean_string(strtolower($metas['post_name']));
      $types[$post_name] = array(
       'post' => $post_name,
       'sn' => __($metas['singular'], 'filox'),
