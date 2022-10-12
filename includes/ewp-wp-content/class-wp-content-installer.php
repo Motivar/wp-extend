@@ -32,6 +32,28 @@ class EWP_WP_Content_Installer
     add_action('load-options-permalink.php', [$this, 'permalink_settings']);
     add_filter('gallery_meta_box_post_types', array($this, 'gallery'));
     add_filter('template_include', array($this, 'taxonomy_page_redirect'), 10);
+    add_filter('single_template', [$this, 'set_single'], 10);
+  }
+
+
+  public function set_single($single)
+  {
+    global $post;
+    $types = $this->post_types;
+    if (empty($types)) {
+      return;
+    }
+    foreach ($types as $n) {
+      if ($post->post_type == $n['post']) {
+        $default = locate_template(array($n['post'] . '.php'));
+        if ($default != '') {
+          return $default;
+        }
+      }
+    }
+
+
+    return $single;
   }
 
 
