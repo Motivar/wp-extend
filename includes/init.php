@@ -5,6 +5,7 @@ if (!defined('ABSPATH')) {
 }
 
 require_once awm_path . '/languages/strings.php';
+require_once 'adminMessages/class-adminMessages.php';
 require_once 'main.php';
 require_once 'gallery-meta-box/gallery-meta-box.php';
 require_once 'ewp-fields/class-field.php';

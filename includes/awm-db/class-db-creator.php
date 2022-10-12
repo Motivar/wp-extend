@@ -79,7 +79,9 @@ class AWM_DB_Creator
                     update_option('flxVersion_' . $table, $currentVersion, false);
                     $message = sprintf(__('Table "%s" just updated! Current versions is %s.', 'filox'), $table, $currentVersion);
                     $databasesUpdated[] = $message;
-                    filoxUpdateActivity(array('name' => 'flx', 'type' => 'dbUpdate', 'comment' => array('table' => $table, 'version' => $currentVersion)));
+                    if (function_exists('filoxUpdateActivity')) {
+                        filoxUpdateActivity(array('name' => 'flx', 'type' => 'dbUpdate', 'comment' => array('table' => $table, 'version' => $currentVersion)));
+                    }
                     continue;
                 }
                 $message = sprintf(__('Table "%s" not udpated! The error is: <strong>%s</strong>.', 'filox'), $table, $error);
@@ -87,12 +89,12 @@ class AWM_DB_Creator
             }
         }
         if (!empty($databasesUpdated)) {
-            $message = new filoxAdminMessage();
+            $message = new Extend_WP_Notices();
             $message->set_message(implode('<br>', $databasesUpdated));
             $message->set_class('updated');
         }
         if (!empty($databasesNotUpdated)) {
-            $error_message = new filoxAdminMessage();
+            $error_message = new Extend_WP_Notices();
             $error_message->set_message(implode('<br>', $databasesNotUpdated));
             $error_message->set_class('error');
         }
