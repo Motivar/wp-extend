@@ -630,7 +630,7 @@ function awm_ajax_call(options) {
     };
 
     /*if (Options.loading) {
-        sbp_ajax_loader(Options.loading, true);
+        flx_ajax_loader(Options.loading, true);
     }*/
 
     if (Options.method.toLowerCase() === 'get' && Options.data.length > 0) {

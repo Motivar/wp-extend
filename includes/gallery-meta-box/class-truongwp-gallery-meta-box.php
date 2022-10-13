@@ -19,10 +19,10 @@ class Truongwp_Gallery_Meta_Box
         }
         add_action('admin_enqueue_scripts', array($this, 'enqueue'));
         add_action('admin_footer', array($this, 'js_template'));
-        add_action('admin_init', array($this, 'awm_sbp_gallery_post_columns'), 1);
+        add_action('admin_init', array($this, 'awm_flx_gallery_post_columns'), 1);
     }
 
-    public function awm_sbp_gallery_post_columns()
+    public function awm_flx_gallery_post_columns()
     {
         global $pagenow;
 
@@ -34,14 +34,14 @@ class Truongwp_Gallery_Meta_Box
                         $post_type = $_GET['post_type'];
                         /*add post columns*/
                         add_filter('manage_' . $post_type . '_posts_columns', function ($columns) {
-                            $columns['sbp_gallery'] = __('Thumb', 'extend-wp');
+                            $columns['flx_gallery'] = __('Thumb', 'extend-wp');
                             return $columns;
                         }, 10, 1);
                         /*add the value of the post columns*/
                         add_action('manage_' . $post_type . '_posts_custom_column', function ($column) {
                             global $post;
                             switch ($column) {
-                                case 'sbp_gallery':
+                                case 'flx_gallery':
                                     echo awm_show_featured_image($post->ID);
                                     break;
                             }

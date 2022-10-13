@@ -77,11 +77,11 @@ class Extend_WP_WP_Content
       'pl' => __($metas['plural'], 'filox'),
       'custom_gallery' => isset($metas['gallery']) ? $metas['gallery'] : false,
       'args' => isset($metas['args']) ? $metas['args'] : false,
-      'sbp_enable' => true,
+      'flx_enable' => true,
       'slug' => get_option($post_name . '_slug') ?: $prefix . '_' . awm_clean_string(strtolower($metas['singular'])),
       'taxonomies_connected' => isset($metas['taxonomies']) ? $metas['taxonomies'] : array(),
       'description' => $metas['description'],
-      'sbp_custom_template' => $metas['custom_template'] ?: false,
+      'flx_custom_template' => $metas['custom_template'] ?: false,
       'admin_access' => array(
        'fullAccess' => array('administrator'),
        'semiAccess' => array(),

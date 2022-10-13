@@ -22,8 +22,8 @@ class EWP_WP_Content_Installer
 
   public function init()
   {
-    register_activation_hook(sbp_path . 'extend-wp.php', array($this, 'activate'));
-    register_deactivation_hook(sbp_path . 'extend-wp.php', array($this, 'deactivate'));
+    register_activation_hook(awm_path . 'extend-wp.php', array($this, 'activate'));
+    register_deactivation_hook(awm_path . 'extend-wp.php', array($this, 'deactivate'));
     add_action('init', [$this, 'register_post_types'], 0);
     add_action('init', [$this, 'register_taxonomies'], 0);
     add_filter('init', [$this, 'connect_post_types_taxonomies'], 90);
@@ -106,7 +106,7 @@ class EWP_WP_Content_Installer
     $slugs = array();
     if (!empty($this->post_types)) {
       foreach ($this->post_types as $n) {
-        if (isset($n['sbp_custom_template']) && $n['sbp_custom_template']) {
+        if (isset($n['flx_custom_template']) && $n['flx_custom_template']) {
           $slugs[$n['post']] = $n['sn'];
         }
       }
@@ -151,7 +151,7 @@ class EWP_WP_Content_Installer
   {
     if (!empty($this->post_types)) {
       foreach ($this->post_types as $post_type) {
-        if (isset($post_type['sbp_custom_template']) && $post_type['sbp_custom_template']) {
+        if (isset($post_type['flx_custom_template']) && $post_type['flx_custom_template']) {
           register_sidebars(
             1,
             array(
@@ -330,9 +330,9 @@ class EWP_WP_Content_Installer
     if (!empty($types)) {
       foreach ($types as $type) {
         $extra_sl = isset($type['extra_slug']) ? '/%' . $type['extra_slug'] . '%' : '';
-        $extra_sl = apply_filters('sbp_extra_slug_filter', $extra_sl);
+        $extra_sl = apply_filters('flx_extra_slug_filter', $extra_sl);
         $general_slug = isset($type['slug']) ? $type['slug'] : $type['post'];
-        $chk = isset($type['sbp_custom_template']) ? true : false;
+        $chk = isset($type['flx_custom_template']) ? true : false;
         $labels = $args = array();
         $type['sn'] = ucwords(($type['sn']));
         $labels = array(
@@ -358,7 +358,7 @@ class EWP_WP_Content_Installer
           'show_in_nav_menus' => $chk,
           'show_ui' => true,
           'has_archive' => $chk,
-          'show_in_menu' => isset($type['sbp_show_in_menu']) ? 'edit.php?post_type=' . $type['sbp_show_in_menu'] : true,
+          'show_in_menu' => isset($type['flx_show_in_menu']) ? 'edit.php?post_type=' . $type['flx_show_in_menu'] : true,
           'exclude_from_search' => !$chk,
           'capability_type' => $type['post'],
           'capabilities' => ewp_create_caps($type['post']),
@@ -372,7 +372,7 @@ class EWP_WP_Content_Installer
           ),
           'query_var' => true,
           'supports' => $type['args'],
-          'show_in_rest' => isset($type['sbp_rest']) ? $type['sbp_rest'] : $chk,
+          'show_in_rest' => isset($type['flx_rest']) ? $type['flx_rest'] : $chk,
         );
         if ($extra_sl != '') {
           $args['has_archive'] = $general_slug;

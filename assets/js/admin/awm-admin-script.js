@@ -352,7 +352,7 @@ function awm_options_rest_call(form, endpoint, callback, method) {
         callback: callback,
         loading: '#awm-rest-options-results',
     }
-    sbp_js_update_ajax_call(defaults);
+    flx_js_update_ajax_call(defaults);
 }
 /**
  * with this function we show the rest data of the call

@@ -681,7 +681,7 @@ if (!function_exists('awm_show_content')) {
                                 $msg[] = '<div class="' . implode(' ', $label_class) . '" data-input="' . $original_meta_id . '" data-type="' . $a['case'] . '" ' . $labelAttrs . ' id="awm-element-' . $original_meta_id . '">';
                                 $msg[] = $ins;
                                 if (is_admin() && isset($a['information']) && !empty($a['information'])) {
-                                    $msg[] = '<div class="sbp-tippy-admin-message"><span class="sbp_icon sbp-icon-gps" data-message="' . $a['information'] . '"></span></div>';
+                                    $msg[] = '<div class="flx-tippy-admin-message"><span class="flx_icon flx-icon-gps" data-message="' . $a['information'] . '"></span></div>';
                                 }
                                 $msg[] = '</div>';
                                 break;
