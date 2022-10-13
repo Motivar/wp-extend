@@ -121,9 +121,11 @@ class EWP_WP_Content_Installer
       return;
     }
     foreach ($slugs as $slug => $title) {
+      $updated = false;
       /*check if updated*/
       if (isset($_POST[$slug . '_slug'])) {
         update_option($slug . '_slug', sanitize_title_with_dashes($_POST[$slug . '_slug']), false);
+        $updated = true;
       }
       /*register the setting*/
       add_settings_field(
@@ -136,6 +138,10 @@ class EWP_WP_Content_Installer
         'permalink',
         'optional'
       );
+    }
+    if ($updated) {
+      wp_cache_flush();
+      awm_delete_transient_all();
     }
   }
 
