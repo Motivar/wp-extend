@@ -9,6 +9,13 @@ class Change_Version
 
    public function __construct()
    {
+      add_action('plugins_loaded', function () {
+         if (isset($_REQUEST['ewp_delete_trans'])) {
+            wp_cache_flush();
+            awm_delete_transient_all();
+            die();
+         }
+      });
       add_action('admin_init', array($this, 'awm_sync'));
    }
 

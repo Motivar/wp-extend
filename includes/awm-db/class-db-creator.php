@@ -113,7 +113,7 @@ class AWM_DB_Creator
      * @see orderBy
      */
 
-    public static function get_filox_db_data($tableName, $select = '*', $where_clause = '', $orderBy = array(), $limit = '', $offset = 0, $prepare_only = false, $debug = false)
+    public static function get_db_data($tableName, $select = '*', $where_clause = '', $orderBy = array(), $limit = '', $offset = 0, $prepare_only = false, $debug = false)
     {
         if (isset($tableName) && isset($select)) {
             // This is the format of the array to be passed in this function. Once the functionality is tested it will be removed from this function and transfered into proper documentation
@@ -170,7 +170,7 @@ class AWM_DB_Creator
 
 
 
-    public static function insert_filox_db_data($tableName, $data, $primary_key = 'id')
+    public static function insert_db_data($tableName, $data, $primary_key = 'id')
     {
         if ($tableName && $data && !empty($data)) {
             // Call wpdb to get accest to table prefix
@@ -200,7 +200,7 @@ class AWM_DB_Creator
      * @see where_clause (To be implemented after testing)
      */
 
-    public static function update_filox_db_data($tableName, $updateClause, $where_clause = '')
+    public static function update_db_data($tableName, $updateClause, $where_clause = '')
     {
         // Check that the parametrs are valid
         if (isset($tableName) && isset($updateClause) && isset($where_clause)) {
@@ -234,7 +234,7 @@ class AWM_DB_Creator
      * @see where_clause (To be implemented after testing)
      */
 
-    public static function delete_filox_db_data($tableName, $where_clause = '')
+    public static function delete_db_data($tableName, $where_clause = '')
     {
         // Call wpdb to get the table prexix
         global $wpdb;
@@ -262,10 +262,10 @@ class AWM_DB_Creator
      * 
      * @see where_clause (To be implemented after testing)
      */
-    public static function insert_update_filox_db_data($tableName, $data, $where_clause, $unique = false)
+    public static function insert_update_db_data($tableName, $data, $where_clause, $unique = false)
     {
         if (!empty($tableName)) {
-            $results = self::get_filox_db_data($tableName, '*', $where_clause);
+            $results = self::get_db_data($tableName, '*', $where_clause);
             if (!empty($results)) {
                 if ($unique) {
                     foreach ($results as $result_key => $result) {
@@ -280,14 +280,14 @@ class AWM_DB_Creator
                                     ),
                                 )
                             );
-                            self::delete_filox_db_data($tableName, $d_where_clause);
+                            self::delete_db_data($tableName, $d_where_clause);
                         }
                     }
                 }
-                return self::update_filox_db_data($tableName, $data, $where_clause);
+                return self::update_db_data($tableName, $data, $where_clause);
             }
 
-            return self::insert_filox_db_data($tableName, $data, $unique ?: '');
+            return self::insert_db_data($tableName, $data, $unique ?: '');
         }
         return false;
     }

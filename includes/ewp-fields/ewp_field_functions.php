@@ -7,7 +7,7 @@ if (!defined('ABSPATH')) {
 if (!function_exists('awm_get_library_values')) {
   /**
    * get values for a library of metas/options
-   * @param int/string $post_id, the post id of the awm-library either the callback for all the metas
+   * @param int|string $post_id, the post id of the awm-library either the callback for all the metas
    * @param strings $case post/term/user/option
    * 
    * @return array an array with keys as meta_keys and values as meta_values
@@ -475,7 +475,6 @@ if (!function_exists('awm_create_boxes')) {
    */
   function awm_create_boxes($case, $awm_fields)
   {
-
     if (empty($awm_fields) || empty($case)) {
       return array();
     }
@@ -489,7 +488,7 @@ if (!function_exists('awm_create_boxes')) {
             'context' =>  isset($awm_field['position']['context']) ? $awm_field['position']['context'] : 'normal',
             'priority' =>  isset($awm_field['position']['priority'])  ? $awm_field['position']['priority'] : 100,
             'library' => awm_create_library($awm_field),
-            'explanation' => $awm_field['explanation'],
+            'explanation' => isset($awm_field['explanation']) ? $awm_field['explanation'] : '',
           );
           break;
         case 'taxonomy':
@@ -497,7 +496,7 @@ if (!function_exists('awm_create_boxes')) {
             'title' => __($awm_field['content_title'], 'extend-wp'),
             'taxonomies' => $awm_field['position']['taxonomies'],
             'library' => awm_create_library($awm_field),
-            'explanation' => $awm_field['explanation'],
+            'explanation' => isset($awm_field['explanation']) ? $awm_field['explanation'] : '',
           );
           break;
         case 'options':
@@ -509,14 +508,14 @@ if (!function_exists('awm_create_boxes')) {
             'submit_label' => !empty($awm_field['position']['submit_label']) ? $awm_field['position']['submit_label'] : '',
             'cap' => isset($awm_field['position']['cap']) ? $awm_field['position']['cap'] : '',
             'disable_register' => isset($awm_field['position']['disable_register']) ? $awm_field['position']['disable_register'] : false,
-            'explanation' => $awm_field->explanation,
+            'explanation' => isset($awm_field['explanation']) ? $awm_field['explanation'] : '',
           );
           break;
         case 'user':
           $boxes[$id] = array(
             'title' => __($awm_field['content_title'], 'extend-wp'),
             'library' => awm_create_library($awm_field),
-            'explanation' => $awm_field['explanation'],
+            'explanation' => isset($awm_field['explanation']) ? $awm_field['explanation'] : '',
           );
           break;
       }

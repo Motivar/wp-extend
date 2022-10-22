@@ -65,6 +65,7 @@ class Extend_WP_WP_Content
    return $cached;
   }
   $post_types = awm_get_db_content('ewp_post_types');
+  $types = array();
   if (!empty($post_types)) {
    foreach ($post_types as $post) {
     $metas = awm_get_db_content_meta('ewp_post_types', $post['content_id']);

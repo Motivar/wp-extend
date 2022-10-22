@@ -62,7 +62,7 @@ if (!function_exists('awm_get_db_content')) {
           )
         );
       }
-      $inner_query = AWM_DB_Creator::get_filox_db_data($field . '_data', array('content_id'), $meta_where_clause, '', '', 0, true);
+      $inner_query = AWM_DB_Creator::get_db_data($field . '_data', array('content_id'), $meta_where_clause, '', '', 0, true);
 
       $wheres[] = array('column' => 'content_id', 'value' =>  '(' . $inner_query . ')', 'compare' => 'IN');
     }
@@ -81,7 +81,7 @@ if (!function_exists('awm_get_db_content')) {
         )
       );
     }
-    $results = AWM_DB_Creator::get_filox_db_data($field . '_main', $query_args['fields'], $where_clause, $query_args['order_by'], $query_args['limit'], 0);
+    $results = AWM_DB_Creator::get_db_data($field . '_main', $query_args['fields'], $where_clause, $query_args['order_by'], $query_args['limit'], 0);
 
 
     return $results;
@@ -114,7 +114,7 @@ if (!function_exists('awm_get_db_content_meta')) {
       $single = true;
     }
     $return = array();
-    $results = AWM_DB_Creator::get_filox_db_data($table . '_data', $retrieve, $where_clause);
+    $results = AWM_DB_Creator::get_db_data($table . '_data', $retrieve, $where_clause);
     if (empty($results)) {
       return false;
     }

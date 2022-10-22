@@ -1,5 +1,4 @@
 <?php
-
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -20,7 +19,7 @@ if (!function_exists('awm_parse_template')) {
      * with this function we get the content of php templates
      * @param $file string the path to the file
      * 
-     * @return $content html 
+     * @return string $content 
      */
     function awm_parse_template($file)
     {

@@ -94,8 +94,8 @@ class AWM_Add_Custom_List
 
       $this->pagehook = add_submenu_page(
         !$args['show_new'] ? null : $parent,
-        sprintf(__('New %s', 'awm'), $args['list_name_singular']),
-        sprintf(__('New %s', 'awm'), $args['list_name_singular']),
+        sprintf(__('New %s', 'extend-wp'), $args['list_name_singular']),
+        sprintf(__('New %s', 'extend-wp'), $args['list_name_singular']),
         $args['capability'],
         $id . '_form',
         function () use ($args) {
@@ -121,7 +121,7 @@ class AWM_Add_Custom_List
   public function save_page()
   {
     /*save function*/
-    if (isset($_POST['flx_list_page_hook_nonce']) && wp_verify_nonce($_POST['flx_list_page_hook_nonce'], $this->page_hook) && !empty($this->save_callback)) {
+    if (isset($_POST['ewp_list_page_hook_nonce']) && wp_verify_nonce($_POST['ewp_list_page_hook_nonce'], $this->page_hook) && !empty($this->save_callback)) {
       $id = call_user_func_array($this->save_callback, array($_POST, $this->save_callback_args));
       do_action($this->custom_id . '_save_action', $id, array($_POST, $this->save_callback_args));
       wp_redirect($this->page_link . '_form&id=' . $id . '&updated=1');
@@ -163,24 +163,26 @@ class AWM_Add_Custom_List
 
     if (!empty($metaboxes)) {
       foreach ($metaboxes as $metaBoxKey => $metaBoxData) {
-        $metaBoxData['library'] = awm_callback_library(awm_callback_library_options($metaBoxData), $metaBoxKey);
-        if (!empty($metaBoxData['library'])) {
-          $metaBoxData['post'] = isset($_REQUEST['id']) ? $_REQUEST['id'] : '';;
-          $metaBoxData['id'] = $metaBoxKey;
-          add_meta_box(
-            $metaBoxKey,
-            $metaBoxData['title'], // $title
-            function () use ($metaBoxData) {
-              $view = isset($metaBoxData['view']) ? $metaBoxData['view'] : 'post';
-              $metaBoxData['library']['awm-id'] = $metaBoxData['id'];
-              echo apply_filters('awm_add_meta_boxes_filter_content', awm_show_content($metaBoxData['library'], $metaBoxData['post'], $view), $metaBoxData['id']);
-              echo '<input type="hidden" name="awm_metabox[]" value="' . $metaBoxData['id'] . '"/>';
-              echo '<input type="hidden" name="awm_metabox_case" value="post"/>';
-            },
-            $this->page_hook, // $page
-            $metaBoxData['context'], // $context
-            $metaBoxData['priority'] // $priority
-          );
+        if ($metaBoxKey != 'basics') {
+          $metaBoxData['library'] = awm_callback_library(awm_callback_library_options($metaBoxData), $metaBoxKey);
+          if (!empty($metaBoxData['library'])) {
+            $metaBoxData['post'] = isset($_REQUEST['id']) ? $_REQUEST['id'] : '';;
+            $metaBoxData['id'] = $metaBoxKey;
+            add_meta_box(
+              $metaBoxKey,
+              $metaBoxData['title'], // $title
+              function () use ($metaBoxData) {
+                $view = isset($metaBoxData['view']) ? $metaBoxData['view'] : 'post';
+                $metaBoxData['library']['awm-id'] = $metaBoxData['id'];
+                echo apply_filters('awm_add_meta_boxes_filter_content', awm_show_content($metaBoxData['library'], $metaBoxData['post'], $view), $metaBoxData['id']);
+                echo '<input type="hidden" name="awm_metabox[]" value="' . $metaBoxData['id'] . '"/>';
+                echo '<input type="hidden" name="awm_metabox_case" value="post"/>';
+              },
+              $this->page_hook, // $page
+              $metaBoxData['context'], // $context
+              $metaBoxData['priority'] // $priority
+            );
+          }
         }
       }
       add_meta_box(
@@ -198,15 +200,18 @@ class AWM_Add_Custom_List
 
   public function update_box($data)
   {
+    $metaboxes = $this->meta_boxes;
 
     $id = isset($_REQUEST['id']) ? $_REQUEST['id'] : '';
-
-    $delete_button = $id != '' ? '<a class="submitdelete deletion" href="' . wp_nonce_url(admin_url($this->page_link . '&id=' . $id . '&action=delete'), $this->page_id . '_delete') . '">' . __('Delete ', 'awm') . '</a>' : '';
-    return '<div class="submitbox"><div id="major-publishing-actions">
+    $save_text = $id != '' ? __('Update', 'extend-wp') : __('Save', 'extend-wp');
+    $delete_button = $id != '' ? '<a class="submitdelete deletion" href="' . wp_nonce_url(admin_url($this->page_link . '&id=' . $id . '&action=delete'), $this->page_id . '_delete') . '">' . __('Delete ', 'extend-wp') . '</a>' : '';
+    return '<div class="submitbox"><div id="major-publishing-actions">' . awm_show_content(array('status' => $metaboxes['basics']['library']['status']), $id, $metaboxes['basics']['view']) . '
+    <div>
         <div id="delete-action">' . $delete_button . '</div>
         <div id="publishing-action">
         <span class="spinner"></span>
-                <input name="save" type="submit" class="button button-primary button-large" id="publish" value="' . __('Update', 'extend-wp') . '">
+                <input name="save" type="submit" class="button button-primary button-large" id="publish" value="' . $save_text . '">
+        </div>
         </div>
         <div class="clear"></div>
         </div>

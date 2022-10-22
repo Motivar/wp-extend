@@ -23,7 +23,7 @@ if (!function_exists('awm_get_field_value')) {
      * get awm value for fields
      * @param string $view the view to user
      * @param array $fields all the fields
-     * @param int/string/array $id the post_id,term_id
+     * @paramint|string|array $id the post_id,term_id
      * @param string $original_meta the meta which used
      */
     function awm_get_field_value($view, $fields, $id, $original_meta)

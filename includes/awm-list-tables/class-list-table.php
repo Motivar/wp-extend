@@ -14,7 +14,7 @@ require_once 'class-list-form.php';
 
 /**
  *
- * @author      Motivar
+ * @author      Filox
  *
  * @version     0.0.1a * 
  * 
@@ -370,7 +370,7 @@ class AWM_List_Table extends WP_List_Table
 
         $order = (isset($_REQUEST['order']) && in_array($_REQUEST['order'], array('asc', 'desc'))) ? $_REQUEST['order'] : 'asc';
 
-        $this->items = AWM_DB_Creator::get_filox_db_data($this->table_name, '*', '', array('column' => $order_by, 'type' => $order), $per_page, $paged);
+        $this->items = AWM_DB_Creator::get_db_data($this->table_name, '*', '', array('column' => $order_by, 'type' => $order), $per_page, $paged);
 
         if ($this->is_data_encrypted) {
             $this->items = $this->decrypt_data($this->items);

@@ -79,7 +79,7 @@ class AWM_Add_Content_DB_Setup
             ),
           )
         );
-        $results = AWM_DB_Creator::get_filox_db_data($this->table_name_meta, array('meta_value'), $where_clause, '', 1);
+        $results = AWM_DB_Creator::get_db_data($this->table_name_meta, array('meta_value'), $where_clause, '', 1);
 
         if (isset($results[0]['meta_value']) && !empty($results[0]['meta_value'])) {
           $data = maybe_unserialize(maybe_unserialize($results[0]['meta_value']));
@@ -98,7 +98,7 @@ class AWM_Add_Content_DB_Setup
             ),
           )
         );
-        $results = AWM_DB_Creator::get_filox_db_data($view, '*', $where_clause);
+        $results = AWM_DB_Creator::get_db_data($view, '*', $where_clause);
 
         if (isset($results[0][$original_meta]) && !empty($results[0][$original_meta])) {
           $data = maybe_unserialize($results[0][$original_meta]);
@@ -182,7 +182,7 @@ class AWM_Add_Content_DB_Setup
   {
 
     $metaboxes = array(
-      $this->content_id . '_basics' => array(
+      'basics' => array(
         'title' => __('Basics', 'filox'),
         'context' => 'normal',
         'priority' => 'high',
@@ -192,6 +192,7 @@ class AWM_Add_Content_DB_Setup
             'type' => 'text',
             'label' => __('Title', 'awm'),
             'label_class' => array('awm-needed'),
+            'attributes' => array('placeholder' => __('add your title', 'extend-wp'))
           ),
           'status' => array(
             'case' => 'select',
@@ -301,7 +302,7 @@ if (!function_exists('awm_custom_content_save')) {
     );
 
     if (!$id) {
-      $result = AWM_DB_Creator::insert_filox_db_data(
+      $result = AWM_DB_Creator::insert_db_data(
         $args['main'],
         $update_data,
         'content_id'
@@ -321,7 +322,7 @@ if (!function_exists('awm_custom_content_save')) {
           ),
         )
       );
-      AWM_DB_Creator::update_filox_db_data($args['main'], $update_data, $where_clause);
+      AWM_DB_Creator::update_db_data($args['main'], $update_data, $where_clause);
     }
 
     foreach ($configuration as $key => $value) {
@@ -338,7 +339,7 @@ if (!function_exists('awm_custom_content_save')) {
       );
       // Sanitize all required data given in by the user
 
-      $result = AWM_DB_Creator::insert_update_filox_db_data(
+      $result = AWM_DB_Creator::insert_update_db_data(
         $args['meta'],
         array(
           "content_id" => $id,
