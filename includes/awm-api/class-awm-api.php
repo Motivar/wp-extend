@@ -73,7 +73,36 @@ class AWM_API extends WP_REST_Controller
         }
       )
     ));
+
+    register_rest_route($this->namespace, "/awm-map-options/", array(
+      array(
+        "methods" => WP_REST_Server::READABLE,
+        "callback" => array($this, 'awm_map_options_func'),
+        "permission_callback" => function () {
+          return true;
+        }
+      )
+    ));
   }
+
+  public function awm_map_options_func($request)
+  {
+    if (isset($request)) {
+      $options = array();
+      $options['key'] = '';
+      $options['lat'] = '39.0742';
+      $options['lng'] = '21.8243';
+      $options['map_options'] = array(
+        'zoom' => 12,
+      );
+      $options = apply_filters('awm_map_options_func_filter', $options);
+      return rest_ensure_response(new WP_REST_Response($options), 200);
+    }
+    return rest_ensure_response(new WP_REST_Response(__('No options detected', 'extend-wp')), 401);
+  }
+
+
+
 
   public function ewp_get_php($request)
   {

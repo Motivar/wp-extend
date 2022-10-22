@@ -5,7 +5,6 @@ if (!defined('ABSPATH')) {
 }
 
 include 'library.php';
-include 'rest_api.php';
 include 'admin/functions.php';
 include 'transient_functions.php';
 
