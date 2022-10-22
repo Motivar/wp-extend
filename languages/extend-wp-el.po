@@ -1,0 +1,948 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Extend WP\n"
+"POT-Creation-Date: 2022-10-22 18:11+0300\n"
+"PO-Revision-Date: 2022-10-22 18:15+0300\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: el\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.1\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-Flags-xgettext: --add-comments=translators:\n"
+"X-Poedit-WPHeader: extend-wp.php\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-KeywordsList: __;_e;_n:1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;esc_attr__;"
+"esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;_n_noop:1,2;"
+"_nx_noop:3c,1,2;__ngettext_noop:1,2\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-SearchPathExcluded-0: *.min.js\n"
+
+#: includes/awm-api/class-awm-api.php:129
+msgid "No options detected"
+msgstr "Δεν βρέθηκαν επιλογές"
+
+#: includes/awm-content-db-api/class-content-setup.php:160
+#, fuzzy
+msgid "Public"
+msgstr "Δημόσιο"
+
+#: includes/awm-content-db-api/class-content-setup.php:160
+#, fuzzy
+msgid "Private"
+msgstr "Ιδιωτικό"
+
+#: includes/awm-content-db-api/class-content-setup.php:186
+#, fuzzy
+msgid "Basics"
+msgstr "Βασικά"
+
+#: includes/awm-content-db-api/class-content-setup.php:193
+#: includes/awm-content-db-api/class-content-setup.php:242
+#: includes/ewp-fields/ewp_field_functions.php:606
+#: includes/ewp-fields/ewp_field_functions.php:640
+#: templates/admin-view/edit-post.php:51
+#, fuzzy
+msgid "Title"
+msgstr "Τίτλος"
+
+#: includes/awm-content-db-api/class-content-setup.php:195
+#: templates/admin-view/edit-post.php:53
+msgid "add your title"
+msgstr "τίτλος"
+
+#: includes/awm-content-db-api/class-content-setup.php:199
+#, fuzzy
+msgid "Status"
+msgstr "Κατάσταση"
+
+#. Plugin Name of the plugin/theme
+#: includes/awm-content-db-api/class-defaults.php:19
+msgid "Extend WP"
+msgstr ""
+
+#: includes/awm-customizer/class-customizer.php:28
+msgid "nikos"
+msgstr ""
+
+#: includes/awm-customizer/class-customizer.php:31
+msgid "Add custom CSS here"
+msgstr ""
+
+#: includes/awm-customizer/class-customizer.php:109
+#, fuzzy
+msgid "Website Logo"
+msgstr "Ιστοσελίδα"
+
+#: includes/awm-db/class-db-creator.php:80
+#, php-format
+msgid "Table \"%s\" just updated! Current versions is %s."
+msgstr "O πίνακας \"%s\" μόλις ενημερώθηκε! Η τρέχουσα έκδοση είναι %s."
+
+#: includes/awm-db/class-db-creator.php:87
+#, php-format
+msgid "Table \"%s\" not udpated! The error is: <strong>%s</strong>."
+msgstr "Ο πίνακας “%s” δεν ενημερώθηκε! Το σφάλμα είναι: <strong>%s</strong>."
+
+#: includes/awm-list-tables/class-list-form.php:37
+msgid "Content updated"
+msgstr "Το περιεχόμενο ενημερώθηκε"
+
+#: includes/awm-list-tables/class-list-form.php:97
+#: includes/awm-list-tables/class-list-form.php:98
+#: includes/awm-list-tables/functions.php:103
+#: includes/ewp-wp-content/class-wp-content-installer.php:301
+#: includes/ewp-wp-content/class-wp-content-installer.php:302
+#: includes/ewp-wp-content/class-wp-content-installer.php:348
+#: includes/ewp-wp-content/class-wp-content-installer.php:349
+#: includes/ewp-wp-content/class-wp-content-installer.php:352
+#: templates/admin-view/edit-post.php:27
+#, fuzzy, php-format
+msgid "New %s"
+msgstr "Νέο %s"
+
+#: includes/awm-list-tables/class-list-form.php:190
+msgid "Update actions"
+msgstr ""
+
+#: includes/awm-list-tables/class-list-form.php:206
+#, fuzzy
+msgid "Update"
+msgstr "Ενημέρωση"
+
+#: includes/awm-list-tables/class-list-form.php:206
+#, fuzzy
+msgid "Save"
+msgstr "Αποθήκευση"
+
+#: includes/awm-list-tables/class-list-form.php:207
+msgid "Delete "
+msgstr "Διαγραφή"
+
+#: includes/awm-list-tables/class-list-table.php:116
+#, fuzzy
+msgid "Filter"
+msgstr "Φίλτρο"
+
+#: includes/awm-list-tables/class-list-table.php:220
+#: includes/awm-list-tables/class-list-table.php:246
+#: includes/ewp-wp-content/class-wp-content-installer.php:350
+#, fuzzy
+msgid "Edit"
+msgstr "Επεξεργασία"
+
+#: includes/awm-list-tables/class-list-table.php:221
+#: includes/awm-list-tables/class-list-table.php:247
+#: includes/awm-list-tables/class-list-table.php:304
+#, fuzzy
+msgid "Delete"
+msgstr "Διαγραφή"
+
+#: includes/awm-list-tables/functions.php:91
+#, php-format
+msgid "Items deleted: %d"
+msgstr "Στοιχεία διαγράφησαν: %d"
+
+#: includes/ewp-fields/class-field.php:39
+#: includes/ewp-wp-content/class-wp-content.php:113
+#: includes/ewp-wp-content/class-wp-content.php:145
+#, fuzzy
+msgid "Enabled"
+msgstr "Ενεργοποιήθηκε"
+
+#: includes/ewp-fields/class-field.php:40
+#: includes/ewp-wp-content/class-wp-content.php:114
+#: includes/ewp-wp-content/class-wp-content.php:146
+#, fuzzy
+msgid "Disabled"
+msgstr "Απενεργοποιημένο"
+
+#: includes/ewp-fields/class-field.php:43
+#: includes/ewp-fields/ewp_field_functions.php:232
+#, fuzzy
+msgid "Fields"
+msgstr "Πεδία"
+
+#: includes/ewp-fields/class-field.php:44
+#: includes/ewp-fields/ewp_field_functions.php:231
+#, fuzzy
+msgid "Field"
+msgstr "Πεδίο"
+
+#: includes/ewp-fields/class-field.php:57
+msgid "Fields Configuration"
+msgstr "Ρύθμιση πεδίων"
+
+#: includes/ewp-fields/class-field.php:66
+msgid "Fields Position"
+msgstr "Θέση πεδίων"
+
+#: includes/ewp-fields/class-field.php:74
+msgid "Php usage"
+msgstr "Κωδικός pap"
+
+#: includes/ewp-fields/class-field.php:82
+msgid "Fields Usage"
+msgstr "Χρήση πεδίων"
+
+#: includes/ewp-fields/class-field.php:91
+msgid "Developer notes"
+msgstr "Οδηγίες για developers"
+
+#: includes/ewp-fields/ewp_field_functions.php:236
+#, fuzzy
+msgid "Meta key"
+msgstr "Κλειδί Meta"
+
+#: includes/ewp-fields/ewp_field_functions.php:242
+msgid "Meta label"
+msgstr "Ετικέτα mega"
+
+#: includes/ewp-fields/ewp_field_functions.php:248
+#, fuzzy
+msgid "Field type"
+msgstr "Τύπος πεδίου"
+
+#: includes/ewp-fields/ewp_field_functions.php:255
+msgid "Field type configuration"
+msgstr "Ρύθμιση τύπου πεδίου"
+
+#: includes/ewp-fields/ewp_field_functions.php:262
+#, fuzzy
+msgid "Attributes"
+msgstr "Χαρακτηριστικά"
+
+#: includes/ewp-fields/ewp_field_functions.php:263
+msgid "like min=0 / onchange=action etc"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:266
+#: includes/ewp-fields/ewp_field_functions.php:362
+#, fuzzy
+msgid "Attribute"
+msgstr "Χαρακτηριστικό"
+
+#: includes/ewp-fields/ewp_field_functions.php:269
+#: includes/ewp-fields/ewp_field_functions.php:365
+msgid "Attribute label"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:274
+#: includes/ewp-fields/ewp_field_functions.php:370
+msgid "Attribute value"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:281
+#, fuzzy
+msgid "Class"
+msgstr "Τάξη"
+
+#: includes/ewp-fields/ewp_field_functions.php:284
+#: includes/ewp-fields/ewp_field_functions.php:381
+msgid "Seperated with (,) comma"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:287
+#, fuzzy
+msgid "Required"
+msgstr "Απαιτείται"
+
+#: includes/ewp-fields/ewp_field_functions.php:292
+msgid "Show in admin list"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:297
+#, fuzzy
+msgid "Auto translate"
+msgstr "Αυτόματη μετάφραση"
+
+#: includes/ewp-fields/ewp_field_functions.php:302
+#, fuzzy
+msgid "Order"
+msgstr "Παραγγελία"
+
+#: includes/ewp-fields/ewp_field_functions.php:307
+msgid "User message"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:310
+msgid "Guidelines for the user"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:328
+msgid "Type of usage"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:332
+msgid "Simple inputs"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:334
+#, fuzzy
+msgid "Repeater"
+msgstr "Επαναληπτικός"
+
+#: includes/ewp-fields/ewp_field_functions.php:340
+msgid "Repeater Meta key"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:347
+msgid "Repeater item"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:353
+msgid "Repeater Meta label"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:360
+msgid "Repeater Attributes"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:378
+msgid "Repeater Class"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:385
+msgid "Repeater Order"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:391
+msgid "Input box explanation"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:407
+msgid "How to get variables"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:409
+msgid ""
+"Depending on your fields position choice, you can use the ordinary WordPress "
+"functions like get_post_meta, get_term_meta, get_user_meta, get_option with "
+"the <b>Meta Key</b> specified."
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:409
+msgid ""
+"If you want to get all the variables at once you can use the function "
+"<b>awm_get_library_values($awm_field_id,$case,$post_id)"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:413
+msgid "How to apply_filters in admin view"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:415
+msgid ""
+"You can use the filter 'awm_create_library_filter', with variables:$metas, "
+"$awm_field_id where:<br><strong>$metas</strong>=then array with the field "
+"structure<br><strong>$awm_field_id</strong> =the post id of this screen</"
+"div></div>"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:430
+msgid "Show php code"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:434
+msgid "Php code"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:536
+#: includes/ewp-fields/ewp_field_functions.php:541
+#, fuzzy
+msgid "Position"
+msgstr "Θέση"
+
+#: includes/ewp-fields/ewp_field_functions.php:537
+#, fuzzy
+msgid "Positions"
+msgstr "Θέσεις"
+
+#: includes/ewp-fields/ewp_field_functions.php:548
+msgid "Position configuration"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:566
+#, fuzzy
+msgid "Post Type"
+msgstr "Τύπος Δημοσίευσης"
+
+#: includes/ewp-fields/ewp_field_functions.php:569
+#: includes/ewp-fields/ewp_field_functions.php:797
+#: includes/ewp-wp-content/class-wp-content.php:117
+#: includes/ewp-wp-content/class-wp-content.php:310
+#, fuzzy
+msgid "Post types"
+msgstr "Τύποι Άρθρων"
+
+#: includes/ewp-fields/ewp_field_functions.php:575
+#, fuzzy
+msgid "Context"
+msgstr "Γενικό πλαίσιο"
+
+#: includes/ewp-fields/ewp_field_functions.php:579
+#, fuzzy
+msgid "Normal"
+msgstr "Κανονικό"
+
+#: includes/ewp-fields/ewp_field_functions.php:580
+#, fuzzy
+msgid "Side"
+msgstr "Πλευρά"
+
+#: includes/ewp-fields/ewp_field_functions.php:584
+#, fuzzy
+msgid "Priority"
+msgstr "Προτεραιότητα"
+
+#: includes/ewp-fields/ewp_field_functions.php:588
+#, fuzzy
+msgid "High"
+msgstr "Υψηλή"
+
+#: includes/ewp-fields/ewp_field_functions.php:589
+#, fuzzy
+msgid "Low"
+msgstr "Χαμηλός"
+
+#: includes/ewp-fields/ewp_field_functions.php:593
+#: includes/ewp-wp-content/class-wp-content.php:150
+#, fuzzy
+msgid "Taxonomy"
+msgstr "Ταξινόμηση"
+
+#: includes/ewp-fields/ewp_field_functions.php:596
+#: includes/ewp-fields/ewp_field_functions.php:734
+#: includes/ewp-fields/ewp_field_functions.php:772
+#: includes/ewp-wp-content/class-wp-content.php:149
+#, fuzzy
+msgid "Taxonomies"
+msgstr "Ταξινομήσεις"
+
+#: includes/ewp-fields/ewp_field_functions.php:602
+msgid "User profile"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:603
+msgid "New options page"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:612
+#: includes/ewp-fields/ewp_field_functions.php:646
+msgid "Position <small>(leave empty for dedicated page)</small>"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:617
+#: includes/ewp-fields/ewp_field_functions.php:651
+msgid "User cap"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:622
+msgid "Hide submit"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:627
+#, fuzzy
+msgid "Submit label"
+msgstr "Υποβολή ετικέτας"
+
+#: includes/ewp-fields/ewp_field_functions.php:632
+msgid "Disable register settings"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:637
+msgid "Customizer pages"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:657
+msgid "Existing meta fields"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:659
+msgid "Select meta libraries"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:685
+msgid "Post type metabox"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:688
+msgid "User metabox"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:691
+msgid "Taxonomy metabox"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:694
+msgid "Option metabox"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:716
+#, fuzzy
+msgid "Input"
+msgstr "Εισαγωγή"
+
+#: includes/ewp-fields/ewp_field_functions.php:718
+#, fuzzy
+msgid "Input type"
+msgstr "Τύπος εισαγωγής"
+
+#: includes/ewp-fields/ewp_field_functions.php:724
+#, fuzzy
+msgid "Select"
+msgstr "Επιλογή"
+
+#: includes/ewp-fields/ewp_field_functions.php:725
+#, fuzzy
+msgid "Textarea"
+msgstr "Περιοχή κειμένου"
+
+#: includes/ewp-fields/ewp_field_functions.php:726
+#, fuzzy
+msgid "Image"
+msgstr "Εικόνα"
+
+#: includes/ewp-fields/ewp_field_functions.php:727
+#: includes/ewp-fields/ewp_field_functions.php:767
+#: includes/ewp-fields/ewp_field_functions.php:792
+#, fuzzy
+msgid "Radio"
+msgstr "Κουμπί Επιλογής"
+
+#: includes/ewp-fields/ewp_field_functions.php:728
+#: includes/ewp-fields/ewp_field_functions.php:768
+#: includes/ewp-fields/ewp_field_functions.php:793
+msgid "Multiple checkbox"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:729
+#, fuzzy
+msgid "Date"
+msgstr "Ημερομηνία"
+
+#: includes/ewp-fields/ewp_field_functions.php:730
+#, fuzzy
+msgid "Map"
+msgstr "Χάρτης"
+
+#: includes/ewp-fields/ewp_field_functions.php:731
+msgid "Post type(s) Content"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:732
+msgid "Post types object"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:735
+msgid "Taxonomies object"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:736
+msgid "PHP Function"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:740
+msgid "PHP function"
+msgstr ""
+
+#: includes/ewp-fields/ewp_field_functions.php:745
+#, fuzzy
+msgid "Html"
+msgstr "Html"
+
+#: includes/ewp-fields/ewp_field_functions.php:748
+#, fuzzy
+msgid "HTML Code"
+msgstr "Κωδικός HTML"
+
+#: includes/ewp-fields/ewp_field_functions.php:763
+#: includes/ewp-fields/ewp_field_functions.php:788
+#, fuzzy
+msgid "View"
+msgstr "Προβολή"
+
+#: includes/ewp-fields/ewp_field_functions.php:766
+#: includes/ewp-fields/ewp_field_functions.php:791
+#, fuzzy
+msgid "Select box"
+msgstr "Επιλέξτε πλαίσιο"
+
+#: includes/ewp-fields/ewp_field_functions.php:815
+#, fuzzy
+msgid "Text"
+msgstr "Κείμενο"
+
+#: includes/ewp-fields/ewp_field_functions.php:816
+#, fuzzy
+msgid "Email"
+msgstr "Email"
+
+#: includes/ewp-fields/ewp_field_functions.php:817
+#, fuzzy
+msgid "Checkbox"
+msgstr "Πλαίσιο ελέγχου"
+
+#: includes/ewp-fields/ewp_field_functions.php:818
+#, fuzzy
+msgid "Url"
+msgstr "URL"
+
+#: includes/ewp-fields/ewp_field_functions.php:819
+#, fuzzy
+msgid "Number"
+msgstr "Αριθμός"
+
+#: includes/ewp-fields/ewp_field_functions.php:820
+#, fuzzy
+msgid "File"
+msgstr "Αρχείο"
+
+#: includes/ewp-fields/ewp_field_functions.php:821
+#, fuzzy
+msgid "Color"
+msgstr "Χρώμα"
+
+#: includes/ewp-fields/ewp_field_functions.php:822
+#, fuzzy
+msgid "Submit"
+msgstr "Υποβολή"
+
+#: includes/ewp-fields/ewp_field_functions.php:836
+#, fuzzy
+msgid "Options"
+msgstr "Επιλογές"
+
+#: includes/ewp-fields/ewp_field_functions.php:840
+#, fuzzy
+msgid "Value"
+msgstr "Αξία"
+
+#: includes/ewp-fields/ewp_field_functions.php:845
+#, fuzzy
+msgid "Label"
+msgstr "Ετικέτα"
+
+#: includes/ewp-wp-content/class-wp-content-installer.php:133
+#, fuzzy
+msgid " Slug"
+msgstr " Slug"
+
+#: includes/ewp-wp-content/class-wp-content-installer.php:165
+#, fuzzy, php-format
+msgid "Sidebar for %s"
+msgstr "Πλευρικό μενού για %s"
+
+#: includes/ewp-wp-content/class-wp-content-installer.php:298
+#, fuzzy, php-format
+msgid "All %s"
+msgstr "Όλα τα %s"
+
+#: includes/ewp-wp-content/class-wp-content-installer.php:299
+#, php-format
+msgid "Exit %s"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content-installer.php:300
+#, fuzzy, php-format
+msgid "Update %s"
+msgstr "Ενημέρωση %s"
+
+#: includes/ewp-wp-content/class-wp-content-installer.php:303
+#, fuzzy, php-format
+msgid "Parent %s"
+msgstr "Γονικό %s"
+
+#: includes/ewp-wp-content/class-wp-content-installer.php:304
+#, php-format
+msgid "Parent: %s"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content-installer.php:305
+#: includes/ewp-wp-content/class-wp-content-installer.php:355
+#, fuzzy, php-format
+msgid "Search %s"
+msgstr "Αναζήτηση %s"
+
+#: includes/ewp-wp-content/class-wp-content-installer.php:306
+#, fuzzy, php-format
+msgid "Popular %s"
+msgstr "Δημοφιλή %s"
+
+#: includes/ewp-wp-content/class-wp-content-installer.php:307
+#, php-format
+msgid "Update/remove %s"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content-installer.php:308
+#, fuzzy, php-format
+msgid "Select %s"
+msgstr "Επιλέξτε %s"
+
+#: includes/ewp-wp-content/class-wp-content-installer.php:351
+#, fuzzy, php-format
+msgid "Edit %s"
+msgstr "Επεξεργασία %s"
+
+#: includes/ewp-wp-content/class-wp-content-installer.php:353
+#: includes/ewp-wp-content/class-wp-content-installer.php:354
+#, fuzzy, php-format
+msgid "View %s"
+msgstr "Προβολή %s"
+
+#: includes/ewp-wp-content/class-wp-content-installer.php:356
+#, fuzzy, php-format
+msgid "No %s found"
+msgstr "Δεν βρέθηκε %s"
+
+#: includes/ewp-wp-content/class-wp-content-installer.php:357
+#, php-format
+msgid "No %s in trash"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content-installer.php:404
+#, fuzzy, php-format
+msgid "  <span class=\"count\">(%s)</span>"
+msgid_plural " <span class=\"count\">(%s)</span>"
+msgstr[0] "  <span class=\"count\">(%s)</span>"
+msgstr[1] " <span class=\"count\">(%s)</span>"
+
+#: includes/ewp-wp-content/class-wp-content.php:118
+#, fuzzy
+msgid "Post type"
+msgstr "Τύπος Άρθρου"
+
+#: includes/ewp-wp-content/class-wp-content.php:124
+msgid "Post type configuration"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:132
+msgid "User access configuration"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:156
+msgid "Taxonomy configuration"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:181
+msgid "Select user roles with full edit access"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:187
+msgid "Select user roles with restricted edit access "
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:203
+msgid "Post label"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:211
+#: includes/ewp-wp-content/class-wp-content.php:292
+msgid "Name plural"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:217
+#: includes/ewp-wp-content/class-wp-content.php:298
+msgid "Name singular"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:223
+#: includes/ewp-wp-content/class-wp-content.php:305
+msgid "Registration prefix"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:228
+msgid "Has gallery"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:234
+msgid "Is public"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:239
+msgid "Args"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:242
+#, fuzzy
+msgid "title"
+msgstr "τίτλος"
+
+#: includes/ewp-wp-content/class-wp-content.php:243
+#, fuzzy
+msgid "editor"
+msgstr "συντάκτης"
+
+#: includes/ewp-wp-content/class-wp-content.php:244
+#, fuzzy
+msgid "author"
+msgstr "συγγραφέας"
+
+#: includes/ewp-wp-content/class-wp-content.php:245
+#, fuzzy
+msgid "thumbnail"
+msgstr "μικρογραφία"
+
+#: includes/ewp-wp-content/class-wp-content.php:246
+#, fuzzy
+msgid "excerpt"
+msgstr "Μήκος αποσπάσματος σε αριθμό λέξεων."
+
+#: includes/ewp-wp-content/class-wp-content.php:247
+#, fuzzy
+msgid "trackbacks"
+msgstr "οι αναδρομές (Trackbacks)"
+
+#: includes/ewp-wp-content/class-wp-content.php:248
+msgid "custom-fields"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:249
+#, fuzzy
+msgid "comments"
+msgstr "σχόλια"
+
+#: includes/ewp-wp-content/class-wp-content.php:250
+#, fuzzy
+msgid "revisions"
+msgstr "αναθεωρήσεις"
+
+#: includes/ewp-wp-content/class-wp-content.php:251
+msgid "page-attributes"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:252
+msgid "post-formats"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:258
+msgid "Attach taxonomies"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:262
+msgid "With front (taxonomy_label)"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:267
+msgid "Desription"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:284
+msgid "Taxonomy name"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:316
+msgid "Template path"
+msgstr ""
+
+#: includes/ewp-wp-content/class-wp-content.php:319
+msgid ""
+"if you create ewp_{taxonomy_name}.php it will be used. Otherwise use path "
+"(from plugins/ or themes/). If none archive.php will be used."
+msgstr ""
+
+#: includes/gallery-meta-box/class-truongwp-gallery-meta-box.php:37
+#, fuzzy
+msgid "Thumb"
+msgstr "Χαρ. Εικόνα"
+
+#: includes/gallery-meta-box/class-truongwp-gallery-meta-box.php:85
+#, fuzzy
+msgid "Gallery"
+msgstr "Συλλογή"
+
+#: includes/gallery-meta-box/class-truongwp-gallery-meta-box.php:188
+#, fuzzy
+msgid "Set gallery images"
+msgstr "Προσθήκη εικόνων στην συλλογή"
+
+#: includes/library.php:226 includes/library.php:982
+#, fuzzy
+msgid "Yes"
+msgstr "Ναι"
+
+#: includes/library.php:226 includes/library.php:982
+#, fuzzy
+msgid "No"
+msgstr "Όχι"
+
+#: includes/library.php:373
+#, fuzzy
+msgid "Select All"
+msgstr "Επιλογή όλων"
+
+#: includes/library.php:373
+#, fuzzy
+msgid "Deselect All"
+msgstr "Από-επιλογή όλων"
+
+#: includes/library.php:606
+#, fuzzy
+msgid "Type to search"
+msgstr "Πληκτρολογήστε για αναζήτησή"
+
+#: includes/library.php:747
+#, fuzzy
+msgid "Row"
+msgstr "Γραμμή"
+
+#: includes/library.php:750
+#, fuzzy
+msgid "Move up"
+msgstr "Μετακίνηση πάνω"
+
+#: includes/library.php:750
+#, fuzzy
+msgid "Move down"
+msgstr "Μετακίνηση κάτω"
+
+#: includes/library.php:750
+#, fuzzy
+msgid "Remove"
+msgstr "Αφαίρεση"
+
+#: includes/library.php:752
+#, fuzzy
+msgid "Add"
+msgstr "Προσθήκη"
+
+#: includes/library.php:915 includes/library.php:927
+#, fuzzy
+msgid "Insert media"
+msgstr "Εισαγωγή πολυμέσων"
+
+#: includes/library.php:927 includes/library.php:930
+#, fuzzy
+msgid "Remove media"
+msgstr "Κατάργηση πολυμέσων"
+
+#: includes/library.php:1061
+#, fuzzy
+msgid "Register"
+msgstr "Εγγραφή"
+
+#: templates/admin-view/edit-post.php:25
+#, fuzzy
+msgid "See all"
+msgstr "Προβολή όλων"
+
+#: templates/settings.php:66
+#, fuzzy
+msgid "Show results"
+msgstr "Εμφάνιση αποτελεσμάτων για:"
+
+#. Plugin URI of the plugin/theme
+#. Author URI of the plugin/theme
+msgid "https://motivar.io"
+msgstr ""
+
+#. Description of the plugin/theme
+msgid "extend WP in various ways with simple UI"
+msgstr ""
+
+#. Author of the plugin/theme
+msgid "Giannopoulos Nikolaos"
+msgstr ""

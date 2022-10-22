@@ -223,7 +223,7 @@ if (!function_exists('awm_show_content')) {
                                     $label_class[] = $a['case'];
                                     switch ($a['type']) {
                                         case 'checkbox':
-                                            $val = $val == 1 ? awm_Yes : awm_No;
+                                            $val = $val == 1 ? __('Yes', 'extend-wp') :  __('No', 'extend-wp');
                                             break;
                                         default:
                                             break;
@@ -744,12 +744,12 @@ function awm_repeater_content($i, $original_meta, $a, $original_meta_id, $val)
         $html .= '<div class="row-title">' . sprintf($a['row_title'], $normal) . '</div>';
     }
     $html .= awm_show_content($new_metas);
-    $item = isset($a['item_name']) ? $a['item_name'] : awm_Roww;
+    $item = isset($a['item_name']) ? $a['item_name'] : __('Row', 'extend-wp');
     $html .= '</div>';
     if (!isset($a['hide_buttons'])) {
-        $action = '<div class="awm-repeater-move-up" onclick="awm_repeater_order(this,true)"><span class="awm_action ">' . __('Move up', 'extend-wp') . '</span></div><div class="awm-repeater-move-down" onclick="awm_repeater_order(this,false)"><span class="awm_action ">' . __('Move down', 'extend-wp') . '</span></div><div class="awm-repeater-remove"><span class="awm_action awm-remove" onclick="repeater(this)">' . awm_Remove . ' ' . $item . '</span></div>';
+        $action = '<div class="awm-repeater-move-up" onclick="awm_repeater_order(this,true)"><span class="awm_action ">' . __('Move up', 'extend-wp') . '</span></div><div class="awm-repeater-move-down" onclick="awm_repeater_order(this,false)"><span class="awm_action ">' . __('Move down', 'extend-wp') . '</span></div><div class="awm-repeater-remove"><span class="awm_action awm-remove" onclick="repeater(this)">' . __('Remove', 'extend-wp') . ' ' . $item . '</span></div>';
         if (!is_int($i) && $i == 'template') {
-            $action .= '<div class="awm-repeater-add"><span class="awm_action awm-add" onclick="repeater(this)">' . awm_Add . ' ' . $item . '</span></div>';
+            $action .= '<div class="awm-repeater-add"><span class="awm_action awm-add" onclick="repeater(this)">' . __('Add', 'extend-wp') . ' ' . $item . '</span></div>';
         }
         $html .= '<div class="awm-actions">' . $action . '</div>';
     }

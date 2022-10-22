@@ -82,7 +82,7 @@ class Truongwp_Gallery_Meta_Box
 
         add_meta_box(
             'truongwp-gallery',
-            __('Gallery', 'gallery-meta-box'),
+            __('Gallery', 'extend-wp'),
             array($this, 'render'),
             $post_type,
             'side',
@@ -230,7 +230,7 @@ class Truongwp_Gallery_Meta_Box
      *
      * @return string
      */
-    protected function meta_key()
+    public function meta_key()
     {
         /*
          * Filters meta key to store the gallery.
