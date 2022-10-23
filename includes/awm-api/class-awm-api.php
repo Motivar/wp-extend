@@ -139,6 +139,9 @@ class AWM_API extends WP_REST_Controller
           case 'taxonomy':
             $filter = 'awm_add_term_meta_boxes_filter';
             break;
+          case 'customizer':
+            $filter = 'awm_add_customizer_settings_filter';
+            break;
           case 'options':
             $filter = 'awm_add_options_boxes_filter';
             break;
