@@ -85,7 +85,8 @@ class AWM_Customize
           'capability'        => $cap,
           'type' => isset($field_data['attributes']['customizer_type']) ? $field_data['attributes']['customizer_type'] : 'theme_mod',
           'default' => isset($field_data['attirbutes']['customizer_default']) ? $field_data['attributes']['customizer_default'] : '',
-          'sanitize_callback' => isset($field_data['attributes']['customizer_sanitize_callback']) ? $field_data['attributes']['customizer_sanitize_callback'] : ''
+          'sanitize_callback' => isset($field_data['attributes']['customizer_sanitize_callback']) ? $field_data['attributes']['customizer_sanitize_callback'] : '',
+          'transport'  => isset($field_data['attributes']['customizer_transport']) ? $field_data['attributes']['customizer_transport'] : 'postMessage',
          )
         );
         $args = array(
