@@ -481,6 +481,27 @@ if (!function_exists('awm_create_boxes')) {
     $boxes = array();
     foreach ($awm_fields as $id => $awm_field) {
       switch ($case) {
+        case 'customizer':
+          $section = array(
+            $id => array(
+              'title' => __($awm_field['position']['title'], 'extend-wp'),
+              'priority'   => $awm_field['position']['priority'] ?: 100,
+              'capability' => $awm_field['position']['cap'] ?: 'edit_theme_options',
+              'library' => awm_create_library($awm_field),
+              'description' => $awm_field['explanation']
+            )
+          );
+          if ($awm_field['position']['panel_id'] != '') {
+            $panel_id = $awm_field['position']['panel_id'];
+            $boxes[$panel_id]['sections'][$id] = $section[$id];
+            continue;
+          }
+          $boxes[$id] = array(
+            'title' => __($awm_field['position']['panel_name'], 'extend-wp'),
+            'priority' => 100,
+            'sections' => $section
+          );
+          break;
         case 'post_type':
           $boxes[$id] = array(
             'title' => __($awm_field['content_title'], 'extend-wp'),
@@ -642,18 +663,29 @@ if (!function_exists('awm_position_options')) {
           'type' => 'text',
           'label_class' => array('awm-needed'),
         ),
-        'parent' => array(
-          'label' => __('Position <small>(leave empty for dedicated page)</small>', 'extend-wp'),
+        'priority' => array(
+          'label' => __('Priority', 'extend-wp'),
           'case' => 'input',
-          'type' => 'text',
+          'type' => 'number',
         ),
         'cap' => array(
           'label' => __('User cap', 'extend-wp'),
           'case' => 'input',
           'type' => 'text',
-        )
-      )),
+          'label_class' => array('awm-needed'),
+        ),
+        'panel_id' => array(
+          'case' => 'input',
+          'type' => 'text',
+          'label' => __('The panel id to add section (leave empty for new panel)', 'extend-wp'),
+        ),
+        'panel_name' => array(
+          'case' => 'input',
+          'type' => 'text',
+          'label' => __('The panel name to show if no panel_id is filled in', 'extend-wp'),
+        ),
 
+      )),
       'existing_awm_fields' => array('label' => __('Existing meta fields', 'filox'), 'field-choices' => array(
         'page_ids' => array(
           'label' => __('Select meta libraries', 'filox'),

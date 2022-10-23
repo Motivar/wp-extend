@@ -28,10 +28,9 @@ class AWM_Customize
   /**
    * sort settings by order
    */
-
   uasort($settings, function ($a, $b) {
-   $first = isset($a['order']) ? $a['order'] : 100;
-   $second = isset($b['order']) ? $b['order'] : 100;
+   $first = isset($a['priority']) ? $a['priority'] : 100;
+   $second = isset($b['priority']) ? $b['priority'] : 100;
    return $first - $second;
   });
   return $settings;
@@ -56,6 +55,13 @@ class AWM_Customize
   if (!empty($customizers)) {
    foreach ($customizers as $customizer_id => $customizer_data) {
     if (isset($customizer_data['sections'])) {
+
+     uasort($customizer_data['sections'], function ($a, $b) {
+      $first = isset($a['priority']) ? $a['priority'] : 100;
+      $second = isset($b['priority']) ? $b['priority'] : 100;
+      return $first - $second;
+     });
+
      $customizer_id = awm_clean_string($customizer_id);
      $wp_customize->add_panel($customizer_id, array(
       'title' => $customizer_data['title'],
