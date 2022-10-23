@@ -54,6 +54,81 @@ if (!function_exists('awm_get_field_value')) {
 }
 
 
+if (!function_exists('awm_prepare_field')) {
+    /**
+     * with this function we prepare the ewp field dependin on the case
+     * @param array $a the fields' data
+     * @return arrray $a the manipulated fields data
+     */
+    function awm_prepare_field($a)
+    {
+
+        switch ($a['case']) {
+            case 'taxonomies':
+                $a['case'] = isset($a['view']) ? $a['view'] : 'select';
+                $args = isset($a['args']) ? $a['args'] : array();
+                $a['callback'] = 'awmTaxObjectsForInput';
+                $a['callback_variables'] = array($args);
+                break;
+            case 'post_types':
+                $a['case'] = isset($a['view']) ? $a['view'] : 'select';
+                $args = isset($a['args']) ? $a['args'] : array();
+                $a['callback'] = 'awmPostObjectsForInput';
+                $a['callback_variables'] = array($args);
+                break;
+            case 'postType':
+                $a['case'] = isset($a['view']) ? $a['view'] : 'select';
+                $number = isset($a['number']) ? $a['number'] : '-1';
+                $args = isset($a['args']) ? $a['args'] : array();
+                $a['callback'] = 'awmPostFieldsForInput';
+                $a['callback_variables'] = array($a['post_type'], $number, $args);
+                break;
+            case 'term':
+                $a['case'] = isset($a['view']) ? $a['view'] : 'select';
+                $number = isset($a['number']) ? $a['number'] : '-1';
+                $args = isset($a['args']) ? $a['args'] : array();
+                $option_key = isset($a['option_key']) ? $a['option_key'] : 'term_id';
+                $a['callback'] = 'awmTaxonomyFieldsForInput';
+                $a['callback_variables'] = array($a['taxonomy'], $number,  $args, $option_key, $awm_id);
+                break;
+            case 'user':
+                $a['case'] = isset($a['view']) ? $a['view'] : 'select';
+                $number = isset($a['number']) ? $a['number'] : '-1';
+                $args = isset($a['args']) ? $a['args'] : array();
+                $a['callback'] = 'awmUserFieldsForInput';
+                $a['callback_variables'] = array($a['roles'], $number, $args);
+                break;
+            case 'user_roles':
+                $a['case'] = isset($a['view']) ? $a['view'] : 'select';
+                $exclude = isset($a['exclude']) ? $a['exclude'] : array();
+                $a['callback'] = 'awmUserRolesFieldsForInput';
+                $a['callback_variables'] = array($exclude);
+                break;
+            case 'date':
+                $a['case'] = 'input';
+                $a['type'] = 'text';
+                $a['class'][] = 'awm_cl_date';
+                if (isset($a['date-params'])) {
+                    $a['attributes']['date-params'] = str_replace('"', '\'', json_encode(apply_filters('awm_cl_date_params', $a['date-params'], $a)));
+                }
+                break;
+            default:
+                break;
+        }
+
+        if (isset($a['callback'])) {
+            $callback_options = array();
+            if (!empty($a['callback_variables'])) {
+                $callback_options = call_user_func_array($a['callback'], $a['callback_variables']);
+            }
+            $a['options'] = empty($callback_options) ? call_user_func($a['callback']) : $callback_options;
+        }
+
+        return $a;
+    }
+}
+
+
 if (!function_exists('awm_show_content')) {
     /**
      * this is the function which is responsible to display the custom inputs for metaboxes/options
@@ -119,54 +194,6 @@ if (!function_exists('awm_show_content')) {
                 $stop = 0;
                 if ($show == 1) {
                     switch ($a['case']) {
-                        case 'taxonomies':
-                            $a['case'] = isset($a['view']) ? $a['view'] : 'select';
-                            $args = isset($a['args']) ? $a['args'] : array();
-                            $a['callback'] = 'awmTaxObjectsForInput';
-                            $a['callback_variables'] = array($args);
-                            break;
-                        case 'post_types':
-                            $a['case'] = isset($a['view']) ? $a['view'] : 'select';
-                            $args = isset($a['args']) ? $a['args'] : array();
-                            $a['callback'] = 'awmPostObjectsForInput';
-                            $a['callback_variables'] = array($args);
-                            break;
-                        case 'postType':
-                            $a['case'] = isset($a['view']) ? $a['view'] : 'select';
-                            $number = isset($a['number']) ? $a['number'] : '-1';
-                            $args = isset($a['args']) ? $a['args'] : array();
-                            $a['callback'] = 'awmPostFieldsForInput';
-                            $a['callback_variables'] = array($a['post_type'], $number, $args);
-                            break;
-                        case 'term':
-                            $a['case'] = isset($a['view']) ? $a['view'] : 'select';
-                            $number = isset($a['number']) ? $a['number'] : '-1';
-                            $args = isset($a['args']) ? $a['args'] : array();
-                            $option_key = isset($a['option_key']) ? $a['option_key'] : 'term_id';
-                            $a['callback'] = 'awmTaxonomyFieldsForInput';
-                            $a['callback_variables'] = array($a['taxonomy'], $number,  $args, $option_key, $awm_id);
-                            break;
-                        case 'user':
-                            $a['case'] = isset($a['view']) ? $a['view'] : 'select';
-                            $number = isset($a['number']) ? $a['number'] : '-1';
-                            $args = isset($a['args']) ? $a['args'] : array();
-                            $a['callback'] = 'awmUserFieldsForInput';
-                            $a['callback_variables'] = array($a['roles'], $number, $args);
-                            break;
-                        case 'user_roles':
-                            $a['case'] = isset($a['view']) ? $a['view'] : 'select';
-                            $exclude = isset($a['exclude']) ? $a['exclude'] : array();
-                            $a['callback'] = 'awmUserRolesFieldsForInput';
-                            $a['callback_variables'] = array($exclude);
-                            break;
-                        case 'date':
-                            $a['case'] = 'input';
-                            $a['type'] = 'text';
-                            $a['class'][] = 'awm_cl_date';
-                            if (isset($a['date-params'])) {
-                                $a['attributes']['date-params'] = str_replace('"', '\'', json_encode(apply_filters('awm_cl_date_params', $a['date-params'], $a)));
-                            }
-                            break;
                         case 'html':
                             $html_label = '';
                             if (isset($a['value']) && !empty($a['value'])) {
@@ -181,6 +208,7 @@ if (!function_exists('awm_show_content')) {
                             }
                             break;
                         default:
+                            $a = awm_prepare_field($a, $original_meta, $explanation);
                             break;
                     }
 
@@ -215,438 +243,364 @@ if (!function_exists('awm_show_content')) {
                         $required = '';
                     }
 
-                    switch ($target) {
-                        case 'no-value':
-                            /*just display the meta*/
-                            switch ($a['case']) {
-                                case 'input':
-                                    $label_class[] = $a['case'];
-                                    switch ($a['type']) {
-                                        case 'checkbox':
-                                            $val = $val == 1 ? __('Yes', 'extend-wp') :  __('No', 'extend-wp');
-                                            break;
-                                        default:
-                                            break;
-                                    }
-                                    break;
-                                case 'checkbox_multiple':
-                                case 'select':
-                                    $old_val = $val;
-                                    $val = array();
-                                    if (isset($a['callback'])) {
-                                        $callback_options = array();
-                                        if (!empty($a['callback_variables'])) {
-                                            $callback_options = call_user_func_array($a['callback'], $a['callback_variables']);
-                                        }
-                                        $callback_results = empty($callback_options) ? call_user_func($a['callback']) : $callback_options;
-                                        $a['options'] = $callback_results;
-                                        if (isset($callback_results['optgroups'])) {
 
-                                            $a['optgroups'] = $callback_results['optgroups'];
-                                            $a['options'] = $callback_results['options'];
-                                        }
-                                    }
-                                    if (!empty($a['options']) && !empty($old_val)) {
-                                        foreach ($a['options'] as $vv => $vvv) {
-                                            if (is_array($old_val)) {
-                                                foreach ($old_val as $ld => $lb) {
-                                                    if ($vv == $lb) {
-                                                        $val[] = $vvv['label'];
-                                                        unset($old_val[$ld]);
-                                                        break;
-                                                    }
-                                                }
-                                            } else {
-                                                if ($old_val == $vv) {
-                                                    $val[] = $vvv['label'];
-                                                }
-                                            }
-                                        }
-                                        $val = implode($sep, $val);
-                                    } else {
-                                        $val = '-';
-                                    }
-                                    break;
+                    if (isset($a['type'])) {
+                        $label_class[] = $a['type'];
+                    }
+
+                    /*display input fields*/
+                    $hide_label = isset($a['hide-label']) ? $a['hide-label'] : false;
+                    if (!$hide_label && $label && !in_array($a['case'], array('checkbox_multiple', 'repeater', 'awm_tab', 'button'))) {
+                        if (($a['case'] == 'input' && isset($a['type']) && $view != 'none' && !in_array($a['type'], array('submit', 'hidden', 'button'))) || ($a['case'] == 'select' || $a['case'] == 'textarea' || $a['case'] == 'radio')) {
+                            $ins .= '<label for="' . $original_meta_id . '" class="awm-input-label"><span>' . $label . '</span></label>' . $explanation;
+                        }
+                    }
+                    if (isset($a['show-when']) && !empty($a['show-when']) && is_array($a['show-when'])) {
+                        $label_attrs[] = 'show-when="' . str_replace('"', '\'', json_encode($a['show-when'])) . '"';
+                    }
+                    if (isset($a['disable-elements']) && !empty($a['disable-elements']) && is_array($a['disable-elements'])) {
+                        $a['attributes']['disable-elements'] = str_replace('"', '\'', json_encode($a['disable-elements']));
+                    }
+                    if (!empty($a['attributes']) && is_array($a['attributes'])) {
+
+                        foreach ($a['attributes'] as $k => $v) {
+                            if (is_array($v)) {
+                                $v = implode(',', $v);
                             }
+                            $extra_fields2[] = $k . '="' . $v . '"';
+                            if ($k == 'min' && $val == 0) {
+                                $val = $v;
+                            }
+                        }
+                    }
 
+
+                    $extraa .= isset($extra_fields2) ? implode(' ', $extra_fields2) : '';
+
+                    switch ($a['case']) {
+                        case 'function':
+                            if (isset($a['callback'])  && function_exists($a['callback'])) {
+                                $ins = '<div class="awm-meta-message" id="' . $original_meta_id . '"><div class="awm-meta-message-label">' . $a['label'] . $explanation . '</div><div class="awm-meta-message-inner">'  . call_user_func_array($a['callback'], array($id)) . '</div></div>';
+                            }
                             break;
-                        case 'read':
-                            /*case to return the meta in array*/
-                            $msg[$n] = array('value' => $val, 'attrs' => $a);
-                            $stop = 1;
+                        case 'message':
+                            if (isset($a['value']) && !empty($a['value'])) {
+                                $ins = '<div class="awm-meta-message" id="' . $original_meta_id . '"><div class="awm-meta-message-label">' . $a['label'] . $explanation . '</div><div class="awm-meta-message-inner">' . $a['value'] . '</div></div>';
+                            }
                             break;
-                        default:
-                            if (isset($a['type'])) {
-                                $label_class[] = $a['type'];
-                            }
+                        case 'button':
+                            $link = isset($a['link']) ? $a['link'] : '#';
+                            $ins = '<a href="' . $link . '" id="' . $n . '" title="' . $a['label'] . '" class="' . $class . '" ' . $extraa . '>' . $a['label'] . '</a>';
+                            break;
+                        case 'input':
+                            $input_type = $a['type'];
+                            $after_message = (isset($a['after_message']) && !empty($a['after_message'])) ? '<span class="awm-after-message"><label for="' . $original_meta_id . '">' . $a['after_message'] . '</span></label>' : '';
 
-                            /*display input fields*/
-                            $hide_label = isset($a['hide-label']) ? $a['hide-label'] : false;
-                            if (!$hide_label && $label && !in_array($a['case'], array('checkbox_multiple', 'repeater', 'awm_tab', 'button'))) {
-                                if (($a['case'] == 'input' && isset($a['type']) && $view != 'none' && !in_array($a['type'], array('submit', 'hidden', 'button'))) || ($a['case'] == 'select' || $a['case'] == 'textarea' || $a['case'] == 'radio')) {
-                                    $ins .= '<label for="' . $original_meta_id . '" class="awm-input-label"><span>' . $label . '</span></label>' . $explanation;
-                                }
-                            }
-                            if (isset($a['show-when']) && !empty($a['show-when']) && is_array($a['show-when'])) {
-                                $label_attrs[] = 'show-when="' . str_replace('"', '\'', json_encode($a['show-when'])) . '"';
-                            }
-                            if (isset($a['disable-elements']) && !empty($a['disable-elements']) && is_array($a['disable-elements'])) {
-                                $a['attributes']['disable-elements'] = str_replace('"', '\'', json_encode($a['disable-elements']));
-                            }
-                            if (!empty($a['attributes']) && is_array($a['attributes'])) {
-
-                                foreach ($a['attributes'] as $k => $v) {
-                                    if (is_array($v)) {
-                                        $v = implode(',', $v);
-                                    }
-                                    $extra_fields2[] = $k . '="' . $v . '"';
-                                    if ($k == 'min' && $val == 0) {
-                                        $val = $v;
-                                    }
-                                }
-                            }
-
-
-                            $extraa .= isset($extra_fields2) ? implode(' ', $extra_fields2) : '';
-
-                            switch ($a['case']) {
-                                case 'function':
-                                    if (isset($a['callback'])  && function_exists($a['callback'])) {
-                                        $ins = '<div class="awm-meta-message" id="' . $original_meta_id . '"><div class="awm-meta-message-label">' . $a['label'] . $explanation . '</div><div class="awm-meta-message-inner">'  . call_user_func_array($a['callback'], array($id)) . '</div></div>';
-                                    }
+                            switch ($input_type) {
+                                case 'number':
+                                    $val = (int) $val;
                                     break;
-                                case 'message':
-                                    if (isset($a['value']) && !empty($a['value'])) {
-                                        $ins = '<div class="awm-meta-message" id="' . $original_meta_id . '"><div class="awm-meta-message-label">' . $a['label'] . $explanation . '</div><div class="awm-meta-message-inner">' . $a['value'] . '</div></div>';
+                                case 'checkbox':
+                                    if ($val == 1) {
+                                        $extraa .= ' checked';
                                     }
+                                    $val = 1;
                                     break;
-                                case 'button':
-                                    $link = isset($a['link']) ? $a['link'] : '#';
-                                    $ins = '<a href="' . $link . '" id="' . $n . '" title="' . $a['label'] . '" class="' . $class . '" ' . $extraa . '>' . $a['label'] . '</a>';
-                                    break;
-                                case 'input':
-                                    $input_type = $a['type'];
-                                    $after_message = (isset($a['after_message']) && !empty($a['after_message'])) ? '<span class="awm-after-message"><label for="' . $original_meta_id . '">' . $a['after_message'] . '</span></label>' : '';
-
-                                    switch ($input_type) {
-                                        case 'number':
-                                            $val = (int) $val;
-                                            break;
-                                        case 'checkbox':
-                                            if ($val == 1) {
-                                                $extraa .= ' checked';
-                                            }
-                                            $val = 1;
-                                            break;
-                                        case 'hidden':
-                                            $ins .= '<input type="' . $input_type . '" name="' . $original_meta . '" id="' . $original_meta_id . '" value="' . $val . '" ' . $extraa . ' class="' . $class . '" ' . $required . '/>';
-                                            $display_wrapper = false;
-                                            break;
-                                        default:
-                                            break;
-                                    }
-                                    if ($display_wrapper) {
-                                        $input_html = '<input type="' . $input_type . '" name="' . $original_meta . '" id="' . $original_meta_id . '" value="' . $val . '" ' . $extraa . ' class="' . $class . '" ' . $required . '/>';
-
-                                        $ins .= '<div class="input-wrapper">';
-                                        $ins .=  $input_html . $after_message;
-                                        if ($a['type'] == 'password') {
-                                            $ins .= '<div class="eye" data-toggle="password" data-id="' . $original_meta_id . '"></div>';
-                                        }
-                                        $ins .= '</div>';
-                                    }
-
-                                    break;
-                                case 'checkbox_multiple':
-                                    if (isset($a['callback'])) {
-                                        $callback_options = array();
-                                        if (!empty($a['callback_variables'])) {
-                                            $callback_options = call_user_func_array($a['callback'], $a['callback_variables']);
-                                        }
-                                        $a['options'] = empty($callback_options) ? call_user_func($a['callback']) : $callback_options;
-                                    }
-                                    $ins .= '<label class="awm-checkboxes-title"><span>' . $a['label'] . '</span></label>' . $explanation;
-                                    $checkboxOptions = array();
-                                    $ins .= '<div class="awm-options-wrapper">';
-                                    if (isset($a['options']) && !empty($a['options'])) {
-                                        if (!isset($a['disable_apply_all'])) {
-                                            $checkboxOptions['awm_apply_all'] = array('label' => __('Select All', 'extend-wp'), 'extra_label' => __('Deselect All', 'extend-wp'));
-                                        }
-                                        $checkboxOptions = $checkboxOptions + $a['options'];
-                                        $val = !is_array($val) ? array($val) : $val;
-                                        foreach ($checkboxOptions as $dlm => $dlmm) {
-                                            $chk_ex = $chk_label_class = '';
-                                            if (is_array($val) && in_array($dlm, $val)) {
-                                                $chk_ex = ' checked';
-                                                $chk_label_class = ' selected';
-                                            }
-                                            $value_name = $dlm != 'amw_apply_all' ? $original_meta . '[]' : '';
-                                            $extraLabel = ($dlm == 'awm_apply_all' && isset($dlmm['extra_label'])) ? 'data-extra="' . $dlmm['extra_label'] . '"' : '';
-                                            $valueInside = $dlm != 'awm_apply_all' ? $dlm : '';
-                                            $input_id = $original_meta_id . '_' . $dlm . '_' . rand(10, 100);
-                                            $ins .= '<div class="awm-multiple-checkbox"><div class="insider"><label id="label_' . $input_id . '" for="' . $input_id . '" class="awm-input-label ' . $chk_label_class . '" ><input type="checkbox" name="' . $value_name . '" id="' . $input_id . '" value="' . $valueInside . '" ' . $extraa . $chk_ex . ' class="' . $class . '"' . $extraLabel . ' data-value="' . $dlm . '"/><span>' . $dlmm['label'] . '</span></label></div></div>';
-                                        }
-                                        $n = $n . '[]';
-                                    }
-                                    $ins .= '</div>';
-                                    break;
-                                case 'select':
-                                    if ($val != '' && !is_array($val)) {
-                                        $val = array($val);
-                                    }
-                                    if (isset($a['callback'])) {
-                                        $callback_options = array();
-                                        if (!empty($a['callback_variables'])) {
-                                            $callback_options = call_user_func_array($a['callback'], $a['callback_variables']);
-                                        }
-                                        $callback_results = empty($callback_options) ? call_user_func($a['callback']) : $callback_options;
-                                        $a['options'] = $callback_results;
-                                        if (isset($callback_results['optgroups'])) {
-
-                                            $a['optgroups'] = $callback_results['optgroups'];
-                                            $a['options'] = $callback_results['options'];
-                                        }
-                                    }
-                                    $select_name = $original_meta;
-                                    $label_class[] = 'awm-cls-33';
-                                    if (isset($a['attributes']) && array_key_exists('multiple', $a['attributes']) && $a['attributes']['multiple']) {
-                                        $select_name .= '[]';
-                                    }
-                                    $ins .= '<select name="' . $select_name . '" id="' . $original_meta_id . '" class="' . $class . '" ' . $extraa . ' ' . $required . '>';
-
-                                    if (empty($a['options'])) {
-
-                                        switch ($view) {
-                                            case 'restrict_manage_posts':
-
-                                                $stop = 1;
-                                                break;
-                                        }
-                                    }
-
-                                    $optgroups = isset($a['optgroups']) ? $a['optgroups'] : array();
-                                    $optgroups_assigned = 0;
-                                    $select_options = array();
-                                    if (!empty($a['options'])) {
-
-                                        if (!(isset($a['removeEmpty']) && $a['removeEmpty'])) {
-                                            $select_options[] = '<option value="" data-html="' . str_replace('"', "'", json_encode(htmlspecialchars($a['label']))) . '" data-placeholder="true">' . $a['label'] . '</option>';
-                                        }
-
-                                        foreach ($a['options'] as $vv => $vvv) {
-
-                                            $selected = '';
-                                            if (!empty($val) && in_array($vv, $val)) {
-                                                $selected = 'selected';
-                                            }
-                                            $attrs = array();
-                                            if (isset($vvv['extra'])) {
-                                                foreach ($vvv['extra'] as $lp => $ld) {
-                                                    $attrs[] = $lp . '="' . $ld . '"';
-                                                }
-                                            }
-                                            $option_label = isset($vvv['label']) ? $vvv['label'] : $vv;
-                                            $data_html = !isset($a['no_style']) ? 'data-html="' . str_replace('"', "'", json_encode(htmlspecialchars($option_label))) . '"' : '';
-                                            $select_options[$vv] = '<option value="' . $vv . '" ' . $selected . ' ' . implode(' ', $attrs) . ' ' . $data_html . ' >' . $option_label . '</option>';
-                                            if (!empty($optgroups) && isset($vvv['optgroup'])) {
-                                                $optgroups[$vvv['optgroup']]['options'][] = $vv;
-                                                $optgroups_assigned++;
-                                            }
-                                        }
-                                    }
-                                    if ($optgroups_assigned > 0) {
-                                        $optgroup_options = array();
-                                        foreach ($optgroups as $opt_id => $opt_option) {
-                                            if (isset($opt_option['options']) && !empty($opt_option['options']))
-                                                $optgroup_options['opt_' . $opt_id . '_start'] = '<optgroup id="' . $opt_id . '" label="' . $opt_option['label'] . '" data-html="' . str_replace('"', "'", json_encode(htmlspecialchars($opt_option['label']))) . '" options="' . implode(',', $opt_option['options']) . '">';
-                                            foreach ($opt_option['options'] as $opt_option_id) {
-                                                $optgroup_options[$opt_option_id] = $select_options[$opt_option_id];
-                                                unset($select_options[$opt_option_id]);
-                                            }
-                                            $optgroup_options['opt_' . $opt_id . '_end'] = '</optgroup>';
-                                        }
-                                        $select_options = $optgroup_options + $select_options;
-                                    }
-                                    $ins .= implode('', $select_options) . '</select>';
-
-                                    break;
-                                case 'image':
-                                    if (!did_action('wp_enqueue_media')) {
-                                        wp_enqueue_media();
-                                    }
-                                    $multiple = isset($a['multiple']) ? $a['multiple'] : false;
-                                    $ins .= '<label for="' . $original_meta_id . '" class="awm-input-label">' . $a['label'] . '</label>' . $explanation;
-                                    $ins .= awm_custom_image_image_uploader_field($original_meta, $original_meta_id, $val, $multiple, $required);
-                                    $label_class[] = 'awm-custom-image-meta';
-                                    $label_class[] = 'awm-cls-33';
-                                    break;
-                                case 'textarea':
-                                    $label_class[] = 'awm-cls-100';
-                                    $wp_editor = isset($a['wp_editor']) ? $a['wp_editor'] : (isset($a['attributes']['wp_editor']) ? $a['attributes']['wp_editor'] : false);
-
-                                    if ($wp_editor) {
-                                        $wp_args = array('textarea_name' => $original_meta, 'editor_class' => $class, 'textarea_rows' => 10);
-                                        $wp_disalbed = isset($a['disabled']) ? $a['disabled'] : false;
-                                        if ($wp_disalbed) {
-                                            // $wp_args['tinymce'] = array('readonly' => 1);
-                                        }
-                                        $wp_editor_textarea = '';
-                                        ob_start();
-                                        wp_editor($val, $original_meta_id, $wp_args);
-                                        $wp_editor_textarea = ob_get_clean();
-                                        $ins .= $wp_editor_textarea;
-                                        $label_class[] = 'awm-wp-editor';
-                                    } else {
-                                        if (isset($a['awm_strip_html'])) {
-                                            $val = strip_tags($val);
-                                        }
-                                        $ins .= '<textarea rows="5" name="' . $original_meta . '" id="' . $original_meta_id . '" class="' . $class . '" ' . $required . ' ' . $extraa . '>' . $val . '</textarea>';
-                                    }
-
-                                    break;
-                                case 'radio':
-                                    $optionsCounter = 0;
-                                    $radio_div = '<div class="awm-radio-options">';
-                                    foreach ($a['options'] as $vkey => $valll) {
-                                        $chk = '';
-                                        $labelRequired = '';
-                                        if ($vkey == $val) {
-                                            $chk = 'checked="checked"';
-                                        }
-                                        if ($optionsCounter < 1 && $required != '') {
-                                            $labelRequired = $required;
-                                        }
-                                        if (!isset($a['disable_wrapper'])) {
-                                            $radio_div .= '<div class="awm-radio-option">';
-                                        }
-                                        $radio_div .= '<input type="radio" name="' . $original_meta . '" id="' . $original_meta_id . '_' . $vkey . '" value="' . $vkey . '" ' . $chk . ' ' . $labelRequired . '/><label class="awm-radio-option-label" for="' . $original_meta_id . '_' . $vkey . '"><span class="awm-radio-label">' . apply_filters('awm_radio_value_label_filter', $valll['label'], $vkey, $original_meta_id) . '</span></label>';
-
-                                        if (!isset($a['disable_wrapper'])) {
-                                            $radio_div .= '</div>';
-                                        }
-                                        $optionsCounter++;
-                                    }
-                                    $radio_div .= '</div>';
-                                    $radio_div .= apply_filters('awm_radio_after_text', '', $a);
-
-                                    $ins .= $radio_div;
-                                    break;
-                                case 'section':
-                                    $label_class[] = 'awm-section-field';
-                                    $ins .= '<div class="awm-inner-section">';
-                                    if (isset($a['label'])) {
-                                        $ins .= '<div class="section-header">' . $a['label'] . $explanation . '</div>';
-                                    }
-                                    $ins .= '<div class="awm-inner-section-content">';
-                                    $val = !empty($val) ? maybe_unserialize($val) : array();
-                                    $section_fields = array();
-                                    foreach ($a['include'] as $key => $data) {
-
-                                        $inputname = !isset($a['keep_inputs']) ? $original_meta_id . '[' . $key . ']' : $key;
-
-                                        $data['attributes']['id'] = isset($a['keep_inputs']) ? $original_meta_id . '_' . $key : $key;
-                                        $data['attributes']['exclude_meta'] = true;
-                                        if (!isset($a['keep_inputs']) && !empty($val) && isset($val[$key])) {
-                                            $data['attributes']['value'] = $val[$key];
-                                        }
-                                        $section_fields[$inputname] = $data;
-                                    }
-                                    $ins .= awm_show_content($section_fields);
-                                    $ins .= '</div></div>';
-
-                                    break;
-                                case 'awm_tab':
-                                    if (isset($a['awm_tabs']) && !empty($a['awm_tabs'])) {
-                                        $main_tab_id = $original_meta;
-                                        $tabs = '';
-                                        $tab_contents = '';
-                                        $ins .= '<div class="awm-tab-wrapper">';
-                                        $ins .= '<div class="awm-tab-wrapper-title">' . $a['label'] . '</div>';
-                                        $first_visit = 0;
-                                        $val = !empty($val) ? $val : array();
-                                        foreach ($a['awm_tabs'] as $tab_id => $tab_intro) {
-                                            ++$first_visit;
-                                            $show = $first_visit == 1 ? 'awm-tab-show active' : '';
-                                            $style = $first_visit == 1 ? 'style="display: block;"' : '';
-                                            $tabs .= '<div id="' . $tab_id . '_tab" class="awm_tablinks ' . $show . '" onclick="awm_open_tab(event,\' ' . $tab_id . '\')">' . $tab_intro['label'] . '</div>';
-                                            $tab_contents .= '<div id="' . $tab_id . '_content_tab" class="awm_tabcontent" ' . $style . '>';
-                                            $tab_meta = array();
-                                            if (isset($tab_intro['callback'])) {
-                                                $callback_options = array();
-                                                if (!empty($tab_intro['callback_variables'])) {
-                                                    $callback_options = call_user_func_array($data['callback'], $data['callback_variables']);
-                                                }
-                                                $tab_intro['include'] = empty($callback_options) ? call_user_func($tab_intro['callback']) : $callback_options;
-                                            }
-                                            foreach ($tab_intro['include'] as $key => $data) {
-                                                $inputname = $main_tab_id . '[' . $tab_id . '][' . $key . ']';
-                                                $data['attributes']['id'] = $main_tab_id . '_' . $tab_id . '_' . $key;
-                                                if (isset($val[$tab_id][$key])) {
-                                                    $data['attributes']['value'] = $val[$tab_id][$key];
-                                                }
-                                                $data['attributes']['exclude_meta'] = true;
-                                                $tab_meta[$inputname] = $data;
-                                            }
-                                            if (!empty($explanation)) {
-                                                $tab_contents .= '<div class="tab-explanation">' . $explanation . '</div>';
-                                            }
-                                            $tab_contents .= awm_show_content($tab_meta);
-                                            $tab_contents .= '</div>';
-                                        }
-                                        $ins .= '<div class="awm-tab">' . $tabs . '</div>' . $tab_contents;
-                                        $ins .= '</div>';
-                                    }
-
-                                    break;
-                                case 'map':
-                                    $label_class[] = 'awm-cls-100';
-                                    $lat = (isset($val['lat']) && !empty($val['lat'])) ? $val['lat'] : '';
-                                    $lng = (isset($val['lng']) && !empty($val['lng'])) ? $val['lng'] : '';
-                                    $address = (isset($val['address']) && !empty($val['address'])) ? $val['address'] : '';
-                                    $ins .= '<input id="awm_map' . $original_meta_id . '_search_box" class="controls" type="text" placeholder="' . __('Type to search', 'awm') . '" value="' . $address . '" ' . $required . ' onkeypress="return noenter()"><div class="awm_map" id="awm_map' . $original_meta_id . '"></div>';
-                                    $ins .= '<input type="hidden" name="' . $original_meta . '[lat]" id="awm_map' . $original_meta_id . '_lat" value="' . $lat . '" />';
-                                    $ins .= '<input type="hidden" name="' . $original_meta . '[lng]" id="awm_map' . $original_meta_id . '_lng" value="' . $lng . '" />';
-                                    $ins .= '<input type="hidden" name="' . $original_meta . '[address]" id="awm_map' . $original_meta_id . '_address" value="' . $address . '" />';
-                                    break;
-                                case 'repeater':
-                                    if (!empty($a['include'])) {
-                                        $minrows = isset($a['minrows']) ? absint($a['minrows']) : 0;
-                                        $maxrows = isset($a['maxrows']) ? absint($a['maxrows']) : '';
-                                        $ins .= '<div class="awm-repeater" data-count="' . count($a['include']) . '" data-id="' . $original_meta_id . '" maxrows="' . $maxrows . '">';
-                                        $ins .= '<div class="awm-repeater-title">' . $a['label'] . $explanation . '</div>';
-                                        $ins .= '<div class="awm-repeater-contents">';
-                                        $val = !empty($val) ? array_values(maybe_unserialize($val)) : array();
-                                        if ((empty($val)) && isset($a['prePopulated'])) {
-                                            $val = $a['prePopulated'];
-                                        }
-                                        $a['include']['awm_key'] = array(
-                                            'case' => 'input',
-                                            'type' => 'hidden',
-                                            'attributes' => array('data-unique' => true)
-                                        );
-                                        $counter = !empty($val) ? count($val) : $minrows;
-                                        if ($counter != 0) {
-                                            for ($i = 0; $i < $counter; ++$i) {
-                                                $ins .= awm_repeater_content($i, $original_meta, $a, $original_meta_id, $val);
-                                            }
-                                        }
-                                        if (!isset($a['no_template'])) {
-                                            $ins .= awm_repeater_content('template', $original_meta, $a, $original_meta_id, array());
-                                        }
-                                        $ins .= '</div>';
-
-                                        $ins .= '</div>';
-                                    }
+                                case 'hidden':
+                                    $ins .= '<input type="' . $input_type . '" name="' . $original_meta . '" id="' . $original_meta_id . '" value="' . $val . '" ' . $extraa . ' class="' . $class . '" ' . $required . '/>';
+                                    $display_wrapper = false;
                                     break;
                                 default:
                                     break;
                             }
-                            if ($label && !(isset($a['attributes']['exclude_meta'])) && $view != 'none' && !isset($a['attributes']['disabled']) && !isset($a['exclude_meta'])) {
-                                $ins .= '<input type="hidden" name="awm_custom_meta[]" value="' . $original_meta . '"/>';
+                            if ($display_wrapper) {
+                                $input_html = '<input type="' . $input_type . '" name="' . $original_meta . '" id="' . $original_meta_id . '" value="' . $val . '" ' . $extraa . ' class="' . $class . '" ' . $required . '/>';
+
+                                $ins .= '<div class="input-wrapper">';
+                                $ins .=  $input_html . $after_message;
+                                if ($a['type'] == 'password') {
+                                    $ins .= '<div class="eye" data-toggle="password" data-id="' . $original_meta_id . '"></div>';
+                                }
+                                $ins .= '</div>';
                             }
 
                             break;
+                        case 'checkbox_multiple':
+
+                            $ins .= '<label class="awm-checkboxes-title"><span>' . $a['label'] . '</span></label>' . $explanation;
+                            $checkboxOptions = array();
+                            $ins .= '<div class="awm-options-wrapper">';
+                            if (isset($a['options']) && !empty($a['options'])) {
+                                if (!isset($a['disable_apply_all'])) {
+                                    $checkboxOptions['awm_apply_all'] = array('label' => __('Select All', 'extend-wp'), 'extra_label' => __('Deselect All', 'extend-wp'));
+                                }
+                                $checkboxOptions = $checkboxOptions + $a['options'];
+                                $val = !is_array($val) ? array($val) : $val;
+                                foreach ($checkboxOptions as $dlm => $dlmm) {
+                                    $chk_ex = $chk_label_class = '';
+                                    if (is_array($val) && in_array($dlm, $val)) {
+                                        $chk_ex = ' checked';
+                                        $chk_label_class = ' selected';
+                                    }
+                                    $value_name = $dlm != 'amw_apply_all' ? $original_meta . '[]' : '';
+                                    $extraLabel = ($dlm == 'awm_apply_all' && isset($dlmm['extra_label'])) ? 'data-extra="' . $dlmm['extra_label'] . '"' : '';
+                                    $valueInside = $dlm != 'awm_apply_all' ? $dlm : '';
+                                    $input_id = $original_meta_id . '_' . $dlm . '_' . rand(10, 100);
+                                    $ins .= '<div class="awm-multiple-checkbox"><div class="insider"><label id="label_' . $input_id . '" for="' . $input_id . '" class="awm-input-label ' . $chk_label_class . '" ><input type="checkbox" name="' . $value_name . '" id="' . $input_id . '" value="' . $valueInside . '" ' . $extraa . $chk_ex . ' class="' . $class . '"' . $extraLabel . ' data-value="' . $dlm . '"/><span>' . $dlmm['label'] . '</span></label></div></div>';
+                                }
+                                $n = $n . '[]';
+                            }
+                            $ins .= '</div>';
+                            break;
+                        case 'select':
+                            if ($val != '' && !is_array($val)) {
+                                $val = array($val);
+                            }
+
+                            if (isset($a['options']['optgroups'])) {
+
+                                $a['optgroups'] = $callback_results['optgroups'];
+                                $a['options'] = $callback_results['options'];
+                            }
+
+                            $select_name = $original_meta;
+                            $label_class[] = 'awm-cls-33';
+                            if (isset($a['attributes']) && array_key_exists('multiple', $a['attributes']) && $a['attributes']['multiple']) {
+                                $select_name .= '[]';
+                            }
+                            $ins .= '<select name="' . $select_name . '" id="' . $original_meta_id . '" class="' . $class . '" ' . $extraa . ' ' . $required . '>';
+
+                            if (empty($a['options'])) {
+
+                                switch ($view) {
+                                    case 'restrict_manage_posts':
+
+                                        $stop = 1;
+                                        break;
+                                }
+                            }
+
+                            $optgroups = isset($a['optgroups']) ? $a['optgroups'] : array();
+                            $optgroups_assigned = 0;
+                            $select_options = array();
+                            if (!empty($a['options'])) {
+                                if (!(isset($a['removeEmpty']) && $a['removeEmpty'])) {
+                                    $select_options[] = '<option value="" data-html="' . str_replace('"', "'", json_encode(htmlspecialchars($a['label']))) . '" data-placeholder="true">' . $a['label'] . '</option>';
+                                }
+
+                                foreach ($a['options'] as $vv => $vvv) {
+
+                                    $selected = '';
+                                    if (!empty($val) && in_array($vv, $val)) {
+                                        $selected = 'selected';
+                                    }
+                                    $attrs = array();
+                                    if (isset($vvv['extra'])) {
+                                        foreach ($vvv['extra'] as $lp => $ld) {
+                                            $attrs[] = $lp . '="' . $ld . '"';
+                                        }
+                                    }
+                                    $option_label = isset($vvv['label']) ? $vvv['label'] : $vv;
+                                    $data_html = !isset($a['no_style']) ? 'data-html="' . str_replace('"', "'", json_encode(htmlspecialchars($option_label))) . '"' : '';
+                                    $select_options[$vv] = '<option value="' . $vv . '" ' . $selected . ' ' . implode(' ', $attrs) . ' ' . $data_html . ' >' . $option_label . '</option>';
+                                    if (!empty($optgroups) && isset($vvv['optgroup'])) {
+                                        $optgroups[$vvv['optgroup']]['options'][] = $vv;
+                                        $optgroups_assigned++;
+                                    }
+                                }
+                            }
+                            if ($optgroups_assigned > 0) {
+                                $optgroup_options = array();
+                                foreach ($optgroups as $opt_id => $opt_option) {
+                                    if (isset($opt_option['options']) && !empty($opt_option['options']))
+                                        $optgroup_options['opt_' . $opt_id . '_start'] = '<optgroup id="' . $opt_id . '" label="' . $opt_option['label'] . '" data-html="' . str_replace('"', "'", json_encode(htmlspecialchars($opt_option['label']))) . '" options="' . implode(',', $opt_option['options']) . '">';
+                                    foreach ($opt_option['options'] as $opt_option_id) {
+                                        $optgroup_options[$opt_option_id] = $select_options[$opt_option_id];
+                                        unset($select_options[$opt_option_id]);
+                                    }
+                                    $optgroup_options['opt_' . $opt_id . '_end'] = '</optgroup>';
+                                }
+                                $select_options = $optgroup_options + $select_options;
+                            }
+                            $ins .= implode('', $select_options) . '</select>';
+
+                            break;
+                        case 'image':
+                            if (!did_action('wp_enqueue_media')) {
+                                wp_enqueue_media();
+                            }
+                            $multiple = isset($a['multiple']) ? $a['multiple'] : false;
+                            $ins .= '<label for="' . $original_meta_id . '" class="awm-input-label">' . $a['label'] . '</label>' . $explanation;
+                            $ins .= awm_custom_image_image_uploader_field($original_meta, $original_meta_id, $val, $multiple, $required);
+                            $label_class[] = 'awm-custom-image-meta';
+                            $label_class[] = 'awm-cls-33';
+                            break;
+                        case 'textarea':
+                            $label_class[] = 'awm-cls-100';
+                            $wp_editor = isset($a['wp_editor']) ? $a['wp_editor'] : (isset($a['attributes']['wp_editor']) ? $a['attributes']['wp_editor'] : false);
+
+                            if ($wp_editor) {
+                                $wp_args = array('textarea_name' => $original_meta, 'editor_class' => $class, 'textarea_rows' => 10);
+                                $wp_disalbed = isset($a['disabled']) ? $a['disabled'] : false;
+                                if ($wp_disalbed) {
+                                    // $wp_args['tinymce'] = array('readonly' => 1);
+                                }
+                                $wp_editor_textarea = '';
+                                ob_start();
+                                wp_editor($val, $original_meta_id, $wp_args);
+                                $wp_editor_textarea = ob_get_clean();
+                                $ins .= $wp_editor_textarea;
+                                $label_class[] = 'awm-wp-editor';
+                            } else {
+                                if (isset($a['awm_strip_html'])) {
+                                    $val = strip_tags($val);
+                                }
+                                $ins .= '<textarea rows="5" name="' . $original_meta . '" id="' . $original_meta_id . '" class="' . $class . '" ' . $required . ' ' . $extraa . '>' . $val . '</textarea>';
+                            }
+
+                            break;
+                        case 'radio':
+                            $optionsCounter = 0;
+                            $radio_div = '<div class="awm-radio-options">';
+                            foreach ($a['options'] as $vkey => $valll) {
+                                $chk = '';
+                                $labelRequired = '';
+                                if ($vkey == $val) {
+                                    $chk = 'checked="checked"';
+                                }
+                                if ($optionsCounter < 1 && $required != '') {
+                                    $labelRequired = $required;
+                                }
+                                if (!isset($a['disable_wrapper'])) {
+                                    $radio_div .= '<div class="awm-radio-option">';
+                                }
+                                $radio_div .= '<input type="radio" name="' . $original_meta . '" id="' . $original_meta_id . '_' . $vkey . '" value="' . $vkey . '" ' . $chk . ' ' . $labelRequired . '/><label class="awm-radio-option-label" for="' . $original_meta_id . '_' . $vkey . '"><span class="awm-radio-label">' . apply_filters('awm_radio_value_label_filter', $valll['label'], $vkey, $original_meta_id) . '</span></label>';
+
+                                if (!isset($a['disable_wrapper'])) {
+                                    $radio_div .= '</div>';
+                                }
+                                $optionsCounter++;
+                            }
+                            $radio_div .= '</div>';
+                            $radio_div .= apply_filters('awm_radio_after_text', '', $a);
+
+                            $ins .= $radio_div;
+                            break;
+                        case 'section':
+                            $label_class[] = 'awm-section-field';
+                            $ins .= '<div class="awm-inner-section">';
+                            if (isset($a['label'])) {
+                                $ins .= '<div class="section-header">' . $a['label'] . $explanation . '</div>';
+                            }
+                            $ins .= '<div class="awm-inner-section-content">';
+                            $val = !empty($val) ? maybe_unserialize($val) : array();
+                            $section_fields = array();
+                            foreach ($a['include'] as $key => $data) {
+
+                                $inputname = !isset($a['keep_inputs']) ? $original_meta_id . '[' . $key . ']' : $key;
+
+                                $data['attributes']['id'] = isset($a['keep_inputs']) ? $original_meta_id . '_' . $key : $key;
+                                $data['attributes']['exclude_meta'] = true;
+                                if (!isset($a['keep_inputs']) && !empty($val) && isset($val[$key])) {
+                                    $data['attributes']['value'] = $val[$key];
+                                }
+                                $section_fields[$inputname] = $data;
+                            }
+                            $ins .= awm_show_content($section_fields);
+                            $ins .= '</div></div>';
+
+                            break;
+                        case 'awm_tab':
+                            if (isset($a['awm_tabs']) && !empty($a['awm_tabs'])) {
+                                $main_tab_id = $original_meta;
+                                $tabs = '';
+                                $tab_contents = '';
+                                $ins .= '<div class="awm-tab-wrapper">';
+                                $ins .= '<div class="awm-tab-wrapper-title">' . $a['label'] . '</div>';
+                                $first_visit = 0;
+                                $val = !empty($val) ? $val : array();
+                                foreach ($a['awm_tabs'] as $tab_id => $tab_intro) {
+                                    ++$first_visit;
+                                    $show = $first_visit == 1 ? 'awm-tab-show active' : '';
+                                    $style = $first_visit == 1 ? 'style="display: block;"' : '';
+                                    $tabs .= '<div id="' . $tab_id . '_tab" class="awm_tablinks ' . $show . '" onclick="awm_open_tab(event,\' ' . $tab_id . '\')">' . $tab_intro['label'] . '</div>';
+                                    $tab_contents .= '<div id="' . $tab_id . '_content_tab" class="awm_tabcontent" ' . $style . '>';
+                                    $tab_meta = array();
+                                    if (isset($tab_intro['callback'])) {
+                                        $callback_options = array();
+                                        if (!empty($tab_intro['callback_variables'])) {
+                                            $callback_options = call_user_func_array($data['callback'], $data['callback_variables']);
+                                        }
+                                        $tab_intro['include'] = empty($callback_options) ? call_user_func($tab_intro['callback']) : $callback_options;
+                                    }
+                                    foreach ($tab_intro['include'] as $key => $data) {
+                                        $inputname = $main_tab_id . '[' . $tab_id . '][' . $key . ']';
+                                        $data['attributes']['id'] = $main_tab_id . '_' . $tab_id . '_' . $key;
+                                        if (isset($val[$tab_id][$key])) {
+                                            $data['attributes']['value'] = $val[$tab_id][$key];
+                                        }
+                                        $data['attributes']['exclude_meta'] = true;
+                                        $tab_meta[$inputname] = $data;
+                                    }
+                                    if (!empty($explanation)) {
+                                        $tab_contents .= '<div class="tab-explanation">' . $explanation . '</div>';
+                                    }
+                                    $tab_contents .= awm_show_content($tab_meta);
+                                    $tab_contents .= '</div>';
+                                }
+                                $ins .= '<div class="awm-tab">' . $tabs . '</div>' . $tab_contents;
+                                $ins .= '</div>';
+                            }
+
+                            break;
+                        case 'map':
+                            $label_class[] = 'awm-cls-100';
+                            $lat = (isset($val['lat']) && !empty($val['lat'])) ? $val['lat'] : '';
+                            $lng = (isset($val['lng']) && !empty($val['lng'])) ? $val['lng'] : '';
+                            $address = (isset($val['address']) && !empty($val['address'])) ? $val['address'] : '';
+                            $ins .= '<input id="awm_map' . $original_meta_id . '_search_box" class="controls" type="text" placeholder="' . __('Type to search', 'awm') . '" value="' . $address . '" ' . $required . ' onkeypress="return noenter()"><div class="awm_map" id="awm_map' . $original_meta_id . '"></div>';
+                            $ins .= '<input type="hidden" name="' . $original_meta . '[lat]" id="awm_map' . $original_meta_id . '_lat" value="' . $lat . '" />';
+                            $ins .= '<input type="hidden" name="' . $original_meta . '[lng]" id="awm_map' . $original_meta_id . '_lng" value="' . $lng . '" />';
+                            $ins .= '<input type="hidden" name="' . $original_meta . '[address]" id="awm_map' . $original_meta_id . '_address" value="' . $address . '" />';
+                            break;
+                        case 'repeater':
+                            if (!empty($a['include'])) {
+                                $minrows = isset($a['minrows']) ? absint($a['minrows']) : 0;
+                                $maxrows = isset($a['maxrows']) ? absint($a['maxrows']) : '';
+                                $ins .= '<div class="awm-repeater" data-count="' . count($a['include']) . '" data-id="' . $original_meta_id . '" maxrows="' . $maxrows . '">';
+                                $ins .= '<div class="awm-repeater-title">' . $a['label'] . $explanation . '</div>';
+                                $ins .= '<div class="awm-repeater-contents">';
+                                $val = !empty($val) ? array_values(maybe_unserialize($val)) : array();
+                                if ((empty($val)) && isset($a['prePopulated'])) {
+                                    $val = $a['prePopulated'];
+                                }
+                                $a['include']['awm_key'] = array(
+                                    'case' => 'input',
+                                    'type' => 'hidden',
+                                    'attributes' => array('data-unique' => true)
+                                );
+                                $counter = !empty($val) ? count($val) : $minrows;
+                                if ($counter != 0) {
+                                    for ($i = 0; $i < $counter; ++$i) {
+                                        $ins .= awm_repeater_content($i, $original_meta, $a, $original_meta_id, $val);
+                                    }
+                                }
+                                if (!isset($a['no_template'])) {
+                                    $ins .= awm_repeater_content('template', $original_meta, $a, $original_meta_id, array());
+                                }
+                                $ins .= '</div>';
+
+                                $ins .= '</div>';
+                            }
+                            break;
+                        default:
+                            break;
                     }
+                    if ($label && !(isset($a['attributes']['exclude_meta'])) && $view != 'none' && !isset($a['attributes']['disabled']) && !isset($a['exclude_meta'])) {
+                        $ins .= '<input type="hidden" name="awm_custom_meta[]" value="' . $original_meta . '"/>';
+                    }
+
+
 
                     if ($stop != 1 && isset($n)) {
                         $label_class[] = 'awm-meta-field';
@@ -696,15 +650,12 @@ if (!function_exists('awm_show_content')) {
 
         $msg = apply_filters('awm_show_content_filter', $msg, $id, $arrs, $view, $target, $label, $specific, $sep);
 
-        switch ($target) {
-            case 'edit':
-                if (!empty($msg)) {
-                    $msg = '<div id="' . $awm_id . '" class="awm-show-content" count="' .  $meta_counter . '">' . implode('', $msg) . '</div>';
-                }
-                break;
-            default:
-                break;
+
+
+        if (!empty($msg)) {
+            $msg = '<div id="' . $awm_id . '" class="awm-show-content" count="' .  $meta_counter . '">' . implode('', $msg) . '</div>';
         }
+
 
         return $msg;
     }

@@ -83,13 +83,6 @@ class AWM_Meta
         $api->register_routes();
     }
 
-    public function awm_extras()
-    {
-        require_once 'awm-db/class-db-creator.php';
-        require_once 'awm-list-tables/class-list-table.php';
-        require_once 'awm-customizer/class-customizer.php';
-    }
-
     public function awm_admin_post_columns()
     {
         global $pagenow;
@@ -609,4 +602,3 @@ class AWM_Meta
 
 $metas = new AWM_Meta();
 $metas->init();
-$metas->awm_extras();

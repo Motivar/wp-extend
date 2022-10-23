@@ -89,7 +89,6 @@ class Extend_WP_Fields
   );
   $boxes['awm_fields_dev_notes'] = array(
    'title' => __('Developer notes', 'extend-wp'),
-
    'context' => 'side',
    'priority' => 'low',
    'callback' => 'awm_dev_notes',
