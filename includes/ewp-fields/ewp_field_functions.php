@@ -118,9 +118,10 @@ if (!function_exists('awm_create_library')) {
         $metas = array();
         $repeater_fields = array_keys(awm_fields_usages());
         $repeater_data = array();
+        $repeater_meta_data = awm_get_db_content_meta('ewp_fields', $awm_field['content_id']);
         foreach ($repeater_fields as $meta_key) {
           $field_key = str_replace('repeater_', '', $meta_key);
-          $repeater_data[$field_key] = awm_get_db_content_meta('ewp_fields', $awm_field['content_id'], $meta_key) ?: false;
+          $repeater_data[$field_key] = $repeater_meta_data[$meta_key] ?: false;
         }
         if ($repeater_data['key']) {
 
@@ -192,15 +193,15 @@ if (!function_exists('awm_get_fields')) {
     if (!empty($awm_fields)) {
       $counter = 0;
       foreach ($awm_fields as  $awm_field) {
-        $fields = awm_get_db_content_meta('ewp_fields', $awm_field['content_id'], 'awm_fields') ?: array();
-        $positions = awm_get_db_content_meta('ewp_fields', $awm_field['content_id'], 'awm_positions') ?: array();
-        $awm_type = awm_get_db_content_meta('ewp_fields', $awm_field['content_id'], 'awm_type') ?: array();
-        $awm_explanation = awm_get_db_content_meta('ewp_fields', $awm_field['content_id'], 'awm_explanation') ?: '';
+        $field_meta = awm_get_db_content_meta('ewp_fields', $awm_field['content_id']);
+        $fields = $field_meta['awm_fields'] ?: array();
+        $positions = $field_meta['awm_positions'] ?: array();
+        $awm_type = $field_meta['awm_type'] ?: array();
+        $awm_explanation = $field_meta['awm_explanation'] ?: '';
 
         if (empty($fields) || empty($positions)) {
           continue;
         }
-
         foreach ($positions as $position) {
           if ($position['case'] == $case) {
             $final_fields[$awm_field['content_id'] . '_' . $counter] = $awm_field;

@@ -38,7 +38,8 @@ class Extend_WP_WP_Content
      'name' => __($metas['name'], 'extend-wp'),
      'label' => __($metas['label'], 'extend-wp'),
      'custom-slug' => true,
-     'post_types' => $metas['post_types']
+     'post_types' => $metas['post_types'],
+     'template' => $metas['template']
     );
    }
   }

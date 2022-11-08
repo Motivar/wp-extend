@@ -3,6 +3,96 @@ if (!defined('ABSPATH')) {
   exit;
 }
 
+
+if (!function_exists('awm_insert_db_content')) {
+  /**
+   * with this function we insert data to our custom content objects
+   * similar to get posts
+   * @param string $field the db object to search
+   * @param array $args similar structure to get_posts
+   *@return int/boolean the id if completed successfully otherwise false
+   */
+
+  function awm_insert_db_content($field, $args)
+  {
+    if (empty($field) || empty($args)) {
+      return false;
+    }
+    $table = $field . '_main';
+    $where_clause = array();
+    if (isset($args['content_id']) && !empty($args['content_id']) && $args['content_id']) {
+      unset($args['created']);
+      unset($args['user_id']);
+      $where_clause = array(
+        "clause" => array(
+          array(
+            "clause" => array(
+              array('column' => 'content_id', 'value' => $args['content_id'], 'compare' => '=')
+            ),
+          ),
+        )
+      );
+    }
+    $result = AWM_DB_Creator::insert_update_db_data($table, $args, $where_clause, 'content_id');
+    if (!empty($where_clause) && $result) {
+      return $args['content_id'];
+    }
+    if (isset($result['id'])) {
+      return $result['id'];
+    }
+    return false;
+  }
+}
+
+
+
+if (!function_exists('awm_insert_db_content_meta')) {
+  /**
+   * with this function we insert data to our custom content objects data table
+   * similar to get posts
+   * @param string $field the db object to search
+   * @param int the id of the content to update
+   * @param array $metas the array of the metas to update like (array('key'=>'value))
+   * @return boolean true/false if completed successfully or not
+   */
+
+  function awm_insert_db_content_meta($field, $id, $metas)
+  {
+    if (empty($field) || empty($id) || empty($metas)) {
+      return false;
+    }
+    $table = $field . '_data';
+    $where_clause = array();
+    foreach ($metas as $key => $value) {
+      $where_clause = array(
+        "clause" => array(
+          array(
+            "operator" => "AND",
+            "clause" => array(
+              array("column" => "content_id", "value" => $id, "compare" => "="),
+              array("column" => "meta_key", "value" => $key, "compare" => "=")
+            )
+          )
+        )
+      );
+      // Sanitize all required data given in by the user
+      AWM_DB_Creator::insert_update_db_data(
+        $table,
+        array(
+          "content_id" => $id,
+          "meta_key" => $key,
+          "meta_value" => maybe_serialize($value),
+        ),
+        $where_clause
+      );
+    }
+    return true;
+  }
+}
+
+
+
+
 if (!function_exists('awm_get_db_content')) {
   /**
    * similar to get posts

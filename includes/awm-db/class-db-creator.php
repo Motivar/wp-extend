@@ -136,8 +136,6 @@ class AWM_DB_Creator
                 $sql[] = "WHERE " . self::recursiveQueryBuilder($where_clause);
             }
 
-
-            /* $sql .= "WHERE content_id IN (SELECT content_id FROM wp_ewp_fields_data  WHERE meta_key = 'awm_type')";*/
             if (!empty($orderBy)) {
                 $sql[] = "ORDER BY {$orderBy["column"]} {$orderBy["type"]}";
             }
@@ -221,6 +219,7 @@ class AWM_DB_Creator
             }
             // Run the update
             $query = $wpdb->query($sql);
+
             return $query !== false ? 1 : 0;
         }
     }
@@ -262,29 +261,31 @@ class AWM_DB_Creator
      * 
      * @see where_clause (To be implemented after testing)
      */
-    public static function insert_update_db_data($tableName, $data, $where_clause, $unique = false)
+    public static function insert_update_db_data($tableName, $data, $where_clause = array(), $unique = false)
     {
         if (!empty($tableName)) {
-            $results = self::get_db_data($tableName, '*', $where_clause);
-            if (!empty($results)) {
-                if ($unique) {
-                    foreach ($results as $result_key => $result) {
-                        if ($result_key != 0) {
-                            $d_where_clause = array(
-                                "clause" => array(
-                                    array(
-                                        "operator" => "AND",
-                                        "clause" => array(
-                                            array("column" => $unique, "value" => $result[$unique], "compare" => "="),
-                                        )
-                                    ),
-                                )
-                            );
-                            self::delete_db_data($tableName, $d_where_clause);
+            if (!empty($where_clause)) {
+                $results = self::get_db_data($tableName, '*', $where_clause);
+                if (!empty($results)) {
+                    if ($unique) {
+                        foreach ($results as $result_key => $result) {
+                            if ($result_key != 0) {
+                                $d_where_clause = array(
+                                    "clause" => array(
+                                        array(
+                                            "operator" => "AND",
+                                            "clause" => array(
+                                                array("column" => $unique, "value" => $result[$unique], "compare" => "="),
+                                            )
+                                        ),
+                                    )
+                                );
+                                self::delete_db_data($tableName, $d_where_clause);
+                            }
                         }
                     }
+                    return self::update_db_data($tableName, $data, $where_clause);
                 }
-                return self::update_db_data($tableName, $data, $where_clause);
             }
 
             return self::insert_db_data($tableName, $data, $unique ?: '');

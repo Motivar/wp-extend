@@ -113,14 +113,16 @@ class AWM_API extends WP_REST_Controller
 
       $code = array();
       $awm_field = awm_get_db_content('ewp_fields', array('include' => $post_id));
+
       if (empty($awm_field)) {
         return;
       }
       $awm_field = $awm_field[0];
-      $fields = awm_get_db_content_meta('ewp_fields', $awm_field['content_id'], 'awm_fields') ?: array();
-      $positions = awm_get_db_content_meta('ewp_fields', $awm_field['content_id'], 'awm_positions') ?: array();
-      $awm_type = awm_get_db_content_meta('ewp_fields', $awm_field['content_id'], 'awm_type') ?: array();
-      $awm_explanation = awm_get_db_content_meta('ewp_fields', $awm_field['content_id'], 'awm_explanation') ?: '';
+      $field_meta = awm_get_db_content_meta('ewp_fields', $awm_field['content_id']);
+      $fields = $field_meta['awm_fields'] ?: array();
+      $positions = $field_meta['awm_positions'] ?: array();
+      $awm_type = $field_meta['awm_type'] ?: array();
+      $awm_explanation = $field_meta['awm_explanation'] ?: '';
       $counter = 0;
       foreach ($positions as $position) {
         $final_fields = array();

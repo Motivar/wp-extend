@@ -125,7 +125,7 @@ class AWM_Add_Content_DB_Setup
               'created' => 'bigint(20) NOT NULL',
               'modified' => 'bigint(20) NOT NULL',
               'status' => 'LONGTEXT NOT NULL',
-              'user_id' => 'bigint unsigned NOT NULL'
+              'user_id' => 'bigint unsigned'
             ),
             'primaryKey' => 'content_id',
             'foreignKey' => array(array(
@@ -279,12 +279,13 @@ if (!function_exists('awm_custom_content_save')) {
   /**
    * with this function we set the save action
    * @param array $data the post_data
+   * @param array $args the data from the content object
+   * @return int $id the id of the object created/updated
    * 
    */
   function awm_custom_content_save($data, $args)
   {
     $id = (!empty($data['table_id']) && $data['table_id'] != 'new') ? $data['table_id'] : false;
-    $update = true;
     $configuration = array();
     $exclude = array('title',  'status', 'table_id');
     foreach ($data['awm_custom_meta'] as $key) {
@@ -292,65 +293,16 @@ if (!function_exists('awm_custom_content_save')) {
         $configuration[$key] = $data[$key];
       }
     }
-
     $update_data = array(
       "content_title" => $data['title'],
       "status" => $data['status'],
       "created" => current_time('timestamp'),
       "modified" => current_time('timestamp'),
-      "user_id" => get_current_user_id()
+      "user_id" => get_current_user_id(),
+      'content_id' => $id,
     );
-
-    if (!$id) {
-      $result = AWM_DB_Creator::insert_db_data(
-        $args['main'],
-        $update_data,
-        'content_id'
-      );
-      $id = $result['id'];
-      $update = false;
-    }
-    if ($update) {
-      unset($update_data['created']);
-      unset($update_data['user_id']);
-      $where_clause = array(
-        "clause" => array(
-          array(
-            "clause" => array(
-              array('column' => 'content_id', 'value' => $id, 'compare' => '=')
-            ),
-          ),
-        )
-      );
-      AWM_DB_Creator::update_db_data($args['main'], $update_data, $where_clause);
-    }
-
-    foreach ($configuration as $key => $value) {
-      $where_clause = array(
-        "clause" => array(
-          array(
-            "operator" => "AND",
-            "clause" => array(
-              array("column" => "content_id", "value" => $id, "compare" => "="),
-              array("column" => "meta_key", "value" => $key, "compare" => "=")
-            )
-          )
-        )
-      );
-      // Sanitize all required data given in by the user
-
-      $result = AWM_DB_Creator::insert_update_db_data(
-        $args['meta'],
-        array(
-          "content_id" => $id,
-          "meta_key" => $key,
-          "meta_value" => maybe_serialize($value),
-        ),
-        $where_clause,
-        'meta_id'
-      );
-    }
-
+    $id = awm_insert_db_content($args['content_id'], $update_data);
+    awm_insert_db_content_meta($args['content_id'], $id, $configuration);
     wp_cache_flush();
     awm_delete_transient_all();
     return $id;

@@ -6,9 +6,15 @@ if (!defined('ABSPATH')) {
 
 class AWM_Meta
 {
+    public static $ewp_post_boxes = false;
+    public static $ewp_term_boxes = false;
+    public static $ewp_user_boxes = false;
+    public static $ewp_options = false;
 
     public function init()
     {
+
+
         define('AWM_JQUERY_LOAD', apply_filters('awm_jquery_load_filter', true));
         add_action('plugins_loaded', function () {
             load_plugin_textdomain('extend-wp', false, awm_path . '/languages/');
@@ -88,30 +94,6 @@ class AWM_Meta
         global $pagenow;
 
         switch ($pagenow) {
-                /*case 'edit-tags.php':
-        foreach ($posts as $p) {
-        if (isset($_GET['post_type']) && isset($_GET['taxonomy']) && $_GET['post_type'] == $postType && isset($p['tax_types']) && array_key_exists($_GET['taxonomy'], $p['tax_types'])) {
-        add_filter('manage_edit-'.$_GET['taxonomy'].'_columns', function ($columns) use ($p) {
-        $columns['fx_metrics'] = __('Total Views', 'filox-metrics');
-
-        return $columns;
-        }, 10, 1);
-        add_filter('manage_edit-'.$_GET['taxonomy'].'_sortable_columns', function ($columns) use ($p) {
-        $columns['fx_metrics'] = '_fm_views_total';
-
-        return $columns;
-        }, 10, 1);
-
-        add_action('manage_'.$_GET['taxonomy'].'_custom_column', function ($content, $column, $term_id) {
-        if ($column == 'fx_metrics') {
-        echo get_term_meta($term_id, '_fm_views_total', true) ?: 0;
-        }
-        }, 10, 3);
-        break;
-        }
-        }
-
-        break;*/
             case 'edit.php':
                 $metaBoxes = $this->meta_boxes();
                 if (!empty($metaBoxes)) {
@@ -280,6 +262,9 @@ class AWM_Meta
      */
     public function options_boxes()
     {
+        if (self::$ewp_options !== false) {
+            return self::$ewp_options;
+        }
         $optionsPages = apply_filters('awm_add_options_boxes_filter', array());
         /**
          * sort settings by order
@@ -293,7 +278,7 @@ class AWM_Meta
         }
 
 
-
+        self::$ewp_options = $optionsPages;
 
         return $optionsPages;
     }
@@ -307,6 +292,10 @@ class AWM_Meta
     public function meta_boxes()
     {
 
+
+        if (self::$ewp_post_boxes !== false) {
+            return self::$ewp_post_boxes;
+        }
         $metaBoxes = apply_filters('awm_add_meta_boxes_filter', array(), 1);
         /**
          * sort settings by order
@@ -316,6 +305,8 @@ class AWM_Meta
             $second = isset($b['order']) ? $b['order'] : 100;
             return $first - $second;
         });
+        self::$ewp_post_boxes = $metaBoxes;
+
         return $metaBoxes;
     }
 
@@ -326,12 +317,16 @@ class AWM_Meta
      */
     public function term_meta_boxes()
     {
+        if (self::$ewp_term_boxes !== false) {
+            return self::$ewp_term_boxes;
+        }
         $boxes = apply_filters('awm_add_term_meta_boxes_filter', array());
         uasort($boxes, function ($a, $b) {
             $first = isset($a['order']) ? $a['order'] : 100;
             $second = isset($b['order']) ? $b['order'] : 100;
             return $first - $second;
         });
+        self::$ewp_term_boxes = $boxes;
         return $boxes;
     }
 
@@ -505,6 +500,9 @@ class AWM_Meta
     public function user_boxes()
     {
 
+        if (self::$ewp_user_boxes !== false) {
+            return self::$ewp_user_boxes;
+        }
         $user_boxes = apply_filters('awm_add_user_boxes_filter', array(), 1);
         /**
          * sort settings by order
@@ -514,6 +512,7 @@ class AWM_Meta
             $second = isset($b['order']) ? $b['order'] : 100;
             return $first - $second;
         });
+        self::$ewp_user_boxes = $user_boxes;
         return $user_boxes;
     }
 

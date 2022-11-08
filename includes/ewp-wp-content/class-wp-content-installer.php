@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) {
 /**
  * this is the class which installs all the post types
  */
-
+global $ewp_post_types;
 require_once 'ewp_wp_functions.php';
 
 class EWP_WP_Content_Installer
@@ -26,12 +26,12 @@ class EWP_WP_Content_Installer
     register_deactivation_hook(awm_path . 'extend-wp.php', array($this, 'deactivate'));
     add_action('init', [$this, 'register_post_types'], 0);
     add_action('init', [$this, 'register_taxonomies'], 0);
-    add_filter('init', [$this, 'connect_post_types_taxonomies'], 90);
+    add_filter('init', [$this, 'connect_post_types_taxonomies'], 0);
     add_action('init', [$this, 'register_sidebars'], 100);
     add_action('admin_init', [$this, 'add_caps'], 1);
     add_action('load-options-permalink.php', [$this, 'permalink_settings']);
     add_filter('gallery_meta_box_post_types', array($this, 'gallery'));
-    add_filter('template_include', array($this, 'taxonomy_page_redirect'), 10);
+    add_filter('template_include', array($this, 'taxonomy_page_redirect'), 90);
     add_filter('single_template', [$this, 'set_single'], 10);
   }
 
@@ -80,12 +80,17 @@ class EWP_WP_Content_Installer
     if (empty($this->taxonomies)) {
       return $template;
     }
+
     foreach ($this->taxonomies as $taxonomy_name => $taxonomy) {
+
       if (is_tax($taxonomy_name)) {
+
         $default = locate_template(array('taxonomy-' . $taxonomy_name . '.php'));
+
         if ($default != '') {
           return $default;
         }
+
         $file_path = (!empty($taxonomy['template']) && file_exists(WP_CONTENT_DIR . '/' . $taxonomy['template'])) ? WP_CONTENT_DIR . '/' . $taxonomy['template'] :  '';
         if ($file_path != '') {
           return $file_path;
@@ -233,6 +238,7 @@ class EWP_WP_Content_Installer
     $post_types = $this->post_types;
     foreach ($post_types as $post_type) {
       $post_taxes = isset($post_type['taxonomies_connected']) ? $post_type['taxonomies_connected'] : array();
+
       if (!empty($post_taxes)) {
         foreach ($post_taxes as $taxonomy) {
           register_taxonomy_for_object_type($taxonomy, $post_type['post']);
@@ -248,6 +254,7 @@ class EWP_WP_Content_Installer
    */
   protected function post_types()
   {
+    global $ewp_post_types;
     $types = apply_filters('epw_get_post_types', array());
     /**
      * sort settings by menu_position
@@ -259,6 +266,7 @@ class EWP_WP_Content_Installer
         return $first - $second;
       });
     }
+    $ewp_post_types = $types;
     return $types;
   }
 

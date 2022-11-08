@@ -368,7 +368,7 @@ class AWM_List_Table extends WP_List_Table
         $order_by = (isset($_REQUEST['orderby']) && in_array($_REQUEST['orderby'], array_keys($this->get_sortable_columns()))) ? $_REQUEST['orderby'] : $this->db_search_key;
 
 
-        $order = (isset($_REQUEST['order']) && in_array($_REQUEST['order'], array('asc', 'desc'))) ? $_REQUEST['order'] : 'asc';
+        $order = (isset($_REQUEST['order']) && in_array($_REQUEST['order'], array('asc', 'desc'))) ? $_REQUEST['order'] : 'desc';
 
         $this->items = AWM_DB_Creator::get_db_data($this->table_name, '*', '', array('column' => $order_by, 'type' => $order), $per_page, $paged);
 

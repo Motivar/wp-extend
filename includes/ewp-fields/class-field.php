@@ -10,13 +10,19 @@ require_once 'ewp_field_functions.php';
 
 class Extend_WP_Fields
 {
+ /**
+  * var array $ewp_all_fields with 
+  */
+ public static $ewp_all_fields = array();
+
  private $skip_existing_fields;/*check if we have empty dynamic fields*/
 
- public function __construct()
+ public function init()
  {
   $this->skip_existing_fields = false;
   add_filter('awm_register_content_db', [$this, 'register_defaults']);
   add_action('ewp_fields_save_action', [$this, 'clear_transients']);
+  add_action('ewp_fields_delete_action', [$this, 'clear_transients']);
   add_filter('awm_add_meta_boxes_filter', array($this, 'dynamic_post_boxes'), PHP_INT_MAX);
   add_filter('awm_add_term_meta_boxes_filter', array($this, 'dynamic_term_boxes'), PHP_INT_MAX);
   add_filter('awm_add_user_boxes_filter', array($this, 'dynamic_user_boxes'), PHP_INT_MAX);
@@ -167,4 +173,5 @@ class Extend_WP_Fields
 }
 
 
-new Extend_WP_Fields();
+$ewp_fields = new Extend_WP_Fields();
+$ewp_fields->init();

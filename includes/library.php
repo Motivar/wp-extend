@@ -58,9 +58,10 @@ if (!function_exists('awm_prepare_field')) {
     /**
      * with this function we prepare the ewp field dependin on the case
      * @param array $a the fields' data
+     * @param string $awm_id the id of the library
      * @return arrray $a the manipulated fields data
      */
-    function awm_prepare_field($a)
+    function awm_prepare_field($a, $awm_id = '')
     {
 
         switch ($a['case']) {
@@ -208,7 +209,7 @@ if (!function_exists('awm_show_content')) {
                             }
                             break;
                         default:
-                            $a = awm_prepare_field($a, $original_meta, $explanation);
+                            $a = awm_prepare_field($a, $awm_id);
                             break;
                     }
 
@@ -358,9 +359,8 @@ if (!function_exists('awm_show_content')) {
                             }
 
                             if (isset($a['options']['optgroups'])) {
-
-                                $a['optgroups'] = $callback_results['optgroups'];
-                                $a['options'] = $callback_results['options'];
+                                $a['optgroups'] = $a['options']['optgroups'];
+                                unset($a['options']['optgroups']);
                             }
 
                             $select_name = $original_meta;
@@ -926,7 +926,10 @@ function awm_display_meta_value($meta, $data, $postId = 0, $external_value = '')
     $awm_post_id = $postId;
     $value = $external_value != '' ? $external_value : (get_post_meta($postId, $meta, true) ?: false);
     $original_value = $value;
-    switch ($data['case']) {
+
+    $case = isset($data['admin_list_view']) ? $data['admin_list_view'] : $data['case'];
+
+    switch ($case) {
         case 'input':
             switch ($data['type']) {
                 case 'checkbox':
