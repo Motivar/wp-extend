@@ -234,7 +234,8 @@ class Extend_WP_WP_Content
     'custom_template' => array(
      'label' => __('Is public', 'extend-wp'),
      'case' => 'input',
-     'type' => 'checkbox'
+     'type' => 'checkbox',
+     'admin_list' => true
     ),
     'args' => array(
      'label' => __('Args', 'extend-wp'),
@@ -312,6 +313,7 @@ class Extend_WP_WP_Content
      'case' => 'post_types',
      'attributes' => array('multiple' => true),
      'label_class' => array('awm-needed'),
+     'admin_list' => true
     ),
     'template' => array(
      'label' => __('Template path', 'extend-wp'),

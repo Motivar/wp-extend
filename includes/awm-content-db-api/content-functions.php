@@ -123,7 +123,7 @@ if (!function_exists('awm_get_db_content')) {
       $wheres[]
         = array('column' => 'content_id', 'value' =>  "('" . implode("','", $query_args['include']) . "')", 'compare' => 'IN');
 
-      $query_args['limit'] = count($query_args['content_ids']);
+      $query_args['limit'] = count($query_args['include']);
     }
 
     if (isset($query_args['meta_query']) && !empty($query_args['meta_query'])) {

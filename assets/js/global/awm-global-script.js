@@ -340,71 +340,71 @@ function awmShowInputs() {
 function awm_create_calendar() {
     var values = [];
     jQuery('.awm_cl_date:not(.hasDatepicker)').each(function() {
-            var idd = jQuery(this).attr('id');
-            var extra_parameters = jQuery(this).attr('date-params') ? jQuery.parseJSON(jQuery(this).attr('date-params').replace(/\'/g, '\"')) : {};
-            var default_parameters = {
-                dateFormat: 'dd-mm-yy',
-                changeMonth: false,
-                altFormat: 'YYYY-DD-MM',
-                minDate: '-24M',
-                maxDate: '+24M',
-            };
+        var idd = jQuery(this).attr('id');
+        var extra_parameters = jQuery(this).attr('date-params') ? jQuery.parseJSON(jQuery(this).attr('date-params').replace(/\'/g, '\"')) : {};
+        var value = jQuery('#' + idd).val();
+        var default_parameters = {
+            dateFormat: 'dd-mm-yy',
+            changeMonth: false,
+            altFormat: 'YYYY-DD-MM',
+            minDate: '-24M',
+            maxDate: '+24M',
+        };
 
 
-            const parameters = {
-                ...default_parameters,
-                ...extra_parameters,
-            };
-            if (jQuery(this).hasClass('awm-no-limit-date')) {
-                parameters.minDate = null;
-            }
-
-
-            parameters.onSelect = function(d, i) {
-                if (d !== i.lastVal) {
-                    /*check for jquery events*/
-                    var stop = false;
-                    var date = jQuery('#' + idd).datepicker('getDate');
-                    if (date !== null) {
-                        var change = jQuery('#' + idd).attr('data-change');
-                        var max_days = jQuery('#' + idd).attr('data-maxDays');
-                        if (change != '' && change) {
-                            var next_date = jQuery('#' + change).datepicker('getDate');
-                            var add_days = jQuery('#' + change).attr('data-days') ? parseInt(jQuery('#' + change).attr('data-days')) : 1;
-                            if (next_date !== null) {
-                                if (awm_timestamp(date) > awm_timestamp(next_date)) {
-                                    stop = true;
-                                }
-                            }
-                            date.setDate(date.getDate() + add_days);
-                            jQuery('#' + change).datepicker('option', 'minDate', date);
-                            if (stop) {
-                                jQuery('#' + change).datepicker('setDate', date);
-                            }
-
-                            if (max_days) {
-                                /*var date2 = jQuery('#' + change).datepicker('getDate', '+' + parseInt(max_days) + 'd');
-                                date2.setDate(date2.getDate() + 1);
-                                jQuery('#' + change).datepicker('option', 'maxDate', date2);*/
-                            }
-                        }
-                    }
-
-                    document.getElementById(idd).dispatchEvent(new Event('change'));
-                }
-            };
-
-            values.push({ 'id': idd, 'value': jQuery('#' + idd).val() });
-
-            jQuery('#' + idd).datepicker(parameters);
+        const parameters = {
+            ...default_parameters,
+            ...extra_parameters,
+        };
+        if (jQuery(this).hasClass('awm-no-limit-date')) {
+            parameters.minDate = null;
         }
 
-    );
+        parameters.onSelect = function(d, i) {
+            if (d !== i.lastVal) {
+                /*check for jquery events*/
+                var stop = false;
+                var date = jQuery('#' + idd).datepicker('getDate');
+                if (date !== null) {
+                    var change = jQuery('#' + idd).attr('data-change');
+                    var max_days = jQuery('#' + idd).attr('data-maxDays');
+                    if (change != '' && change) {
+                        var next_date = jQuery('#' + change).datepicker('getDate');
+                        var add_days = jQuery('#' + change).attr('data-days') ? parseInt(jQuery('#' + change).attr('data-days')) : 1;
+                        if (next_date !== null) {
+                            if (awm_timestamp(date) > awm_timestamp(next_date)) {
+                                stop = true;
+                            }
+                        }
+                        date.setDate(date.getDate() + add_days);
+                        jQuery('#' + change).datepicker('option', 'minDate', date);
+                        if (stop) {
+                            jQuery('#' + change).datepicker('setDate', date);
+                        }
+
+                        if (max_days) {
+                            /*var date2 = jQuery('#' + change).datepicker('getDate', '+' + parseInt(max_days) + 'd');
+                            date2.setDate(date2.getDate() + 1);
+                            jQuery('#' + change).datepicker('option', 'maxDate', date2);*/
+                        }
+                    }
+                }
+
+                document.getElementById(idd).dispatchEvent(new Event('change'));
+            }
+        };
+
+        values.push({ 'id': idd, 'value': jQuery('#' + idd).val() });
+        jQuery('#' + idd).datepicker(parameters);
+
+    });
 
 
 
     values.forEach(function(val) {
-        if (val.value != '') {
+
+        jQuery('#' + val.id).datepicker('setDate', '');
+        if (val.value != '' && val.value != 0) {
             jQuery('#' + val.id).datepicker('setDate', val.value);
             jQuery('#' + val.id).change();
         }

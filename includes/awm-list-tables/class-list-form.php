@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 class AWM_Add_Custom_List
 {
 
-
+  private static $item_data = array();
   private $meta_boxes;
   private $page_hook;
   private $update_metas;
@@ -151,21 +151,40 @@ class AWM_Add_Custom_List
 <?php
   }
 
+  public function get_current_view_data()
+  {
+    if (!empty(self::$item_data)) {
+      return self::$item_data;
+    }
+    $current_id = isset($_REQUEST['id']) ? $_REQUEST['id'] : '';
+
+    if (!empty($current_id)) {
+      self::$item_data['item'] = awm_get_db_content($this->custom_id, array('include' => array($current_id)))[0];
+      self::$item_data['meta'] = awm_get_db_content_meta($this->custom_id, $current_id);
+    }
+    return self::$item_data;
+  }
+
   public function on_load_page()
   {
     global $ewp_content_id;
+    $item_data = $this->get_current_view_data();
     $ewp_content_id = isset($_REQUEST['id']) ? $_REQUEST['id'] : false;
     wp_enqueue_script('common');
     wp_enqueue_script('wp-lists');
     wp_enqueue_script('postbox');
     $metaboxes = $this->meta_boxes;
     $update_metas = $this->update_metas;
-
     if (!empty($metaboxes)) {
       foreach ($metaboxes as $metaBoxKey => $metaBoxData) {
         if ($metaBoxKey != 'basics') {
           $metaBoxData['library'] = awm_callback_library(awm_callback_library_options($metaBoxData), $metaBoxKey);
           if (!empty($metaBoxData['library'])) {
+            if (isset($item_data['meta'])) {
+              foreach ($metaBoxData['library'] as $key => &$meta) {
+                $meta['attributes']['value'] = isset($item_data['meta'][$key]) ? $item_data['meta'][$key] : '';
+              }
+            }
             $metaBoxData['post'] = isset($_REQUEST['id']) ? $_REQUEST['id'] : '';;
             $metaBoxData['id'] = $metaBoxKey;
             add_meta_box(
@@ -200,12 +219,25 @@ class AWM_Add_Custom_List
 
   public function update_box($data)
   {
-    $metaboxes = $this->meta_boxes;
+    global $ewp_args;
+    $item_data = $this->get_current_view_data();
 
-    $id = isset($_REQUEST['id']) ? $_REQUEST['id'] : '';
-    $save_text = $id != '' ? __('Update', 'extend-wp') : __('Save', 'extend-wp');
+
+    $select = array(
+      'status' => array(
+        'case' => 'select',
+        'label' => __('Status', 'extend-wp'),
+        'removeEmpty' => true,
+        'options' => $ewp_args['status'],
+        'label_class' => array('awm-needed'),
+        'attributes' => array('value' => isset($item_data['item']['status']) ? $item_data['item']['status'] : '')
+      )
+    );
+    $id = isset($item_data['item']['content_id']) ? absint($item_data['item']['content_id']) : '';
+
+    $save_text = $id != ''  ? __('Update', 'extend-wp') : __('Save', 'extend-wp');
     $delete_button = $id != '' ? '<a class="submitdelete deletion" href="' . wp_nonce_url(admin_url($this->page_link . '&id=' . $id . '&action=delete'), $this->page_id . '_delete') . '">' . __('Delete ', 'extend-wp') . '</a>' : '';
-    return '<div class="submitbox"><div id="major-publishing-actions">' . awm_show_content(array('status' => $metaboxes['basics']['library']['status']), $id, $metaboxes['basics']['view']) . '
+    return '<div class="submitbox ewp-status-box"><div id="major-publishing-actions">' . awm_show_content($select) . '
     <div>
         <div id="delete-action">' . $delete_button . '</div>
         <div id="publishing-action">
@@ -230,7 +262,7 @@ class AWM_Add_Custom_List
   {
     global $ewp_args;
     $args['page_hook'] = $this->page_hook;
-    $ewp_args = $args;
+    $ewp_args = $args + $this->get_current_view_data();
     echo awm_parse_template(awm_path . 'templates/admin-view/edit-post.php');
   }
 }

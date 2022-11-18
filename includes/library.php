@@ -93,11 +93,12 @@ if (!function_exists('awm_prepare_field')) {
                 $a['callback_variables'] = array($a['taxonomy'], $number,  $args, $option_key, $awm_id);
                 break;
             case 'user':
+                $roles = isset($a['roles']) ? $a['roles'] : array();
                 $a['case'] = isset($a['view']) ? $a['view'] : 'select';
                 $number = isset($a['number']) ? $a['number'] : '-1';
                 $args = isset($a['args']) ? $a['args'] : array();
                 $a['callback'] = 'awmUserFieldsForInput';
-                $a['callback_variables'] = array($a['roles'], $number, $args);
+                $a['callback_variables'] = array($roles, $number, $args);
                 break;
             case 'user_roles':
                 $a['case'] = isset($a['view']) ? $a['view'] : 'select';
@@ -214,18 +215,15 @@ if (!function_exists('awm_show_content')) {
                     }
 
                     /*make changes for combined inputs*/
+                    $val = awm_get_field_value($view, $a, $id, $original_meta);
                     $label_class = $extra_fields2 = $label_attrs = array();
                     $extraa = '';
                     $class = isset($a['class']) ? implode(' ', $a['class']) : '';
-                    $val = awm_get_field_value($view, $a, $id, $original_meta);
-
 
                     if (isset($a['label_class']) && !empty($a['label_class'])) {
                         $label_class = $a['label_class'];
                     }
-
                     /*check if isset attribute value*/
-
                     if (isset($a['attributes']['value'])) {
                         $val = $a['attributes']['value'];
                         unset($a['attributes']['value']);
@@ -948,6 +946,15 @@ function awm_display_meta_value($meta, $data, $postId = 0, $external_value = '')
             if ($term) {
                 $value = $term->name;
             }
+            break;
+        case 'post_types':
+            $values = !is_array($value) ? array($value) : $value;
+            $msg = array();
+            foreach ($values as $value) {
+                $post_type = get_post_types(array('name' => $value), 'objects');
+                $msg[] = $post_type[$value]->label;
+            }
+            $value = implode(', ', $msg);
             break;
         case 'postType':
             $values = !is_array($value) ? array($value) : $value;

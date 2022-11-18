@@ -108,12 +108,9 @@ class AWM_API extends WP_REST_Controller
   {
     if (isset($request)) {
       $params = $request->get_params();
-
       $post_id = isset($params['awm_post_id']) ? absint($params['awm_post_id']) : 0;
-
       $code = array();
       $awm_field = awm_get_db_content('ewp_fields', array('include' => $post_id));
-
       if (empty($awm_field)) {
         return;
       }

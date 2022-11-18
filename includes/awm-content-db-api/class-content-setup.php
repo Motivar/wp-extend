@@ -10,6 +10,7 @@ if (!defined('ABSPATH')) {
 
 class AWM_Add_Content_DB_Setup
 {
+  private static $item_meta = false;
   private $data_id;
   private $data_content;
   private $table_name_main;
@@ -24,7 +25,6 @@ class AWM_Add_Content_DB_Setup
     $this->set_table_names();
     add_action('admin_init', array($this, 'on_load'));
     add_filter('awm_custom_lists_view_filter', array($this, 'set_custom_list'), PHP_INT_MAX);
-    add_filter('awm_show_content_value_filter', array($this, 'awm_content_metas_values'), 10, 4);
     add_filter('awm_column_' . $this->content_id . '_column_content_filter', array($this, 'awm_content_metas_columns'), 10, 3);
   }
 
@@ -68,41 +68,27 @@ class AWM_Add_Content_DB_Setup
   {
     switch ($view) {
       case $this->table_name_meta:
+        if (isset(self::$item_meta[$id])) {
+          return isset(self::$item_meta[$id][$original_meta]) ? self::$item_meta[$id][$original_meta] : false;
+        }
         $where_clause = array(
           "clause" => array(
             array(
               "operator" => "AND",
               "clause" => array(
                 array('column' => 'content_id', 'value' => absint($id), 'compare' => '='),
-                array('column' => 'meta_key', 'value' => $original_meta, 'compare' => '='),
               ),
             ),
           )
         );
-        $results = AWM_DB_Creator::get_db_data($this->table_name_meta, array('meta_value'), $where_clause, '', 1);
-
-        if (isset($results[0]['meta_value']) && !empty($results[0]['meta_value'])) {
-          $data = maybe_unserialize(maybe_unserialize($results[0]['meta_value']));
-          return $data;
-        }
-        break;
-      case $this->table_name_main:
-        if ($original_meta == 'title')
-          $original_meta = 'content_title';
-        $where_clause = array(
-          "clause" => array(
-            array(
-              "clause" => array(
-                array('column' => 'content_id', 'value' => $id, 'compare' => '=')
-              ),
-            ),
-          )
-        );
-        $results = AWM_DB_Creator::get_db_data($view, '*', $where_clause);
-
-        if (isset($results[0][$original_meta]) && !empty($results[0][$original_meta])) {
-          $data = maybe_unserialize($results[0][$original_meta]);
-          return $data;
+        $results = AWM_DB_Creator::get_db_data($this->table_name_meta, array('meta_key', 'meta_value'), $where_clause);
+        if (!empty($results)) {
+          $final_results = array();
+          foreach ($results as $result) {
+            $final_results[$result['meta_key']] = maybe_unserialize(maybe_unserialize($result['meta_value']));
+          }
+          self::$item_meta[$id] = $final_results;
+          return isset(self::$item_meta[$id][$original_meta]) ? self::$item_meta[$id][$original_meta] : false;
         }
         break;
     }
@@ -164,7 +150,7 @@ class AWM_Add_Content_DB_Setup
 
   public function get_metabox_conf($meta_key)
   {
-    $metaboxes = $this->get_extra_metaboxes();
+    $metaboxes = $this->get_metaboxes();
     foreach ($metaboxes as $metaBoxKey => $metaBoxData) {
       $metaBoxData['library'] = awm_callback_library(awm_callback_library_options($metaBoxData), $metaBoxKey);
       if (!empty($metaBoxData['library'])) {
@@ -179,40 +165,6 @@ class AWM_Add_Content_DB_Setup
 
 
   public function get_metaboxes()
-  {
-
-    $metaboxes = array(
-      'basics' => array(
-        'title' => __('Basics', 'filox'),
-        'context' => 'normal',
-        'priority' => 'high',
-        'library' => array(
-          'title' => array(
-            'case' => 'input',
-            'type' => 'text',
-            'label' => __('Title', 'awm'),
-            'label_class' => array('awm-needed'),
-            'attributes' => array('placeholder' => __('add your title', 'extend-wp'))
-          ),
-          'status' => array(
-            'case' => 'select',
-            'label' => __('Status', 'awm'),
-            'removeEmpty' => true,
-            'options' => $this->get_statuses(),
-            'label_class' => array('awm-needed'),
-            'admin_list' => 1,
-            'restrict_content' => 1
-          )
-        ),
-        'order' => 1,
-        'view' => $this->table_name_main
-      )
-    );
-
-    return $metaboxes + $this->get_extra_metaboxes();
-  }
-
-  public function get_extra_metaboxes()
   {
     $metaboxes = isset($this->data_content['metaboxes']) ? $this->data_content['metaboxes'] : array();
     foreach ($metaboxes as &$metabox_data) {
@@ -235,6 +187,7 @@ class AWM_Add_Content_DB_Setup
       'show_new' => isset($this->data_content['show_new']) ? $this->data_content['show_new'] : true,
       'disable_new' => isset($this->data_content['disable_new']) ? $this->data_content['disable_new'] : false,
       'list_name' => $this->data_content['list_name'],
+      'status' => $this->get_statuses(),
       'db_search_key' => 'content_id',
       'title_key' => 'content_title',
       'list_name_singular' => $this->data_content['list_name_singular'],

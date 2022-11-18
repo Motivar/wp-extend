@@ -50,7 +50,7 @@ $display_id = isset($_REQUEST['id']) ? $_REQUEST['id'] : 'new';
         'type' => 'text',
         'label' => __('Title', 'awm'),
         'label_class' => array('awm-needed'),
-        'attributes' => array('placeholder' => __('add your title', 'extend-wp'))
+        'attributes' => array('placeholder' => __('Add your title', 'extend-wp'), 'value' => isset($ewp_args['item']['content_title']) ? $ewp_args['item']['content_title'] : '')
        )), $display_id, $ewp_args['id'] . '_main'); ?>
       </div>
      </div>

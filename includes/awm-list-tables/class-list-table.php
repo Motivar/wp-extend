@@ -23,6 +23,7 @@ require_once 'class-list-form.php';
 class AWM_List_Table extends WP_List_Table
 {
 
+    public static $content_totals = array();
     /**
      * @var string $list_name - The name of the table list. Used for the menu page name and the slug url as well
      */
@@ -83,7 +84,6 @@ class AWM_List_Table extends WP_List_Table
         if (strpos($args['parent'], '?') === false) {
             $args['parent'] = false;
         }
-
         $this->page_link = $args['parent'] ? $args['parent'] . '&page=' . $args['id'] : 'admin.php?page=' . $args['id'];
         $this->list_name = $args['list_name'];
         $this->columns  = $this->get_all_columns($args['columns'], $args);
@@ -101,6 +101,7 @@ class AWM_List_Table extends WP_List_Table
             'singular' => $args['list_name_singular'],
             'plural'   => $args['list_name'],
             'ajax' => true,
+            'ewp_custom_args' => $args
         ));
     }
 
@@ -121,8 +122,20 @@ class AWM_List_Table extends WP_List_Table
 
     protected function display_tablenav($which)
     {
+
+        $items = self::$content_totals;
+        if ($items['items'] === 0) {
+            return;
+        }
         if ('top' === $which) {
-            wp_nonce_field('bulk-' . $this->_args['plural']);
+        ?><div class="ewp-top-actions">
+                <?php
+                $this->views();
+                $this->search_box(sprintf(__('Search %s', 'extend-wp'), $this->_args['plural']), $this->_args['ewp_custom_args']['id'] . '-search-box');
+                wp_nonce_field('bulk-' . $this->_args['plural']);
+                ?>
+            </div>
+        <?php
         } ?>
         <div class="tablenav <?php echo esc_attr($which); ?>">
 
@@ -132,13 +145,62 @@ class AWM_List_Table extends WP_List_Table
                 </div>
             <?php
             endif;
+
             $this->extra_tablenav($which);
             $this->pagination($which);
+
             ?>
 
             <br class="clear" />
         </div>
+    <?php
+    }
+
+    public function search_box($text, $input_id)
+    {
+        /*
+
+        if (!empty($_REQUEST['orderby'])) {
+            echo '<input type="hidden" name="orderby" value="' . esc_attr($_REQUEST['orderby']) . '" />';
+        }
+        if (!empty($_REQUEST['order'])) {
+            echo '<input type="hidden" name="order" value="' . esc_attr($_REQUEST['order']) . '" />';
+        }
+        if (!empty($_REQUEST['post_mime_type'])) {
+            echo '<input type="hidden" name="post_mime_type" value="' . esc_attr($_REQUEST['post_mime_type']) . '" />';
+        }
+        if (!empty($_REQUEST['detached'])) {
+            echo '<input type="hidden" name="detached" value="' . esc_attr($_REQUEST['detached']) . '" />';
+        }*/
+
+    ?>
+        <div class="ewp-search-box">
+            <div class="search-box">
+                <label class="screen-reader-text" for="<?php echo esc_attr($input_id); ?>"><?php echo $text; ?></label>
+                <input type="search" id="<?php echo esc_attr($input_id); ?>" name="s" value="<?php _admin_search_query(); ?>" />
+                <?php submit_button($text, '', '', false, array('id' => 'search-submit')); ?>
+            </div>
+        </div>
 <?php
+    }
+
+
+
+    public function views()
+    {
+        if (empty($this->_args['ewp_custom_args']['status'])) {
+            return '';
+        }
+        $labels = array();
+        $items = $this->get_total_items();
+
+        $labels[] = '<li "all"><a href="' . $this->page_link . '" class="' . (!isset($_REQUEST['ewp_status']) ? 'current' : '') . '">' . __('All', 'extend-wp') . ' (' . $items['items'] . ')</a></li>';
+        foreach ($this->_args['ewp_custom_args']['status'] as $key => $label) {
+            if (isset($items[$key])) {
+                $labels[$key] = '<li class="' . $key . '"><a href="' . $this->page_link . '&ewp_status=' . $key . '" class="' . ((isset($_REQUEST['ewp_status']) && $_REQUEST['ewp_status'] == $key) ? 'current' : '') . '">' . $label['label'] . ' (' . $items[$key] . ')</a></li>';
+            }
+        }
+        echo '<div id="ewp-statuses"><ul class="subsubsub" id="extend-wp-custom-views">' . implode(' | ', $labels) . '</ul></div>';
     }
 
 
@@ -334,17 +396,38 @@ class AWM_List_Table extends WP_List_Table
         }
     }
 
+    public function get_total_items()
+    {
+        if (!empty(self::$content_totals)) {
+            return self::$content_totals;
+        }
+        global $wpdb;
+        $totals = array('items' => 0);
+        $table_name = $this->table_name;
+        // will be used in pagination settings
+        $total_items = $wpdb->get_results("SELECT COUNT($this->db_search_key),status FROM $wpdb->prefix$table_name GROUP BY status");
+        if (!empty($total_items)) {
+            foreach ($total_items as $item) {
+                $totals[$item->status] = $item->{"COUNT($this->db_search_key)"};
+                $totals['items'] += $totals[$item->status];
+            }
+        }
+        self::$content_totals = $totals;
+        return $totals;
+    }
+
     /**
      * [REQUIRED] This is the most important method
      *
      * It will get rows from database and prepare them to be showed in table
      */
 
-    function prepare_items($isDetailedPage = false)
+    public function prepare_items($isDetailedPage = false)
     {
         global $wpdb;
-        $table_name = $this->table_name;
 
+        $totals = $this->get_total_items();
+        $total_items = $totals['items'];
         $per_page = $this->results_per_page; // constant, how much records will be shown per page
         $columns = $this->get_columns();
         $hidden = array();
@@ -358,19 +441,17 @@ class AWM_List_Table extends WP_List_Table
         // [OPTIONAL] process bulk action if any
         $this->process_bulk_action();
 
-        // will be used in pagination settings
-        $total_items = $wpdb->get_var("SELECT COUNT($this->db_search_key) FROM $wpdb->prefix$table_name");
-
         // prepare query params, as usual current page, order by and order direction
         $paged = isset($_REQUEST['paged']) ? ($per_page * max(0, intval($_REQUEST['paged']) - 1)) : 0;
 
-
+        $where = $this->get_list_where_clause();
         $order_by = (isset($_REQUEST['orderby']) && in_array($_REQUEST['orderby'], array_keys($this->get_sortable_columns()))) ? $_REQUEST['orderby'] : $this->db_search_key;
 
 
         $order = (isset($_REQUEST['order']) && in_array($_REQUEST['order'], array('asc', 'desc'))) ? $_REQUEST['order'] : 'desc';
 
-        $this->items = AWM_DB_Creator::get_db_data($this->table_name, '*', '', array('column' => $order_by, 'type' => $order), $per_page, $paged);
+
+        $this->items = AWM_DB_Creator::get_db_data($this->table_name, '*', $where, array('column' => $order_by, 'type' => $order), $per_page, $paged);
 
         if ($this->is_data_encrypted) {
             $this->items = $this->decrypt_data($this->items);
@@ -383,6 +464,42 @@ class AWM_List_Table extends WP_List_Table
             'per_page' => $per_page, // per page constant defined at top of method
             'total_pages' => ceil($total_items / $per_page) // calculate pages count
         ));
+    }
+
+    public function get_list_where_clause()
+    {
+
+        $where_clause = array();
+        $clauses = array();
+        if (isset($_REQUEST['ewp_status'])) {
+            $clauses[] = array('column' => 'status', 'value' => $_REQUEST['ewp_status'], 'compare' => '=');
+        }
+        if (isset($_REQUEST['s']) && !empty($_REQUEST['s'])) {
+            $clauses[] = array('column' => 'content_title', 'value' => '%' . $_REQUEST['s'] . '%', 'compare' => 'LIKE');
+            $meta_where_clause = array(
+                "clause" => array(
+                    array(
+                        "operator" => 'AND',
+                        "clause" => array(array('column' => 'meta_value', 'value' => '%' . $_REQUEST['s'] . '%', 'compare' => 'LIKE'))
+                    )
+                )
+            );
+
+
+            $inner_query = AWM_DB_Creator::get_db_data($this->_args['ewp_custom_args']['id'] . '_data', array('content_id'), $meta_where_clause, '', '', 0, true);
+            $clauses[] = array('column' => 'content_id', 'value' =>  '(' . $inner_query . ')', 'compare' => 'IN');
+        }
+        if (!empty($clauses)) {
+            $where_clause = array(
+                "clause" => array(
+                    array(
+                        "operator" => "OR",
+                        "clause" => $clauses,
+                    )
+                )
+            );
+        }
+        return $where_clause;
     }
 
     public static function decrypt_data($encrypted_data, $is_single_data = false)
