@@ -6,6 +6,7 @@ if (!defined('ABSPATH')) {
 
 class AWM_Content_DB
 {
+
  public function __construct()
  {
   add_action('plugins_loaded', array($this, 'register_content'), 100);
@@ -18,7 +19,8 @@ class AWM_Content_DB
   $content = $this->awm_register_content_db();
   if (!empty($content)) {
    foreach ($content as $id => $content_structure) {
-    new AWM_Add_Content_DB_Setup(array('key' => $id, 'structure' => $content_structure));
+    $setup = new AWM_Add_Content_DB_Setup();
+    $setup->init(array('key' => $id, 'structure' => $content_structure));
    }
   }
  }

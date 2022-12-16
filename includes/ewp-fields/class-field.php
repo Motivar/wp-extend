@@ -68,7 +68,7 @@ class Extend_WP_Fields
    'list_name_singular' => __('Field', 'extend-wp'),
    'order' => 1,
    'capability' => 'edit_posts',
-   'version' => 0.02,
+   'version' => 0.01,
    'metaboxes' => $this->ewp_fields_metas()
   );
   return $data;

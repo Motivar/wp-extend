@@ -495,7 +495,7 @@ if (!function_exists('awm_create_boxes')) {
           if ($awm_field['position']['panel_id'] != '') {
             $panel_id = $awm_field['position']['panel_id'];
             $boxes[$panel_id]['sections'][$id] = $section[$id];
-            continue;
+            break;
           }
           $boxes[$id] = array(
             'title' => __($awm_field['position']['panel_name'], 'extend-wp'),

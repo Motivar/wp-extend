@@ -211,11 +211,12 @@ class EWP_WP_Content_Installer
       $capabilitiesInfo = ewp_roles_access();
       if (!empty($types)) {
         foreach ($types as $type) {
-          /*change rights for users*/
           foreach ($capabilitiesInfo as $access_type => $access_data) {
-            if (isset($type['access_data'][$access_type])) {
-              $access_data['users'] = array_merge($access_data['users'], $type['access_data'][$access_type]);
+
+            if (isset($type['admin_access'][$access_type])) {
+              $access_data['users'] = array_merge($access_data['users'], $type['admin_access'][$access_type]);
             }
+
             foreach ($access_data['users'] as $user) {
               $admin = get_role($user);
               foreach ($access_data['capabilities'] as $cap) {
@@ -304,7 +305,7 @@ class EWP_WP_Content_Installer
           'label' => $label,
           'menu_name' => $label,
           'all_items' => sprintf(__('All %s', 'extend-wp'), $name),
-          'edit_item' => sprintf(__('Exit %s', 'extend-wp'), $label),
+          'edit_item' => sprintf(__('Edit %s', 'extend-wp'), $label),
           'update_item' => sprintf(__('Update %s', 'extend-wp'), $label),
           'add_new_item' => sprintf(__('New %s', 'extend-wp'), $label),
           'new_item_name' => sprintf(__('New %s', 'extend-wp'), $label),
@@ -402,6 +403,7 @@ class EWP_WP_Content_Installer
         register_post_type($type['post'], $args);
 
         if (isset($type['custom_status']) && !empty($type['custom_status'])) {
+
           foreach ($type['custom_status'] as $k => $v) {
             register_post_status($k, array(
               'label' => __($k, $type['post']),
@@ -409,7 +411,7 @@ class EWP_WP_Content_Installer
               'exclude_from_search' => false,
               'show_in_admin_all_list' => true,
               'show_in_admin_status_list' => true,
-              'label_count' => _n_noop($v . '  <span class="count">(%s)</span>', $v . ' <span class="count">(%s)</span>', 'extend-wp'),
+              'label_count' => _n_noop($v['label'] . '  <span class="count">(%s)</span>', $v['label'] . ' <span class="count">(%s)</span>', 'extend-wp'),
             ));
           }
         }

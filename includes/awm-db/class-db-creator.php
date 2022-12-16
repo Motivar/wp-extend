@@ -31,7 +31,7 @@ class AWM_DB_Creator
         $databasesNotUpdated = array();
         foreach ($dbData as $table => $tableData) {
             /*check tableVersion*/
-            $registeredVersion = get_option('flxVersion_' . $table) ?: 0;
+            $registeredVersion = get_option('ewp_version_' . $table) ?: 0;
             $currentVersion = isset($tableData['version']) ? $tableData['version'] : strtotime('now');
 
             // If there is no version registered or there is a mismatch between versions, prepare the sql query
@@ -76,12 +76,13 @@ class AWM_DB_Creator
                 }
                 $error = $wpdb->last_error;
                 if (empty($error)) {
-                    update_option('flxVersion_' . $table, $currentVersion, false);
+                    update_option('ewp_version_' . $table, $currentVersion, false);
                     $message = sprintf(__('Table "%s" just updated! Current versions is %s.', 'filox'), $table, $currentVersion);
                     $databasesUpdated[] = $message;
                     if (function_exists('filoxUpdateActivity')) {
                         filoxUpdateActivity(array('name' => 'flx', 'type' => 'dbUpdate', 'comment' => array('table' => $table, 'version' => $currentVersion)));
                     }
+                    do_action('ewp_database_updated', $table, $tableData);
                     continue;
                 }
                 $message = sprintf(__('Table "%s" not udpated! The error is: <strong>%s</strong>.', 'filox'), $table, $error);

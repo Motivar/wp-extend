@@ -90,9 +90,6 @@ if (!function_exists('awm_insert_db_content_meta')) {
   }
 }
 
-
-
-
 if (!function_exists('awm_get_db_content')) {
   /**
    * similar to get posts
@@ -153,7 +150,6 @@ if (!function_exists('awm_get_db_content')) {
         );
       }
       $inner_query = AWM_DB_Creator::get_db_data($field . '_data', array('content_id'), $meta_where_clause, '', '', 0, true);
-
       $wheres[] = array('column' => 'content_id', 'value' =>  '(' . $inner_query . ')', 'compare' => 'IN');
     }
     $results = array();
@@ -215,5 +211,134 @@ if (!function_exists('awm_get_db_content_meta')) {
       $return[$result['meta_key']] = maybe_unserialize(maybe_unserialize($result['meta_value']));
     }
     return $return;
+  }
+}
+
+
+
+
+
+
+if (!function_exists('awm_custom_content_delete')) {
+  /**
+   * with this function we delte the data and the relations
+   * @param string $field the object to type to delete the data
+   * @param array $ids
+   * 
+   */
+  function awm_custom_content_delete($field, $ids = array())
+  {
+    if (!empty($ids)) {
+      $where_clause = array(
+        "clause" => array(
+          array(
+            "operator" => "AND",
+            "clause" => array(
+              array('column' => 'content_id', 'value' => '(' . implode(',', $ids) . ')', 'compare' => 'IN')
+            ),
+          ),
+        )
+      );
+      /*action to run before delete*/
+      do_action($field . '_pre_delete_action', $ids, $where_clause);
+      /*make the deletes*/
+      AWM_DB_Creator::delete_db_data($field . '_data', $where_clause);
+      AWM_DB_Creator::delete_db_data($field . '_main', $where_clause);
+      /*action to run after delete*/
+      do_action($field . '_after_delete_action', $ids, $where_clause);
+      /*cache flushes and transients*/
+      wp_cache_flush();
+      awm_delete_transient_all();
+      return true;
+    }
+    return false;
+  }
+}
+
+if (!function_exists('awm_main_table_data')) {
+  /**
+   * with this function we set the main table to update
+   * @param string $id the object id
+   * @param array $data the data posted to be saved
+   * 
+   */
+  function awm_main_table_data($id, $data)
+  {
+    $setup = AWM_Add_Content_DB_Setup::$ewp_data_configuration[$id];
+    $main_data_structure = $setup['save_columns'];
+    $main_data = array(
+      "modified" => current_time('mysql'),
+      "user_id" => get_current_user_id(),
+    );
+    $exclude = array();
+    foreach ($main_data_structure as $key => $conf) {
+      if (isset($conf['sql'])) {
+        if (isset($conf['required']) && !isset($data[$key])) {
+          return false;
+        }
+        if (isset($data[$key])) {
+          $sql_key = isset($conf['sql_key']) ? $conf['sql_key'] : $key;
+          $main_data[$sql_key] = $data[$key];
+          $exclude[] = $key;
+        }
+      }
+    }
+    if ($main_data['content_id'] === 'new' || !$main_data['content_id']) {
+      $main_data['created'] = current_time('mysql');
+      unset($main_data['content_id']);
+    }
+    return apply_filters('awm_main_table_data_filter', array('table_data' => $main_data, 'exclude' => $exclude), $id, $data);
+  }
+}
+
+
+
+if (!function_exists('awm_meta_table_data')) {
+  /**
+   * with this function we set the main table to update
+   * @param string $id the object id
+   * @param array $data the data posted to be saved
+   * @param array $exlude the data to excluded from meta array
+   * 
+   */
+  function awm_meta_table_data($id, $data, $exclude)
+  {
+    $metas = array();
+    if (!isset($data['awm_custom_meta'])) {
+      return array();
+    }
+    foreach ($data['awm_custom_meta'] as $key) {
+      if (!in_array($key, $exclude)) {
+        $metas[$key] = $data[$key];
+      }
+    }
+    return apply_filters('awm_meta_table_data_filter', $metas, $id, $data, $exclude);
+  }
+}
+
+
+
+
+
+if (!function_exists('awm_custom_content_save')) {
+  /**
+   * with this function we set the save action
+   * @param string $id the content object to user
+   * @param array $data the data from the content object
+   * 
+   */
+  function awm_custom_content_save($id, $data)
+  {
+    $main_table_data = awm_main_table_data($id, $data);
+    if (is_wp_error($main_table_data)) {
+      return new WP_Error('missing_fields', __('Missing fields ', 'extend-wp'));
+    }
+    $metas = awm_meta_table_data($id, $data, $main_table_data['exclude']);
+    $object_id = awm_insert_db_content($id, $main_table_data['table_data']);
+    awm_insert_db_content_meta($id, $object_id, $metas);
+    do_action($id . '_save_action', $object_id, $data);
+    wp_cache_flush();
+    awm_delete_transient_all();
+    return $object_id;
   }
 }

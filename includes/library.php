@@ -924,9 +924,7 @@ function awm_display_meta_value($meta, $data, $postId = 0, $external_value = '')
     $awm_post_id = $postId;
     $value = $external_value != '' ? $external_value : (get_post_meta($postId, $meta, true) ?: false);
     $original_value = $value;
-
     $case = isset($data['admin_list_view']) ? $data['admin_list_view'] : $data['case'];
-
     switch ($case) {
         case 'input':
             switch ($data['type']) {

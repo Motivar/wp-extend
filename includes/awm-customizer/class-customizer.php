@@ -117,7 +117,7 @@ class AWM_Customize
                   default:
                     if ($field_data['type'] == 'color') {
                       $wp_customize->add_control(new WP_Customize_Color_Control($wp_customize, $field_id, $args));
-                      continue;
+                      break;
                     }
                     $field_data = awm_prepare_field($field_data);
                     $args['type'] = $field_data['case'] == 'input' ? $field_data['type'] : $field_data['case'];

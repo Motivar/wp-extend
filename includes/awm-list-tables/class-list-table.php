@@ -24,6 +24,7 @@ class AWM_List_Table extends WP_List_Table
 {
 
     public static $content_totals = array();
+    public static $columns = array();
     /**
      * @var string $list_name - The name of the table list. Used for the menu page name and the slug url as well
      */
@@ -31,14 +32,8 @@ class AWM_List_Table extends WP_List_Table
     private $page_id;
     private $page_link;
     /**
-     * @var array $columns - The columns of the custom table list. They can be less or the same amount as the columns of the respective SQL table
-     */
-    private $columns;
-
-    /**
      * @var array $sortable_columns - The columns that the custom table list can be ordered by. Cann be one, some or all columns
      */
-    private $sortable_columns;
     private $list_filters;
 
     /**
@@ -60,8 +55,6 @@ class AWM_List_Table extends WP_List_Table
      * @var string $icon_url - The url of the icon to display on the menu
      */
     private $db_search_key;
-    private $delete_callback;
-    private $delete_callback_args;
 
     /**
      * @var boolean $is_data_encrypted - Boolean value that determines whether the stored data is encrypted. Used to decrypt data before setting it to items or niot
@@ -69,6 +62,7 @@ class AWM_List_Table extends WP_List_Table
     private $is_data_encrypted;
 
     private $title_key;
+    private $date_key;
 
     /**
      * [REQUIRED] You must declare a constructor and give some basic params
@@ -86,17 +80,15 @@ class AWM_List_Table extends WP_List_Table
         }
         $this->page_link = $args['parent'] ? $args['parent'] . '&page=' . $args['id'] : 'admin.php?page=' . $args['id'];
         $this->list_name = $args['list_name'];
-        $this->columns  = $this->get_all_columns($args['columns'], $args);
-        $this->sortable_columns = $args['sortable'];
         $this->list_filters = $this->get_list_filters($args);
         $this->table_name = $args['table_name'];
         $this->title_key = isset($args['title_key']) ? $args['title_key'] : 'title';
+        $this->date_key =  'created';
+        $this->date_modified_key =  'modified';
         $this->results_per_page = isset($args['results_per_page']) ? $args['results_per_page'] : 50;
         $this->icon_url = $args['icon_url'];
         $this->is_data_encrypted = $args['is_data_encrypted'];
         $this->db_search_key = isset($args['db_search_key']) ? $args['db_search_key'] : 'id';
-        $this->delete_callback = isset($args['delete_callback']) ? $args['delete_callback'] : false;
-        $this->delete_callback_args = isset($args['delete_callback_args']) ? $args['delete_callback_args'] : array();
         parent::__construct(array(
             'singular' => $args['list_name_singular'],
             'plural'   => $args['list_name'],
@@ -114,7 +106,7 @@ class AWM_List_Table extends WP_List_Table
                     <?php echo awm_show_content($this->list_filters, 0, 'restrict_manage_posts'); ?>
                 </div>
                 <input type="hidden" name="awm_restict_custom_list" id="awm_restict_custom_list" value="<?php echo $this->page_id; ?>" class="">
-                <?php submit_button(__('Filter', 'awm'), 'secondary', 'action', false); ?>
+                <?php submit_button(__('Filter', 'extend-wp'), 'secondary', 'action', false); ?>
             </div>
         <?php
         }
@@ -204,8 +196,17 @@ class AWM_List_Table extends WP_List_Table
     }
 
 
-    public function get_all_columns($columns, $args)
+    public function get_all_columns($args)
     {
+        $column_data = array('columns' => array('cb' =>  '<input type="checkbox" />'), 'sortable' => array());
+        if (isset($args['columns'])) {
+            foreach ($args['columns'] as $key => $data) {
+                $column_data['columns'][$key] = isset($data['label']) ? $data['label'] : $key;
+                if (isset($data['sortable'])) {
+                    $column_data['sortable'][$key] = array($data['sortable'], true);
+                }
+            }
+        }
         if (isset($args['metaboxes']) && !empty($args['metaboxes'])) {
 
             foreach ($args['metaboxes'] as $metaBoxKey => $metaBoxData) {
@@ -213,13 +214,16 @@ class AWM_List_Table extends WP_List_Table
                 if (!empty($metaBoxData['library'])) {
                     foreach ($metaBoxData['library'] as $key => $data) {
                         if (isset($data['admin_list'])) {
-                            $columns[$key] = $data['label'];
+                            $column_data['columns'][$key] = $data['label'];
+                            if (isset($data['sortable'])) {
+                                $column_data['sortable'][$key] = array($data['sortable'], true);
+                            }
                         }
                     }
                 }
             }
         }
-        return $columns;
+        return $column_data;
     }
 
 
@@ -257,39 +261,8 @@ class AWM_List_Table extends WP_List_Table
 
     function column_default($item, $column_name)
     {
-
-        $output = apply_filters('awm_column_' . $this->page_id . '_column_content_filter', '', $item, $column_name);
-        return $output;
+        return apply_filters('ewp_column_' . $this->page_id . '_column_content_filter', '', $item, $column_name);
     }
-    /**
-     * [OPTIONAL] this is example, how to render column with actions,
-     * when you hover row "Edit | Delete" links showed
-     *
-     * @param $item - row (key, value array)
-     * @return HTML
-     */
-
-
-    function column_id($item)
-    {
-        // links going to /admin.php?page=[your_plugin_page][&other_params]
-        // notice how we used $_REQUEST['page'], so action will be done on curren page
-        // also notice how we use $this->_args['singular'] so in this example it will
-        // be something like &person=2
-        $actions = apply_filters(
-            'column_id_actions_filter',
-            array(
-                'edit' => sprintf('<a href="' . $this->page_link . '_form&id=%s">%s</a>', $item[$this->db_search_key], __('Edit', '-meta')),
-                'delete' => sprintf('<span class="cstm_tbl_delete" id="delete-' . $item[$this->db_search_key] . '-' . $this->id . '" style="color: red;">%s</span>', __('Delete', 'extend-wp')), $item
-            )
-        );
-        return sprintf(
-            '%s %s',
-            $item[$this->db_search_key],
-            $this->row_actions($actions)
-        );
-    }
-
     /**
      * [OPTIONAL] this is example, how to render column with actions,
      * when you hover row "Edit | Delete" links showed
@@ -299,18 +272,27 @@ class AWM_List_Table extends WP_List_Table
      * @param $item - row (key, value array)
      * @return HTML
      */
-
     function column_title($item)
     {
         $title = '<strong>' . $item[$this->title_key] . '</strong>';
+        $actions = $this->get_row_actions($item);
+        return $title . $this->row_actions($actions);
+    }
 
+
+    public function get_row_actions($item)
+    {
         $actions = array(
             'edit' => sprintf('<a href="' . $this->page_link . '_form&id=%d">%s</a>', $item[$this->db_search_key], __('Edit', 'extend-wp')),
             'delete' => sprintf('<a href="%s" class="cstm_tbl_delete" id="delete-' . $item[$this->db_search_key] . '-' . $this->list_name . '" style="color: red;">%s</a>', wp_nonce_url(admin_url($this->page_link . '&id=' . $item[$this->db_search_key] . '&action=delete'), $this->page_link . '_delete'), __('Delete', 'extend-wp'))
         );
-        return $title . $this->row_actions($actions);
+        return apply_filters('ewp_row_actions_' . $this->page_id . '_filter', $actions, $item);
     }
 
+    function column_ewp_date($item)
+    {
+        return $item[$this->date_key];
+    }
 
     /**
      * [REQUIRED] this is how checkbox column renders
@@ -335,10 +317,15 @@ class AWM_List_Table extends WP_List_Table
      */
 
     /** @dynamic the array of the columns that will get rendered */
-    function get_columns()
+    function get_columns($view = 'columns')
     {
-        $columns = array('cb' => '<input type="checkbox" />') + $this->columns;
-        return $columns;
+        if (!empty(self::$columns)) {
+            return self::$columns[$view];
+        }
+
+        $columns =  $this->get_all_columns($this->_args['ewp_custom_args']);
+        self::$columns = $columns;
+        return $columns[$view];
     }
 
     /**
@@ -349,11 +336,7 @@ class AWM_List_Table extends WP_List_Table
      * @return array
      */
 
-    /** @dynamic the arra of the columns that will be sortable */
-    function get_sortable_columns()
-    {
-        return $this->sortable_columns;
-    }
+
 
     /**
      * [OPTIONAL] Return array of bult actions if has any
@@ -377,22 +360,13 @@ class AWM_List_Table extends WP_List_Table
      */
     function process_bulk_action()
     {
-        global $wpdb;
-        $table_name = $wpdb->prefix . $this->table_name; // do not forget about tables prefix
-
-        if ('delete' === $this->current_action()) {
-            $ids = isset($_REQUEST['id']) ? $_REQUEST['id'] : array();
-            if (is_array($ids)) $ids = implode(',', $ids);
-
-            if ($this->delete_callback && function_exists($this->delete_callback)) {
-                call_user_func_array($this->delete_callback, array($ids, $this->delete_callback_args));
-                $ids = array();
-            }
-
-
-            if (!empty($ids)) {
-                $wpdb->query("DELETE FROM $table_name WHERE $this->db_search_key IN($ids)");
-            }
+        if (!isset($_REQUEST['action'])) {
+            return '';
+        }
+        switch ($_REQUEST['action']) {
+            case 'delete':
+                awm_custom_content_delete($this->_args['ewp_custom_args']['id'], explode(',', $_REQUEST['id']));
+                break;
         }
     }
 
@@ -424,8 +398,10 @@ class AWM_List_Table extends WP_List_Table
 
     public function prepare_items($isDetailedPage = false)
     {
-        global $wpdb;
 
+        // [OPTIONAL] process bulk action if any
+        $this->process_bulk_action();
+        $where = $this->get_list_where_clause();
         $totals = $this->get_total_items();
         $total_items = $totals['items'];
         $per_page = $this->results_per_page; // constant, how much records will be shown per page
@@ -433,19 +409,17 @@ class AWM_List_Table extends WP_List_Table
         $hidden = array();
 
 
-        $sortable = $this->get_sortable_columns();
+        $sortable = $this->get_columns('sortable');
 
         // here we configure table headers, defined in our methods
         $this->_column_headers = array($columns, $hidden, $sortable);
 
-        // [OPTIONAL] process bulk action if any
-        $this->process_bulk_action();
 
         // prepare query params, as usual current page, order by and order direction
         $paged = isset($_REQUEST['paged']) ? ($per_page * max(0, intval($_REQUEST['paged']) - 1)) : 0;
 
-        $where = $this->get_list_where_clause();
-        $order_by = (isset($_REQUEST['orderby']) && in_array($_REQUEST['orderby'], array_keys($this->get_sortable_columns()))) ? $_REQUEST['orderby'] : $this->db_search_key;
+
+        $order_by = (isset($_REQUEST['orderby']) && in_array($_REQUEST['orderby'], array_keys($sortable))) ? $_REQUEST['orderby'] : $this->db_search_key;
 
 
         $order = (isset($_REQUEST['order']) && in_array($_REQUEST['order'], array('asc', 'desc'))) ? $_REQUEST['order'] : 'desc';
@@ -471,16 +445,35 @@ class AWM_List_Table extends WP_List_Table
 
         $where_clause = array();
         $clauses = array();
+        /* check if we have certain status to search in*/
         if (isset($_REQUEST['ewp_status'])) {
             $clauses[] = array('column' => 'status', 'value' => $_REQUEST['ewp_status'], 'compare' => '=');
         }
+        /*check if we have certain restrict list to check in*/
+        if (isset($_REQUEST['awm_restict_custom_list'])) {
+            foreach ($this->_args['ewp_custom_args']['save_columns'] as $column_key => $column_conf) {
+                if (isset($column_conf['restrict_content']) && isset($_REQUEST[$column_key])) {
+                    $sql_key = isset($column_conf['sql_key']) ? $column_conf['sql_key'] : $column_key;
+                    $clauses[] = array('column' => $sql_key, 'value' => sanitize_text_field($_REQUEST[$column_key]), 'compare' => '=');
+                    break;
+                }
+            }
+        }
+
+
         if (isset($_REQUEST['s']) && !empty($_REQUEST['s'])) {
-            $clauses[] = array('column' => 'content_title', 'value' => '%' . $_REQUEST['s'] . '%', 'compare' => 'LIKE');
+            $search_value = '%' . sanitize_text_field($_REQUEST['s']) . '%';
+            foreach ($this->_args['ewp_custom_args']['save_columns'] as $column_key => $column_conf) {
+                if (isset($column_conf['searchable'])) {
+                    $column_key = isset($column_conf['sql_key']) ? $column_conf['sql_key'] : $column_key;
+                    $clauses[] = array('column' => $column_key, 'value' => $search_value, 'compare' => 'LIKE');
+                }
+            }
             $meta_where_clause = array(
                 "clause" => array(
                     array(
                         "operator" => 'AND',
-                        "clause" => array(array('column' => 'meta_value', 'value' => '%' . $_REQUEST['s'] . '%', 'compare' => 'LIKE'))
+                        "clause" => array(array('column' => 'meta_value', 'value' => $search_value, 'compare' => 'LIKE'))
                     )
                 )
             );

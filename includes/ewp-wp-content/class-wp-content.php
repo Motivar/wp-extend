@@ -53,6 +53,7 @@ class Extend_WP_WP_Content
  {
   update_option('ewp_user_caps_version', strtotime('now'), false);
   awm_delete_transient_group('awm_post_fields_transients');
+  delete_option('ewp_user_caps_version');
  }
 
 
@@ -82,8 +83,8 @@ class Extend_WP_WP_Content
       'flx_enable' => true,
       'slug' => get_option($post_name . '_slug') ?: $prefix . '_' . awm_clean_string(strtolower($metas['singular'])),
       'taxonomies_connected' => isset($metas['taxonomies']) ? $metas['taxonomies'] : array(),
-      'description' => $metas['description'],
-      'flx_custom_template' => $metas['custom_template'] ?: false,
+      'description' => isset($metas['description']) ? $metas['description'] : '',
+      'flx_custom_template' => isset($metas['custom_template']) ? $metas['custom_template'] : false,
       'admin_access' => array(
        'fullAccess' => array('administrator'),
        'semiAccess' => array(),
@@ -119,7 +120,7 @@ class Extend_WP_WP_Content
    'list_name_singular' => __('Post type', 'extend-wp'),
    'order' => 1,
    'capability' => 'edit_posts',
-   'version' => 0.02,
+   'version' => 0.01,
    'metaboxes' => array(
     'post_type_configuration' => array(
      'title' => __('Post type configuration', 'extend-wp'),

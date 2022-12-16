@@ -10,9 +10,6 @@ class AWM_Add_Custom_List
   private $meta_boxes;
   private $page_hook;
   private $update_metas;
-  private $save_callback;
-  private $save_callback_args;
-  private $delete_callback;
   private $page_id;
   private $page_link;
   private $custom_id;
@@ -25,18 +22,18 @@ class AWM_Add_Custom_List
     $this->flx_register_custom_list_view($this->custom_id, $this->custom_list);
     add_action('load-' . $this->pagehook, array($this, 'on_load_page'));
     add_action('admin_footer-' . $this->pagehook, array($this, 'on_page_footer'), 100);
-    add_action('admin_init', array($this, 'save_page'));
-    add_action('admin_notices', [$this, 'show_message']);
+    add_action('admin_init', array($this, 'save_page'), 10);
+    add_action('admin_notices', [$this, 'show_message'], 100);
   }
 
   public function show_message()
   {
-    if (isset($_REQUEST['udpate'])) {
-?>
-      <div class="notice notice-success is-dismissible">
-        <p><?php _e('Content updated', 'extend-wp'); ?></p>
+    if (isset($_REQUEST['ewp_updated'])) { ?>
+      <div class="notice notice-success">
+        <p><?php _e('Content updated!', 'extend-wp'); ?></p>
       </div>
     <?php
+      unset($_REQUEST['ewp_updated']);
     }
   }
 
@@ -106,12 +103,11 @@ class AWM_Add_Custom_List
       $this->meta_boxes = isset($args['metaboxes']) ? $args['metaboxes'] : array();
       $this->page_hook = $this->pagehook;
       $this->update_metas = isset($args['update_metas']) ? $args['update_metas'] : array();
-      $this->save_callback = isset($args['save_callback']) ? $args['save_callback'] : '';
-      $this->save_callback_args = isset($args['save_callback_args']) ? $args['save_callback_args'] : array();
       $this->page_id = $args['id'];
-      $this->delete_callback = isset($args['delete_callback']) ? $args['delete_callback'] : '';
+
       $pre = isset($args['parent']) ? $args['parent'] : '';
-      if (strpos('edit.php', $pre) === false) {
+
+      if ($pre != '' && strpos('edit.php', $pre) === false) {
         $pre = '';
       }
       $this->page_link = !empty($pre) ? $pre . '&page=' . $args['id'] : 'admin.php?page=' . $args['id'];
@@ -121,15 +117,17 @@ class AWM_Add_Custom_List
   public function save_page()
   {
     /*save function*/
-    if (isset($_POST['ewp_list_page_hook_nonce']) && wp_verify_nonce($_POST['ewp_list_page_hook_nonce'], $this->page_hook) && !empty($this->save_callback)) {
-      $id = call_user_func_array($this->save_callback, array($_POST, $this->save_callback_args));
-      do_action($this->custom_id . '_save_action', $id, array($_POST, $this->save_callback_args));
-      wp_redirect($this->page_link . '_form&id=' . $id . '&updated=1');
+    if (isset($_POST['ewp_list_page_hook_nonce']) && wp_verify_nonce($_POST['ewp_list_page_hook_nonce'], $this->page_hook)) {
+      $id = awm_custom_content_save($this->custom_id, $_POST);
+      if (is_wp_error($id)) {
+        echo $id->get_error_message();
+        exit;
+      }
+      wp_redirect($this->page_link . '_form&id=' . $id . '&ewp_updated=1');
       exit;
     }
-    if (isset($_REQUEST['_wpnonce']) && wp_verify_nonce($_REQUEST['_wpnonce'], $this->page_id . '_delete') && !empty($this->delete_callback) && isset($_REQUEST['id'])) {
-      call_user_func_array($this->delete_callback, array($_REQUEST['id'], $this->save_callback_args));
-      do_action($this->custom_id . '_delete_action', $_REQUEST['id'], array($this->save_callback_args));
+    if (isset($_REQUEST['_wpnonce']) && wp_verify_nonce($_REQUEST['_wpnonce'], $this->page_id . '_delete') && isset($_REQUEST['id'])) {
+      awm_custom_content_delete($this->custom_id, explode(',', $_REQUEST['id']));
       wp_redirect($this->page_link . '&deleted=1');
       exit;
     }
@@ -157,7 +155,6 @@ class AWM_Add_Custom_List
       return self::$item_data;
     }
     $current_id = isset($_REQUEST['id']) ? $_REQUEST['id'] : '';
-
     if (!empty($current_id)) {
       self::$item_data['item'] = awm_get_db_content($this->custom_id, array('include' => array($current_id)))[0];
       self::$item_data['meta'] = awm_get_db_content_meta($this->custom_id, $current_id);
@@ -182,7 +179,13 @@ class AWM_Add_Custom_List
           if (!empty($metaBoxData['library'])) {
             if (isset($item_data['meta'])) {
               foreach ($metaBoxData['library'] as $key => &$meta) {
-                $meta['attributes']['value'] = isset($item_data['meta'][$key]) ? $item_data['meta'][$key] : '';
+                /*get the value from meta item*/
+                $value = isset($item_data['meta'][$key]) ? $item_data['meta'][$key] : '';
+                if (isset($meta['sql_key'])) {
+                  /*check if value is stored in the main table*/
+                  $value = isset($item_data['item'][$meta['sql_key']]) ? $item_data['item'][$meta['sql_key']] : '';
+                }
+                $meta['attributes']['value'] = $value;
               }
             }
             $metaBoxData['post'] = isset($_REQUEST['id']) ? $_REQUEST['id'] : '';;
@@ -204,17 +207,17 @@ class AWM_Add_Custom_List
           }
         }
       }
-      add_meta_box(
-        'flx_list_custom_submit_' . $this->page_hook,
-        __('Update actions', 'extend-wp'), // $title
-        function () use ($update_metas) {
-          echo $this->update_box($update_metas);
-        },
-        array($this->page_hook), // $page
-        'side', // $context
-        'high'
-      ); // $priority
     }
+    add_meta_box(
+      'flx_list_custom_submit_' . $this->page_hook,
+      __('Update actions', 'extend-wp'), // $title
+      function () use ($update_metas) {
+        echo $this->update_box($update_metas);
+      },
+      array($this->page_hook), // $page
+      'side', // $context
+      'high'
+    ); // $priority
   }
 
   public function update_box($data)

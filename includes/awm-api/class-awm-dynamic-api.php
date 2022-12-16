@@ -8,47 +8,49 @@ if (!defined('ABSPATH')) {
 class AWM_Dynamic_API extends WP_REST_Controller
 {
   /**
-   * @var namespace The namespace of the API. Distinct name and version.
+   * @var endpoints An array with all the endpoints to register
    */
-  protected $awm_options;
+  private $endpoints;
 
   /**
-   * Basic constructor function that initializes the namespace and the base of the Filox Rates API
+   * Basic constructor function gather the args
    */
   public function __construct($args)
   {
 
     // Initialize values
-    $this->awm_options = $args;
+    $this->endpoints = $args;
   }
   /**
    * Registers all Filox Rates API endpoints using the proper custom WP REST API configuration
    */
   public function register_routes()
   {
-    foreach ($this->awm_options as $option) {
-      if (isset($option['rest'])) {
-        $endpoint = $option['rest'];
-        if (isset($endpoint['endpoint'])) {
-          $method = $endpoint['method'] ?: 'get';
-          $namespace = $endpoint['namespace'] ?: 'awm-dynamic-api/v1';
-          $callback = $endpoint['php_callback'] ?: array($this, 'awm_default_callback');
-          $permission_callback = $endpoint['permission_callback'] ?: '';
-          $rest_args = array(
-            "methods" => strtolower($method) === 'get' ? WP_REST_Server::READABLE : WP_REST_Server::CREATABLE,
-            "callback" => $callback,
-          );
+    if (empty($this->endpoints)) {
+      return true;
+    }
+    foreach ($this->endpoints as $endpoint) {
+      if (isset($endpoint['endpoint'])) {
+        $method = strtolower($endpoint['method']) ?: 'get';
+        $namespace = $endpoint['namespace'] ?: 'awm-dynamic-api/v1';
+        $callback = $endpoint['php_callback'] ?: [$this, 'awm_default_callback'];
+        $permission_callback = isset($endpoint['permission_callback']) ? $endpoint['permission_callback'] : '';
+        $args = isset($endpoint['args']) ? $endpoint['args'] : array();
+        $rest_args = array(
+          "methods" => $method === 'update' ? WP_REST_Server::EDITABLE : ($method === 'delete' ? WP_REST_Server::DELETABLE : ($method === 'get' ? WP_REST_Server::READABLE : WP_REST_Server::CREATABLE)),
+          'callback' => $callback,
+          'args' => $args
+        );
 
-          if (!empty($permission_callback)) {
-            $rest_args['permission_callback'] = $permission_callback;
-          }
-          if (!isset($rest_args['permission_callback'])) {
-            $rest_args['permission_callback'] = function () {
-              return true;
-            };
-          }
-          register_rest_route($namespace, $endpoint['endpoint'], $rest_args);
+        if (!empty($permission_callback)) {
+          $rest_args['permission_callback'] = $permission_callback;
         }
+        if (!isset($rest_args['permission_callback'])) {
+          $rest_args['permission_callback'] = function () {
+            return true;
+          };
+        }
+        register_rest_route($namespace, $endpoint['endpoint'], $rest_args);
       }
     }
   }

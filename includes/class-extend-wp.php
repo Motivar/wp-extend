@@ -13,8 +13,6 @@ class AWM_Meta
 
     public function init()
     {
-
-
         define('AWM_JQUERY_LOAD', apply_filters('awm_jquery_load_filter', true));
         add_action('plugins_loaded', function () {
             load_plugin_textdomain('extend-wp', false, awm_path . '/languages/');
@@ -78,7 +76,16 @@ class AWM_Meta
 
     public function awm_dynamic_routes()
     {
-        $d_api = new AWM_Dynamic_API($this->options_boxes());
+        if (empty($this->options_boxes())) {
+            return true;
+        }
+        $options_with_endpoint = array();
+        foreach ($this->options_boxes() as $option_box => $option_data) {
+            if (isset($options['rest'])) {
+                $options_with_endpoint[$option_box] = $option_data;
+            }
+        }
+        $d_api = new AWM_Dynamic_API($options_with_endpoint);
         $d_api->register_routes();
     }
 
@@ -120,7 +127,7 @@ class AWM_Meta
                                             /*add the sortables*/
                                             if (isset($data['sortable']) && $data['sortable']) {
                                                 add_filter('manage_edit-' . $postType . '_sortable_columns', function ($columns) use ($data) {
-                                                    $columns[$data['key']] = $data['key'] . '_awm_sort_by_' . $data['sortable'];
+                                                    $columns[$data['key']] = $data['key'] . '_ewp_sort_by_' . $data['sortable'];
                                                     return $columns;
                                                 }, 10, 1);
                                             }
@@ -239,8 +246,8 @@ class AWM_Meta
         /*check order by*/
         $orderby = $query->get('orderby') ?: '';
 
-        if (strpos($orderby, '_awm_sort_by_') !== false) {
-            $awm_info = explode('_awm_sort_by_', $orderby);
+        if (strpos($orderby, '_ewp_sort_by_') !== false) {
+            $awm_info = explode('_ewp_sort_by_', $orderby);
             $meta = $awm_info[0];
             $type = $awm_info[1];
             $query->set('meta_key', $meta);
