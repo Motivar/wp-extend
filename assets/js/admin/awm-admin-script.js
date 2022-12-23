@@ -227,44 +227,48 @@ function awmSelectrBoxes() {
 
 
 
-function awmMultipleCheckBox() {
-    var elems = document.querySelectorAll('.checkbox_multiple.awm-meta-field');
-    if (elems) {
-        elems.forEach(function(elem) {
-            inputs = elem.querySelectorAll('input[type="checkbox"]');
 
-            if (inputs) {
-                inputs.forEach(function(input) {
-                    var dataValue = input.getAttribute('data-value');
-                    if (dataValue == 'awm_apply_all') {
-                        input.addEventListener('change', function(e) {
-                            var checked = input.checked;
-                            var text = input.getAttribute('data-extra');
 
-                            elem.querySelectorAll('input[type="checkbox"]').forEach(function(checkbox) {
-                                if (checkbox.value != '') {
-                                    checkbox.checked = checked;
-                                }
-                            });
-                            var element_to_change = document.querySelector('#label_' + input.id + ' span');
-                            input.setAttribute('data-extra', element_to_change.innerText);
-                            element_to_change.innerText = text;
-                        });
-                    }
-                });
-            }
-        });
-    }
-}
-
-function awm_get_case_fields(element) {
+/**
+ * 
+ * get the query additional informations
+ * @param {*} element the div to show
+ */
+function awm_get_query_fields(element) {
     if (!element.disabled) {
         var id = document.getElementById('ewp_content_id').value;
         var input_name = element.getAttribute('name');
         var defaults = {
-            data: { name: input_name },
+            data: { name: input_name, meta: 'query_fields' },
             method: 'get',
-            url: awmGlobals.url + "/wp-json/extend-wp/v1/get-case-fields/?id=" + id + "&field=" + element.value + "&name=" + input_name,
+            url: awmGlobals.url + "/wp-json/extend-wp/v1/get-query-fields/?meta=query_fields&id=" + id + "&field=" + element.value + "&name=" + input_name,
+            callback: 'awm_show_query_details',
+        };
+        awm_ajax_call(defaults);
+    }
+}
+
+function awm_show_query_details(data, options) {
+
+    var name = options.data.name.replace('query_fields', '').replace('[query_type]', '').replace('[', '').replace(']', '');
+    var element = document.querySelector('#awm-query_fields-' + name + ' .awm-query-type-configuration');
+    if (element) {
+        element.innerHTML = data;
+    }
+    awm_init_inputs();
+}
+
+
+function awm_get_case_fields(element) {
+    if (!element.disabled) {
+
+        var meta = element.getAttribute('input-name');
+        var id = document.getElementById('ewp_content_id').value;
+        var input_name = element.getAttribute('name');
+        var defaults = {
+            data: { name: input_name, meta: meta },
+            method: 'get',
+            url: awmGlobals.url + "/wp-json/extend-wp/v1/get-case-fields/?meta=" + meta + "&id=" + id + "&field=" + element.value + "&name=" + input_name,
             callback: 'awm_show_field_details',
         };
         awm_ajax_call(defaults);
@@ -272,8 +276,8 @@ function awm_get_case_fields(element) {
 }
 
 function awm_show_field_details(data, options) {
-    var name = options.data.name.replace('awm_fields', '').replace('[case]', '').replace('[', '').replace(']', '');
-    var element = document.querySelector('#awm-awm_fields-' + name + ' .awm-field-type-configuration');
+    var name = options.data.name.replace(options.data.meta, '').replace('[case]', '').replace('[', '').replace(']', '');
+    var element = document.querySelector('#awm-' + options.data.meta + '-' + name + ' .awm-field-type-configuration');
     if (element) {
         element.innerHTML = data;
     }

@@ -669,3 +669,34 @@ function awm_ajax_call(options) {
     }
     return true;
 }
+
+
+function awmMultipleCheckBox() {
+    var elems = document.querySelectorAll('.checkbox_multiple.awm-meta-field');
+    if (elems) {
+        elems.forEach(function(elem) {
+            inputs = elem.querySelectorAll('input[type="checkbox"]');
+
+            if (inputs) {
+                inputs.forEach(function(input) {
+                    var dataValue = input.getAttribute('data-value');
+                    if (dataValue == 'awm_apply_all') {
+                        input.addEventListener('change', function(e) {
+                            var checked = input.checked;
+                            var text = input.getAttribute('data-extra');
+
+                            elem.querySelectorAll('input[type="checkbox"]').forEach(function(checkbox) {
+                                if (checkbox.value != '') {
+                                    checkbox.checked = checked;
+                                }
+                            });
+                            var element_to_change = document.querySelector('#label_' + input.id + ' span');
+                            input.setAttribute('data-extra', element_to_change.innerText);
+                            element_to_change.innerText = text;
+                        });
+                    }
+                });
+            }
+        });
+    }
+}

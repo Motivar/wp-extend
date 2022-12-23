@@ -695,7 +695,7 @@ if (!function_exists('awm_position_options')) {
           'callback' => 'all_awm_meta_libraries',
           'label_class' => array('awm-needed'),
         )
-      )),
+      ))
     ));
   }
 }
@@ -785,6 +785,9 @@ if (!function_exists('awmInputFields')) {
     ));
   }
 }
+
+
+
 
 
 if (!function_exists('awm_term_options')) {

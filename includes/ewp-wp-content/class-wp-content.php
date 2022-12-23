@@ -53,7 +53,7 @@ class Extend_WP_WP_Content
  {
   update_option('ewp_user_caps_version', strtotime('now'), false);
   awm_delete_transient_group('awm_post_fields_transients');
-  delete_option('ewp_user_caps_version');
+  delete_option('ewp_user_caps_version_old');
  }
 
 
@@ -63,6 +63,7 @@ class Extend_WP_WP_Content
 
   $transient_key = 'ewp_post_types';
   $cached = awm_get_transient($transient_key);
+
   if ($cached !== false) {
    return $cached;
   }
@@ -140,7 +141,7 @@ class Extend_WP_WP_Content
     )
    )
   );
-  /*register fields*/
+  /*register taxonomies*/
   $data['taxonomies'] = array(
    'parent' => 'extend-wp',
    'statuses' => array(
@@ -231,7 +232,6 @@ class Extend_WP_WP_Content
      'case' => 'input',
      'type' => 'checkbox'
     ),
-
     'custom_template' => array(
      'label' => __('Is public', 'extend-wp'),
      'case' => 'input',
@@ -303,7 +303,6 @@ class Extend_WP_WP_Content
      'type' => 'text',
      'label_class' => array('awm-needed'),
     ),
-
     'prefix' => array(
      'label' => __('Registration prefix', 'extend-wp'),
      'case' => 'input',

@@ -53,6 +53,16 @@ class AWM_API extends WP_REST_Controller
       )
     ));
 
+    register_rest_route($this->namespace, "/get-query-fields/", array(
+      array(
+        "methods" => WP_REST_Server::READABLE,
+        "callback" => array($this, 'get_query_fields'),
+        "permission_callback" => function () {
+          return true;
+        }
+      )
+    ));
+
     register_rest_route($this->namespace, "/get-php-code/", array(
       array(
         "methods" => WP_REST_Server::READABLE,
@@ -171,7 +181,29 @@ class AWM_API extends WP_REST_Controller
       $field = sanitize_text_field($params['position']);
       $name = sanitize_text_field($params['name']);
       $postId = absint($params['id']);
-      $return = $this->get_awm_metas_configuration($field, $name, 'awm_positions', $postId, awm_position_options());
+      $return = $this->get_awm_metas_configuration($field, $name, 'awm_positions', $postId, awm_position_options(), 'ewp_fields', 'case');
+      return rest_ensure_response(new WP_REST_Response($return), 200);
+    }
+    return false;
+  }
+
+
+  /**
+   * get query fields
+   */
+  public function get_query_fields($request)
+  {
+    // Check that a request is sent
+    if (isset($request)) {
+      $params = $request->get_params();
+      if (!isset($params['field']) || empty($params['field'])) {
+        return '';
+      }
+      $field = sanitize_text_field($params['field']);
+      $name = sanitize_text_field($params['name']);
+      $meta = sanitize_text_field($params['meta']);
+      $postId = absint($params['id']);
+      $return = $this->get_awm_metas_configuration($field, $name, $meta, $postId, ewp_query_fields(), 'ewp_search', 'query_type');
       return rest_ensure_response(new WP_REST_Response($return), 200);
     }
     return false;
@@ -188,24 +220,31 @@ class AWM_API extends WP_REST_Controller
       }
       $field = sanitize_text_field($params['field']);
       $name = sanitize_text_field($params['name']);
-
+      $meta = sanitize_text_field($params['meta']);
+      $db = 'ewp_fields';
+      switch ($meta) {
+        case 'query_fields':
+          $db = 'ewp_search';
+          $replace = 'query_type';
+          break;
+      }
       $postId = absint($params['id']);
-      $return = $this->get_awm_metas_configuration($field, $name, 'awm_fields', $postId, awmInputFields());
+      $return = $this->get_awm_metas_configuration($field, $name, $meta, $postId, awmInputFields(), $db, 'case');
       return rest_ensure_response(new WP_REST_Response($return), 200);
     }
     return false;
   }
 
-  private function get_awm_metas_configuration($field, $name, $meta, $postId, $all_fields)
+  private function get_awm_metas_configuration($field, $name, $meta, $postId, $all_fields, $db, $replace)
   {
     $content = '';
     if (array_key_exists($field, $all_fields)) {
       if (isset($all_fields[$field]['field-choices']) && !empty($all_fields[$field]['field-choices'])) {
-        $values = awm_get_db_content_meta('ewp_fields', $postId, $meta) ?: array();
+        $values = awm_get_db_content_meta($db, $postId, $meta) ?: array();
         $metas = array();
         foreach ($all_fields[$field]['field-choices'] as $id => $data) {
-          $inputname = str_replace('[case]', '', $name) . '[' . $id . ']';
-          $position = absint(str_replace('[case]', '', str_replace($meta . '[', '', str_replace(']', '', $name))));
+          $inputname = str_replace('[' . $replace . ']', '', $name) . '[' . $id . ']';
+          $position = absint(str_replace('[' . $replace . ']', '', str_replace($meta . '[', '', str_replace(']', '', $name))));
           $metaId = str_replace(']', '_', str_replace('[', '_', $inputname));
           $data['attributes']['exclude_meta'] = true;
           $data['attributes']['id'] = $metaId;
