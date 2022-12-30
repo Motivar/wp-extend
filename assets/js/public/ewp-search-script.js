@@ -55,7 +55,6 @@ function ewp_search_action(form, options, show_results) {
 /**
  * show the results from search query
  */
-
 function ewp_search_form_callback(response, options) {
     /*remove the content and display the content*/
     document.body.classList.remove('ewp-search-loading');
@@ -83,7 +82,3 @@ function ewp_search_form_callback(response, options) {
     const event = new CustomEvent("ewp_search_results_loaded", { detail: data });
     document.dispatchEvent(event);
 }
-
-/**
- * function register events for pagination
- */
