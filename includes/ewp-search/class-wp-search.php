@@ -77,13 +77,13 @@ class Extend_WP_Search
       foreach ($conf['query_fields'] as $constructor) {
         $request_key = $constructor['query_key'];
         if (isset($params[$request_key]) && !empty($params[$request_key])) {
-
+          $search_terms = is_array($params[$request_key]) ? array_filter($params[$request_key]) : array($params[$request_key]);
           switch ($constructor['query_type']) {
             case 'taxonomy':
               $tax_query = array(
                 'taxonomy' => $constructor['taxonomy'][0],
                 'field' => 'term_id',
-                'terms' => array_filter($params[$request_key]),
+                'terms' => $search_terms,
               );
               if (count($constructor['taxonomy']) > 1) {
                 $tax_query = array('relation' => 'or');
@@ -91,7 +91,7 @@ class Extend_WP_Search
                   $tax_query[] = array(
                     'taxonomy' => $taxonomy,
                     'field' => 'term_id',
-                    'terms' => array_filter($params[$request_key]),
+                    'terms' => $search_terms,
                   );
                 }
               }
@@ -131,7 +131,7 @@ class Extend_WP_Search
    */
   public function registerScripts()
   {
-    $version = 0.01;
+    $version = 0.02;
     //wp_register_style('filox-custom-inputs', flx_url . 'assets/public/css/custom-inputs/custom_inputs.min.css', false, $version);
     wp_register_script('ewp-search', awm_url . 'assets/js/public/ewp-search-script.js', array(), $version, true);
   }
@@ -170,6 +170,18 @@ class Extend_WP_Search
       if (isset($field['label'])) {
         $field['label'] = __($field['label'], 'extend-wp');
       }
+      /*fix the attributes*/
+      $attributes = array();
+      if (isset($field['attributes'])) {
+        foreach ($field['attributes'] as $attribute) {
+          if (!empty($attribute['label']) && !empty($attribute['value'])) {
+            $attributes[$attribute['label']] = $attribute['value'];
+          }
+        }
+      }
+      $field['attributes'] = $attributes;
+
+
       switch ($field['case']) {
         case 'term':
           if (is_tax()) {
@@ -322,6 +334,11 @@ class Extend_WP_Search
         'label' => __('Reset button label', 'extend-wp'),
         'show-when' => array('async' => array('values' => array('not_async' => true))),
       ),
+      'run_on_load' => array(
+        'case' => 'input',
+        'type' => 'checkbox',
+        'label' => __('Execute on page load', 'extend-wp')
+      )
     );
     return $metas;
   }
@@ -377,6 +394,25 @@ class Extend_WP_Search
             'value' => '<div class="awm-query-type-configuration"></div>',
             'exclude_meta' => true,
             'show_label' => true
+          ),
+          'attributes' => array(
+            'label' => __('Attributes', 'extend-wp'),
+            'explanation' => __('like min=0 / onchange=action etc'),
+            'minrows' => 0,
+            'case' => 'repeater',
+            'item_name' => __('Attribute', 'extend-wp'),
+            'include' => array(
+              'label' => array(
+                'label' => __('Attribute label', 'extend-wp'),
+                'case' => 'input',
+                'type' => 'text',
+              ),
+              'value' => array(
+                'label' => __('Attribute value', 'extend-wp'),
+                'case' => 'input',
+                'type' => 'text',
+              ),
+            )
           ),
           'explanation' => array(
             'label' => __('User message', 'extend-wp'),

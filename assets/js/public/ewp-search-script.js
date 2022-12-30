@@ -15,6 +15,7 @@ function ewp_search_forms() {
         Array.from(form_boxes).forEach(function(form_box) {
             var form = form_box.querySelector('form');
             var options = JSON.parse(form_box.getAttribute('options').replace(/\'/g, '\"'));
+
             options.search_id = form_box.getAttribute('search-id');
             var show_results = document.querySelector(options.show_results);
             if (show_results !== null) {
@@ -23,6 +24,10 @@ function ewp_search_forms() {
                         ewp_search_action(form, options, show_results);
                     });
                 }
+            }
+            /*execute on load*/
+            if (options.run_on_load) {
+                ewp_search_action(form, options, show_results);
             }
 
         });
