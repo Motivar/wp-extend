@@ -51,6 +51,75 @@ class Extend_WP_Search
     $d_api->register_routes();
   }
 
+  private function query_prepare($params, $conf)
+  {
+    /*constuct the query*/
+    $args = array(
+      'post_type' => $conf['post_types'],
+      'post_status' => 'publish',
+      'posts_per_page' => $conf['limit'],
+      'orderby' => 'ID',
+      'order' => 'ASC',
+      'tax_query' => array(),
+      'meta_query' => array(),
+      'paged' => isset($params['paged']) ? $params['paged'] : 1, /*check the paged parameter*/
+      'suppress_filters' => false,
+    );
+    /*build the query dynamic query*/
+
+    foreach ($conf['query_fields'] as $constructor) {
+      $request_key = $constructor['query_key'];
+      if (isset($params[$request_key]) && !empty($params[$request_key])) {
+        $search_terms = is_array($params[$request_key]) ? array_filter($params[$request_key]) : array($params[$request_key]);
+        switch ($constructor['query_type']) {
+          case 'taxonomy':
+            $tax_query = array(
+              'taxonomy' => $constructor['taxonomy'][0],
+              'field' => 'term_id',
+              'terms' => $search_terms,
+            );
+            if (count($constructor['taxonomy']) > 1) {
+              $tax_query = array('relation' => 'or');
+              foreach ($constructor['taxonomy'] as $taxonomy) {
+                $tax_query[] = array(
+                  'taxonomy' => $taxonomy,
+                  'field' => 'term_id',
+                  'terms' => $search_terms,
+                );
+              }
+            }
+            $args['tax_query'][] = $tax_query;
+            break;
+          case 'meta':
+            break;
+          case 'post':
+            $args['s'] = $params[$request_key];
+            break;
+        }
+      }
+    }
+
+    /*check for wpml and language parameter*/
+
+    global $sitepress;
+    if ($sitepress && isset($params['lang'])) {
+      $sitepress->switch_lang($params['lang'], true);
+    }
+    /**
+     * change the search filter query qrgs
+     *
+     * with this filter we change the arguments for the WP_Query
+     *
+     * @since 3.9.0
+     *
+     * @param array $args the args for the wp query
+     * @param array $params the params from the json request
+     * @param array $conf the configuration of the search filter
+     */
+    return apply_filters('ewp_search_query_filter', $args, $params, $conf);
+  }
+
+
   public function get_results($request)
   {
     if (isset($request)) {
@@ -60,59 +129,7 @@ class Extend_WP_Search
       if (empty($conf)) {
         return rest_ensure_response(new WP_REST_Response(false), 400);
       }
-      /*constuct the query*/
-      $args = array(
-        'post_type' => $conf['post_types'],
-        'post_status' => 'publish',
-        'posts_per_page' => $conf['limit'],
-        'orderby' => 'ID',
-        'order' => 'ASC',
-        'tax_query' => array(),
-        'meta_query' => array(),
-        'paged' => isset($params['paged']) ? $params['paged'] : 1, /*check the paged parameter*/
-        'suppress_filters' => false,
-      );
-      /*build the query dynamic query*/
-
-      foreach ($conf['query_fields'] as $constructor) {
-        $request_key = $constructor['query_key'];
-        if (isset($params[$request_key]) && !empty($params[$request_key])) {
-          $search_terms = is_array($params[$request_key]) ? array_filter($params[$request_key]) : array($params[$request_key]);
-          switch ($constructor['query_type']) {
-            case 'taxonomy':
-              $tax_query = array(
-                'taxonomy' => $constructor['taxonomy'][0],
-                'field' => 'term_id',
-                'terms' => $search_terms,
-              );
-              if (count($constructor['taxonomy']) > 1) {
-                $tax_query = array('relation' => 'or');
-                foreach ($constructor['taxonomy'] as $taxonomy) {
-                  $tax_query[] = array(
-                    'taxonomy' => $taxonomy,
-                    'field' => 'term_id',
-                    'terms' => $search_terms,
-                  );
-                }
-              }
-              $args['tax_query'][] = $tax_query;
-              break;
-            case 'meta':
-              break;
-            case 'post':
-              $args['s'] = $params[$request_key];
-              break;
-          }
-        }
-      }
-
-      /*check for wpml and language parameter*/
-
-      global $sitepress;
-      if ($sitepress && isset($params['lang'])) {
-        $sitepress->switch_lang($params['lang'], true);
-      }
-
+      $args = $this->query_prepare($params, $conf);
       /*get and set global the results*/
       global $ewp_search_query;
       $ewp_search_query = new WP_Query($args);
