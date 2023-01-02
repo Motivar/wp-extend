@@ -21,13 +21,13 @@ function ewp_search_forms() {
             if (show_results !== null) {
                 if (options.async == 'async') {
                     form.addEventListener('change', () => {
-                        ewp_search_action(form, options, show_results);
+                        ewp_search_action(form, options, show_results, 1);
                     });
                 }
             }
             /*execute on load*/
             if (options.run_on_load) {
-                ewp_search_action(form, options, show_results);
+                ewp_search_action(form, options, show_results, 1);
             }
 
         });
@@ -37,12 +37,15 @@ function ewp_search_forms() {
 /**
  * handle the call to the server
  */
-function ewp_search_action(form, options, show_results) {
+function ewp_search_action(form, options, show_results, paged) {
     document.body.classList.add('ewp-search-loading');
+    /* set the data with the paged variable*/
+    var send_data = jsVanillaSerialize(form);
+    send_data.push("paged=" + paged);
     var defaults = {
         form: form,
         search_options: options,
-        data: jsVanillaSerialize(form),
+        data: send_data,
         method: 'get',
         url: awmGlobals.url + "/wp-json/ewp-filter/" + options.search_id + "/",
         callback: 'ewp_search_form_callback',
@@ -70,9 +73,8 @@ function ewp_search_form_callback(response, options) {
                 window.event.stopPropagation();
                 var page = parseInt(pagination_link.innerText);
                 var paged = options.form.querySelector('#paged');
-                paged.value = page;
                 /*make the query*/
-                ewp_search_action(options.form, options.search_options, options.element)
+                ewp_search_action(options.form, options.search_options, options.element, paged)
             });
         });
     }

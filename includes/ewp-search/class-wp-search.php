@@ -204,15 +204,6 @@ class Extend_WP_Search
         'attributes' => array('value' => $sitepress->get_default_language())
       );
     }
-    /**
-     * set the paged parameter
-     */
-    $form_fields['paged'] = array(
-      'case' => 'input',
-      'type' => 'hidden',
-      'exclude_meta' => true,
-      'attributes' => array('value' => 1)
-    );
     unset($fields['query_fields']);
     $form = '<div id="ewp-search-' . $id . '" class="ewp-search-box" options="' . htmlspecialchars(str_replace('"', '\'', json_encode($fields))) . '" search-id="' . $id . '"><form id="ewp-search-form-' . $id . '">' . awm_show_content(($form_fields)) . '</form></div>';
     return $form;
