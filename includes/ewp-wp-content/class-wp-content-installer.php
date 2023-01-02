@@ -118,7 +118,7 @@ class EWP_WP_Content_Installer
     }
     if (!empty($this->taxonomies)) {
       foreach ($this->taxonomies as $tax => $tax_data) {
-        $slugs[$tax] = isset($tax_data['label']) ? $tax_data['label'] : $tax;
+        $slugs[$tax] = isset($tax_data['label']) ? __($tax_data['label'], 'extend-wp') : $tax;
       }
     }
 
@@ -326,7 +326,7 @@ class EWP_WP_Content_Installer
             'slug' => get_option($term . '_slug') ?: $term,
             'with_front' => false,
           ),
-          'show_admin_column' => isset($term_data['show_admin_column']) ? $term_data['show_admin_column'] : false,
+          'show_admin_column' => $term_data['show_admin_column'],
           'show_in_rest' =>   true,
         );
         register_taxonomy($term, $term_data['post_types'], $args);

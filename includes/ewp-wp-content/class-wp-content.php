@@ -39,7 +39,8 @@ class Extend_WP_WP_Content
      'label' => __($metas['label'], 'extend-wp'),
      'custom-slug' => true,
      'post_types' => $metas['post_types'],
-     'template' => $metas['template']
+     'template' => $metas['template'],
+     'show_admin_column' => isset($metas['show_admin_column']) ? $metas['show_admin_column'] : false,
     );
    }
   }
@@ -320,6 +321,11 @@ class Extend_WP_WP_Content
      'case' => 'input',
      'type' => 'text',
      'explanation' => __('if you create ewp_{taxonomy_name}.php it will be used. Otherwise use path (from plugins/ or themes/). If none archive.php will be used.', 'extend-wp'),
+    ),
+    'show_admin_column' => array(
+     'label' => __('Show in admin list', 'extend-wp'),
+     'case' => 'input',
+     'type' => 'checkbox'
     )
    )
 
