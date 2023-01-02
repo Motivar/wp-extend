@@ -72,9 +72,8 @@ function ewp_search_form_callback(response, options) {
                 window.event.preventDefault();
                 window.event.stopPropagation();
                 var page = parseInt(pagination_link.innerText);
-                var paged = options.form.querySelector('#paged');
                 /*make the query*/
-                ewp_search_action(options.form, options.search_options, options.element, paged)
+                ewp_search_action(options.form, options.search_options, options.element, page)
             });
         });
     }
