@@ -161,24 +161,8 @@ class Extend_WP_Search
     wp_enqueue_script('ewp-search');
   }
 
-  public function ewp_display_search($atts)
+  private function prepare_form_fields($input_fields, $id)
   {
-    extract(shortcode_atts(array(
-      'id' => '',
-    ), $atts));
-    /*check if empty*/
-    if (empty($id)) {
-      return '';
-    }
-    /*get the fields*/
-    $fields = awm_get_db_content_meta('ewp_search', $id);
-
-    /* check if fields isset*/
-    if (!isset($fields['query_fields'])) {
-      return '';
-    }
-    /*check the input fields*/
-    $input_fields = $fields['query_fields'];
     $form_fields = array();
     foreach ($input_fields as &$field) {
       $key = $field['query_key'];
@@ -221,6 +205,29 @@ class Extend_WP_Search
         'attributes' => array('value' => $sitepress->get_default_language())
       );
     }
+    return apply_filters('ewp_search_prepare_form_fields_filter', $form_fields, $input_fields, $id);
+  }
+
+
+  public function ewp_display_search($atts)
+  {
+    extract(shortcode_atts(array(
+      'id' => '',
+    ), $atts));
+    /*check if empty*/
+    if (empty($id)) {
+      return '';
+    }
+    /*get the fields*/
+    $fields = awm_get_db_content_meta('ewp_search', $id);
+
+    /* check if fields isset*/
+    if (!isset($fields['query_fields'])) {
+      return '';
+    }
+    /*check the input fields*/
+    $input_fields = $fields['query_fields'];
+    $form_fields = $this->prepare_form_fields($input_fields, $id);
     unset($fields['query_fields']);
     $form = '<div id="ewp-search-' . $id . '" class="ewp-search-box" options="' . htmlspecialchars(str_replace('"', '\'', json_encode($fields))) . '" search-id="' . $id . '"><form id="ewp-search-form-' . $id . '">' . awm_show_content(($form_fields)) . '</form></div>';
     return $form;

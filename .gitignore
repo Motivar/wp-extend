@@ -1,3 +1,5 @@
 sftp-config.json
 /.vscode
 .vscode
+vendor/
+/vendor/

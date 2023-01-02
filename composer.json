@@ -1,0 +1,5 @@
+{
+    "require-dev": {
+        "pronamic/wp-documentor": "^1.3"
+    }
+}

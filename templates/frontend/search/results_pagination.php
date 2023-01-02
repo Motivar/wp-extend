@@ -18,6 +18,7 @@ global $ewp_search_query;
   'total' => $ewp_search_query->max_num_pages,
   'prev_text' => __('« prev', 'extend-wp'),
   'next_text' => __('next »', 'extend-wp'),
+  'show_all' => true
  ));
  ?>
 </div>
