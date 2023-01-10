@@ -54,6 +54,9 @@ if (!function_exists('awm_set_transient')) {
   set_transient($name, $value, $hours * HOUR_IN_SECONDS);
   if (!empty($group)) {
    $group_keys = get_option('awm_transient_groups') ?: array();
+   if (!isset($group_keys[$group])) {
+    $group_keys[$group] = array();
+   }
    if (!in_array($name, $group_keys[$group])) {
     $group_keys[$group][] = $name;
    }

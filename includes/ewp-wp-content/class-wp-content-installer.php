@@ -285,7 +285,7 @@ class EWP_WP_Content_Installer
     uasort($taxes, function ($a, $b) {
       $first = isset($a['label']) ? $a['label'] : '';
       $second = isset($b['label']) ? $b['label'] : '';
-      return $first > $second;
+      return strcmp($first, $second);
     });
     return $taxes;
   }

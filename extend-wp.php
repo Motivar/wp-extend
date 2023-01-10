@@ -5,7 +5,6 @@ Plugin URI: https://motivar.io
 Description: extend WP in various ways with simple UI
 Version: 2
 Author: Giannopoulos Nikolaos
-Author URI: https://motivar.io
 Text Domain:       extend-wp
 */
 
