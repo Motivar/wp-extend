@@ -292,7 +292,7 @@ class AWM_Add_Content_DB_Setup
     $defaults = array(
       'data' => array(
         'content_id' => 'bigint(20) NOT NULL',
-        'meta_key' => 'varchar(255) NOT NULL',
+        'meta_key' => 'varchar(100) NOT NULL',
         'meta_value' => 'LONGTEXT',
       ),
       'primaryKey' => 'content_id,meta_key',
