@@ -64,7 +64,7 @@ class EWP_WP_Content_Installer
   {
     $types = $this->post_types;
     if (empty($types)) {
-      return;
+      return $post_types;
     }
     foreach ($types as $n) {
       if (isset($n['custom_gallery']) && $n['custom_gallery']) {
