@@ -3,7 +3,7 @@
 Plugin Name: Extend WP
 Plugin URI: https://motivar.io
 Description: extend WP in various ways with simple UI
-Version: 0.1
+Version: 1.1.1
 Author: Giannopoulos Nikolaos
 Text Domain:       extend-wp
 */
