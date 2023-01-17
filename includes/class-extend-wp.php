@@ -210,7 +210,7 @@ class AWM_Meta
         wp_register_style('awm-admin-style', awm_url . 'assets/css/admin/awm-admin-style.min.css', false, $version);
         wp_register_script('awm-global-script', awm_url . 'assets/js/global/awm-global-script.js', array(), $version, true);
         wp_register_script('awm-public-script', awm_url . 'assets/js/public/awm-public-script.js', array(), $version, true);
-        wp_localize_script('awm-global-script', 'awmGlobals', array('url' => esc_url(site_url()), 'nonce' => wp_create_nonce('wp_rest')));
+        wp_localize_script('awm-global-script', 'awmGlobals', array('url' => esc_url(home_url()), 'nonce' => wp_create_nonce('wp_rest')));
         wp_register_script('awm-admin-script', awm_url . 'assets/js/admin/awm-admin-script.js', array(), $version, true);
         wp_register_script('awm-slim-lib-script', 'https://cdnjs.cloudflare.com/ajax/libs/slim-select/1.27.1/slimselect.min.js', array(), $version, true);
         wp_register_style('jquery-ui-awm', apply_filters('jquery_ui_awm_filter', '//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css'));

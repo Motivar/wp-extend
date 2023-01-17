@@ -4,6 +4,67 @@ awmShowInputs();
 awm_ensure_disabled_inputs();
 
 
+
+/*!
+ * Serialize all form data into a query string
+ * (c) 2018 Chris Ferdinandi, MIT License, https://gomakethings.com
+ * @param  {Node}   form The form to serialize
+ * @return {String}      The serialized form data
+ */
+function jsVanillaSerialize(form) {
+    // Setup our serialized data
+    var serialized = [];
+    var exclude = ['option_page', 'action', '_wpnonce', '_wp_http_referer'];
+    if (form) {
+        var loopData = form.querySelectorAll('input, select, checkbox, textarea');
+        // Loop through each field in the form
+
+        if (form.elements) {
+            loopData = form.elements;
+        }
+        for (var i = 0; i < loopData.length; i++) {
+            var field = loopData[i];
+
+            // Don't serialize fields without a name, submits, buttons, file and reset inputs, and disabled fields
+            if (!field.name ||
+                field.disabled ||
+                field.type === "file" ||
+                field.type === "reset" ||
+                field.type === "submit" ||
+                field.type === "button" ||
+                exclude.includes(field.name)
+            )
+                continue;
+
+            // If a multi-select, get all selections
+            if (field.type === "select-multiple") {
+                for (var n = 0; n < field.options.length; n++) {
+                    if (!field.options[n].selected) continue;
+                    serialized.push(
+                        encodeURIComponent(field.name) +
+                        "=" +
+                        encodeURIComponent(field.options[n].value)
+                    );
+                }
+            }
+
+            // Convert field data to a query string
+            else if (
+                (field.type !== "checkbox" && field.type !== "radio") ||
+                field.checked
+            ) {
+                serialized.push(
+                    encodeURIComponent(field.name) + "=" + encodeURIComponent(field.value)
+                );
+            }
+
+        }
+    }
+    return serialized;
+}
+
+
+
 function awm_ensure_disabled_inputs() {
     setTimeout(() => {
         var repeaters = document.querySelectorAll('.awm-repeater-content.temp-source');

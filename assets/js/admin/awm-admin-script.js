@@ -352,7 +352,7 @@ function awm_options_rest_call(form, endpoint, callback, method) {
     var defaults = {
         method: method,
         data: form_data,
-        url: filox_js_variables.site_url + "/wp-json/" + endpoint,
+        url: awmGlobals.url + "/wp-json/" + endpoint,
         callback: callback,
         loading: '#awm-rest-options-results',
     }
