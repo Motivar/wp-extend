@@ -41,7 +41,7 @@ class EWP_WP_Content_Installer
     global $post;
     $types = $this->post_types;
     if (empty($types)) {
-      return;
+      return $single;
     }
     foreach ($types as $n) {
       if ($post->post_type == $n['post']) {
