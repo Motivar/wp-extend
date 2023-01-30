@@ -2,7 +2,7 @@
     "name": "motivar/extend-wp",
     "version": "1.1.2",
     "description": " Extend WordPress with custom functionality",
-    "license": "GPL-2.0",
+    "license": "GPL-2.0-or-later",
     "keywords": ["custom-fields", "advanced-custom-fields", "wordpress"],
     "homepage": "https://motivar.io/",
     "type": "wordpress-plugin",
@@ -11,7 +11,9 @@
         "email": "info@motivar.cio"
     }],
     "config": {
-        "vendor-dir": "lib"
+        "vendor-dir": "lib",
+        "optimize-autoloader": true,
+        "apcu-autoloader": true
     },
     "support": {
         "issues": "https://motivar.io/"
@@ -24,9 +26,6 @@
             "EWP\\": "includes/classes/"
         },
         "files": ["includes/functions/init.php"]
-    },
-    "__comment": "https://getcomposer.org/doc/articles/autoloader-optimization.md -o",
-    "optimize-autoloader": true,
-    "__comment": "https://getcomposer.org/doc/articles/autoloader-optimization.md --apcu-autoloader",
-    "apcu-autoloader": true
+    }
+
 }

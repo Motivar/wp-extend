@@ -1,8 +1,8 @@
 <?php return array(
     'root' => array(
         'name' => 'motivar/extend-wp',
-        'pretty_version' => '1.0.0',
-        'version' => '1.0.0.0',
+        'pretty_version' => '1.1.2',
+        'version' => '1.1.2.0',
         'reference' => NULL,
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
@@ -11,8 +11,8 @@
     ),
     'versions' => array(
         'motivar/extend-wp' => array(
-            'pretty_version' => '1.0.0',
-            'version' => '1.0.0.0',
+            'pretty_version' => '1.1.2',
+            'version' => '1.1.2.0',
             'reference' => NULL,
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
