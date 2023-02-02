@@ -71,11 +71,13 @@ class Extend_WP_WP_Content
   $post_types = awm_get_db_content('ewp_post_types');
   $types = array();
   if (!empty($post_types)) {
+   $all_metas = array();
    foreach ($post_types as $post) {
     $metas = awm_get_db_content_meta('ewp_post_types', $post['content_id']);
     if (!empty($post['content_title'])) {
      $prefix = !empty($metas['prefix']) ? $metas['prefix'] : 'ewp';
      $post_name = $prefix . '_' . awm_clean_string(strtolower($metas['post_name']));
+     $all_metas[$post_name] = $metas;
      $types[$post_name] = array(
       'post' => $post_name,
       'sn' => __($metas['singular'], 'filox'),
@@ -102,7 +104,7 @@ class Extend_WP_WP_Content
     }
    }
   }
-  $types = apply_filters('ewp_get_post_types_filter', $types, $post_types);
+  $types = apply_filters('ewp_get_post_types_filter', $types, $post_types, $all_metas);
   awm_set_transient($transient_key, $types, 0, 36, 'awm_post_fields_transients');
   return $types;
  }
