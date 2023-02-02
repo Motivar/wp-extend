@@ -82,7 +82,7 @@ class AWM_Meta
         $options_with_endpoint = array();
         foreach ($this->options_boxes() as $option_box => $option_data) {
             if (isset($option_data['rest'])) {
-                $options_with_endpoint[$option_box] = $option_data;
+                $options_with_endpoint[$option_box] = $option_data['rest'];
             }
         }
         $d_api = new AWM_Dynamic_API($options_with_endpoint);
