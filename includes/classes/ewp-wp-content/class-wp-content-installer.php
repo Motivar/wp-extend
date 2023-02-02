@@ -33,6 +33,23 @@ class EWP_WP_Content_Installer
     add_filter('gallery_meta_box_post_types', array($this, 'gallery'));
     add_filter('template_include', array($this, 'taxonomy_page_redirect'), 90);
     add_filter('single_template', [$this, 'set_single'], 10);
+    add_filter('use_block_editor_for_post_type', [$this, 'disable_gutenburg'], 10, 2);
+  }
+
+
+  function disable_gutenburg($current_status, $post_type)
+  {
+    // Use your post type key instead of 'product'
+    $types = $this->post_types;
+    if (empty($types)) {
+      return $current_status;
+    }
+    foreach ($types as $n) {
+      if ($post_type == $n['post'] && $n['disable_gutenburg']) {
+        return false;
+      }
+    }
+    return $current_status;
   }
 
 

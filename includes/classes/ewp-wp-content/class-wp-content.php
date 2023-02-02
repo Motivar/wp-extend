@@ -85,6 +85,7 @@ class Extend_WP_WP_Content
       'flx_enable' => true,
       'slug' => get_option($post_name . '_slug') ?: $prefix . '_' . awm_clean_string(strtolower($metas['singular'])),
       'taxonomies_connected' => isset($metas['taxonomies']) ? $metas['taxonomies'] : array(),
+      'disable_gutenburg' => isset($metas['disable_gutenburg']) ? $metas['disable_gutenburg'] : false,
       'description' => isset($metas['description']) ? $metas['description'] : '',
       'flx_custom_template' => isset($metas['custom_template']) ? $metas['custom_template'] : false,
       'admin_access' => array(
@@ -235,6 +236,12 @@ class Extend_WP_WP_Content
     ),
     'custom_template' => array(
      'label' => __('Is public', 'extend-wp'),
+     'case' => 'input',
+     'type' => 'checkbox',
+     'admin_list' => true
+    ),
+    'disable_gutenburg' => array(
+     'label' => __('Disable gutenburg', 'extend-wp'),
      'case' => 'input',
      'type' => 'checkbox',
      'admin_list' => true
