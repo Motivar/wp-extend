@@ -24,7 +24,7 @@ class Setup
   require_once 'ewp-fields/class-field.php';
   require_once 'ewp-wp-content/class-wp-content.php';
   require_once 'ewp-wp-content/class-wp-content-installer.php';
-  require_once 'ewp-search/class-wp-search.php';
+  require_once 'ewp-search-filter/class-wp-search.php';
   require_once 'awm-api/class-awm-api.php';
   require_once 'awm-api/class-awm-dynamic-api.php';
   require_once 'awm-content-db-api/init.php';

@@ -7,7 +7,7 @@ if (!defined('ABSPATH')) {
  * with this class we set custom db structure to save the custom taxonomies and post types
  */
 require_once 'functions.php';
-class Extend_WP_Search
+class Extend_WP_Search_Filters
 {
   public function __construct()
   {
@@ -443,7 +443,7 @@ class Extend_WP_Search
 }
 
 
-new Extend_WP_Search();
+new Extend_WP_Search_Filters();
 
 
 /*
