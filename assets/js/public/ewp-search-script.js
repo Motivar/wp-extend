@@ -5,6 +5,38 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
+ *  apply the search form
+ * @param {*} id the form id
+ */
+function ewp_apply_search_form(id) {
+    var form_box = document.querySelector('#ewp-search-' + id);
+    var options = JSON.parse(form_box.getAttribute('options').replace(/\'/g, '\"'));
+    options.search_id = form_box.getAttribute('search-id');
+    var form = form_box.querySelector('form');
+    var show_results = document.querySelector(options.show_results);
+    if (show_results !== null) {
+        ewp_search_action(form, options, show_results, 1);
+    }
+}
+
+/**
+ * reset the form
+ * @param {*} id the form id
+ */
+function ewp_reset_search_form(id) {
+    var form_box = document.querySelector('#ewp-search-' + id);
+    var options = JSON.parse(form_box.getAttribute('options').replace(/\'/g, '\"'));
+    options.search_id = form_box.getAttribute('search-id');
+    var form = form_box.querySelector('form');
+    var show_results = document.querySelector(options.show_results);
+    if (show_results !== null) {
+        form.reset();
+        ewp_search_action(form, options, show_results, 1);
+    }
+}
+
+
+/**
  * 
  */
 function ewp_search_forms() {
