@@ -13,7 +13,21 @@ if (!function_exists('ewp_query_fields')) {
   return apply_filters(
    'ewp_query_fields_filter',
    array(
-    'post' => array('label' => __('WP Post object', 'extend-wp')),
+    'post' => array(
+     'label' => __('WP Post object', 'extend-wp'),
+     'field-choices' => array(
+      'search_type' => array(
+       'label' => __('Search type', 'extend-wp'),
+       'case' => 'select',
+       'options' => array(
+        'search' => array('label' => __('Search text', 'extend-wp')),
+        'date_from' => array('label' => __('Publish date from', 'extend-wp')),
+        'date_to' => array('label' => __('Publish date to', 'extend-wp')),
+       ),
+       'label_class' => array('awm-needed'),
+      )
+     )
+    ),
     'meta' =>  array(
      'label' => __('WP Meta', 'extend-wp'),
      'field-choices' => array(

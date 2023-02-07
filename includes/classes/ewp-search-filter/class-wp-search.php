@@ -91,14 +91,36 @@ class Extend_WP_Search_Filters
             $args['tax_query'][] = $tax_query;
             break;
           case 'meta':
+            $args['meta_query'][] = array(
+              'key' => $constructor['meta_key'],
+              'compare' => $constructor['meta_compare'],
+              'value' => $params[$request_key],
+            );
             break;
           case 'post':
-            $args['s'] = $params[$request_key];
+            switch ($constructor['search_type']) {
+              case 'search':
+                $args['s'] = $params[$request_key];
+                break;
+              case 'date_from':
+                $args['date_query'] = array(
+                  'after' => date('c', strtotime($params[$request_key]))
+                );
+                break;
+              case 'date_to':
+                $args['date_query'] = array(
+                  'before' => date(
+                    'c',
+                    strtotime($params[$request_key])
+                  ),
+                );
+                break;
+            }
+
             break;
         }
       }
     }
-
     /*check for wpml and language parameter*/
 
     global $sitepress;
@@ -229,7 +251,16 @@ class Extend_WP_Search_Filters
     $input_fields = $fields['query_fields'];
     $form_fields = $this->prepare_form_fields($input_fields, $id);
     unset($fields['query_fields']);
-    $form = '<div id="ewp-search-' . $id . '" class="ewp-search-box" options="' . htmlspecialchars(str_replace('"', '\'', json_encode($fields))) . '" search-id="' . $id . '"><form id="ewp-search-form-' . $id . '">' . awm_show_content(($form_fields)) . '</form></div>';
+    $form = '<div id="ewp-search-' . $id . '" class="ewp-search-box ' . $fields['async'] . ' ' . $fields['orientation'] . '" options="' . htmlspecialchars(str_replace('"', '\'', json_encode($fields))) . '" search-id="' . $id . '"><form id="ewp-search-form-' . $id . '">' . awm_show_content(($form_fields)) . '</form>';
+    /*check whether search engine is async or not*/
+    switch ($fields['async']) {
+      case 'not_async':
+        $form .= '<div class="ewp-search-actions"><div class="ewp-search-actions-wrapper"><div class="ewp-search-apply" onclick="ewp_apply_search_form(' . $id . ')">' . __($fields['button_apply'], 'extend-wp') . '</div><div class="ewp-search-reset"  onclick="ewp_reset_search_form(' . $id . ')">' . __($fields['button_reset'], 'extend-wp') . '</div></div></div>';
+        break;
+    }
+
+
+    $form .= '</div>';
     return $form;
   }
 
@@ -323,10 +354,22 @@ class Extend_WP_Search_Filters
         'label' => __('Empty results message', 'extend-wp'),
       ),
       'async' => array(
+        'removeEmpty' => true,
+        'label' => __('Search Method', 'extend-wp'),
         'case' => 'select',
         'options' => array(
           'async' => array('label' => __('Async', 'extend-wp')),
           'not_async' => array('label' => __('Not async', 'extend-wp')),
+        ),
+      ),
+
+      'orientation' => array(
+        'removeEmpty' => true,
+        'label' => __('Orientation', 'extend-wp'),
+        'case' => 'select',
+        'options' => array(
+          'horizontal' => array('label' => __('Horizontal', 'extend-wp')),
+          'vertical' => array('label' => __('Vertical', 'extend-wp')),
         ),
       ),
       'limit' => array(
