@@ -1,0 +1,14 @@
+.ewp-search-terms-display {
+    .ewp-search-term-wrapper {
+        display: inline-grid;
+        grid-template-columns: auto auto;
+        grid-column-gap: 5px;
+        align-content: center;
+        align-self: center;
+        align-items: center;
+        .action {
+            padding: 0px 10px;
+            cursor: pointer;
+        }
+    }
+}

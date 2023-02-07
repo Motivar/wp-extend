@@ -54,6 +54,7 @@ class Extend_WP_Search_Filters
   private function query_prepare($params, $conf)
   {
     /*constuct the query*/
+    $ewp_search_query_terms = array();
     $args = array(
       'post_type' => $conf['post_types'],
       'post_status' => 'publish',
@@ -71,24 +72,35 @@ class Extend_WP_Search_Filters
       $request_key = $constructor['query_key'];
       if (isset($params[$request_key]) && !empty($params[$request_key])) {
         $search_terms = is_array($params[$request_key]) ? array_filter($params[$request_key]) : array($params[$request_key]);
+        $search_term = $params[$request_key];
         switch ($constructor['query_type']) {
           case 'taxonomy':
+            $search_term = array();
             $tax_query = array(
               'taxonomy' => $constructor['taxonomy'][0],
               'field' => 'term_id',
               'terms' => $search_terms,
             );
+            foreach ($search_terms as $term) {
+              $search_term[] = get_term($term, $taxonomy)->name;
+            }
             if (count($constructor['taxonomy']) > 1) {
               $tax_query = array('relation' => 'or');
+              $search_term = array();
               foreach ($constructor['taxonomy'] as $taxonomy) {
                 $tax_query[] = array(
                   'taxonomy' => $taxonomy,
                   'field' => 'term_id',
                   'terms' => $search_terms,
                 );
+                foreach ($search_terms as $term) {
+                  $search_term[] = get_term($term, $taxonomy)->name;
+                }
               }
             }
+            $search_term = implode(',', $search_term);
             $args['tax_query'][] = $tax_query;
+
             break;
           case 'meta':
             $args['meta_query'][] = array(
@@ -119,6 +131,7 @@ class Extend_WP_Search_Filters
 
             break;
         }
+        $ewp_search_query_terms[$request_key] = (isset($constructor['explanation']) && !empty($constructor['explanation'])) ? sprintf(__('%s %s', 'extend-wp'), $constructor['explanation'], $search_term) : $search_term;
       }
     }
     /*check for wpml and language parameter*/
@@ -138,7 +151,7 @@ class Extend_WP_Search_Filters
      * @param array $params the params from the json request
      * @param array $conf the configuration of the search filter
      */
-    return apply_filters('ewp_search_query_filter', $args, $params, $conf);
+    return apply_filters('ewp_search_query_filter', array('query' => $args, 'terms' => $ewp_search_query_terms), $params, $conf);
   }
 
 
@@ -148,18 +161,29 @@ class Extend_WP_Search_Filters
       $params = $request->get_params();
       /*get the filter configuration*/
       $conf = awm_get_db_content_meta('ewp_search', $params['id']);
+
       if (empty($conf)) {
         return rest_ensure_response(new WP_REST_Response(false), 400);
       }
+      global $ewp_search_id;
+      $ewp_search_id = $params['id'];
       $args = $this->query_prepare($params, $conf);
       /*get and set global the results*/
       global $ewp_search_query;
-      $ewp_search_query = new WP_Query($args);
-      $content = __($conf['empty_results_message'], 'extend-wp');
-      if (empty(!$ewp_search_query->posts)) {
-        $content = awm_parse_template(awm_path . 'templates/frontend/search/results.php');
+      $ewp_search_query = new WP_Query($args['query']);
+      /*set the content files */
+      $content = array();
+      if ($conf['show_search_terms']) {
+        global $ewp_search_query_terms;
+        $ewp_search_query_terms = $args['terms'];
+        $content[] = awm_parse_template(awm_path . 'templates/frontend/search/results-terms.php');
       }
-      return rest_ensure_response(new WP_REST_Response($content), 200);
+      $main_content = __($conf['empty_results_message'], 'extend-wp');
+      if (empty(!$ewp_search_query->posts)) {
+        $main_content = awm_parse_template(awm_path . 'templates/frontend/search/results.php');
+      }
+      $content[] = $main_content;
+      return rest_ensure_response(new WP_REST_Response(implode('', $content)), 200);
     }
     return rest_ensure_response(new WP_REST_Response(false), 400);
   }
@@ -362,7 +386,6 @@ class Extend_WP_Search_Filters
           'not_async' => array('label' => __('Not async', 'extend-wp')),
         ),
       ),
-
       'orientation' => array(
         'removeEmpty' => true,
         'label' => __('Orientation', 'extend-wp'),
@@ -396,7 +419,13 @@ class Extend_WP_Search_Filters
         'case' => 'input',
         'type' => 'checkbox',
         'label' => __('Execute on page load', 'extend-wp')
-      )
+      ),
+      'show_search_terms' => array(
+        'removeEmpty' => true,
+        'label' => __('Show search terms', 'extend-wp'),
+        'case' => 'input',
+        'type' => 'checkbox',
+      ),
     );
     return $metas;
   }

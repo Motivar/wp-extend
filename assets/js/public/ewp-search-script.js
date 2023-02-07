@@ -5,6 +5,24 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
+ * 
+ * @param {string} id the name of the input to change
+ * @param {int} form_id the form box id
+ */
+function ewp_search_remove_filter(id, form_id) {
+    var form_box = document.querySelector('#ewp-search-' + form_id);
+    var form = form_box.querySelector('form');
+    var options = JSON.parse(form_box.getAttribute('options').replace(/\'/g, '\"'));
+    options.search_id = form_box.getAttribute('search-id');
+    var show_results = document.querySelector(options.show_results);
+    var filter = form.querySelector('#' + id);
+    if (filter !== null) {
+        filter.value = '';
+        ewp_search_action(form, options, show_results, 1);
+    }
+}
+
+/**
  *  apply the search form
  * @param {*} id the form id
  */
