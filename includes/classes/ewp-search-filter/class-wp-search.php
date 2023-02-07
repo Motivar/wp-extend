@@ -82,7 +82,7 @@ class Extend_WP_Search_Filters
               'terms' => $search_terms,
             );
             foreach ($search_terms as $term) {
-              $search_term[] = get_term($term, $taxonomy)->name;
+              $search_term[] = get_term($term, $constructor['taxonomy'][0])->name;
             }
             if (count($constructor['taxonomy']) > 1) {
               $tax_query = array('relation' => 'or');
