@@ -955,10 +955,12 @@ function awm_display_meta_value($meta, $data, $postId = 0, $external_value = '')
             $value = implode(', ', $msg);
             break;
         case 'postType':
-            $values = !is_array($value) ? array($value) : $value;
+            $values = empty($value) ? array() : (!is_array($value) ? array($value) : $value);
             $msg = array();
-            foreach ($values as $pvalue) {
-                $msg[] = $pvalue != '' ? '<a href="' . admin_url('post.php?action=edit&post=' . $value) . '" target="_blank">' . get_the_title($pvalue) . '</a>' : '-';
+            if (!empty($values)) {
+                foreach ($values as $pvalue) {
+                    $msg[] = $pvalue != '' ? '<a href="' . admin_url('post.php?action=edit&post=' . $pvalue) . '" target="_blank">' . get_the_title($pvalue) . '</a>' : '-';
+                }
             }
             $value = implode(",", $msg);
             break;
