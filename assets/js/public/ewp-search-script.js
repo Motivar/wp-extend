@@ -10,14 +10,25 @@ document.addEventListener('DOMContentLoaded', () => {
  * @param {int} form_id the form box id
  */
 function ewp_search_remove_filter(id, form_id) {
+    let skip_reset_value = false;
     var form_box = document.querySelector('#ewp-search-' + form_id);
     var form = form_box.querySelector('form');
     var options = JSON.parse(form_box.getAttribute('options').replace(/\'/g, '\"'));
     options.search_id = form_box.getAttribute('search-id');
     var show_results = document.querySelector(options.show_results);
-    var filter = form.querySelector('#' + id);
-    if (filter !== null) {
-        filter.value = '';
+    var filters = form.querySelectorAll('#' + id);
+    if (filters.length === 0) {
+        /*check if is a radio or checkbox*/
+        filters = form.querySelectorAll('[name="' + id + '"]');
+    }
+    if (filters.length > 0) {
+        Array.from(filters).forEach(function(filter) {
+            if (filter.checked) {
+                filter.checked = false;
+                skip_reset_value = true;
+            }
+            filter.value = skip_reset_value ? filter.value : '';
+        });
         ewp_search_action(form, options, show_results, 1);
     }
 }
