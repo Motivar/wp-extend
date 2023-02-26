@@ -45,7 +45,7 @@ class EWP_WP_Content_Installer
       return $current_status;
     }
     foreach ($types as $n) {
-      if ($post_type == $n['post'] && $n['disable_gutenburg']) {
+      if ($post_type == $n['post'] && isset($n['disable_gutenburg']) && $n['disable_gutenburg']) {
         return false;
       }
     }
