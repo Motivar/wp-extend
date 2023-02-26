@@ -246,7 +246,7 @@ class AWM_Meta
         /*check order by*/
         $orderby = $query->get('orderby') ?: '';
 
-        if (strpos($orderby, '_ewp_sort_by_') !== false) {
+        if ($orderby != '' && strpos($orderby, '_ewp_sort_by_') !== false) {
             $awm_info = explode('_ewp_sort_by_', $orderby);
             $meta = $awm_info[0];
             $type = $awm_info[1];
