@@ -51,7 +51,9 @@ class Extend_WP_Fields
 
  public function clear_transients()
  {
+  update_option('ewp_user_caps_version', strtotime('now'), false);
   awm_delete_transient_group('awm_post_fields_transients');
+  delete_option('ewp_user_caps_version_old');
  }
 
  public function register_defaults($data)

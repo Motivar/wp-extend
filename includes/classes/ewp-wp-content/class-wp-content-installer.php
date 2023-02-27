@@ -229,11 +229,9 @@ class EWP_WP_Content_Installer
       if (!empty($types)) {
         foreach ($types as $type) {
           foreach ($capabilitiesInfo as $access_type => $access_data) {
-
             if (isset($type['admin_access'][$access_type])) {
               $access_data['users'] = array_merge($access_data['users'], $type['admin_access'][$access_type]);
             }
-
             foreach ($access_data['users'] as $user) {
               $admin = get_role($user);
               foreach ($access_data['capabilities'] as $cap) {

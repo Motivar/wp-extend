@@ -70,6 +70,7 @@ class Extend_WP_WP_Content
   }
   $post_types = awm_get_db_content('ewp_post_types');
   $types = array();
+  $access_types = array('fullAccess', 'semiAccess');
   if (!empty($post_types)) {
    $all_metas = array();
    foreach ($post_types as $post) {
@@ -95,11 +96,12 @@ class Extend_WP_WP_Content
        'semiAccess' => array(),
       )
      );
-     if (isset($metas['fullAccess']) && !empty($metas['fullAccess'])) {
-      $types[$post_name]['admin_access']['fullAccess'] += $metas['fullAccess'];
-     }
-     if (isset($metas['semiAccess']) && !empty($metas['semiAccess'])) {
-      $types[$post_name]['admin_access']['semiAccess'] = $metas['semiAccess'];
+     foreach ($access_types as $access_type) {
+      if (isset($metas[$access_type]) && !empty($metas[$access_type])) {
+       foreach ($metas[$access_type] as $admin) {
+        $types[$post_name]['admin_access'][$access_type][] = $admin;
+       }
+      }
      }
     }
    }
