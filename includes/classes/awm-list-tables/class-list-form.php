@@ -53,7 +53,7 @@ class AWM_Add_Custom_List
       'results_per_page' => 50,
       'list_name' => $id,
       'icon_url' => '',
-      'capability' => 'edit_posts',
+      'capability' => 'install_plugins',
       'show_new' => true,
       'disable_new' => false,
     );

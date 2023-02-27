@@ -124,7 +124,7 @@ class Extend_WP_WP_Content
    'list_name' => __('Post types', 'extend-wp'),
    'list_name_singular' => __('Post type', 'extend-wp'),
    'order' => 1,
-   'capability' => 'edit_posts',
+   'capability' => 'install_plugins',
    'version' => 0.01,
    'metaboxes' => array(
     'post_type_configuration' => array(
@@ -156,7 +156,7 @@ class Extend_WP_WP_Content
    'list_name' => __('Taxonomies', 'extend-wp'),
    'list_name_singular' => __('Taxonomy', 'extend-wp'),
    'order' => 1,
-   'capability' => 'edit_posts',
+   'capability' => 'install_plugins',
    'version' => 0.02,
    'metaboxes' => array(
     'taxonomy_configuration' => array(
