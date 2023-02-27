@@ -18,7 +18,7 @@ class Extend_WP_Default_Content
     $options['extend-wp'] = array(
       'title' => apply_filters('ewp_whitelabel_filter', __('Extend WP', 'extend-wp')),
       'parent' => false,
-      'cap' => 'edit_posts'
+      'cap' => 'manage_options',
     );
     return $options;
   }
