@@ -55,6 +55,7 @@ class Extend_WP_WP_Content
   update_option('ewp_user_caps_version', strtotime('now'), false);
   awm_delete_transient_group('awm_post_fields_transients');
   delete_option('ewp_user_caps_version_old');
+  wp_cache_flush();
  }
 
 
