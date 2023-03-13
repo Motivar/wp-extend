@@ -62,6 +62,7 @@ class Extend_WP_Search_Filters
       'orderby' => 'ID',
       'order' => 'ASC',
       'tax_query' => array(),
+      'date_query' => array(),
       'meta_query' => array(),
       'paged' => isset($params['paged']) ? $params['paged'] : 1, /*check the paged parameter*/
       'suppress_filters' => false,
@@ -115,16 +116,12 @@ class Extend_WP_Search_Filters
                 $args['s'] = $params[$request_key];
                 break;
               case 'date_from':
-                $args['date_query'] = array(
-                  'after' => date('c', strtotime($params[$request_key]))
-                );
+                $args['date_query']['after'] = date('c', strtotime($params[$request_key]));
                 break;
               case 'date_to':
-                $args['date_query'] = array(
-                  'before' => date(
-                    'c',
-                    strtotime($params[$request_key])
-                  ),
+                $args['date_query']['before'] = date(
+                  'c',
+                  strtotime($params[$request_key])
                 );
                 break;
             }
@@ -151,6 +148,7 @@ class Extend_WP_Search_Filters
      * @param array $params the params from the json request
      * @param array $conf the configuration of the search filter
      */
+
     return apply_filters('ewp_search_query_filter', array('query' => $args, 'terms' => $ewp_search_query_terms), $params, $conf);
   }
 
