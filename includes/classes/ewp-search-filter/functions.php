@@ -23,6 +23,8 @@ if (!function_exists('ewp_query_fields')) {
         'search' => array('label' => __('Search text', 'extend-wp')),
         'date_from' => array('label' => __('Publish date from', 'extend-wp')),
         'date_to' => array('label' => __('Publish date to', 'extend-wp')),
+        'orderby' => array('label' => __('Order by', 'extend-wp')),
+        'order' => array('label' => __('Order', 'extend-wp')),
        ),
        'label_class' => array('awm-needed'),
       )

@@ -112,6 +112,12 @@ class Extend_WP_Search_Filters
             break;
           case 'post':
             switch ($constructor['search_type']) {
+              case 'orderby':
+                $args['orderby'] = $params[$request_key];
+                break;
+              case 'order':
+                $args['order'] = $params[$request_key];
+                break;
               case 'search':
                 $args['s'] = $params[$request_key];
                 break;
@@ -235,6 +241,19 @@ class Extend_WP_Search_Filters
               $field['attributes']['value'] = $obj->term_id;
             }
           }
+          break;
+      }
+
+      switch ($field['case']) {
+        case 'select':
+        case 'radio':
+          $options = array();
+          if (!empty($field['options'])) {
+            foreach ($field['options'] as $option) {
+              $options[$option['option']] = array('label' => __($option['label'], 'extend-wp'));
+            }
+          }
+          $field['options'] = $options;
           break;
       }
       $form_fields[$key] = $field;

@@ -84,6 +84,7 @@ if (!function_exists('awm_basic_meta_structure')) {
       $metas[$meta_key]['attributes'] = $attributes;
       switch ($field['case']) {
         case 'select':
+        case 'radio':
           $metas[$meta_key]['options'] = array();
           if (!empty($field['options'])) {
             foreach ($field['options'] as $option) {
