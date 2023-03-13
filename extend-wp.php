@@ -16,6 +16,7 @@ if (!defined('WPINC')) {
 define('awm_path', plugin_dir_path(__FILE__));
 define('awm_url', plugin_dir_url(__FILE__));
 define('awm_relative_path', dirname(plugin_basename(__FILE__)));
+define('EWP_USERS_VERSION', 0.1);
 
 require_once(plugin_dir_path(__FILE__) . '/lib/autoload.php');
 

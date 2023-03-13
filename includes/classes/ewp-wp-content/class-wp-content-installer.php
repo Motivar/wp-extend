@@ -222,7 +222,7 @@ class EWP_WP_Content_Installer
   {
     /*init users first*/
     $users_version_old = get_option('ewp_user_caps_version_old');
-    $users_version = get_option('ewp_user_caps_version') ?: 1;
+    $users_version = get_option('ewp_user_caps_version') ?: EWP_USERS_VERSION;
     if ($users_version_old != $users_version) {
       $types = $this->post_types;
       $capabilitiesInfo = ewp_roles_access();

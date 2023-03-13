@@ -318,7 +318,7 @@ class Extend_WP_Search_Filters
       'list_name' => __('Search filters', 'extend-wp'),
       'list_name_singular' => __('Search Filter', 'extend-wp'),
       'order' => 1,
-      'capability' => 'install_plugins',
+      'capability' => 'activate_plugins',
       'version' => 0.01,
       'metaboxes' => array(
         'display_and_search' => array(
