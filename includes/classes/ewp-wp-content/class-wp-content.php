@@ -70,10 +70,9 @@ class Extend_WP_WP_Content
    return $cached;
   }
   $post_types = awm_get_db_content('ewp_post_types');
-  $types = array();
+  $types = $all_metas = array();
   $access_types = array('fullAccess', 'semiAccess');
   if (!empty($post_types)) {
-   $all_metas = array();
    foreach ($post_types as $post) {
     $metas = awm_get_db_content_meta('ewp_post_types', $post['content_id']);
     if (!empty($post['content_title'])) {
