@@ -1028,20 +1028,20 @@ function awm_create_form($options)
 
     ob_start();
 ?>
-<form id="<?php echo $settings['id']; ?>" action="<?php echo $settings['action']; ?>" method="<?php echo $post; ?>">
- <?php
+    <form id="<?php echo $settings['id']; ?>" action="<?php echo $settings['action']; ?>" method="<?php echo $post; ?>">
+        <?php
         if ($settings['nonce']) {
             wp_nonce_field($settings['id'], 'awm_form_nonce_field');
         }
         ?>
- <?php echo awm_show_content($library); ?>
- <?php if ($settings['submit']) {
+        <?php echo awm_show_content($library); ?>
+        <?php if ($settings['submit']) {
         ?>
- <input type="submit" id="awm-submit-<?php echo $settings['id'] ?>" value="<?php echo $settings['submit_label']; ?>" />
- <?php
+            <input type="submit" id="awm-submit-<?php echo $settings['id'] ?>" value="<?php echo $settings['submit_label']; ?>" />
+        <?php
         }
         ?>
-</form>
+    </form>
 <?php
     $content = ob_get_contents();
     ob_end_clean();
@@ -1078,7 +1078,7 @@ if (!function_exists('awm_callback_library_options')) {
         }
 
         if (!isset($library['library'])) {
-            if (isset($library['callback']) && function_exists($library['callback'])) {
+            if (isset($library['callback'])) {
                 $callback_options = array();
                 if (!empty($library['callback_variables'])) {
                     $callback_options = call_user_func_array($library['callback'], $library['callback_variables']);
