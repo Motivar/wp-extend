@@ -859,6 +859,7 @@ function awm_custom_meta_update_vars($meta, $metaa, $id, $view)
     return $arr;
 }
 
+
 function awm_custom_image_image_uploader_field($name, $id, $value = '', $multiple = false, $required = '')
 {
     $image = ' button">' .  __('Insert media', 'extend-wp');
@@ -874,10 +875,12 @@ function awm_custom_image_image_uploader_field($name, $id, $value = '', $multipl
     }
 
     $content = '<div class="awm-image-upload" id="awm_image' . $id . '"data-multiple="' . $multiple . '" data-add_label="' . __('Insert media', 'extend-wp') . '" data-remove_label="' . __('Remove media', 'extend-wp') . '">';
-    $content .= '<a href="#" class="awm_custom_image_upload_image_button' . $image . '</a>
+
+    $inner_content = '<a href="#" class="awm_custom_image_upload_image_button' . $image . '</a>
 		<input type="hidden" name="' . $name . '" id="' . $id . '" value="' . $value . '" ' . $required . '/>
 		<a href="#" class="awm_custom_image_remove_image_button" style="display:inline-block;display:' . $display . '">' . __('Remove media', 'extend-wp') . '</a>';
-    do_action('awm_custom_image_image_uploader_field_action', $name, $id, $value, $multiple, $required);
+
+    $content .= apply_filters('awm_custom_image_image_uploader_field_filter', $inner_content, $name, $id, $value, $multiple, $required);
     $content .= '</div>';
     return $content;
 }
