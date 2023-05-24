@@ -330,7 +330,7 @@ class Extend_WP_Search_Filters
           'order' => 1,
         ),
         'configuration' => array(
-          'title' => __('Search filter configuration', 'extend-wp'),
+          'title' => __('Search filter various configuration', 'extend-wp'),
           'context' => 'normal',
           'priority' => 'high',
           'library' => $this->ewp_search_configuration(),

@@ -810,6 +810,11 @@ if (!function_exists('awm_term_options')) {
         'case' => 'taxonomies',
         'attributes' => array('multiple' => true),
         'label_class' => array('awm-needed'),
+      ),
+      'show_empty' => array(
+        'label' => __('Show empty categories', 'extend-wp'),
+        'case' => 'input',
+        'type' => 'checkbox',
       )
     );
   }
