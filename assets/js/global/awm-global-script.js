@@ -123,7 +123,7 @@ function awm_selectr_box(elem) {
             data.push(awm_select_box_values(soptions[i], selected_options));
         }
     }
-    data.sort(function(a, b) {
+    data.sort(function (a, b) {
         return b.placeholder - a.placeholder;
     });
     new SlimSelect({
@@ -160,8 +160,8 @@ function awm_select_box_values(option, selected_options) {
  * this function is used to toggle the password to show text or not
  */
 function awm_toggle_password() {
-    document.querySelectorAll('[data-toggle="password"]').forEach(function(el) {
-        el.addEventListener("click", function(e) {
+    document.querySelectorAll('[data-toggle="password"]').forEach(function (el) {
+        el.addEventListener("click", function (e) {
             var target = document.getElementById(el.getAttribute('data-id'));
             var type = target.getAttribute('type') === 'password' ? 'text' : 'password';
             target.setAttribute('type', type);
@@ -175,11 +175,11 @@ function awm_toggle_password() {
 function awm_auto_fill_inputs() {
     var elems = document.querySelectorAll('input[fill-from]');
     if (elems) {
-        elems.forEach(function(elem) {
+        elems.forEach(function (elem) {
             var origin = elem.getAttribute('fill-from');
             var element = document.getElementById(origin);
             if (element) {
-                element.addEventListener('change', function() {
+                element.addEventListener('change', function () {
                     elem.value = element.value;
                 });
             }
@@ -218,7 +218,7 @@ function awm_js_ajax_call(url, js_callback) {
     var request = new XMLHttpRequest();
     request.open('GET', url, true);
 
-    request.onload = function() {
+    request.onload = function () {
         if (request.status >= 200 && request.status < 400) {
             var call_back = window[js_callback];
             if (typeof call_back == 'function') {
@@ -234,10 +234,10 @@ function awm_js_ajax_call(url, js_callback) {
 function awmCallbacks() {
     var elems = document.querySelectorAll('input[data-callback],select[data-callback],textarea[data-callbak]');
     if (elems) {
-        elems.forEach(function(elem) {
+        elems.forEach(function (elem) {
             if (!elem.classList.contains('awm-callback-checked')) {
                 awm_check_call_back(elem, false);
-                elem.addEventListener("change", function() {
+                elem.addEventListener("change", function () {
                     awm_check_call_back(elem, true);
                 });
                 elem.classList.add('awm-callback-checked')
@@ -261,15 +261,15 @@ function awm_check_call_back(elem, action) {
 function awmInitForms() {
     var forms = document.querySelectorAll('form');
     if (forms) {
-        forms.forEach(function(form) {
+        forms.forEach(function (form) {
             if (document.getElementById('publish')) {
-                document.getElementById('publish').addEventListener('click', function(e) {
+                document.getElementById('publish').addEventListener('click', function (e) {
                     if (!awmCheckValidation(form)) {
                         e.preventDefault();
                     }
                 });
             } else {
-                form.addEventListener('submit', function(e) {
+                form.addEventListener('submit', function (e) {
                     if (!awmCheckValidation(form)) {
                         e.preventDefault();
                     }
@@ -286,7 +286,7 @@ function awmCheckValidation(form) {
     var requireds = form.querySelectorAll('.awm-needed:not(.awm_no_show)');
     var error = '';
     if (requireds) {
-        requireds.forEach(function(required) {
+        requireds.forEach(function (required) {
             var type = required.getAttribute('data-type');
             var inputs = required.querySelectorAll('input,select,textarea');
             required.classList.remove("awm-form-error");
@@ -294,7 +294,7 @@ function awmCheckValidation(form) {
                 switch (type) {
                     case 'checkbox_multiple':
                         check = false;
-                        inputs.forEach(function(input) {
+                        inputs.forEach(function (input) {
                             if (input.type == 'checkbox' && input.checked) {
                                 check = true;
                             }
@@ -335,14 +335,14 @@ function awmCheckValidation(form) {
 function awmShowInputs() {
     var elems = document.querySelectorAll('div[show-when]:not(.awm-initialized)');
     if (elems) {
-        elems.forEach(function(elem) {
+        elems.forEach(function (elem) {
             var parent = elem;
 
             var inputs = JSON.parse(elem.getAttribute('show-when').replace(/\'/g, '\"'));
             for (var p in inputs) {
                 var element = document.getElementById(p)
                 if (element && element !== null && typeof element === 'object') {
-                    element.addEventListener('change', function() {
+                    element.addEventListener('change', function () {
                         switch (element.tagName) {
                             case 'SELECT':
                                 if (this.value in inputs[p].values) {
@@ -376,8 +376,8 @@ function awmShowInputs() {
     var elems_disabled = document.querySelectorAll('input[disable-elements]');
     if (elems_disabled) {
 
-        elems_disabled.forEach(function(elem) {
-            elem.addEventListener('change', function() {
+        elems_disabled.forEach(function (elem) {
+            elem.addEventListener('change', function () {
                 var inputs = JSON.parse(elem.getAttribute('disable-elements').replace(/\'/g, '\"'));
                 var prop = elem.checked;
                 for (var p in inputs) {
@@ -400,7 +400,7 @@ function awmShowInputs() {
 
 function awm_create_calendar() {
     var values = [];
-    jQuery('.awm_cl_date:not(.hasDatepicker)').each(function() {
+    jQuery('.awm_cl_date:not(.hasDatepicker)').each(function () {
         var idd = jQuery(this).attr('id');
         var extra_parameters = jQuery(this).attr('date-params') ? jQuery.parseJSON(jQuery(this).attr('date-params').replace(/\'/g, '\"')) : {};
         var value = jQuery('#' + idd).val();
@@ -421,7 +421,7 @@ function awm_create_calendar() {
             parameters.minDate = null;
         }
 
-        parameters.onSelect = function(d, i) {
+        parameters.onSelect = function (d, i) {
             if (d !== i.lastVal) {
                 /*check for jquery events*/
                 var stop = false;
@@ -462,7 +462,7 @@ function awm_create_calendar() {
 
 
 
-    values.forEach(function(val) {
+    values.forEach(function (val) {
 
         jQuery('#' + val.id).datepicker('setDate', '');
         if (val.value != '' && val.value != 0) {
@@ -555,13 +555,13 @@ function repeater(elem) {
 
             var selects = cloned.querySelectorAll('.ss-main');
             if (selects) {
-                selects.forEach(function(select) {
+                selects.forEach(function (select) {
                     select.innerHTML = '';
                 });
             }
             var inputs = cloned.querySelectorAll('input,select,textarea');
             if (inputs) {
-                inputs.forEach(function(input) {
+                inputs.forEach(function (input) {
                     input.removeAttribute('disabled');
                     input.removeAttribute('readonly');
                     input.classList.remove('hasDatepicker');
@@ -579,7 +579,7 @@ function repeater(elem) {
             template.parentNode.insertBefore(cloned, template);
             var template_inputs = template.querySelectorAll('input,select,textarea');
             if (template_inputs) {
-                template_inputs.forEach(function(input) {
+                template_inputs.forEach(function (input) {
                     input.setAttribute('disabled', true);
                     input.setAttribute('readonly', true);
                 });
@@ -588,7 +588,7 @@ function repeater(elem) {
             var inputs = cloned.querySelectorAll('input,select,textarea');
 
             if (inputs) {
-                inputs.forEach(function(input) {
+                inputs.forEach(function (input) {
                     if (input.classList.contains('wp-editor-area')) {
                         setTimeout(() => {
                             document.querySelectorAll('#wp-' + input.id + '-editor-container .mce-tinymce.mce-container')[0].remove();
@@ -602,8 +602,11 @@ function repeater(elem) {
 
         }
     } else {
-
-
+        var rep_wrapper = elem.closest('.awm-repeater[data-id="' + repeater + '"] .awm-repeater-content[data-id="' + repeater + '"]');
+        rep_wrapper.querySelectorAll('input,select,textarea').forEach(function (input) {
+            input.value = 0;
+            input.dispatchEvent(new Event('change'));
+        });
         elem.closest('.awm-repeater[data-id="' + repeater + '"] .awm-repeater-content[data-id="' + repeater + '"]').outerHTML = '';
     }
     var elements = document.querySelectorAll('.awm-repeater[data-id="' + repeater + '"] > input:last-child,.awm-repeater[data-id="' + repeater + '"] > select:last-child,.awm-repeater[data-id="' + repeater + '"] > textarea:last-child');
@@ -625,7 +628,7 @@ function awm_repeater_clone(cloned, new_counter, repeater) {
 
     var inputsAll = cloned.querySelectorAll(':scope > input,:scope > select,:scope > textarea');
     if (inputsAll) {
-        inputsAll.forEach(function(input) {
+        inputsAll.forEach(function (input) {
             var old_id = input.getAttribute('id');
             var label = cloned.querySelector('label[for="' + old_id + '"]');
             var namee, id;
@@ -703,11 +706,11 @@ function awm_ajax_call(options) {
     }
     var request = new XMLHttpRequest();
     request.open(Options.method, Options.url, true);
-    Options.headers.forEach(function(header) {
+    Options.headers.forEach(function (header) {
         request.setRequestHeader(header.header, header.value);
     });
     request.send(JSON.stringify(Options.data));
-    request.onload = function() {
+    request.onload = function () {
         var responseData = JSON.parse(this.responseText);
 
         if (Options.log) {
@@ -735,18 +738,18 @@ function awm_ajax_call(options) {
 function awmMultipleCheckBox() {
     var elems = document.querySelectorAll('.checkbox_multiple.awm-meta-field');
     if (elems) {
-        elems.forEach(function(elem) {
+        elems.forEach(function (elem) {
             inputs = elem.querySelectorAll('input[type="checkbox"]');
 
             if (inputs) {
-                inputs.forEach(function(input) {
+                inputs.forEach(function (input) {
                     var dataValue = input.getAttribute('data-value');
                     if (dataValue == 'awm_apply_all') {
-                        input.addEventListener('change', function(e) {
+                        input.addEventListener('change', function (e) {
                             var checked = input.checked;
                             var text = input.getAttribute('data-extra');
 
-                            elem.querySelectorAll('input[type="checkbox"]').forEach(function(checkbox) {
+                            elem.querySelectorAll('input[type="checkbox"]').forEach(function (checkbox) {
                                 if (checkbox.value != '') {
                                     checkbox.checked = checked;
                                 }
