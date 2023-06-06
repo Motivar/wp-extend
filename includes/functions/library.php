@@ -689,7 +689,7 @@ function awm_repeater_content($i, $original_meta, $a, $original_meta_id, $val)
 
         $new_metas[$inputname] = $data;
     }
-    if (isset($a['row_title'])) {
+    if (isset($a['row_title']) && is_int($i)) {
         $normal = $i + 1;
         $html .= '<div class="row-title">' . sprintf($a['row_title'], $normal) . '</div>';
     }
