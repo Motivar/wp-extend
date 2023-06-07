@@ -88,7 +88,6 @@ if (!function_exists('awm_prepare_field')) {
                 $a['case'] = isset($a['view']) ? $a['view'] : 'select';
                 $number = isset($a['number']) ? $a['number'] : '-1';
                 $args = isset($a['args']) ? $a['args'] : array();
-                $args['hide_empty'] = isset($args['show_empty']) ? !$args['show_empty'] : true;
                 $option_key = isset($a['option_key']) ? $a['option_key'] : 'term_id';
                 $a['callback'] = 'awmTaxonomyFieldsForInput';
                 $a['callback_variables'] = array($a['taxonomy'], $number,  $args, $option_key, $awm_id);
