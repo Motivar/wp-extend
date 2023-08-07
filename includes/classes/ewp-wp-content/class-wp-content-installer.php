@@ -361,7 +361,7 @@ class EWP_WP_Content_Installer
       foreach ($types as $type) {
         $extra_sl = isset($type['extra_slug']) ? '/%' . $type['extra_slug'] . '%' : '';
         $extra_sl = apply_filters('flx_extra_slug_filter', $extra_sl);
-        $general_slug = isset($type['slug']) ? $type['slug'] : $type['post'];
+        $general_slug = isset($type['slug']) ? $type['slug'] : (get_option($type['post'] . '_slug') ?: $type['post']);
         $chk = (isset($type['flx_custom_template']) && $type['flx_custom_template']) ? true : false;
         $labels = $args = array();
         $type['sn'] = ucwords(($type['sn']));
