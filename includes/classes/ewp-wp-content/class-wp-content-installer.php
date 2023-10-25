@@ -364,7 +364,8 @@ class EWP_WP_Content_Installer
         $general_slug = isset($type['slug']) ? $type['slug'] : (get_option($type['post'] . '_slug') ?: $type['post']);
         $chk = (isset($type['flx_custom_template']) && $type['flx_custom_template']) ? true : false;
         $labels = $args = array();
-        $type['sn'] = ucwords(($type['sn']));
+        $type['sn'] = __(ucwords(($type['sn'])), 'extend-wp');
+        $type['pl'] = __(ucwords(($type['pl'])), 'extend-wp');
         $labels = array(
           'name' => $type['pl'],
           'singular_name' => $type['sn'],
