@@ -865,7 +865,7 @@ function awm_custom_image_image_uploader_field($name, $id, $value = '', $multipl
     $image = ' button">' .  __('Insert media', 'extend-wp');
     $image_size = 'large'; // it would be better to use thumbnail size here (150x150 or so)
     $display = 'none'; // display state ot the "Remove image" button
-    if ($value && !empty($value) && get_post_status($value) === 'publish') {
+    if ($value && !empty($value) && get_attached_file($value)) {
         $image = wp_get_attachment_thumb_url($value);
 
         if (!$image) {
