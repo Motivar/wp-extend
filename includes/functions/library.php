@@ -865,15 +865,17 @@ function awm_custom_image_image_uploader_field($name, $id, $value = '', $multipl
     $image = ' button">' .  __('Insert media', 'extend-wp');
     $image_size = 'large'; // it would be better to use thumbnail size here (150x150 or so)
     $display = 'none'; // display state ot the "Remove image" button
-    if ($value) {
-        $image = wp_get_attachment_thumb_url($value);
+    if ($value && get_post_status($value) === 'publish') {
+        $image = site_url() . '/wp-includes/images/media/document.png';
+        if (get_post_thumbnail_id($value)) {
+            $image = wp_get_attachment_thumb_url(get_post_thumbnail_id($value));
+        }
 
         if ($image) {
             $image = '" data-image="' . $value . '"><img src="' . $image . '"/>';
             $display = 'block';
         }
     }
-
     $content = '<div class="awm-image-upload" id="awm_image' . $id . '"data-multiple="' . $multiple . '" data-add_label="' . __('Insert media', 'extend-wp') . '" data-remove_label="' . __('Remove media', 'extend-wp') . '">';
 
     $inner_content = '<a href="#" class="awm_custom_image_upload_image_button' . $image . '</a>
