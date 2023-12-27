@@ -23,11 +23,12 @@ if (!function_exists('awm_parse_template')) {
      */
     function awm_parse_template($file)
     {
-        if (!file_exists($file)) {
+        $location_file = apply_filters('awm_parse_template_location', $file);
+        if (!file_exists($location_file)) {
             return '';
         }
         ob_start();
-        include $file;
+        include $location_file;
         $content = ob_get_contents();
         ob_end_clean();
         return $content;
