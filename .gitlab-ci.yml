@@ -3,6 +3,8 @@ stages:
 
 push_to_github:
   stage: push_to_github
+  tags:
+    - docker
   script:
     - git clone $CI_PROJECT_DIR # Clone GitLab repository
     - cd <your_project_directory>
