@@ -1,0 +1,13 @@
+stages:
+  - push_to_github
+
+push_to_github:
+  stage: push_to_github
+  script:
+    - git clone $CI_PROJECT_DIR # Clone GitLab repository
+    - cd <your_project_directory>
+    - git remote set-url origin $CI_REPOSITORY_URL # Set GitLab repository as origin
+    - git remote add github $GITHUB_REPO_URL # Add GitHub repository as remote
+    - git push github --mirror # Push to GitHub using mirror
+  only:
+    - master # Define the branch to trigger the pipeline
