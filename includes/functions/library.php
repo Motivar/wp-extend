@@ -1045,20 +1045,20 @@ function awm_create_form($options)
 
     ob_start();
 ?>
-<form id="<?php echo $settings['id']; ?>" action="<?php echo $settings['action']; ?>" method="<?php echo $post; ?>">
- <?php
+    <form id="<?php echo $settings['id']; ?>" action="<?php echo $settings['action']; ?>" method="<?php echo $post; ?>">
+        <?php
         if ($settings['nonce']) {
             wp_nonce_field($settings['id'], 'awm_form_nonce_field');
         }
         ?>
- <?php echo awm_show_content($library); ?>
- <?php if ($settings['submit']) {
+        <?php echo awm_show_content($library); ?>
+        <?php if ($settings['submit']) {
         ?>
- <input type="submit" id="awm-submit-<?php echo $settings['id'] ?>" value="<?php echo $settings['submit_label']; ?>" />
- <?php
+            <input type="submit" id="awm-submit-<?php echo $settings['id'] ?>" value="<?php echo $settings['submit_label']; ?>" />
+        <?php
         }
         ?>
-</form>
+    </form>
 <?php
     $content = ob_get_contents();
     ob_end_clean();
@@ -1126,11 +1126,6 @@ function awm_gallery_meta_box_html($meta, $val)
                 if (!$image) {
                     $image = site_url() . '/wp-includes/images/media/document.png';
                 }
-
-
-
-
-
 
                 if ($image_url = wp_get_attachment_url($image_id)) {
                     $content .= '<li class="awm-gallery-image" data-image-id="' . $image_id . '"><div class="awm-img-wrapper">';
