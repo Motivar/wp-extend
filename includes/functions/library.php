@@ -282,6 +282,13 @@ if (!function_exists('awm_show_content')) {
                                 $ins = '<div class="awm-meta-message" id="' . $original_meta_id . '"><div class="awm-meta-message-label">' . $a['label'] . $explanation . '</div><div class="awm-meta-message-inner">'  . call_user_func_array($a['callback'], array($id)) . '</div></div>';
                             }
                             break;
+                        case 'awm_gallery':
+                            if (!did_action('wp_enqueue_media')) {
+                                wp_enqueue_media();
+                                wp_enqueue_script('jquery-ui-sortable');
+                            }
+                            $ins = awm_gallery_meta_box_html($original_meta_id, $val);
+                            break;
                         case 'message':
                             if (isset($a['value']) && !empty($a['value'])) {
                                 $ins = '<div class="awm-meta-message" id="' . $original_meta_id . '"><div class="awm-meta-message-label">' . $a['label'] . $explanation . '</div><div class="awm-meta-message-inner">' . $a['value'] . '</div></div>';
@@ -426,6 +433,7 @@ if (!function_exists('awm_show_content')) {
                         case 'image':
                             if (!did_action('wp_enqueue_media')) {
                                 wp_enqueue_media();
+                                wp_enqueue_script('jquery-ui-sortable');
                             }
                             $multiple = isset($a['multiple']) ? $a['multiple'] : false;
                             $ins .= '<label for="' . $original_meta_id . '" class="awm-input-label">' . $a['label'] . '</label>' . $explanation;
@@ -1037,20 +1045,20 @@ function awm_create_form($options)
 
     ob_start();
 ?>
-    <form id="<?php echo $settings['id']; ?>" action="<?php echo $settings['action']; ?>" method="<?php echo $post; ?>">
-        <?php
+<form id="<?php echo $settings['id']; ?>" action="<?php echo $settings['action']; ?>" method="<?php echo $post; ?>">
+ <?php
         if ($settings['nonce']) {
             wp_nonce_field($settings['id'], 'awm_form_nonce_field');
         }
         ?>
-        <?php echo awm_show_content($library); ?>
-        <?php if ($settings['submit']) {
+ <?php echo awm_show_content($library); ?>
+ <?php if ($settings['submit']) {
         ?>
-            <input type="submit" id="awm-submit-<?php echo $settings['id'] ?>" value="<?php echo $settings['submit_label']; ?>" />
-        <?php
+ <input type="submit" id="awm-submit-<?php echo $settings['id'] ?>" value="<?php echo $settings['submit_label']; ?>" />
+ <?php
         }
         ?>
-    </form>
+</form>
 <?php
     $content = ob_get_contents();
     ob_end_clean();
@@ -1102,4 +1110,42 @@ if (!function_exists('awm_callback_library_options')) {
         }
         return '';
     }
+}
+
+
+function awm_gallery_meta_box_html($meta, $val)
+{
+    // HTML for the gallery meta box
+    $content = '<div class="awm-gallery-container" id="' . $meta . '-gallery" data-id="' . $meta . '">';
+    $content .= '<ul class="awm-gallery-images-list">';
+    if (!empty($val)) {
+        foreach ($val as $image_id) {
+            if ($image_id && !empty($image_id) && get_attached_file($image_id)) {
+                $image = wp_get_attachment_thumb_url($image_id);
+
+                if (!$image) {
+                    $image = site_url() . '/wp-includes/images/media/document.png';
+                }
+
+
+
+
+
+
+                if ($image_url = wp_get_attachment_url($image_id)) {
+                    $content .= '<li class="awm-gallery-image" data-image-id="' . $image_id . '"><div class="awm-img-wrapper">';
+                    $content .= '<img src="' . esc_url($image) . '"></div>';
+                    $content .= '<a href="#" class="awm-remove-image">Remove</a>';
+                    $content .= '<input type="hidden" name="' . $meta . '[]" value="' . $image_id . '">';
+                    $content .= '</li>';
+                }
+            }
+        }
+    }
+    // If there are images, list them here
+    $content .= '</ul>';
+    $content .= '<button id="' . $meta . '-button"class="button awm-upload-button" data-id="' . $meta . '">Add Images</button>';
+    // Hidden field to store the IDs of the gallery images
+    $content .= '</div>';
+    return $content;
 }

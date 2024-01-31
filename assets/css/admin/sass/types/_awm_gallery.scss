@@ -1,0 +1,29 @@
+.awm-gallery-images-list {
+ display: block;
+ width: 100%;
+
+ li {
+  display: inline-block;
+  margin: 10px;
+
+  .awm-img-wrapper {
+   width: 100px;
+   height: 100px;
+   display: grid;
+   overflow-y: hidden;
+
+   img {
+    grid-template-columns: 1fr;
+    align-items: center;
+    align-content: center;
+   }
+  }
+
+  img {
+   width: 100%;
+   height: auto;
+   margin: 0 auto;
+   display: block;
+  }
+ }
+}

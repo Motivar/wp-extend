@@ -12,7 +12,7 @@ function awm_init_inputs() {
 awm_init_inputs();
 
 
-jQuery('div.widgets-sortables').bind('sortstop', function(event, ui) {
+jQuery('div.widgets-sortables').bind('sortstop', function (event, ui) {
     awm_init_inputs();
 });
 
@@ -20,7 +20,7 @@ jQuery('div.widgets-sortables').bind('sortstop', function(event, ui) {
 /*
  * Select/Upload image(s) event
  */
-jQuery(document).on('click', '.awm_custom_image_upload_image_button', function(e) {
+jQuery(document).on('click', '.awm_custom_image_upload_image_button', function (e) {
     e.preventDefault();
     var id = jQuery(this).closest('.awm-image-upload').attr('id');
     var selected_image = jQuery(this).attr('data-image');
@@ -37,7 +37,7 @@ jQuery(document).on('click', '.awm_custom_image_upload_image_button', function(e
             },
             multiple: jQuery('#' + id).attr('data-multiple') // for multiple image selection set to true
         });
-    custom_uploader.on('select', function() { // it also has "open" and "close" events 
+    custom_uploader.on('select', function () { // it also has "open" and "close" events 
         var attachment = custom_uploader.state().get('selection').first().toJSON();
         jQuery(button).removeClass('button').html('<img class="true_pre_image" src="' + attachment.url + '" style="max-width:95%;display:block;" />').next().val(attachment.id).next().show();
         /* if you sen multiple to true, here is some code for getting the image IDs*/
@@ -45,17 +45,17 @@ jQuery(document).on('click', '.awm_custom_image_upload_image_button', function(e
             var attachments = frame.state().get('selection'),
                 attachment_ids = new Array(),
                 i = 0;
-            attachments.each(function(attachment) {
+            attachments.each(function (attachment) {
                 attachment_ids[i] = attachment['id'];
                 i++;
             });
         }
 
     });
-    custom_uploader.on('open', function() {
+    custom_uploader.on('open', function () {
         var selection = custom_uploader.state().get('selection');
         //remove all the selection first
-        selection.each(function(image) {
+        selection.each(function (image) {
             var attachment = wp.media.attachment(image.attributes.id);
             attachment.fetch();
             selection.remove(attachment ? [attachment] : []);
@@ -73,7 +73,7 @@ jQuery(document).on('click', '.awm_custom_image_upload_image_button', function(e
 /*
  * Remove image event
  */
-jQuery(document).on('click', '.awm_custom_image_remove_image_button', function() {
+jQuery(document).on('click', '.awm_custom_image_remove_image_button', function () {
     jQuery(this).hide().prev().val('').prev().addClass('button').html('Insert media');
     return false;
 });
@@ -86,7 +86,7 @@ var awm_map_options = [];
 
 function awm_add_map() {
     var map = document.getElementsByClassName("awm_map");
-    if (typeof(map) != 'undefined' && map != null && map.length > 0 && typeof(awmGlobals) != 'undefined' && awmGlobals != null && !awm_call_map) {
+    if (typeof (map) != 'undefined' && map != null && map.length > 0 && typeof (awmGlobals) != 'undefined' && awmGlobals != null && !awm_call_map) {
         awm_call_map = true;
         awm_js_ajax_call(awmGlobals.url + '/wp-json/extend-wp/v1/awm-map-options/', 'awm_call_maps_api');
     }
@@ -127,7 +127,7 @@ function awmInitMap() {
             map: map
         });
         markers.push(marker);
-        google.maps.event.addListener(map, 'click', function(event) {
+        google.maps.event.addListener(map, 'click', function (event) {
             placeMarker(map, event.latLng, map_id);
         });
         /*search box*/
@@ -135,10 +135,10 @@ function awmInitMap() {
         var searchBox = new google.maps.places.SearchBox(input);
 
         // Bias the SearchBox results towards current map's viewport.
-        map.addListener('bounds_changed', function() {
+        map.addListener('bounds_changed', function () {
             searchBox.setBounds(map.getBounds());
         });
-        searchBox.addListener('places_changed', function() {
+        searchBox.addListener('places_changed', function () {
             var places = searchBox.getPlaces();
 
             if (places.length == 0) {
@@ -147,7 +147,7 @@ function awmInitMap() {
 
             // For each place, get the icon, name and location.
             bounds = new google.maps.LatLngBounds();
-            places.forEach(function(place) {
+            places.forEach(function (place) {
                 if (!place.geometry) {
                     console.log("Returned place contains no geometry");
                     return;
@@ -179,7 +179,7 @@ function placeMarker(map, location, map_id) {
     var geocoder = new google.maps.Geocoder();
     geocoder.geocode({
         'latLng': location,
-    }, function(results, status) {
+    }, function (results, status) {
         if (status == google.maps.GeocoderStatus.OK) {
             if (results[0]) {
                 document.getElementById(map_id + '_address').value = results[0].formatted_address;
@@ -215,7 +215,7 @@ function noenter() {
 function awmSelectrBoxes() {
     var elems = document.querySelectorAll('.awm-meta-field select,.awm-term-input select');
     if (elems) {
-        elems.forEach(function(elem) {
+        elems.forEach(function (elem) {
             if (elem.id != '' && !elem.getAttribute('data-ssid') && !elem.getAttribute('awm-template') && !elem.getAttribute('awm-skip-selectr')) {
                 awm_selectr_box(elem);
             }
@@ -365,3 +365,76 @@ function awm_options_rest_call(form, endpoint, callback, method) {
 function awm_rest_options_callback(data) {
     document.getElementById('awm-rest-options-results').innerHTML = data;
 }
+
+
+
+jQuery(document).ready(function ($) {
+    var frame;
+
+    $('.awm-upload-button').on('click', function (e) {
+        e.preventDefault();
+        var id = $(this).attr('data-id');
+
+        if (frame) {
+            frame.open();
+            return;
+        }
+
+        frame = wp.media({
+            title: 'Select Images',
+            button: { text: 'Use these images' },
+            multiple: true
+        });
+
+        frame.on('select', function () {
+            var selection = frame.state().get('selection');
+            var imageIds = [];
+            selection.each(function (attachment) {
+                imageIds.push(attachment.id);
+
+                // Create image element and append to the list
+                var imageUrl = attachment.attributes.url;
+                $('#' + id + '-gallery .awm-gallery-images-list').append(
+                    '<li class="awm-gallery-image" data-image-id="' + attachment.id + '">' +
+                    '<img src="' + imageUrl + '" style="width:100px;height:100px;">' +
+                    '<a href="#" class="awm-remove-image">Remove</a>' +
+                    '<input type="hidden" name="' + id + '[]" value="' + attachment.id + '">' +
+                    '</li>'
+                );
+            });
+        });
+    });
+
+    // Remove image from the gallery
+    $('body').on('click', '.awm-remove-image', function (e) {
+        e.preventDefault();
+        var id = $(this).closest('.awm-upload-button').attr('data-id');
+        var $li = $(this).closest('li.awm-gallery-image');
+        var removedImageId = $li.data('image-id');
+        $li.remove();
+
+        // Update the hidden input field
+        var updatedIds = [];
+        $('#' + id + '-gallery .awm-gallery-images-list li.awm-gallery-image').each(function () {
+            updatedIds.push($(this).data('image-id'));
+        });
+        $('#' + id).val(updatedIds.join(','));
+    });
+
+    var galleries = jQuery('.awm-gallery-images-list');
+    if (galleries.length > 0) {
+        galleries.each(function () {
+            var id = jQuery(this).closest('.awm-upload-button').attr('data-id');
+            // Make the gallery images list sortable
+            jQuery(this).sortable({
+                placeholder: "ui-state-highlight",
+                update: function (event, ui) {
+                    //var sortedIds = $(this).sortable('toArray', { attribute: 'data-image-id' });
+                    //$('#' + id).val(sortedIds.join(','));
+                }
+            });
+        });
+    }
+
+
+});
