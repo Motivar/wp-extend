@@ -1127,13 +1127,12 @@ function awm_gallery_meta_box_html($meta, $val)
                     $image = site_url() . '/wp-includes/images/media/document.png';
                 }
 
-                if ($image_url = wp_get_attachment_url($image_id)) {
-                    $content .= '<li class="awm-gallery-image" data-image-id="' . $image_id . '"><div class="awm-img-wrapper">';
-                    $content .= '<img src="' . esc_url($image) . '"></div>';
-                    $content .= '<a href="#" class="awm-remove-image">Remove</a>';
-                    $content .= '<input type="hidden" name="' . $meta . '[]" value="' . $image_id . '">';
-                    $content .= '</li>';
-                }
+
+                $content .= '<li class="awm-gallery-image" data-image-id="' . $image_id . '"><div class="awm-img-wrapper">';
+                $content .= '<img src="' . esc_url($image) . '"></div>';
+                $content .= '<a href="#" class="awm-remove-image">Remove</a>';
+                $content .= '<input type="hidden" name="' . $meta . '[]" value="' . $image_id . '">';
+                $content .= '</li>';
             }
         }
     }
