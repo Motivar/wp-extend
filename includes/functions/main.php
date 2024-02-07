@@ -28,6 +28,27 @@ if (!function_exists('ewp_median')) {
 }
 
 
+if (!function_exists('awm_parse_template')) {
+    /**
+     * with this function we get the content of php templates
+     * @param $file string the path to the file
+     * 
+     * @return string $content 
+     */
+    function awm_parse_template($file)
+    {
+        $location_file = apply_filters('awm_parse_template_location', $file);
+        if (!file_exists($location_file)) {
+            return '';
+        }
+        ob_start();
+        include $location_file;
+        $content = ob_get_contents();
+        ob_end_clean();
+        return $content;
+    }
+}
+
 
 if (!function_exists('awmTaxObjectsForInput')) {
     /**

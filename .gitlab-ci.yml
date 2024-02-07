@@ -1,15 +1,14 @@
 stages:
-  - push_to_github
+  - mirror
 
-push_to_github:
-  stage: push_to_github
-  tags:
-    - docker
-  script:
-    - git clone $CI_PROJECT_DIR # Clone GitLab repository
-    - cd <your_project_directory>
-    - git remote set-url origin $CI_REPOSITORY_URL # Set GitLab repository as origin
-    - git remote add github $GITHUB_REPO_URL # Add GitHub repository as remote
-    - git push github --mirror # Push to GitHub using mirror
+mirror_repository_to_github:
+  stage: mirror
+  image: alpine/git
   only:
-    - main # Define the branch to trigger the pipeline
+    - main # Adjust this as needed to your branch names
+  script:
+    - git config --global user.email "gnnpls.nikos@gmail.com" # Use your email
+    - git config --global user.name "gnnpls" # Use your name
+    - git clone --mirror $CI_PROJECT_URL .git
+    - git remote add github $GITHUB_REPO_URL # Replace USERNAME/REPOSITORY with your GitHub repo path
+    - git push --mirror "https://${GH_TOKEN}@github.com//Motivar/wp-extend.git"
