@@ -11,6 +11,6 @@ mirror_repository_to_github:
   script:
     - git config --global user.email "gnnpls.nikos@gmail.com" # Use your email
     - git config --global user.name "gnnpls" # Use your name
-    - git clone --mirror $CI_PROJECT_URL .git
+    - git clone --mirror $CI_PROJECT_URL
     - git remote add github $GITHUB_REPO_URL # Replace USERNAME/REPOSITORY with your GitHub repo path
     - git push --mirror "https://${GH_TOKEN}@github.com//Motivar/wp-extend.git"
