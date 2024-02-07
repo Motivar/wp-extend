@@ -5,12 +5,13 @@ mirror_repository_to_github:
   stage: mirror
   tags:
     - docker
-  image: alpine/git
+  image: drud/ddev-webserver:v1.21.2 # PHP 8.0
+  before_script:
+    - git config --global user.name "gnnpls"
+    - git config --global user.email "gnnpls.nikos@gmail.com"
   only:
     - main # Adjust this as needed to your branch names
   script:
-    - git config --global user.email "gnnpls.nikos@gmail.com" # Use your email
-    - git config --global user.name "gnnplss" # Use your name
     - git clone --mirror $CI_PROJECT_URL .git
     - git remote add github https://github.com/Motivar/wp-extend.git # Replace USERNAME/REPOSITORY with your GitHub repo path
     - git push --mirror "https://${GH_TOKEN}@github.com/Motivar/wp-extend.git"
