@@ -14,24 +14,16 @@ if (!function_exists('awm_options_callback')) {
     }
 }
 
-if (!function_exists('awm_parse_template')) {
-    /**
-     * with this function we get the content of php templates
-     * @param $file string the path to the file
-     * 
-     * @return string $content 
-     */
-    function awm_parse_template($file)
+if (!function_exists('ewp_median')) {
+    /*get the median price*/
+    function ewp_median($numbers = array())
     {
-        $location_file = apply_filters('awm_parse_template_location', $file);
-        if (!file_exists($location_file)) {
-            return '';
-        }
-        ob_start();
-        include $location_file;
-        $content = ob_get_contents();
-        ob_end_clean();
-        return $content;
+        if (!is_array($numbers))
+            $numbers = func_get_args();
+
+        rsort($numbers);
+        $mid = (count($numbers) / 2);
+        return ($mid % 2 != 0) ? $numbers[$mid - 1] : (($numbers[$mid - 1]) + $numbers[$mid]) / 2;
     }
 }
 
