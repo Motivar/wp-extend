@@ -3,7 +3,7 @@ stages:
 
 mirror_repository_to_github:
   tags:
-    - gitlab.motivar.io
+    - docker
   stage: mirror
   image: alpine/git
   only:
