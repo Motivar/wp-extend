@@ -3,19 +3,20 @@ stages:
 
 mirror_repository_to_github:
   stage: mirror
-  tags:
-    - docker
-  image: drud/ddev-webserver:v1.21.2 # PHP 8.0
-  before_script:
+  image: alpine/git
+  only:
+    - main
+  script:
+    # Configure Git with your details
     - git config --global user.name "ngiannopoulos"
     - git config --global user.email "gnnpls.nikos@gmail.com"
-  only:
-    - main # Adjust this as needed to your branch names
-  script:
-    - mkdir temp_repo
-    - cd temp_repo
-    - git clone --mirror $CI_PROJECT_URL .
-    - git remote add github https://github.com/Motivar/wp-extend.git # Replace USERNAME/REPOSITORY with your GitHub repo path
-    - git push --mirror "https://${GH_TOKEN}@github.com/Motivar/wp-extend.git"
-    - cd ..
-    - rm -rf temp_repo
+
+    # Add GitHub as a remote. Use a unique name to avoid conflicts.
+    - git remote add github-mirror https://github.com/Motivar/wp-extend.git
+
+    # Use the CI/CD token or personal access token for authentication
+    - git push --mirror https://${GH_TOKEN}@github.com/Motivar/wp-extend.git
+
+  # Optional: Clean up by removing the temporary remote to avoid conflicts in future runs.
+  after_script:
+    - git remote remove github-mirror
