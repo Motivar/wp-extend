@@ -7,7 +7,7 @@ mirror_repository_to_github:
     - docker
   image: drud/ddev-webserver:v1.21.2 # PHP 8.0
   before_script:
-    - git config --global user.name "gnnpls"
+    - git config --global user.name "ngiannopoulos"
     - git config --global user.email "gnnpls.nikos@gmail.com"
   only:
     - main # Adjust this as needed to your branch names
