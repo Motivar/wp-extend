@@ -693,9 +693,12 @@ function awm_ajax_call(options) {
         ...options,
     };
 
-    /*if (Options.loading) {
-        flx_ajax_loader(Options.loading, true);
-    }*/
+    if (Options.loading) {
+        var loading_element = document.querySelector(Options.loading);
+        if (loading_element) {
+            loading_element.innerHTML = '<div class="ewp_spinner inner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
+        }
+    }
 
     if (Options.method.toLowerCase() === 'get' && Options.data.length > 0) {
         Options.url += '?' + Options.data.join("&");
