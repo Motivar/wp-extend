@@ -862,6 +862,7 @@ if (!function_exists('awmInputFieldsTypes')) {
       'file' => array('label' => __('File', 'extend-wp')),
       'color' => array('label' => __('Color', 'extend-wp')),
       'submit' => array('label' => __('Submit', 'extend-wp')),
+      'hidden' => array('label' => __('Hidden', 'extend-wp')),
     ));
   }
 }
