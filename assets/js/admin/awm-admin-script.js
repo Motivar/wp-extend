@@ -374,7 +374,6 @@ jQuery(document).ready(function ($) {
     $('.awm-upload-button').on('click', function (e) {
         e.preventDefault();
         var id = $(this).attr('data-id');
-
         if (frame) {
             frame.open();
             return;
@@ -385,7 +384,7 @@ jQuery(document).ready(function ($) {
             button: { text: 'Use these images' },
             multiple: true
         });
-
+        frame.open();
         frame.on('select', function () {
             var selection = frame.state().get('selection');
             var imageIds = [];
