@@ -1124,7 +1124,7 @@ function awm_gallery_meta_box_html($meta, $val)
                 $image = wp_get_attachment_thumb_url($image_id);
 
                 if (!$image) {
-                    $image = site_url() . '/wp-includes/images/media/document.png';
+                    $image = home_url() . '/wp-includes/images/media/document.png';
                 }
 
 

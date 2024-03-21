@@ -758,6 +758,7 @@ if (!function_exists('awmInputFields')) {
       'select' => array('label' => __('Select', 'extend-wp'), 'field-choices' => awm_select_options()),
       'textarea' => array('label' => __('Textarea', 'extend-wp')),
       'image' => array('label' => __('Image', 'extend-wp')),
+      'awm_gallery' => array('label' => __('Gallery', 'extend-wp')),
       'radio' => array('label' => __('Radio', 'extend-wp'), 'field-choices' => awm_select_options()),
       'checkbox_multiple' => array('label' => __('Multiple checkbox', 'extend-wp'), 'field-choices' => awm_select_options()),
       'date' => array('label' => __('Date', 'extend-wp')),
