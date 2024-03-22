@@ -357,8 +357,10 @@ class EWP_WP_Content_Installer
   {
     $this->post_types = $this->post_types();
     $types = $this->post_types;
+    
     if (!empty($types)) {
       foreach ($types as $type) {
+        
         $extra_sl = isset($type['extra_slug']) ? '/%' . $type['extra_slug'] . '%' : '';
         $extra_sl = apply_filters('flx_extra_slug_filter', $extra_sl);
         $general_slug = isset($type['slug']) ? $type['slug'] : (get_option($type['post'] . '_slug') ?: $type['post']);
@@ -384,11 +386,11 @@ class EWP_WP_Content_Installer
         $args = array(
           'labels' => $labels,
           'description' => isset($type['description']) ? $type['description'] : '',
-          'public' => $chk,
+          'public' => isset($type['public']) ? $type['public'] : $chk,
           'can_export' => $chk,
           'show_in_nav_menus' => $chk,
           'show_ui' => true,
-          'has_archive' => $chk,
+          'has_archive' => isset($type['public']) ? $type['public'] : $chk,
           'show_in_menu' => isset($type['flx_show_in_menu']) ? 'edit.php?post_type=' . $type['flx_show_in_menu'] : true,
           'exclude_from_search' => !$chk,
           'capability_type' => $type['post'],
@@ -417,7 +419,6 @@ class EWP_WP_Content_Installer
           $args['menu_icon'] = $type['icn'];
         }
         register_post_type($type['post'], $args);
-
         if (isset($type['custom_status']) && !empty($type['custom_status'])) {
 
           foreach ($type['custom_status'] as $k => $v) {

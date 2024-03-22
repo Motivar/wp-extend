@@ -12,23 +12,25 @@ class Extend_WP_WP_Content
  public function __construct()
  {
   add_filter('awm_register_content_db', [$this, 'register_defaults']);
-  add_filter('epw_get_post_types', [$this, 'get_post_types']);
-  add_filter('epw_get_taxonomies', [$this, 'get_taxonomies']);
-  add_action('ewp_post_types_save_action', [$this, 'clear_transients']);
-  add_action('ewp_post_types_delete_action', [$this, 'clear_transients']);
-  add_action('ewp_taxonomies_save_action', [$this, 'clear_transients']);
-  add_action('ewp_taxonomies_delete_action', [$this, 'clear_transients']);
+  add_filter('epw_get_post_types', [$this, 'get_post_types'], PHP_INT_MAX);
+  add_filter('epw_get_taxonomies', [$this, 'get_taxonomies'], PHP_INT_MAX);
+  add_action('ewp_post_types_save_action', [$this, 'clear_transients'], PHP_INT_MAX);
+  add_action('ewp_post_types_delete_action', [$this, 'clear_transients'], PHP_INT_MAX);
+  add_action('ewp_taxonomies_save_action', [$this, 'clear_transients'], PHP_INT_MAX);
+  add_action('ewp_taxonomies_delete_action', [$this, 'clear_transients'], PHP_INT_MAX);
  }
 
 
- public function get_taxonomies($taxes)
+ public function get_taxonomies($allready_registered)
  {
   $transient_key = 'ewp_taxonomies';
   $cached = awm_get_transient($transient_key);
-  if ($cached !== false) {
-   return $cached;
+  if ($cached !== false && is_array($cached)) {
+
+   return $allready_registered + $cached;
   }
   $taxonomies = awm_get_db_content('ewp_taxonomies');
+  $taxes = array();
   if (!empty($taxonomies)) {
    foreach ($taxonomies as $taxonomy) {
     $metas = awm_get_db_content_meta('ewp_taxonomies', $taxonomy['content_id']);
@@ -46,7 +48,7 @@ class Extend_WP_WP_Content
   }
   $taxes = apply_filters('ewp_get_taxonomies_filter', $taxes, $taxonomies);
   awm_set_transient($transient_key, $taxes, 0, 36, 'awm_post_fields_transients');
-  return $taxes;
+  return $allready_registered + $taxes;
  }
 
 
@@ -60,14 +62,13 @@ class Extend_WP_WP_Content
 
 
 
- public function get_post_types()
+ public function get_post_types($alreday_registered_types)
  {
-
   $transient_key = 'ewp_post_types';
   $cached = awm_get_transient($transient_key);
 
-  if ($cached !== false) {
-   return $cached;
+  if ($cached !== false && is_array($cached)) {
+   return $alreday_registered_types + $cached;
   }
   $post_types = awm_get_db_content('ewp_post_types');
   $types = $all_metas = array();
@@ -108,7 +109,7 @@ class Extend_WP_WP_Content
   }
   $types = apply_filters('ewp_get_post_types_filter', $types, $post_types, $all_metas);
   awm_set_transient($transient_key, $types, 0, 36, 'awm_post_fields_transients');
-  return $types;
+  return $alreday_registered_types + $types;
  }
 
 

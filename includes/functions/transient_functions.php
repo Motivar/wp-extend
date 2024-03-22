@@ -111,11 +111,16 @@ if (!function_exists('awm_delete_transient_all')) {
  function awm_delete_transient_all()
  {
   $group_keys = get_option('awm_transient_groups') ?: array();
-  foreach ($group_keys as $group) {
+  if (!empty($group_keys)) {
+   foreach ($group_keys as $group_id => $group) {
    foreach ($group as $transient) {
     delete_transient($transient);
    }
+    awm_delete_transient_group($group_id);
   }
+  }
+  update_option('ewp_user_caps_version', strtotime('now'), false);
+  delete_option('ewp_user_caps_version_old');
   flush_rewrite_rules();
   wp_cache_flush();
  }
