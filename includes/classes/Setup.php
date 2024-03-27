@@ -33,5 +33,6 @@ class Setup
   require_once 'awm-list-tables/class-list-table.php';
   require_once 'awm-customizer/class-customizer.php';
   require_once 'ewp-third-party/class-wpml.php';
+  require_once 'ewp-gutenburg/class-register.php';
  }
 }
