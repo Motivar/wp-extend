@@ -1,92 +1,165 @@
 <?php
+// Block direct access to the file for security.
 if (!defined('ABSPATH')) {
   exit;
 }
 
 /**
- * class to extend customizer through fields
+ * EWP_Dynamic_Blocks class extends Gutenberg block functionality
+ * with dynamic registration and REST API extensions.
+ *
+ * It aims to provide a framework for registering custom Gutenberg blocks
+ * and corresponding REST API endpoints in a secure and optimized manner.
  */
-
-
-
 class EWP_Dynamic_Blocks
 {
-
   /**
-   * Constructor
+   * Holds the block information to prevent redundant processing.
+   *
+   * @var array|bool $blocks Cache for the gathered blocks.
    */
   static $blocks = false;
 
+  /**
+   * Constructor hooks into WordPress to register blocks, scripts, and REST API endpoints.
+   */
   public function __construct()
   {
+    // Register blocks and scripts during WordPress initialization.
     add_action('init', [$this, 'register_blocks']);
     add_action('init', [$this, 'register_script']);
-    add_action('wp_enqueue_scripts', [$this, 'load_scripts']); // For frontend
-    add_action(
-      'enqueue_block_editor_assets',
-      [$this, 'load_scripts']
-    );
+
+    // Enqueue scripts in the frontend and block editor.
+    add_action('wp_enqueue_scripts', [$this, 'load_scripts']);
+    add_action('enqueue_block_editor_assets', [$this, 'load_scripts']);
+
+    // Register REST API endpoints for the blocks.
+    add_action('rest_api_init', [$this, 'rest_endpoints']);
+  }
+  /**
+   * Registers REST API endpoints for each block.
+   */
+  public function rest_endpoints()
+  {
+    $blocks = $this->gather_blocks();
+
+    foreach ($blocks as $block) {
+      register_rest_route($block['namespace'] . '/' . $block['name'], '/preview', [
+        'methods' => 'GET',
+        'auth_callback' => function () {
+          return current_user_can('edit_posts');
+        },
+        'callback' => [$this, 'handle_rest_callback'],
+        'args' => [
+          'php_callback' => [
+            'type' => 'string|array',
+            'default' =>  $block['render_callback'],
+          ],
+        ],
+      ]);
+    }
   }
 
+  /**
+   * Enqueues scripts for the registered blocks.
+   *
+   * Dynamically loads additional scripts specified by blocks and
+   * ensures they are loaded only where necessary.
+   */
   public function load_scripts()
   {
     $blocks = $this->gather_blocks();
-    if (empty($blocks)) {
+    if (empty($blocks) || !is_array($blocks)) {
       return;
     }
-    foreach ($blocks as $block) {
-      foreach ($block['additional_scripts'] as $script) {
-        // wp_enqueue_script($script['handle']);
-      }
+    // Conditionally enqueue editor scripts only in admin context.
+    if (is_admin()) {
+      wp_localize_script('ewp-gutenberg-blocks', 'ewp_blocks', $blocks);
+      wp_enqueue_script('ewp-gutenberg-blocks');
     }
-    if (!is_admin()) {
-      return;
-    }
-    wp_localize_script('ewp-gutenburg-blocks', 'ewp_blocks', $blocks);
-    wp_enqueue_script('ewp-gutenburg-blocks');
   }
 
-
+  /**
+   * Registers the main script for the Gutenberg blocks.
+   *
+   * Includes script dependencies, versioning, and footer loading optimizations.
+   */
   public function register_script()
   {
-    $blocks = $this->gather_blocks();
-    foreach ($blocks as $block) {
-      foreach ($block['additional_scripts'] as $script) {
-        // wp_register_script($script['handle'], $script['src'], $script['dependencies'], $script['version'], $script['in_footer']);
-      }
-    }
-    wp_register_script($script['handle'], $script['src'], $script['dependencies'], $script['version'], $script['in_footer']);
-    $asset_file = include(awm_url . 'build/index.asset.php');
+    $asset_file = include(awm_path . 'build/index.asset.php'); // Ensure awm_path is defined and secure.
+
     wp_register_script(
-      'ewp-gutenburg-blocks',
-      awm_url . 'build/index.js',
-      array('wp-blocks', 'wp-element', 'wp-editor', 'wp-i18n'),
+      'ewp-gutenberg-blocks',
+      awm_url . 'build/index.js', // Ensure awm_url is defined and secure.
+      $asset_file['dependencies'],
       $asset_file['version'],
-      true
+      true // Load in footer for performance.
     );
   }
 
+  /**
+   * Registers all custom Gutenberg blocks based on gathered information.
+   */
   public function register_blocks()
   {
     $blocks = $this->gather_blocks();
+    if (empty($blocks) || !is_array($blocks)) {
+      return;
+    }
+    $core_dependencies = array('wp-blocks', 'wp-element', 'wp-i18n', 'wp-editor');
     foreach ($blocks as $block) {
-      register_block_type($block['namespace'] . '/' . $block['block_name'], array(
-        'attributes' => $block['attributes'],
-        'style' => $block['style'],
-        'render_callback' => $block['render_callback'],
+
+      $dependencies = array_merge($core_dependencies, isset($block['dependencies']) ? $block['dependencies'] : array());
+      register_block_type($block['namespace'] . '/' . $block['name'], array(
+        'attributes' => isset($block['attributes']) ? $block['attributes'] : array(),
+        'editor_style' => isset($block['style']) ? $block['style'] : '',
+        'style' => isset($block['style']) ? $block['style'] : '',
+        'editor_script' => isset($block['script']) ? $block['script'] : '',
+        'script' => isset($block['script']) ? $block['script'] : '',
+        'render_callback' => $this->check_callback($block['render_callback']),
         'version' => $block['version'],
-        'dependencies' => $block['dependencies'],
-        'additional_scripts' => $block['additional_scripts'],
-        'title' => $block['title'],
-        'description' => $block['description'],
-        'category' => $block['category'],
-        'icon' => $block['icon'],
+        'dependencies' => $dependencies,
+        'title' => isset($block['title']) ? $block['title'] : $block['name'],
+        'description' => isset($block['description']) ? $block['description'] : '',
+        'category' => isset($block['category']) ? $block['category'] : 'common',
+        'icon' => isset($block['icon ']) ? $block['icon'] : 'admin-site',
       ));
     }
     return $blocks;
   }
 
-  public function prepare_attributes($attributes)
+  /*
+    * Check if the callback is valid
+    */
+  public function check_callback($callback)
+  {
+    $callback = ((is_string($callback) && function_exists($callback)) ? $callback : (is_array($callback) && method_exists($callback[0], $callback[1]))) ? $callback : '';
+    return $callback;
+  }
+
+  /**
+   * Handles REST API callbacks for block previews.
+   *
+   * @param WP_REST_Request $request REST API request object.
+   * @return WP_REST_Response REST API response object.
+   */
+  public function handle_rest_callback($request)
+  {
+    $attributes = $request->get_params();
+    $content = call_user_func_array($attributes['php_callback'], array($attributes));
+
+    return rest_ensure_response(new \WP_REST_Response(str_replace('"', '\'', json_encode($content))), 200);
+  }
+
+
+
+  /**
+   * Prepares and sanitizes block attributes for secure block registration.
+   *
+   * @param array $attributes Block attributes to be sanitized.
+   * @return array Sanitized attributes.
+   */
+  private function prepare_attributes($attributes)
   {
     $prepared_attributes = array();
     foreach ($attributes as $key => $attribute) {
@@ -97,7 +170,7 @@ class EWP_Dynamic_Blocks
           $render_type = 'select';
           $options = array();
           foreach ($attribute['options'] as $option_key => $option) {
-            $options[$option_key] = $option['label'];
+            $options[] = array('option' => $option_key, 'label' => $option['label']);
           }
           $attribute['options'] = $options;
           break;
@@ -128,13 +201,13 @@ class EWP_Dynamic_Blocks
     return $prepared_attributes;
   }
 
+  /**
+   * Gathers and prepares blocks for registration.
+   *
+   * @return array Processed blocks ready for registration.
+   */
   public function gather_blocks()
   {
-    /**
-     * get all the awm boxes for customizer
-     * @param array all the boxes
-     * @return array return all the boxes
-     */
 
 
     if (self::$blocks) {
@@ -162,59 +235,3 @@ class EWP_Dynamic_Blocks
 // Setup the Theme Customizer settings and contro
 
 new EWP_Dynamic_Blocks();
-
-
-add_filter('ewp_gutenburg_blocks_filter', function ($blocks) {
-
-  $blocks['demo'] = array(
-    'namespace' => 'ewp-demo',
-    'block_name' => 'test',
-    'attributes' => array(
-      'text' => array(
-        'label' => 'text',
-        'case' => 'input',
-        'type' => 'text',
-      ),
-      'text2' => array(
-        'label' => 'text2',
-        'case' => 'input',
-        'type' => 'number',
-      ),
-      'text3' => array(
-        'label' => 'text3',
-        'case' => 'input',
-        'type' => 'checkbox',
-      ),
-      'select' => array(
-        'label' => 'Select',
-        'case' => 'select',
-        'options' => array(
-          'option1' => array('label' => 'Option 1'),
-          'option2' => array('label' => 'Option 12'),
-          'option3' => array('label' => 'Option 1e'),
-        ),
-      ),
-      'color' => array(
-        'label' => 'Colour',
-        'case' => 'input',
-        'type' => 'color',
-      ),
-      'textarear' => array(
-        'case' => 'textarea',
-        'label' => 'Textarea',
-      ),
-
-    ),
-    'style' => '',
-    'render_callback' => 'render_block',
-    'version' => '1.0.0',
-    'dependencies' => array('wp-blocks', 'wp-element', 'wp-editor'),
-    'additional_scripts' => array(),
-    'title' => 'Demo Block',
-    'description' => 'Demo Block',
-    'category' => 'common',
-    'icon' => 'admin-site',
-  );
-
-  return $blocks;
-});

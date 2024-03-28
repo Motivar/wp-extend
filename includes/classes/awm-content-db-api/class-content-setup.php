@@ -72,6 +72,7 @@ class AWM_Add_Content_DB_Setup
         'namespace' =>  $this->prefix,
         'method' => 'post',
         'php_callback' => [$class, 'insert'],
+        'permission_callback' => 'ewp_rest_check_user_is_admin'
       ),
       'update' => array(
         'endpoint' => $this->data_id . '/update/(?P<id>\d+)',
@@ -87,6 +88,7 @@ class AWM_Add_Content_DB_Setup
           )
         ),
         'php_callback' => [$class, 'update'],
+        'permission_callback' => 'ewp_rest_check_user_is_admin'
       ),
       'delete_single' => array(
         'endpoint' => $this->data_id . '/delete/',
@@ -101,6 +103,8 @@ class AWM_Add_Content_DB_Setup
           )
         ),
         'php_callback' => [$class, 'delete'],
+        'permission_callback' => 'ewp_rest_check_user_is_admin'
+        
       ),
     );
     $d_api = new AWM_Dynamic_API($default_rest);

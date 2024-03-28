@@ -4,11 +4,10 @@ const { PanelBody, TextControl, RangeControl } = wp.components;
 const { useEffect, useState } = wp.element;
 const { apiFetch } = wp;
 
-if (ewp_blocks) {
+if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components && wp.element && typeof ewp_blocks !== 'undefined') {
  Object.keys(ewp_blocks).forEach((key) => {
-  let block = ewp_blocks[key];
-  let namespace = block.namespace + '/' + block.name;
-  console.log(block);
+  const block = ewp_blocks[key];
+  const namespace = `${block.namespace}/${block.name}`;
   registerBlockType(namespace, {
    title: block.title,
    icon: block.icon,
@@ -16,30 +15,34 @@ if (ewp_blocks) {
    attributes: block.attributes,
    edit: function (props) {
     const { attributes, setAttributes } = props;
-    const { taxonomy_ids, count } = attributes;
+    // Initialize inputValues with default or initial values from block.attributes
+    const initialValues = Object.keys(block.attributes).reduce((acc, attrKey) => {
+     const attribute = block.attributes[attrKey];
+     acc[attrKey] = attributes[attrKey] || attribute.default || '';
+     return acc;
+    }, {});
+
+
     const [content, setContent] = useState('');
-    /*loop throught object block.attributes in order to create the panel*/
+    const [inputValues, setInputValues] = useState(initialValues);
 
-    //console.log('attributes', attributes);
+    const handleInputChange = (identifier, newValue) => {
+     setInputValues({
+      ...inputValues,
+      [identifier]: newValue,
+     });
+    };
 
-    /*
     useEffect(() => {
-     // Construct query parameters
-     const queryParams = new URLSearchParams({
-      taxonomy_ids: taxonomy_ids,
-      count: count,
-     }).toString();
-
-     apiFetch({ path: `/mtv-reviews/v1/preview?${queryParams}` }).then((html) => {
+     // Your existing logic to fetch and set content
+     const queryParams = new URLSearchParams(inputValues).toString();
+     apiFetch({ path: `${block.namespace}/${block.name}/preview?${queryParams}` }).then((html) => {
       var data = JSON.parse(html.replace(/\'/g, '\"'));
       setContent(data);
      });
-    }, [taxonomy_ids, count]); // Re-fetch whenever these attributes change
-    */
+    }, [JSON.stringify(inputValues)]);
 
     if (typeof block.attributes === 'object' && block.attributes !== null) {
-
-
      var elements = [];
      Object.entries(block.attributes).forEach(([key, data]) => {
       // key is the attribute name
@@ -52,73 +55,56 @@ if (ewp_blocks) {
          label: data.label,
          value: props.attributes[key],
          options: data.options,
-         onChange: function (value) { setAttributes({ [key]: value }); }
+         onChange: function (value) {
+          setAttributes({ [key]: value });
+          handleInputChange(key, value)
+         }
         }));
         break;
        case 'color':
         elements.push(wp.element.createElement(wp.components.ColorPicker, {
          label: data.label,
          value: props.attributes[key],
-         onChangeComplete: function (value) { setAttributes({ [key]: value }); }
+         onChangeComplete: function (value) { setAttributes({ [key]: value }); handleInputChange(key, value) }
         }));
         break;
        case 'textarea':
         elements.push(wp.element.createElement(wp.components.TextareaControl, {
          label: data.label,
          value: props.attributes[key],
-         onChange: function (value) { setAttributes({ [key]: value }); }
+         onChange: function (value) { setAttributes({ [key]: value }); handleInputChange(key, value) }
         }));
         break;
        case 'number':
-        console.log('number');
         elements.push(wp.element.createElement(wp.components.RangeControl, {
          label: data.label,
          value: props.attributes[key],
-         onChange: function (value) { setAttributes({ [key]: value }); },
-         min: 1,
-         max: 10,
-         step: 1
+         onChange: function (value) { setAttributes({ [key]: value }); handleInputChange(key, value) },
+         min: data.attributes.min || 0,
+         max: data.attributes.max || 100,
+         step: data.attributes.step || 1
         }));
         break;
        case 'string':
         elements.push(wp.element.createElement(wp.components.TextControl, {
          label: data.label,
          value: props.attributes[key],
-         onChange: function (value) { setAttributes({ [key]: value }); }
+         onChange: function (value) { setAttributes({ [key]: value }); handleInputChange(key, value) }
         }));
         break;
        case 'boolean':
         elements.push(wp.element.createElement(wp.components.ToggleControl, {
          label: data.label,
          checked: props.attributes[key],
-         onChange: function (value) { setAttributes({ [key]: value }); }
+         onChange: function (value) { setAttributes({ [key]: value }); handleInputChange(key, value) }
         }));
         break;
-       // Add more cases as needed
        default:
         // Handle other types
         break;
       }
      });
-
-
-     /*
-     elements.push(wp.element.createElement(TextControl, {
-      label: 'Taxonomy ddddddIDs',
-      value: taxonomy_ids,
-      //onChange: updateTaxonomyIds,
-     }));
-     elements.push(wp.element.createElement(RangeControl, {
-      label: 'Number of Reviddddewds',
-      value: count,
-      //onChange: updateCount,
-      min: 1,
-      max: 10
-     }));*/
-
-
      return [
-      // InspectorControls for sidebar settings
       wp.element.createElement(
        InspectorControls,
        null,
@@ -130,13 +116,11 @@ if (ewp_blocks) {
         elements
        )
       ),
-
-      // Display the fetched content or a placeholder in the editor
       wp.element.createElement(
        'div',
        {
         className: props.className,
-        dangerouslySetInnerHTML: { __html: content } // This prop renders the HTML
+        dangerouslySetInnerHTML: { __html: content }
        }
       ),
      ];

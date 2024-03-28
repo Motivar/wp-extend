@@ -1143,3 +1143,9 @@ function awm_gallery_meta_box_html($meta, $val)
     $content .= '</div>';
     return $content;
 }
+
+
+function ewp_rest_check_user_is_admin()
+{
+    return current_user_can('manage_options');
+}
