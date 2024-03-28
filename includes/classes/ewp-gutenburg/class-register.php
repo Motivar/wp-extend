@@ -96,7 +96,6 @@ class EWP_Dynamic_Blocks
       true // Load in footer for performance.
     );
   }
-
   /**
    * Registers all custom Gutenberg blocks based on gathered information.
    */
@@ -127,7 +126,6 @@ class EWP_Dynamic_Blocks
     }
     return $blocks;
   }
-
   /*
     * Check if the callback is valid
     */
@@ -136,7 +134,6 @@ class EWP_Dynamic_Blocks
     $callback = ((is_string($callback) && function_exists($callback)) ? $callback : (is_array($callback) && method_exists($callback[0], $callback[1]))) ? $callback : '';
     return $callback;
   }
-
   /**
    * Handles REST API callbacks for block previews.
    *
