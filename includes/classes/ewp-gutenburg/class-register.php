@@ -319,8 +319,3 @@ class EWP_Dynamic_Blocks
 // Setup the Theme Customizer settings and contro
 
 new EWP_Dynamic_Blocks();
-
-function gnnpls_test($attributes)
-{
-  return 'nikos';
-}
