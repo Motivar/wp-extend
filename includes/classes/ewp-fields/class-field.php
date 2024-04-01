@@ -32,6 +32,21 @@ class Extend_WP_Fields
   add_filter('ewp_gutenburg_blocks_filter', [$this, 'get_blocks'], PHP_INT_MAX);
  }
 
+ public function get_customizer_boxes($boxes)
+ {
+  $new_boxes = awm_create_boxes('customizer', awm_get_fields('customizer'));
+
+  foreach ($new_boxes as $panel_id => $panel_data) {
+   if (array_key_exists($panel_id, $boxes)) {
+    $boxes[$panel_id]['sections'] += $panel_data['sections'];
+    continue;
+   }
+   $boxes[$panel_id] = $panel_data;
+  }
+
+  return $boxes;
+ }
+
 
  public function get_blocks($blocks)
  {
