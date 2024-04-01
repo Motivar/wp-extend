@@ -482,7 +482,29 @@ if (!function_exists('awm_create_boxes')) {
     }
     $boxes = array();
     foreach ($awm_fields as $id => $awm_field) {
+
       switch ($case) {
+        case 'ewp_block':
+          $version = strtotime($awm_field['modified']);
+          $title = (isset($awm_field['content_title']) && !empty($awm_field['content_title'])) ? $awm_field['content_title'] : sprintf(__('Ewp Dynamic block %s', 'wp-extend'), $awm_field['content_id']);
+          $namespace = (isset($awm_field['position']['namespace']) && !empty($awm_field['position']['namespace'])) ? awm_clean_string($awm_field['position']['namespace']) : 'ewp-block';
+          $name = (isset($awm_field['position']['name']) && !empty($awm_field['position']['name'])) ? $awm_field['position']['name'] : awm_clean_string($title);
+          $dependencies = (isset($awm_field['position']['dependencies']) && !empty($awm_field['position']['dependencies'])) ? explode(',', $awm_field['position']['dependencies']) : array();
+          $render_callback = (isset($awm_field['position']['render_callback']) && !empty($awm_field['position']['render_callback'])) ? $awm_field['position']['render_callback'] : '';
+          $icon = (isset($awm_field['position']['icon']) && !empty($awm_field['position']['icon'])) ? $awm_field['position']['icon'] : '';
+          $category = (isset($awm_field['position']['category']) && !empty($awm_field['position']['category'])) ? $awm_field['position']['category'] : 'common';
+          $boxes[$id] = array(
+            'namespace' => $namespace,
+            'name' => $name,
+            'title' => $title,
+            'version' => $version,
+            'dependencies' => $dependencies,
+            'render_callback' => $render_callback,
+            'attributes' => awm_create_library($awm_field),
+            'category' => $category,
+            'icon' => $icon
+          );
+          break;
         case 'customizer':
           $section = array(
             $id => array(

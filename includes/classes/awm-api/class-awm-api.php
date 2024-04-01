@@ -140,10 +140,14 @@ class AWM_API extends WP_REST_Controller
         $final_fields[$awm_field['content_id'] . '_' . $counter]['explanation'] = $awm_explanation;
         $fields = awm_create_boxes($position['case'], $final_fields);
         $content = awm_print_php($fields);
+     
         $filter = '';
         switch ($position['case']) {
           case 'post_type':
             $filter = 'awm_add_meta_boxes_filter';
+            break;
+          case 'ewp_block':
+            $filter = 'ewp_gutenburg_blocks_filter';
             break;
           case 'taxonomy':
             $filter = 'awm_add_term_meta_boxes_filter';
@@ -181,7 +185,15 @@ class AWM_API extends WP_REST_Controller
       $field = sanitize_text_field($params['position']);
       $name = sanitize_text_field($params['name']);
       $postId = absint($params['id']);
-      $return = $this->get_awm_metas_configuration($field, $name, 'awm_positions', $postId, awm_position_options(), 'ewp_fields', 'case');
+      $return = $this->get_awm_metas_configuration(
+        $field,
+        $name,
+        'awm_positions',
+        $postId,
+        awm_position_options(),
+        'ewp_fields',
+        'case'
+      );
       return rest_ensure_response(new WP_REST_Response($return), 200);
     }
     return false;
@@ -203,7 +215,15 @@ class AWM_API extends WP_REST_Controller
       $name = sanitize_text_field($params['name']);
       $meta = sanitize_text_field($params['meta']);
       $postId = absint($params['id']);
-      $return = $this->get_awm_metas_configuration($field, $name, $meta, $postId, ewp_query_fields(), 'ewp_search', 'query_type');
+      $return = $this->get_awm_metas_configuration(
+        $field,
+        $name,
+        $meta,
+        $postId,
+        ewp_query_fields(),
+        'ewp_search',
+        'query_type'
+      );
       return rest_ensure_response(new WP_REST_Response($return), 200);
     }
     return false;

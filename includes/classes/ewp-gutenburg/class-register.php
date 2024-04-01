@@ -35,7 +35,77 @@ class EWP_Dynamic_Blocks
 
     // Register REST API endpoints for the blocks.
     add_action('rest_api_init', [$this, 'rest_endpoints']);
+    // Register for field UI usage
+    add_filter('awm_position_options_filter', [$this, 'awm_position_options_filter']);
   }
+
+  /*
+  * Add block creation options to the field UI
+  */
+  public function awm_position_options_filter($options)
+  {
+
+    $options['ewp_block'] = array('label' => __('Block creation', 'extend-wp'), 'field-choices' =>
+    array(
+
+      'render_callback' => array(
+        'label' => __('Render callback', 'extend-wp'),
+        'case' => 'input',
+        'type' => 'text',
+        'explanation' => __('Use a valid php function. Use <b>$attributes</b> as variable in the function.', 'extend-wp'),
+        'label_class' => array('awm-needed'),
+      ),
+      'category' => array(
+        'label' => __('Block category', 'extend-wp'),
+        'case' => 'select',
+        'removeEmpty' => true,
+        'options' => array(
+          'common' => array('label' => __('Common', 'extend-wp')),
+          'formatting' => array('label' => __('Formatting', 'extend-wp')),
+          'layout' => array('label' => __('Layout', 'extend-wp')),
+          'widgets' => array('label' => __('Widgets', 'extend-wp')),
+          'embed' => array('label' => __('Embeds', 'extend-wp')),
+          'reusable' => array('label' => __('Reusable', 'extend-wp')),
+          'blocks' => array('label' => __('Blocks', 'extend-wp')),
+        ),
+        'explanation' => __('The panel name to show if no panel_id is filled in', 'extend-wp'),
+      ),
+      'namespace' => array(
+        'label' => __('Namespace', 'extend-wp'),
+        'case' => 'input',
+        'type' => 'text',
+        'explanation' => __('If you leave empty ewp-block will be used', 'extend-wp'),
+
+      ),
+      'name' => array(
+        'label' => __('Name', 'extend-wp'),
+        'case' => 'input',
+        'type' => 'text',
+        'explanation' => __('If you leave empty. the id of the field will be used', 'extend-wp'),
+      ),
+      'description' => array(
+        'label' => __('Description', 'extend-wp'),
+        'case' => 'input',
+        'type' => 'text',
+        'explanation' => __('The description of the block', 'extend-wp'),
+      ),
+      'icon' => array(
+        'label' => __('Icon', 'extend-wp'),
+        'case' => 'input',
+        'type' => 'text',
+        'explanation' => __('The icon of the block', 'extend-wp'),
+      ),
+      'dependencies' => array(
+        'case' => 'input',
+        'type' => 'text',
+        'label' => __('Dependencies', 'extend-wp'),
+        'explanation' => __('Split dependencies with comma', 'extend-wp'),
+
+      )
+    ));
+    return $options;
+  }
+
   /**
    * Registers REST API endpoints for each block.
    */
@@ -110,18 +180,18 @@ class EWP_Dynamic_Blocks
 
       $dependencies = array_merge($core_dependencies, isset($block['dependencies']) ? $block['dependencies'] : array());
       register_block_type($block['namespace'] . '/' . $block['name'], array(
-        'attributes' => isset($block['attributes']) ? $block['attributes'] : array(),
+        'attributes' => (isset($block['attributes']) && !empty($block['attributes'])) ? $block['attributes'] : array(),
         'editor_style' => isset($block['style']) ? $block['style'] : '',
         'style' => isset($block['style']) ? $block['style'] : '',
-        'editor_script' => isset($block['script']) ? $block['script'] : '',
-        'script' => isset($block['script']) ? $block['script'] : '',
+        'editor_script' => (isset($block['script']) && !empty($block['script'])) ? $block['script'] : '',
+        'script' => (isset($block['script']) && !empty($block['script'])) ? $block['script'] : '',
         'render_callback' => $this->check_callback($block['render_callback']),
         'version' => $block['version'],
         'dependencies' => $dependencies,
         'title' => isset($block['title']) ? $block['title'] : $block['name'],
-        'description' => isset($block['description']) ? $block['description'] : '',
-        'category' => isset($block['category']) ? $block['category'] : 'common',
-        'icon' => isset($block['icon ']) ? $block['icon'] : 'admin-site',
+        'description' => (isset($block['description']) && !empty($block['description'])) ? $block['description'] : '',
+        'category' => (isset($block['category']) && !empty($block['category'])) ? $block['category'] : 'common',
+        'icon' => (isset($block['icon ']) && !empty($block['icon '])) ? $block['icon'] : 'admin-site',
       ));
     }
     return $blocks;
@@ -164,7 +234,6 @@ class EWP_Dynamic_Blocks
     if (!is_array($attributes) && is_string($attributes) && function_exists($attributes)) {
       $attributes = call_user_func($attributes);
     }
-
     if (!is_array($attributes) || empty($attributes)) {
       return array();
     }
@@ -172,7 +241,7 @@ class EWP_Dynamic_Blocks
       * Filter attributes
       */
 
-    $attributes = apply_filters('ewp_gutenburg_blocks_attributes_filter', $attributes, $block_name);
+
     foreach ($attributes as $key => $attribute) {
       $attribute = awm_prepare_field($attribute, $block_name);
       $type = 'string';
@@ -229,6 +298,8 @@ class EWP_Dynamic_Blocks
     /**
      * sort settings by order
      */
+    if (!empty($blocks) && is_array($blocks)) {
+      
     uasort($blocks, function ($a, $b) {
       $first = isset($a['priority']) ? $a['priority'] : 100;
       $second = isset($b['priority']) ? $b['priority'] : 100;
@@ -238,7 +309,8 @@ class EWP_Dynamic_Blocks
     foreach ($blocks as &$block) {
       $block['attributes'] = $this->prepare_attributes($block['attributes'], $block['name']);
     }
-
+    }
+  
     self::$blocks = $blocks;
     return $blocks;
   }
@@ -247,3 +319,8 @@ class EWP_Dynamic_Blocks
 // Setup the Theme Customizer settings and contro
 
 new EWP_Dynamic_Blocks();
+
+function gnnpls_test($attributes)
+{
+  return 'nikos';
+}

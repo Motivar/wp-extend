@@ -29,22 +29,19 @@ class Extend_WP_Fields
   add_filter('awm_add_options_boxes_filter', array($this, 'dynamic_option_pages'), PHP_INT_MAX);
   add_filter('awm_show_content_fields_filter', array($this, 'dynamic_existing_edits'), PHP_INT_MAX, 2);
   add_filter('awm_add_customizer_settings_filter', [$this, 'get_customizer_boxes'], PHP_INT_MAX);
+  add_filter('ewp_gutenburg_blocks_filter', [$this, 'get_blocks'], PHP_INT_MAX);
  }
 
 
- public function get_customizer_boxes($boxes)
+ public function get_blocks($blocks)
  {
-  $new_boxes = awm_create_boxes('customizer', awm_get_fields('customizer'));
-
-  foreach ($new_boxes as $panel_id => $panel_data) {
-   if (array_key_exists($panel_id, $boxes)) {
-    $boxes[$panel_id]['sections'] += $panel_data['sections'];
-    continue;
-   }
-   $boxes[$panel_id] = $panel_data;
+  $new_blocks = awm_create_boxes('ewp_block', awm_get_fields('ewp_block'));
+  if (empty($new_blocks)) {
+   return $blocks;
   }
 
-  return $boxes;
+  $blocks += $new_blocks;
+  return $blocks;
  }
 
 

@@ -1,4 +1,4 @@
-Based on the provided PHP class `EWP_Dynamic_Blocks`, which extends Gutenberg block functionality with dynamic registration and REST API extensions, I will create a README.md file content that outlines how developers can use the `ewp_gutenberg_blocks_filter` to add custom Gutenberg blocks through your plugin. The README will cover the basics of using the filter, expected block array structure, and a simple example.
+Based on the provided PHP class `EWP_Dynamic_Blocks`, which extends Gutenberg block functionality with dynamic registration and REST API extensions, I will create a README.md file content that outlines how developers can use the `ewp_gutenburg_blocks_filter` to add custom Gutenberg blocks through your plugin. The README will cover the basics of using the filter, expected block array structure, and a simple example.
 
 ---
 
@@ -8,11 +8,11 @@ EWP Dynamic Blocks provides a framework for dynamically registering custom Guten
 
 ## How to Add a Custom Block
 
-To add a custom Gutenberg block using EWP Dynamic Blocks, you need to utilize the `ewp_gutenberg_blocks_filter` filter. This filter allows you to add your block specifications to the list of blocks that EWP Dynamic Blocks manages.
+To add a custom Gutenberg block using EWP Dynamic Blocks, you need to utilize the `ewp_gutenburg_blocks_filter` filter. This filter allows you to add your block specifications to the list of blocks that EWP Dynamic Blocks manages.
 
-### Using `ewp_gutenberg_blocks_filter`
+### Using `ewp_gutenburg_blocks_filter`
 
-To register your custom blocks, attach them to the `ewp_gutenberg_blocks_filter` filter provided by the EWP Dynamic Blocks plugin. Here's the basic structure you should follow:
+To register your custom blocks, attach them to the `ewp_gutenburg_blocks_filter` filter provided by the EWP Dynamic Blocks plugin. Here's the basic structure you should follow:
 
 ```php
 function my_custom_blocks($blocks) {
@@ -35,7 +35,7 @@ function my_custom_blocks($blocks) {
 
     return $blocks;
 }
-add_filter('ewp_gutenberg_blocks_filter', 'my_custom_blocks');
+add_filter('ewp_gutenburg_blocks_filter', 'my_custom_blocks');
 ```
 
 ### Block Array Structure
