@@ -154,12 +154,27 @@ class EWP_Dynamic_Blocks
    * Prepares and sanitizes block attributes for secure block registration.
    *
    * @param array $attributes Block attributes to be sanitized.
+   * @param string $block_name Name of the block being processed.
    * @return array Sanitized attributes.
    */
-  private function prepare_attributes($attributes)
+  private function prepare_attributes($attributes, $block_name)
   {
     $prepared_attributes = array();
+
+    if (!is_array($attributes) && is_string($attributes) && function_exists($attributes)) {
+      $attributes = call_user_func($attributes);
+    }
+
+    if (!is_array($attributes) || empty($attributes)) {
+      return array();
+    }
+    /*
+      * Filter attributes
+      */
+
+    $attributes = apply_filters('ewp_gutenburg_blocks_attributes_filter', $attributes, $block_name);
     foreach ($attributes as $key => $attribute) {
+      $attribute = awm_prepare_field($attribute, $block_name);
       $type = 'string';
       $render_type = 'string';
       switch ($attribute['case']) {
@@ -221,7 +236,7 @@ class EWP_Dynamic_Blocks
     });
 
     foreach ($blocks as &$block) {
-      $block['attributes'] = $this->prepare_attributes($block['attributes']);
+      $block['attributes'] = $this->prepare_attributes($block['attributes'], $block['name']);
     }
 
     self::$blocks = $blocks;
