@@ -3,4 +3,3 @@ sftp-config.json
 .vscode
 vendor/
 /vendor/
-node_modules
