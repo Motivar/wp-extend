@@ -23,6 +23,8 @@ function my_custom_blocks($blocks) {
         'description' => __('A description of what my custom block does.', 'text-domain'),
         'category' => 'common',
         'icon' => 'admin-site',
+        'script'=>'',
+        'style'=>'',
         'attributes' => array(
             // Define attributes here
         ),
@@ -42,6 +44,8 @@ add_filter('ewp_gutenberg_blocks_filter', 'my_custom_blocks');
 - `title`: The display name of your block.
 - `description`: A brief description of what your block does.
 - `category`: The category under which your block should appear.
+- `style`: The style to use in admin & frontend. You should use the name of th handle of the style.
+- `script`: The script to use in admin & frontend. You should use the name of th handle of the script.
 - `icon`: Dashicon to use as the block icon.
 - `attributes`: An array of attributes your block uses. Each attribute should specify its type and default value.
 - `render_callback`: The function name that will be called to render the block on the front end.
