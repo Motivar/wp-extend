@@ -47,7 +47,7 @@ add_filter('ewp_gutenberg_blocks_filter', 'my_custom_blocks');
 - `style`: The style to use in admin & frontend. You should use the name of th handle of the style.
 - `script`: The script to use in admin & frontend. You should use the name of th handle of the script.
 - `icon`: Dashicon to use as the block icon.
-- `attributes`: An array of attributes your block uses. Each attribute should specify its type and default value.
+- `attributes`: An array of attributes your block uses. Each attribute should specify its type and default value. The array is based on the awm inputs array. You can either add a callback (name of a function) or a function.
 - `render_callback`: The function name that will be called to render the block on the front end.
 - `version`: The version of your block.
 - `dependencies`: An array of script dependencies required by your block.
