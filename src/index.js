@@ -39,6 +39,9 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
      apiFetch({ path: `${block.namespace}/${block.name}/preview?${queryParams}` }).then((html) => {
       var data = JSON.parse(html.replace(/\'/g, '\"'));
       setContent(data);
+       var data = { response: data, block: block };
+       const event = new CustomEvent("ewp_dynamic_block_on_change", { detail: data });
+       document.dispatchEvent(event);
      });
     }, [JSON.stringify(inputValues)]);
 
