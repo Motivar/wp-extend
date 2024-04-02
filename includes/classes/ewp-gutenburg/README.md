@@ -61,4 +61,13 @@ function my_custom_block_render_callback($attributes) {
 }
 ```
 
+### To run js code on change attributes
+```js
+document.addEventListener('ewp_dynamic_block_on_change', function (e) {
+if (e.detail.block.namespace == 'my-namespace' && e.detail.block.name=='my-custom-block') {
+ /*run your code*/
+ }
+}
+```
+
 This README provides a starting point for developers to integrate custom Gutenberg blocks into their WordPress site using the EWP Dynamic Blocks plugin. Remember to replace placeholders like `my_custom_blocks`, `my_custom_block_render_callback`, and `'text-domain'` with your specific values.
