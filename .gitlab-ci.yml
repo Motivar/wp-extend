@@ -1,15 +1,52 @@
 stages:
+  - preparation
+  - code_quality
   - build
-  
-build_assets:
-  stage: build
-  image: node:latest
+  - package
+  - release
+
+install_dependencies:
+  stage: preparation
   tags:
     - docker
   script:
-    - cd wp-extend
     - npm install
+    - composer install --no-scripts
+
+code_quality:
+  stage: code_quality
+  tags:
+    - docker
+  script:
+    - ./vendor/bin/phpcs
+    - npm run lint
+
+build:
+  stage: build
+  tags:
+    - docker
+  script:
     - npm run build
+
+package:
+  stage: package
+  tags:
+    - docker
+  script:
+    - composer install --no-dev --no-scripts
+    - zip -r my-plugin.zip .
   artifacts:
     paths:
-      - wp-extend/build/
+      - my-plugin.zip
+
+
+release:
+  stage: release
+  tags:
+    - docker
+  only:
+    - main
+  script:
+    - 'VERSION=$(some logic to determine next version)'
+    - 'git tag $VERSION'
+    - 'git push origin $VERSION'
