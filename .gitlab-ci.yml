@@ -14,7 +14,9 @@ build:
   script:
     - composer install --no-dev --no-progress --prefer-dist --no-suggest --optimize-autoloader --ignore-platform-reqs
     - cd $CI_PROJECT_DIR
-    - npm install && npm run production
+    - npm init -y
+    - npm install --save-dev webpack webpack-cli @babel/core babel-loader @babel/preset-env @babel/preset-react @wordpress/scripts
+    - npm install && npm run build
     - composer update
     - cd $CI_PROJECT_DIR
     - find . -type d -name '.git' | xargs rm -rf
