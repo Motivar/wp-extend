@@ -4,8 +4,8 @@ stages:
 
 lint_php:
   stage: lint
-   tags:
-    - docker
+  tags:
+   - docker
   image: php:7.4-cli
   script:
     - apt-get update && apt-get install -y php7.4-xml
