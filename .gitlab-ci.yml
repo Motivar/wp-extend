@@ -1,4 +1,4 @@
-image: drud/ddev-webserver:v1.21.2 # PHP 8.0
+image: drud/ddev-webserver:v1.22 # PHP 8.0
 
 stages:
   - preparation
