@@ -5,13 +5,11 @@ stages:
 lint_php:
   stage: lint
   image: php:7.4-cli
-  tags:
-    - docker
   script:
-    - apt-get update && apt-get install -y php-xml
+    - apt-get update && apt-get install -y php7.4-xml
     - curl -sS https://getcomposer.org/installer | php
     - php composer.phar install
-    - ./vendor/bin/phpcs --standard=WordPress --extensions=php,js ./your-plugin-directory/
+    - ./vendor/bin/phpcs --standard=WordPress --extensions=php,js ./wp-extend/
 
 build_assets:
   stage: build
