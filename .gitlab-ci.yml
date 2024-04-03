@@ -47,6 +47,6 @@ release:
   only:
     - main
   script:
-    - 'VERSION=$(some logic to determine next version)'
+    - 'VERSION=$(date +"%Y%m%d%H%M%S")'
     - 'git tag $VERSION'
     - 'git push origin $VERSION'
