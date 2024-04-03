@@ -6,9 +6,9 @@ lint_php:
   stage: lint
   tags:
    - docker
-  image: php:7.4-cli
+  image: php:8.0-cli
   script:
-    - apt-get update && apt-get install -y php7.4-xml
+    - apt-get update && apt-get install -y php8.0-xml
     - curl -sS https://getcomposer.org/installer | php
     - php composer.phar install
     - ./vendor/bin/phpcs --standard=WordPress --extensions=php,js ./wp-extend/
