@@ -5,6 +5,8 @@ stages:
 lint_php:
   stage: lint
   image: php:7.4-cli
+  tags:
+    - docker
   script:
     - apt-get update && apt-get install -y php-xml
     - curl -sS https://getcomposer.org/installer | php
@@ -14,6 +16,8 @@ lint_php:
 build_assets:
   stage: build
   image: node:latest
+  tags:
+    - docker
   script:
     - cd wp-extend
     - npm install
