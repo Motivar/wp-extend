@@ -29,7 +29,6 @@ deploy:
   dependencies:
     - build
   script:
-    - echo "Deploying the package..."
-    - curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file build-$CI_COMMIT_REF_SLUG.tar.gz "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/$CI_PROJECT_NAME/$CI_PIPELINE_ID/build-$CI_COMMIT_REF_SLUG.tar.gz"
+  - echo "Testing deploy script simplicity"
   only:
     - master
