@@ -14,8 +14,6 @@ build:
   script:
     - composer install --no-dev --no-progress --prefer-dist --no-suggest --optimize-autoloader --ignore-platform-reqs
     - cd $CI_PROJECT_DIR
-    - rm -rf web/app/uploads
-    - cd $MTV_TAILWIND_DIR
     - npm install && npm run production
     - composer update
     - cd $CI_PROJECT_DIR
