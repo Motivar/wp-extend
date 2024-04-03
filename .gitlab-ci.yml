@@ -7,10 +7,6 @@ build:
   tags:
     - docker
   stage: build
-  artifacts:
-    expire_in: 1h
-    paths:
-      - build-$CI_COMMIT_REF_SLUG.tar.gz
   image: drud/ddev-webserver:v1.21.2 # PHP 8.0
   script:
     - composer install --no-dev --no-progress --prefer-dist --no-suggest --optimize-autoloader --ignore-platform-reqs
@@ -27,9 +23,9 @@ build:
       - build-$CI_COMMIT_REF_SLUG.tar.gz
     
 deploy:
-  stage: deploy
   tags:
-    - docker
+      - docker
+  stage: deploy
   dependencies:
     - build
   script:
