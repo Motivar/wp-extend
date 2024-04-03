@@ -1,5 +1,6 @@
 stages:
   - build
+  - deploy
 
 
 build:
@@ -16,12 +17,25 @@ build:
     - cd $CI_PROJECT_DIR
     - npm init -y
     - npm install --save-dev webpack webpack-cli @babel/core babel-loader @babel/preset-env @babel/preset-react @wordpress/scripts
-    - npm install && npm run build
-    - composer update
-    - cd $CI_PROJECT_DIR
+    - npm run build
+    - composer update -o
     - find . -type d -name '.git' | xargs rm -rf
-    - git init
-    - git add -f web config vendor composer.json composer.lock wp-cli.yml .env
-    - git -c user.name="Docker build" -c user.email="dev+wp@motivar.io" -c gc.auto=0 commit -qm "Build $CI_COMMIT_REF_SLUG"
-    - git gc --aggressive
-    - tar czf build-$CI_COMMIT_REF_SLUG.tar.gz web/ config/ vendor/ composer.json composer.lock wp-cli.yml .env .git/
+    - tar -czf build-$CI_COMMIT_REF_SLUG.tar.gz .
+  artifacts:
+    expire_in: 1h
+    paths:
+      - build-$CI_COMMIT_REF_SLUG.tar.gz
+    
+deploy:
+  stage: deploy
+  tags:
+    - docker
+  dependencies:
+    - build
+  script:
+    - echo "Deploying the package..."
+    # Example: Push to GitLab's Package Registry
+    # Adapt this command based on your specific target
+    - curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file build-$CI_COMMIT_REF_SLUG.tar.gz "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/$CI_PROJECT_NAME/$CI_PIPELINE_ID/build-$CI_COMMIT_REF_SLUG.tar.gz"
+  only:
+    - master
