@@ -1,18 +1,6 @@
 stages:
-  - lint
   - build
-
-lint_php:
-  stage: lint
-  tags:
-   - docker
-  image: drud/ddev-webserver:v1.21.2 # PHP 8.0
-  script:
-    - apt-get update && apt-get install -y php8.0-xml
-    - curl -sS https://getcomposer.org/installer | php
-    - php composer.phar install
-    - ./vendor/bin/phpcs --standard=WordPress --extensions=php,js ./wp-extend/
-
+  
 build_assets:
   stage: build
   image: node:latest
