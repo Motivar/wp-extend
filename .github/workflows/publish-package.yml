@@ -1,0 +1,33 @@
+name: Publish Plugin Package
+
+on:
+  push:
+    branches:
+      - main  # Adjust this as necessary
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.0' # Match your PHP version
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --prefer-dist
+
+      - name: Build Plugin
+        run: |
+          npm install
+          npm run build
+          zip -r my-plugin.zip . # Customize your build steps as needed
+
+      - name: Publish to GitHub Packages
+        uses: actions/upload-artifact@v2
+        with:
+          name: my-plugin
+          path: my-plugin.zip
+          # Further configuration for GitHub Packages as needed
