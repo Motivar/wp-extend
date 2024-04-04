@@ -1,3 +1,5 @@
+image: drud/ddev-webserver:v1.21.2 # PHP 8.0
+
 stages:
   - build
   - deploy
@@ -7,7 +9,6 @@ build:
   tags:
     - docker
   stage: build
-  image: drud/ddev-webserver:v1.21.2 # PHP 8.0
   script:
     - apt-get update && apt-get install -y zip # Ensure zip is installed; adjust for your base image
     - composer install --no-dev --no-progress --prefer-dist --no-suggest --optimize-autoloader --ignore-platform-reqs
@@ -22,7 +23,7 @@ build:
   artifacts:
     expire_in: 1h
     paths:
-      - build-$CI_COMMIT_REF_SLUG.tar.gz
+      - build-$CI_COMMIT_REF_SLUG.zip
     
 
 deploy:
