@@ -22,13 +22,12 @@ build:
     paths:
       - build-$CI_COMMIT_REF_SLUG.tar.gz
     
+
 deploy:
-  tags:
-      - docker
   stage: deploy
-  dependencies:
-    - build
+  tags:
+    - docker
   script:
-  - echo "Testing deploy script simplicity"
-  only:
-    - master
+    - apk add curl
+    - 'curl --header "Job-Token: $CI_JOB_TOKEN" --data tag=<tag> "${CI_API_V4_URL}/projects/$CI_PROJECT_ID/packages/composer"'
+  environment: production
