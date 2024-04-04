@@ -19,6 +19,12 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-dev --no-progress --prefer-dist --no-suggest --optimize-autoloader --ignore-platform-reqs
 
+      - name: Setup Node.js for use with actions
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14' # Specify Node.js version
+          registry-url: 'https://npm.pkg.github.com' # This is important for npm to publish to GitHub Packages
+
       - name: Build Plugin
         run: |
           npm install --save-dev webpack webpack-cli @babel/core babel-loader @babel/preset-env @babel/preset-react @wordpress/scripts
@@ -27,9 +33,9 @@ jobs:
           find . -type d -name '.git' | xargs rm -rf
           zip -r wp-extend.zip . # Customize your build steps as needed
 
-      - name: Publish to GitHub Packages
-        uses: actions/upload-artifact@v2
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: wp-extend
-          path: wp-extend.zip
-          # Further configuration for GitHub Packages as needed
+          files: wp-extend.zip
+          # The token is used to authenticate against your GitHub repository
+          token: ${{ secrets.GITHUB_TOKEN }}
