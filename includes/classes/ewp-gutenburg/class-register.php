@@ -55,6 +55,18 @@ class EWP_Dynamic_Blocks
         'explanation' => __('Use a valid php function. Use <b>$attributes</b> as variable in the function.', 'extend-wp'),
         'label_class' => array('awm-needed'),
       ),
+      'style' => array(
+        'label' => __('Style', 'extend-wp'),
+        'case' => 'input',
+        'type' => 'text',
+        'explanation' => __('The style of the block (handle)', 'extend-wp'),
+      ),
+      'script' => array(
+        'label' => __('Script', 'extend-wp'),
+        'case' => 'input',
+        'type' => 'text',
+        'explanation' => __('The script for the block (handle)', 'extend-wp'),
+      ),
       'category' => array(
         'label' => __('Block category', 'extend-wp'),
         'case' => 'select',
