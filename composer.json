@@ -25,11 +25,9 @@
         "psr-4": {
             "EWP\\": "includes/classes/"
         },
-        "files": ["includes/functions/init.php"]
-    },
-    "scripts": {
-        "post-install-cmd": "npm install",
-        "post-update-cmd": "npm install"
+        "files": [
+            "includes/functions/init.php"
+        ]
     }
 
 }
