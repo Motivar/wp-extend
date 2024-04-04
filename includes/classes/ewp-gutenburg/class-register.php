@@ -305,6 +305,8 @@ class EWP_Dynamic_Blocks
     });
 
     foreach ($blocks as &$block) {
+        $block['namespace'] = preg_replace("/[^a-zA-Z0-9]/", "", awm_clean_string($block['namespace']));
+        $block['name'] = preg_replace("/[^a-zA-Z0-9]/", "", awm_clean_string($block['name']));
       $block['attributes'] = $this->prepare_attributes($block['attributes'], $block['name']);
     }
     }

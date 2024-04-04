@@ -487,7 +487,7 @@ if (!function_exists('awm_create_boxes')) {
 
       switch ($case) {
         case 'ewp_block':
-          $version = 1;
+          $version = strtotime($awm_field['modified']);
           $title = (isset($awm_field['content_title']) && !empty($awm_field['content_title'])) ? $awm_field['content_title'] : sprintf(__('Ewp Dynamic block %s', 'wp-extend'), $awm_field['content_id']);
           $namespace = (isset($awm_field['position']['namespace']) && !empty($awm_field['position']['namespace'])) ? awm_clean_string($awm_field['position']['namespace']) : 'ewp-block';
           $name = (isset($awm_field['position']['name']) && !empty($awm_field['position']['name'])) ? awm_clean_string($awm_field['position']['name']) : awm_clean_string($title);
