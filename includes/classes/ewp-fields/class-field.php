@@ -50,6 +50,7 @@ class Extend_WP_Fields
 
  public function get_blocks($blocks)
  {
+
   $new_blocks = awm_create_boxes('ewp_block', awm_get_fields('ewp_block'));
   if (empty($new_blocks)) {
    return $blocks;

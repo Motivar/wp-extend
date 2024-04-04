@@ -163,6 +163,7 @@ if (!function_exists('awm_get_fields')) {
   {
     $final_fields = array();
     $transient_key = 'awm_get_fields_' . $case . '_' . $type . '_' . $id;
+    
     $cached = awm_get_transient($transient_key);
     if ($cached !== false) {
       return $cached;
@@ -191,6 +192,7 @@ if (!function_exists('awm_get_fields')) {
       $args['include'] = array($id);
     }
     $awm_fields = awm_get_db_content('ewp_fields', $args);
+  
     if (!empty($awm_fields)) {
       $counter = 0;
       foreach ($awm_fields as  $awm_field) {
@@ -200,7 +202,7 @@ if (!function_exists('awm_get_fields')) {
         $awm_type = $field_meta['awm_type'] ?: array();
         $awm_explanation = $field_meta['awm_explanation'] ?: '';
 
-        if (empty($fields) || empty($positions)) {
+        if (empty($positions)) {
           continue;
         }
         foreach ($positions as $position) {
