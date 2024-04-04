@@ -304,7 +304,7 @@ if (!function_exists('awm_clean_string')) {
      */
     function awm_clean_string($string)
     {
-        $string = str_replace(' ', '_', $string); // Replaces all spaces with hyphens.
+        $string = str_replace(' ', '_', strtolower($string)); // Replaces all spaces with hyphens.
 
         return preg_replace('/[^ \w_]/', '', $string); // Removes special chars.
     }
