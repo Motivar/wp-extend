@@ -38,7 +38,7 @@ jobs:
         uses: anothrNick/github-tag-action@1.36.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEFAULT_BUMP: patch  # Sets the default version bump. Can be overridden by commit messages. Options are major, minor, patch.
+          DEFAULT_BUMP: patch  # Sets the default version bump. Can be overridden by commit messages. Options are major, minor, patch
           RELEASE_BRANCHES: main  # Only create a release/tag when on this branch
           TAG_PREFIX: "v"  # Prefix for the tag, resulting in tags like v1.0.0
 
