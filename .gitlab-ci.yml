@@ -9,6 +9,7 @@ build:
   stage: build
   image: drud/ddev-webserver:v1.21.2 # PHP 8.0
   script:
+    - apt-get update && apt-get install -y zip # Ensure zip is installed; adjust for your base image
     - composer install --no-dev --no-progress --prefer-dist --no-suggest --optimize-autoloader --ignore-platform-reqs
     - cd $CI_PROJECT_DIR
     - npm init -y
@@ -16,7 +17,8 @@ build:
     - npm run build
     - composer update -o
     - find . -type d -name '.git' | xargs rm -rf
-    - tar -czf build-$CI_COMMIT_REF_SLUG.tar.gz .
+    - sleep 5
+    - zip -r build-$CI_COMMIT_REF_SLUG.zip .
   artifacts:
     expire_in: 1h
     paths:
