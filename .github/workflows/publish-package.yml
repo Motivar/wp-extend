@@ -17,17 +17,19 @@ jobs:
           php-version: '8.0' # Match your PHP version
 
       - name: Install Composer dependencies
-        run: composer install --no-dev --prefer-dist
+        run: composer install --no-dev --no-progress --prefer-dist --no-suggest --optimize-autoloader --ignore-platform-reqs
 
       - name: Build Plugin
         run: |
-          npm install
+          npm install --save-dev webpack webpack-cli @babel/core babel-loader @babel/preset-env @babel/preset-react @wordpress/scripts
           npm run build
-          zip -r my-plugin.zip . # Customize your build steps as needed
+          composer update -o
+          find . -type d -name '.git' | xargs rm -rf
+          zip -r wp-extend.zip . # Customize your build steps as needed
 
       - name: Publish to GitHub Packages
         uses: actions/upload-artifact@v2
         with:
-          name: my-plugin
-          path: my-plugin.zip
+          name: wp-extend
+          path: wp-extend.zip
           # Further configuration for GitHub Packages as needed
