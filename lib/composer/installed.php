@@ -74,9 +74,9 @@
             'dev_requirement' => true,
         ),
         'phpstan/phpdoc-parser' => array(
-            'pretty_version' => '1.27.0',
-            'version' => '1.27.0.0',
-            'reference' => '86e4d5a4b036f8f0be1464522f4c6b584c452757',
+            'pretty_version' => '1.28.0',
+            'version' => '1.28.0.0',
+            'reference' => 'cd06d6b1a1b3c75b0b83f97577869fd85a3cd4fb',
             'type' => 'library',
             'install_path' => __DIR__ . '/../phpstan/phpdoc-parser',
             'aliases' => array(),
