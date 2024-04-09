@@ -12,8 +12,8 @@ class Extend_WP_WP_Content
  public function __construct()
  {
   add_filter('awm_register_content_db', [$this, 'register_defaults']);
-  add_filter('epw_get_post_types', [$this, 'get_post_types'], PHP_INT_MAX);
-  add_filter('epw_get_taxonomies', [$this, 'get_taxonomies'], PHP_INT_MAX);
+  add_filter('epw_get_post_types', [$this, 'get_post_types'], 10);
+  add_filter('epw_get_taxonomies', [$this, 'get_taxonomies'], 10);
   add_action('ewp_post_types_save_action', [$this, 'clear_transients'], PHP_INT_MAX);
   add_action('ewp_post_types_delete_action', [$this, 'clear_transients'], PHP_INT_MAX);
   add_action('ewp_taxonomies_save_action', [$this, 'clear_transients'], PHP_INT_MAX);
