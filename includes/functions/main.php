@@ -36,7 +36,7 @@ if (!function_exists('awm_parse_template')) {
      * 
      * @return string $content 
      */
-    function awm_parse_template($file)
+    function awm_parse_template($file, $variables)
     {
         $location_file = apply_filters('awm_parse_template_location', $file,$variables);
         if (!file_exists($location_file)) {
