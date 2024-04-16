@@ -332,7 +332,6 @@ if (!function_exists('awm_show_content')) {
 
                             break;
                         case 'checkbox_multiple':
-
                             $ins .= '<label class="awm-checkboxes-title"><span>' . $a['label'] . '</span></label>' . $explanation;
                             $checkboxOptions = array();
                             $ins .= '<div class="awm-options-wrapper">';
@@ -352,7 +351,21 @@ if (!function_exists('awm_show_content')) {
                                     $extraLabel = ($dlm == 'awm_apply_all' && isset($dlmm['extra_label'])) ? 'data-extra="' . $dlmm['extra_label'] . '"' : '';
                                     $valueInside = $dlm != 'awm_apply_all' ? $dlm : '';
                                     $input_id = $original_meta_id . '_' . $dlm . '_' . rand(10, 100);
-                                    $ins .= '<div class="awm-multiple-checkbox"><div class="insider"><label id="label_' . $input_id . '" for="' . $input_id . '" class="awm-input-label ' . $chk_label_class . '" ><input type="checkbox" name="' . $value_name . '" id="' . $input_id . '" value="' . $valueInside . '" ' . $extraa . $chk_ex . ' class="' . $class . '"' . $extraLabel . ' data-value="' . $dlm . '"/><span>' . $dlmm['label'] . '</span></label></div></div>';
+                                    global $ewp_input_vars;
+                                    $ewp_input_vars = array(
+                                        'field'=>$a,
+                                        'input_id' => $input_id,
+                                        'value_name' => $value_name,
+                                        'valueInside' => $valueInside,
+                                        'extraa' => $extraa,
+                                        'chk_ex' => $chk_ex,
+                                        'chk_label_class' => $chk_label_class,
+                                        'class' => $class,
+                                        'extraLabel' => $extraLabel,
+                                        'dlm' => $dlm,
+                                        'dlmm' => $dlmm
+                                    );
+                                    $ins .= awm_parse_template(awm_path . 'templates/frontend/inputs/checkbox_multiple.php',$ewp_input_vars);
                                 }
                                 $n = $n . '[]';
                             }

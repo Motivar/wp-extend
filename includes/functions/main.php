@@ -32,12 +32,13 @@ if (!function_exists('awm_parse_template')) {
     /**
      * with this function we get the content of php templates
      * @param $file string the path to the file
+     * @param $variables the variables of the input field
      * 
      * @return string $content 
      */
     function awm_parse_template($file)
     {
-        $location_file = apply_filters('awm_parse_template_location', $file);
+        $location_file = apply_filters('awm_parse_template_location', $file,$variables);
         if (!file_exists($location_file)) {
             return '';
         }
