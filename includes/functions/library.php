@@ -353,7 +353,7 @@ if (!function_exists('awm_show_content')) {
                                     $input_id = $original_meta_id . '_' . $dlm . '_' . rand(10, 100);
                                     global $ewp_input_vars;
                                     $ewp_input_vars = array(
-                                        'field'=>$a,
+                                        'field' => $a,
                                         'input_id' => $input_id,
                                         'value_name' => $value_name,
                                         'valueInside' => $valueInside,
@@ -365,7 +365,7 @@ if (!function_exists('awm_show_content')) {
                                         'dlm' => $dlm,
                                         'dlmm' => $dlmm
                                     );
-                                    $ins .= awm_parse_template(awm_path . 'templates/frontend/inputs/checkbox_multiple.php',$ewp_input_vars);
+                                    $ins .= awm_parse_template(awm_path . 'templates/frontend/inputs/checkbox_multiple.php', $ewp_input_vars);
                                 }
                                 $n = $n . '[]';
                             }
