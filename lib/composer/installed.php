@@ -56,9 +56,9 @@
             'dev_requirement' => true,
         ),
         'phpdocumentor/reflection-docblock' => array(
-            'pretty_version' => '5.3.0',
-            'version' => '5.3.0.0',
-            'reference' => '622548b623e81ca6d78b721c5e029f4ce664f170',
+            'pretty_version' => '5.4.0',
+            'version' => '5.4.0.0',
+            'reference' => '298d2febfe79d03fe714eb871d5538da55205b1a',
             'type' => 'library',
             'install_path' => __DIR__ . '/../phpdocumentor/reflection-docblock',
             'aliases' => array(),

@@ -37,9 +37,8 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
      // Your existing logic to fetch and set content
      const queryParams = new URLSearchParams(inputValues).toString();
      apiFetch({ path: `${block.namespace}/${block.name}/preview?${queryParams}` }).then((html) => {
-      var data = JSON.parse(html.replace(/\'/g, '\"'));
-      setContent(data);
-       var data = { response: data, block: block };
+       setContent(html);
+       var data = { response: html, block: block };
        const event = new CustomEvent("ewp_dynamic_block_on_change", { detail: data });
        document.dispatchEvent(event);
      });

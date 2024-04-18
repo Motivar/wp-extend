@@ -224,8 +224,12 @@ class EWP_Dynamic_Blocks
   {
     $attributes = $request->get_params();
     $content = call_user_func_array($attributes['php_callback'], array($attributes));
-
-    return rest_ensure_response(new \WP_REST_Response(str_replace('"', '\'', json_encode($content))), 200);
+    $response = new WP_REST_Response($content);
+    // Set Content-Type header to text/html
+    $response->set_headers(['Content-Type' => 'text/html; charset=UTF-8']);
+    // Optionally set the status code, default is 200
+    $response->set_status(200);
+    return $response;
   }
 
 
