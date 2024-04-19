@@ -126,11 +126,10 @@ function ewp_search_action(form, options, show_results, paged) {
 function ewp_search_form_callback(response, options) {
     /*remove the content and display the content*/
     document.body.classList.remove('ewp-search-loading');
-    console.log(options);
     let display_div = options.element;
     /* swicth load type */
     let html_added = false;
-    switch (options.search_options.load_type) {
+    switch (options.search_options.pagination_styles.load_type) {
         case 'button':
             /*convert response to html element*/
 

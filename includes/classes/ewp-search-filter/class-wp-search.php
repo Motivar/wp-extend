@@ -165,7 +165,6 @@ class Extend_WP_Search_Filters
       $params = $request->get_params();
       /*get the filter configuration*/
       $conf = awm_get_db_content_meta('ewp_search', $params['id']);
-
       if (empty($conf)) {
         return rest_ensure_response(new WP_REST_Response(false), 400);
       }
@@ -445,6 +444,10 @@ class Extend_WP_Search_Filters
         'case' => 'input',
         'type' => 'checkbox',
       ),
+      'pagination_styles' => array(
+        'case' => 'section',
+        'label' => __('Pagination styling', 'extend-wp'),
+        'include' => array(
       'load_type' => array(
         'removeEmpty' => true,
         'label' => __('Load posts style', 'extend-wp'),
@@ -460,8 +463,9 @@ class Extend_WP_Search_Filters
         'label_class' => array('awm-needed'),
         'label' => __('Load button label', 'extend-wp'),
         'show-when' => array('load_type' => array('values' => array('button' => true))),
-      ),
-
+          )
+        ),
+      )
     );
     return $metas;
   }
