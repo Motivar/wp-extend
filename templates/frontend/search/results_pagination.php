@@ -14,7 +14,7 @@ global $ewp_search_query;
  <?php
  echo paginate_links(array(
   'format' => 'page/%#%/',
-  'current' => $ewp_search_query->current,
+  'current' => max(1, isset($ewp_search_query->query_vars['paged']) ? $ewp_search_query->query_vars['paged'] : 1),
   'total' => $ewp_search_query->max_num_pages,
   'prev_text' => __('« prev', 'extend-wp'),
   'next_text' => __('next »', 'extend-wp'),
