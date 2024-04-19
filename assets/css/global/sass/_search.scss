@@ -11,4 +11,9 @@
             cursor: pointer;
         }
     }
+    .ewp-search-pagination{
+        &:empty{
+            display: none;
+        }
+    }
 }
