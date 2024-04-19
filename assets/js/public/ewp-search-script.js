@@ -99,7 +99,6 @@ function ewp_search_forms() {
  * handle the call to the server
  */
 function ewp_search_action(form, options, show_results, paged) {
-    console.log(paged);
     if (paged == 1 || options.load_type != 'button') {
     document.body.classList.add('ewp-search-loading');
     }
@@ -166,6 +165,9 @@ function ewp_search_form_callback(response, options) {
                 window.event.preventDefault();
                 window.event.stopPropagation();
                 var page = parseInt(pagination_link.innerText);
+                if (isNaN(page)) {
+                    page = parseInt(pagination_link.getAttribute('href').split('page/')[1]);
+                }
                 /*make the query*/
                 ewp_search_action(options.form, options.search_options, display_div, page)
             });
