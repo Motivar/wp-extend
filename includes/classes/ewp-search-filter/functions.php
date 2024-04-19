@@ -3,6 +3,29 @@ if (!defined('ABSPATH')) {
  exit;
 }
 
+if (!function_exists('ewp_search_sorting_filter')) {
+ function ewp_search_sorting_filter($configuration)
+ {
+  if (empty($configuration) || !isset($configuration['options']) || empty($configuration['options'])) {
+   return array();
+  }
+  $options = $configuration['options'];
+  $box_options = array();
+  foreach ($options as $option) {
+   $box_options[$option['awm_key']] = array('label' => $option['label']);
+  }
+  $box = array(
+   'ewp_sorting' => array(
+    'label' => __('Sorting', 'extend-wp'),
+    'case' => 'select',
+    'options' => $box_options
+   )
+  );
+  return apply_filters('ewp_search_sorting_filter', $box);
+ }
+}
+
+
 if (!function_exists('ewp_query_fields')) {
  function ewp_query_fields()
  {

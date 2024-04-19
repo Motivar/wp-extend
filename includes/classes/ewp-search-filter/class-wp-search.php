@@ -143,6 +143,23 @@ class Extend_WP_Search_Filters
     if ($sitepress && isset($params['lang'])) {
       $sitepress->switch_lang($params['lang'], true);
     }
+
+
+    /*check if we have sorting*/
+    if (isset($conf['sorting']['show'])) {
+      if (isset($params['ewp_sorting']) && !empty($params['ewp_sorting'])) {
+        $sorting = $conf['sorting']['options'][$params['ewp_sorting']];
+        $args['orderby'] = $sorting['orderby'];
+        $args['order'] = $sorting['order'];
+        if (!empty($sorting['meta_key']) && !empty($sorting['meta_type'])) {
+          $args['meta_key'] = $sorting['meta_key'];
+          $args['meta_type'] = $sorting['meta_type'];
+        }
+      }
+    }
+
+   
+
     /**
      * change the search filter query qrgs
      *
@@ -292,6 +309,21 @@ class Extend_WP_Search_Filters
     /*check the input fields*/
     $input_fields = $fields['query_fields'];
     $form_fields = $this->prepare_form_fields($input_fields, $id);
+
+    /*check if we have sorting optio in the form*/
+
+    if (isset($fields['sorting']['show']) && $fields['sorting']['show'] == 'form') {
+      $box = ewp_search_sorting_filter($fields['sorting']);
+      switch ($fields['sorting']['form_position']) {
+        case 'top':
+          $form_fields = array_merge($box, $form_fields);
+          break;
+        case 'bottom':
+          $form_fields = array_merge($form_fields, $box);
+          break;
+      }
+    }
+
     unset($fields['query_fields']);
     $form = '<div id="ewp-search-' . $id . '" class="ewp-search-box ' . $fields['async'] . ' ' . $fields['orientation'] . '" options="' . htmlspecialchars(str_replace('"', '\'', json_encode($fields))) . '" search-id="' . $id . '"><form id="ewp-search-form-' . $id . '">' . awm_show_content(($form_fields)) . '</form>';
     /*check whether search engine is async or not*/
@@ -305,6 +337,7 @@ class Extend_WP_Search_Filters
     $form .= '</div>';
     return $form;
   }
+
 
   public function register_defaults($data)
   {
@@ -446,7 +479,7 @@ class Extend_WP_Search_Filters
       ),
       'pagination_styles' => array(
         'case' => 'section',
-        'label' => __('Pagination styling', 'extend-wp'),
+        'label' => __('Pagination configuration', 'extend-wp'),
         'include' => array(
       'load_type' => array(
         'removeEmpty' => true,
@@ -465,9 +498,115 @@ class Extend_WP_Search_Filters
         'show-when' => array('load_type' => array('values' => array('button' => true))),
           )
         ),
-      )
+      ),
+      'sorting' => array(
+        'case' => 'section',
+        'label' => __('Sorting configuration', 'extend-wp'),
+        'include' => array(
+          'show' => array(
+            'removeEmpty' => true,
+            'label' => __('Show sorting', 'extend-wp'),
+            'case' => 'select',
+            'options' => array(
+              'none' => array('label' => __('None', 'extend-wp')),
+              'form' => array('label' => __('Search form', 'extend-wp')),
+              'results' => array('label' => __('Results', 'extend-wp')),
+            ),
+          ),
+          'form_position' => array(
+            'removeEmpty' => true,
+            'label' => __('Form position', 'extend-wp'),
+            'case' => 'select',
+            'options' => array(
+              'top' => array('label' => __('Top', 'extend-wp')),
+              'bottom' => array('label' => __('Bottom', 'extend-wp')),
+            ),
+            'show-when' => array('show' => array('values' => array('form' => true))),
+          ),
+
+          'options' => array(
+            'case' => 'repeater',
+            'item_name' => __('Sorting Option', 'extend-wp'),
+            'show-when' => array('show' => array('values' => array('form' => true, 'results' => true))),
+            'prePopulated' => $this->sorting_defaults(),
+            'include' => array(
+              'label' => array(
+                'label' => __('Label', 'extend-wp'),
+                'case' => 'input',
+                'type' => 'text',
+                'label_class' => array('awm-needed'),
+              ),
+              'orderby' => array(
+                'label' => __('Order By', 'extend-wp'),
+                'case' => 'input',
+                'type' => 'text',
+                'label_class' => array('awm-needed'),
+              ),
+              'order' => array(
+                'removeEmpty' => true,
+                'label' => __('Order', 'extend-wp'),
+                'case' => 'select',
+                'options' => array(
+                  'ASC' => array('label' => __('Ascending', 'extend-wp')),
+                  'DESC' => array('label' => __('Descending', 'extend-wp')),
+                ),
+                'label_class' => array('awm-needed'),
+              ),
+              'meta_type' => array(
+                'removeEmpty' => true,
+                'label' => __('Meta type', 'extend-wp'),
+                'case' => 'select',
+                'options' => array(
+                  'none' => array('label' => __('None', 'extend-wp')),
+                  'numeric' => array('label' => __('Numeric', 'extend-wp')),
+                  'char' => array('label' => __('Char', 'extend-wp')),
+
+                ),
+              ), 'meta_key' => array(
+                'label' => __('Meta key', 'extend-wp'),
+                'case' => 'input',
+                'type' => 'text',
+                'explanation' => __('The meta key to order by (if meta type != none', 'extend-wp'),
+
+              )
+            ),
+          )
+        ),
+      ),
+
     );
     return $metas;
+  }
+
+  public function sorting_defaults()
+  {
+    return array(
+      array(
+        'label' => __('Name ⇈', 'extend-wp'),
+        'orderby' => 'title',
+        'order' => 'ASC',
+        'awm_key' => 1
+      ),
+      array(
+        'label' => __('Name ⇊', 'extend-wp'),
+        'orderby' => 'title',
+        'order' => 'DESC',
+        'awm_key' => 2
+      ),
+      array(
+        'label' => __('Update date ⇈', 'extend-wp'),
+        'orderby' => 'modified',
+        'order' => 'ASC',
+        'awm_key' => 3
+      ),
+      array(
+        'label' => __('Update date ⇊', 'extend-wp'),
+        'orderby' => 'modified',
+        'order' => 'DESC',
+        'awm_key' => 4
+      ),
+
+    );
   }
 
   /**

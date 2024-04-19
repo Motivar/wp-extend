@@ -10,6 +10,7 @@ global $ewp_search_query;
 do_action('ewp_search_results_show', $ewp_search_query);
 ?>
 <div class="ewp-search-results">
+ <?php echo awm_parse_template(awm_path . 'templates/frontend/search/results_header.php'); ?>
  <div class="ewp-search-articles">
   <?php while ($ewp_search_query->have_posts()) : $ewp_search_query->the_post();
    global $post;
