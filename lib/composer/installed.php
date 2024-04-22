@@ -83,9 +83,9 @@
             'dev_requirement' => true,
         ),
         'pronamic/wp-documentor' => array(
-            'pretty_version' => 'v1.3.1',
-            'version' => '1.3.1.0',
-            'reference' => 'aa61fc73df910fc2414e784f30456c148cc628b1',
+            'pretty_version' => 'v1.3.2',
+            'version' => '1.3.2.0',
+            'reference' => 'c244bb9a73ce329c4bd2fe0a1e734eec5849048d',
             'type' => 'library',
             'install_path' => __DIR__ . '/../pronamic/wp-documentor',
             'aliases' => array(),

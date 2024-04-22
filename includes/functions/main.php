@@ -202,7 +202,6 @@ if (!function_exists('awmUserFieldsForInput')) {
 }
 
 
-
 /**
  * function to get the posts of a post type
  * @param string $roles wordpres user roles
@@ -210,30 +209,20 @@ if (!function_exists('awmUserFieldsForInput')) {
  * @param array $args array for the get_posts function
  * 
  */
-if (!function_exists('awmUserFieldsForInput')) {
-    function awmUserFieldsForInput($roles = array(), $number = '-1', $args = array())
+if (!function_exists('awmUserRolesFieldsForInput')) {
+    function awmUserRolesFieldsForInput($exclude = array())
     {
         $options = array();
-        $defaultArgs = array(
-            'role__in' => $roles,
-            'orderby' => 'display_name',
-            'order' => 'ASC'
-        );
-
-        if (!empty($args)) {
-            foreach ($args as $argKey => $argValue) {
-                $defaultArgs[$argKey] = $argValue;
+        $editable_roles = get_editable_roles();
+        foreach ($editable_roles as $role => $details) {
+            if (!in_array($role, $exclude)) {
+                $options[$role] = array('label' => __($details['name'], 'extend-wp'));
             }
         }
-        $content = get_users($defaultArgs);
-        if (!empty($content)) {
-            foreach ($content as $data) {
-                $options[$data->ID] = array('label' => $data->display_name);
-            }
-        }
-        return apply_filters('awmUserFieldsForInput_filter', $options, $roles, $number, $defaultArgs);
+        return apply_filters('awmUserRolesFieldsForInput', $options);
     }
 }
+
 
 
 if (!function_exists('awm_get_metabox_info')) {
