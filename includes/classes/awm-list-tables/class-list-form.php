@@ -225,22 +225,25 @@ class AWM_Add_Custom_List
     global $ewp_args;
     $item_data = $this->get_current_view_data();
 
-
-    $select = array(
-      'status' => array(
-        'case' => 'select',
-        'label' => __('Status', 'extend-wp'),
-        'removeEmpty' => true,
-        'options' => $ewp_args['status'],
-        'label_class' => array('awm-needed'),
-        'attributes' => array('value' => isset($item_data['item']['status']) ? $item_data['item']['status'] : '')
-      )
-    );
+    $select_box = '';
+    if (isset($ewp_args['status']) && !empty($ewp_args['status'])) {
+      $select = array(
+        'status' => array(
+          'case' => 'select',
+          'label' => __('Status', 'extend-wp'),
+          'removeEmpty' => true,
+          'options' => $ewp_args['status'],
+          'label_class' => array('awm-needed'),
+          'attributes' => array('value' => isset($item_data['item']['status']) ? $item_data['item']['status'] : '')
+        )
+      );
+      $select_box = awm_show_content($select);
+    }
     $id = isset($item_data['item']['content_id']) ? absint($item_data['item']['content_id']) : '';
 
     $save_text = $id != ''  ? __('Update', 'extend-wp') : __('Save', 'extend-wp');
     $delete_button = $id != '' ? '<a class="submitdelete deletion" href="' . wp_nonce_url(admin_url($this->page_link . '&id=' . $id . '&action=delete'), $this->page_id . '_delete') . '">' . __('Delete ', 'extend-wp') . '</a>' : '';
-    return '<div class="submitbox ewp-status-box"><div id="major-publishing-actions">' . awm_show_content($select) . '
+    return '<div class="submitbox ewp-status-box"><div id="major-publishing-actions">' . $select_box . '
     <div>
         <div id="delete-action">' . $delete_button . '</div>
         <div id="publishing-action">
