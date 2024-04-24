@@ -309,7 +309,7 @@ if (!function_exists('awm_meta_table_data')) {
     }
     foreach ($data['awm_custom_meta'] as $key) {
       if (!in_array($key, $exclude)) {
-        $metas[$key] = $data[$key];
+        $metas[$key] = isset($data[$key]) ? $data[$key] : false;
       }
     }
     return apply_filters('awm_meta_table_data_filter', $metas, $id, $data, $exclude);
