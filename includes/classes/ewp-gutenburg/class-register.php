@@ -129,6 +129,9 @@ class EWP_Dynamic_Blocks
         'auth_callback' => function () {
           return current_user_can('edit_posts');
         },
+        'permission_callback' => function () {
+          return is_user_logged_in();
+        },
         'callback' => [$this, 'handle_rest_callback'],
         'args' => [
           'php_callback' => [
