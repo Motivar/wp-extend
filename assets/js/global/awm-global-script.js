@@ -129,7 +129,10 @@ function awm_selectr_box(elem) {
     new SlimSelect({
         select: elem,
         showSearch: showSearch,
-        data: data
+        data: data,
+        settings: {
+            allowDeselect: true
+        }
     });
 
 }
