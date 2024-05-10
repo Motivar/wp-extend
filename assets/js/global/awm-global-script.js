@@ -126,14 +126,68 @@ function awm_selectr_box(elem) {
     data.sort(function (a, b) {
         return b.placeholder - a.placeholder;
     });
-    new SlimSelect({
-        select: elem,
-        showSearch: showSearch,
-        data: data,
-        settings: {
-            allowDeselect: true
+
+    function awm_selectr_box(elem) {
+        var showSearch = elem.length > 3 ? true : false;
+        var data = [];
+        var soptions = elem.options;
+        var selected_options = [];
+        var no_show = [];
+        for (var option of soptions) {
+            if (option.selected) {
+                selected_options.push(option.value);
+            }
         }
-    });
+        var optgroups = elem.getElementsByTagName('optgroup');
+        if (optgroups.length > 0) {
+            for (var o = 0; o < optgroups.length; o++) {
+                var html_value = optgroups[o].getAttribute('data-html') ? JSON.parse(optgroups[o].getAttribute('data-html').replace(/\'/g, '\"')) : '';
+                var obj = {
+                    label: html_value,
+                    options: [],
+                    placeholder: false
+                };
+                var opt_options = optgroups[o].getAttribute('options').split(',');
+                for (var opt = 0; opt < opt_options.length; opt++) {
+                    for (var i = 0; i < soptions.length; i++) {
+                        if (opt_options[opt] === soptions[i].value) {
+                            obj.options.push(awm_select_box_values(soptions[i], selected_options));
+                            no_show.push(soptions[i].value);
+                            break;
+                        }
+
+                    }
+                }
+                data.push(obj);
+
+            }
+        }
+        for (var i = 0; i < soptions.length; i++) {
+            if (!no_show.includes(soptions[i].value)) {
+                data.push(awm_select_box_values(soptions[i], selected_options));
+            }
+        }
+        data.sort(function (a, b) {
+            return b.placeholder - a.placeholder;
+        });
+        var id = elem.id;
+
+        var slim_options = {
+            select: elem,
+            showSearch: showSearch,
+            data: data,
+            settings: {
+                allowDeselect: true,
+            }
+        };
+        if (document.getElementById(id + '_select')) {
+            slim_options.settings.contentLocation = document.getElementById(id + '_select');
+            slim_options.settings.contentPosition = 'absolute';
+
+        }
+        new SlimSelect(slim_options);
+
+    }
 
 }
 
