@@ -9,8 +9,13 @@
  * file that was distributed with this source code.
  */
 
-if (\PHP_VERSION_ID < 70300) {
-    class JsonException extends Exception
-    {
-    }
+namespace Symfony\Component\Process\Exception;
+
+/**
+ * Marker Interface for the Process Component.
+ *
+ * @author Johannes M. Schmitt <schmittjoh@gmail.com>
+ */
+interface ExceptionInterface extends \Throwable
+{
 }

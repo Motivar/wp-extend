@@ -52,6 +52,10 @@
     text-transform: lowercase !important;
 }
 
-.ss-content .ss-list .ss-option {
+.ss-content 
+{
+    z-index:999999999999;
+    .ss-list .ss-option {
     padding: 10px !important;
+}
 }
