@@ -194,8 +194,9 @@ body.wp-admin {
     /**
  * custom select box
  */
-    .ss-content.ss-open {
-        z-index: 99999999999;
+    &.ss-open-above,
+    &.ss-open-below{
+    z-index:999999999999;
     }
 }
 
