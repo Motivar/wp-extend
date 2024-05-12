@@ -579,7 +579,7 @@ function repeater(elem) {
                     input.removeAttribute('readonly');
                     input.classList.remove('hasDatepicker');
                     input.classList.remove('awm-callback-checked');
-                    input.removeAttribute('data-ssid');
+                    input.removeAttribute('data-id');
                     input.removeAttribute('style');
                     input.removeAttribute('checked');
                 });
