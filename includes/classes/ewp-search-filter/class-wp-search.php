@@ -158,7 +158,7 @@ class Extend_WP_Search_Filters
       }
     }
 
-   
+
 
     /**
      * change the search filter query qrgs
@@ -191,6 +191,8 @@ class Extend_WP_Search_Filters
       /*get and set global the results*/
       global $ewp_search_query;
       global $ewp_config;
+      global $ewp_params;
+      $ewp_params = $params;
       $ewp_config = $conf;
       $ewp_search_query = new WP_Query($args['query']);
       /*set the content files */
@@ -481,21 +483,21 @@ class Extend_WP_Search_Filters
         'case' => 'section',
         'label' => __('Pagination configuration', 'extend-wp'),
         'include' => array(
-      'load_type' => array(
-        'removeEmpty' => true,
-        'label' => __('Load posts style', 'extend-wp'),
-        'case' => 'select',
-        'options' => array(
-          'pagination' => array('label' => __('Pagination', 'extend-wp')),
-          'button' => array('label' => __('Button', 'extend-wp')),
-        ),
-      ),
-      'load_type_button' => array(
-        'case' => 'input',
-        'type' => 'text',
-        'label_class' => array('awm-needed'),
-        'label' => __('Load button label', 'extend-wp'),
-        'show-when' => array('load_type' => array('values' => array('button' => true))),
+          'load_type' => array(
+            'removeEmpty' => true,
+            'label' => __('Load posts style', 'extend-wp'),
+            'case' => 'select',
+            'options' => array(
+              'pagination' => array('label' => __('Pagination', 'extend-wp')),
+              'button' => array('label' => __('Button', 'extend-wp')),
+            ),
+          ),
+          'load_type_button' => array(
+            'case' => 'input',
+            'type' => 'text',
+            'label_class' => array('awm-needed'),
+            'label' => __('Load button label', 'extend-wp'),
+            'show-when' => array('load_type' => array('values' => array('button' => true))),
           )
         ),
       ),

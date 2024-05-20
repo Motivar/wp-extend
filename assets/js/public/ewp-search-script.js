@@ -22,7 +22,7 @@ function ewp_search_remove_filter(id, form_id) {
         filters = form.querySelectorAll('[name="' + id + '"]');
     }
     if (filters.length > 0) {
-        Array.from(filters).forEach(function(filter) {
+        Array.from(filters).forEach(function (filter) {
             if (filter.checked) {
                 filter.checked = false;
                 skip_reset_value = true;
@@ -73,7 +73,7 @@ function ewp_search_forms() {
     var form_boxes = document.querySelectorAll('.ewp-search-box');
     if (form_boxes.length > 0) {
         /*check form box configuration and set the actions*/
-        Array.from(form_boxes).forEach(function(form_box) {
+        Array.from(form_boxes).forEach(function (form_box) {
             var form = form_box.querySelector('form');
             var options = JSON.parse(form_box.getAttribute('options').replace(/\'/g, '\"'));
 
@@ -100,7 +100,7 @@ function ewp_search_forms() {
  */
 function ewp_search_action(form, options, show_results, paged) {
     if (paged == 1 || options.load_type != 'button') {
-    document.body.classList.add('ewp-search-loading');
+        document.body.classList.add('ewp-search-loading');
     }
     /* set the data with the paged variable*/
     var send_data = jsVanillaSerialize(form);
@@ -159,7 +159,7 @@ function ewp_search_form_callback(response, options) {
     /*check for pagination and set the event*/
     var pagination_links = display_div.querySelectorAll('a.page-numbers');
     if (pagination_links.length > 0) {
-        Array.from(pagination_links).forEach(function(pagination_link) {
+        Array.from(pagination_links).forEach(function (pagination_link) {
             pagination_link.addEventListener('click', () => {
                 /*prevent click on link*/
                 window.event.preventDefault();
@@ -194,3 +194,28 @@ function ewp_search_form_callback(response, options) {
     document.dispatchEvent(event);
 }
 
+/*register ewp_sorting function when sorting exists in results*/
+function ewp_sorting(element) {
+    var form = element.closest('.ewp-search-results').getAttribute('data-form');
+    /*add element value to the form*/
+    var form_box = document.querySelector('#ewp-search-' + form);
+    /*create input hidden to send the value*/
+
+    if (form_box.querySelector('input[name="ewp_sorting"]') !== null) {
+        form_box.querySelector('input[name="ewp_sorting"]').remove();
+    }
+    if (element.value === '') {
+        return;
+    }
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = "ewp_sorting";
+    input.value = element.value;
+    /*add the input inside the form*/
+    form_box.querySelector('form').appendChild(input);
+
+    /*submit the form*/
+    ewp_apply_search_form(form);
+
+
+}

@@ -4,7 +4,12 @@ if (!defined('ABSPATH')) {
 }
 
 if (!function_exists('ewp_search_sorting_filter')) {
- function ewp_search_sorting_filter($configuration)
+ /**
+  * function to show the sorting options available for user to choose and create a form
+  * @param array $configuration
+  * @param array $params
+  */
+ function ewp_search_sorting_filter($configuration, $params = array())
  {
   if (empty($configuration) || !isset($configuration['options']) || empty($configuration['options'])) {
    return array();
@@ -21,6 +26,12 @@ if (!function_exists('ewp_search_sorting_filter')) {
     'options' => $box_options
    )
   );
+  if ($configuration['show'] == 'results') {
+   $box['ewp_sorting']['attributes']['onchange'] = 'ewp_sorting(this);';
+  }
+  if (isset($params['ewp_sorting'])) {
+   $box['ewp_sorting']['attributes']['value'] = $params['ewp_sorting'];
+  }
   return apply_filters('ewp_search_sorting_filter', $box);
  }
 }

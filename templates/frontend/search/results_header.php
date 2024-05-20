@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) {
 }
 global $ewp_search_query;
 global $ewp_config;
-
+global $ewp_params;
 $current_page = max(1, isset($ewp_search_query->query_vars['paged']) ? $ewp_search_query->query_vars['paged'] : 1);
 ?>
 <div class="ewp-search-header">
@@ -19,7 +19,7 @@ $current_page = max(1, isset($ewp_search_query->query_vars['paged']) ? $ewp_sear
  if (isset($ewp_config['sorting']['show']) && $ewp_config['sorting']['show'] == 'results') { ?>
   <div class="ewp-search-header__sorting">
    <?php
-   $box = ewp_search_sorting_filter($ewp_config['sorting']);
+   $box = ewp_search_sorting_filter($ewp_config['sorting'], $ewp_params);
    echo awm_show_content($box);
    ?>
   </div>
