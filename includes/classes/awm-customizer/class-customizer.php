@@ -76,10 +76,10 @@ class AWM_Customize
                 $section_id,
                 array(
                   'panel' => $customizer_id,
-                  'title'       => $section_data['title'],
-                  'priority'    => $section_data['order'],
+                  'title'       => isset($section_data['title']) ? $section_data['title'] : $section_id,
+                  'priority'    => isset($section_data['order']) ? $section_data['order'] : 100,
                   'capability'  => $cap,
-                  'description' => $section_data['description'],
+                  'description' => isset($section_data['description']) ? $section_data['description'] : '',
                 )
               );
 
@@ -98,7 +98,7 @@ class AWM_Customize
                 $args = array(
                   'label' => $field_data['label'],
                   'settings' => $field_id,
-                  'priority' => $field_data['order'] ?: 100,
+                  'priority' => isset($field_data['order']) ? absint($field_data['order']) : 100,
                   'section' => $section_id,
                   'description' => isset($field_data['explanation']) ? $field_data['explanation'] : '',
                 );
@@ -115,12 +115,12 @@ class AWM_Customize
                     );
                     break;
                   default:
-                    if ($field_data['type'] == 'color') {
+                    if (isset($field_data['type'])  && $field_data['type'] == 'color') {
                       $wp_customize->add_control(new WP_Customize_Color_Control($wp_customize, $field_id, $args));
                       break;
                     }
                     $field_data = awm_prepare_field($field_data);
-                    $args['type'] = $field_data['case'] == 'input' ? $field_data['type'] : $field_data['case'];
+                    $args['type'] = $field_data['case'] == 'input' ? (isset($field_data['type']) ? $field_data['type'] : 'text')  : $field_data['case'];
                     if (isset($field_data['options'])) {
                       foreach ($field_data['options'] as $option_id => $option_data) {
                         $args['choices'][$option_id] = $option_data['label'];
