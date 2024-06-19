@@ -204,13 +204,13 @@ class AWM_Meta
      */
     private function register_script_styles()
     {
-        $version = 0.24;
+        $version = 0.25;
         wp_register_style('awm-slim-lib-style', awm_url . 'assets/css/global/slimselect.min.css', false, $version);
         wp_register_style('awm-global-style', awm_url . 'assets/css/global/awm-global-style.min.css', false, $version);
         wp_register_style('awm-admin-style', awm_url . 'assets/css/admin/awm-admin-style.min.css', false, $version);
         wp_register_script('awm-global-script', awm_url . 'assets/js/global/awm-global-script.js', array(), $version, true);
         wp_register_script('awm-public-script', awm_url . 'assets/js/public/awm-public-script.js', array(), $version, true);
-        wp_localize_script('awm-global-script', 'awmGlobals', array('url' => esc_url(home_url()), 'nonce' => wp_create_nonce('wp_rest')));
+        wp_localize_script('awm-global-script', 'awmGlobals', array('strings' => array('placeholderText' => __('Select Value', 'extend-wp'), 'noResults' => __('No results', 'extend-wp'), 'searchText' => __('Search', 'extend-wp')), 'url' => esc_url(home_url()), 'nonce' => wp_create_nonce('wp_rest')));
         wp_register_script('awm-admin-script', awm_url . 'assets/js/admin/awm-admin-script.js', array(), $version, true);
         wp_register_script('awm-slim-lib-script', awm_url . 'assets/js/global/slimselect.min.js', array(), $version, true);
         wp_register_style('jquery-ui-awm', awm_url . 'assets/css/global/jquery-ui.min.css');

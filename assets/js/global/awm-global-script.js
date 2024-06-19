@@ -130,12 +130,16 @@ function awm_selectr_box(elem) {
 
         var slim_options = {
             select: elem,
-            showSearch: showSearch,
             data: data,
             settings: {
+                showSearch: showSearch,
+                searchPlaceholder: awmGlobals.strings.searchText,
+                searchText: awmGlobals.strings.noResults,
+                placeholderText: awmGlobals.strings.placeholderText,
                 allowDeselect: true,
             }
         };
+    console.log(slim_options);
         if (document.getElementById(id + '_select')) {
             slim_options.settings.contentLocation = document.getElementById(id + '_select');
             slim_options.settings.contentPosition = 'absolute';
