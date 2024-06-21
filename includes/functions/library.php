@@ -152,8 +152,8 @@ if (!function_exists('awm_show_content')) {
             return array();
         }
         uasort($arrs, function ($a, $b) {
-            $first = isset($a['order']) ? $a['order'] : 100;
-            $second = isset($b['order']) ? $b['order'] : 100;
+            $first = isset($a['order']) ? absint($a['order']) : 100;
+            $second = isset($b['order']) ? absint($b['order']) : 100;
             return $first - $second;
         });
         $meta_counter = 0;
