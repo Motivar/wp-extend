@@ -681,69 +681,91 @@ function awm_serialize_data(obj, prefix) {
 
 }
 
-
 function awm_ajax_call(options) {
     var defaults = {
         method: 'POST',
         data: {},
         url: '',
-        headers: [{ 'header': 'Content-Type', 'value': 'application/json', 'X-WP-Nonce': awmGlobals.nonce }],
-        /*this needs replacement*/
+        headers: [
+            { 'header': 'Content-Type', 'value': 'application/json' },
+            { 'header': 'X-WP-Nonce', 'value': awmGlobals.nonce }
+        ],
         callback: false,
         log: false,
-        loading: false,
         element: false
-    }
-
-    const Options = {
-        ...defaults,
-        ...options,
     };
 
-    if (Options.loading) {
-        var loading_element = document.querySelector(Options.loading);
-        if (loading_element) {
-            loading_element.innerHTML = '<div class="ewp_spinner inner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
-        }
-    }
+    const Options = { ...defaults, ...options };
 
     if (Options.method.toLowerCase() === 'get' && Options.data.length > 0) {
         Options.url += '?' + Options.data.join("&");
-        Options.data = false;
+        Options.data = null;
     }
+
     if (Options.log) {
         console.log(Options);
     }
+
     var request = new XMLHttpRequest();
     request.open(Options.method, Options.url, true);
+
     Options.headers.forEach(function (header) {
         request.setRequestHeader(header.header, header.value);
     });
-    request.send(JSON.stringify(Options.data));
-    request.onload = function () {
-        var responseData = JSON.parse(this.responseText);
 
-        if (Options.log) {
-            console.log(responseData);
-        }
-        if (Options.element) {
-            responseData.element = Options.element;
-        }
-        if (Options.callback) {
-            var call_back = window[Options.callback];
-            if (typeof call_back == "function") {
-                call_back(responseData, Options);
-            } else {
-                console.log(call_back + " function does not exist!");
+    request.onreadystatechange = function () {
+        if (request.readyState === 4) {
+            try {
+                if (request.status >= 200 && request.status < 300) {
+                    var responseData = JSON.parse(request.responseText);
+
+                    if (Options.log) {
+                        console.log(responseData);
+                    }
+
+                    if (Options.element) {
+                        responseData.element = Options.element;
+                    }
+
+                    if (Options.callback) {
+                        var callbackFunction = typeof Options.callback === 'function'
+                            ? Options.callback
+                            : window[Options.callback];
+
+                        if (typeof callbackFunction === 'function') {
+                            callbackFunction(responseData, Options);
+                        } else {
+                            console.error(Options.callback + " function does not exist!");
+                        }
+                    }
+
+                    var data = { response: responseData, options: Options };
+                    const event = new CustomEvent("awm_ajax_call_callback", { detail: data });
+                    document.dispatchEvent(event);
+                } else {
+                    handleError(request.status);
+                }
+            } catch (e) {
+                console.error("Error processing the request: ", e);
+                alert("System is temporarily unavailable. Error: " + e.message);
             }
         }
-        var data = { response: responseData, options: Options };
-        const event = new CustomEvent("awm_ajax_call_callback", { detail: data });
-        document.dispatchEvent(event);
+    };
+
+    function handleError(status) {
+        console.error("Request failed with status: " + status);
+        alert("System is temporarily unavailable. Error code: " + status);
     }
+
+    try {
+        request.send(Options.data ? JSON.stringify(Options.data) : null);
+    } catch (e) {
+        console.error("Error sending the request: ", e);
+        alert("System is temporarily unavailable. Error: " + e.message);
+    }
+
     return true;
 }
-
 
 function awmMultipleCheckBox() {
     var elems = document.querySelectorAll('.checkbox_multiple.awm-meta-field');
