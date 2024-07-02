@@ -85,7 +85,7 @@ function awm_ensure_disabled_inputs() {
  */
 function awm_selectr_box(elem) {
     var select_box = document.getElementById(id + '_select');
-    if (!select_box || select_box.classList.hasClass('awm-slim-initialized')) {
+    if (!select_box) {
         return true;
     }
 
