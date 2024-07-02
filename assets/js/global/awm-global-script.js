@@ -282,13 +282,13 @@ function awmInitForms() {
         forms.forEach(function (form) {
             if (document.getElementById('publish')) {
                 document.getElementById('publish').addEventListener('click', function (e) {
-                    if (!awmCheckValidation(form)) {
+                    if (!awmCheckValidation(form).check) {
                         e.preventDefault();
                     }
                 });
             } else {
                 form.addEventListener('submit', function (e) {
-                    if (!awmCheckValidation(form)) {
+                    if (!awmCheckValidation(form).check) {
                         e.preventDefault();
                     }
                 }, false);
@@ -301,52 +301,41 @@ function awmInitForms() {
 
 function awmCheckValidation(form) {
     var check = true;
-    var requireds = form.querySelectorAll('.awm-needed:not(.awm_no_show)');
     var error = '';
-    if (requireds) {
-        requireds.forEach(function (required) {
-            var type = required.getAttribute('data-type');
-            var inputs = required.querySelectorAll('input,select,textarea');
-            required.classList.remove("awm-form-error");
-            if (check) {
-                switch (type) {
-                    case 'checkbox_multiple':
-                        check = false;
-                        inputs.forEach(function (input) {
-                            if (input.type == 'checkbox' && input.checked) {
-                                check = true;
-                            }
-                        });
-                        if (!check) {
-                            error = required;
-                            break;
-                        }
-                        break;
-                    default:
-                        if (inputs[0].value == '' && !inputs[0].disabled) {
-                            check = false;
-                            error = required;
-                            break;
-                        }
-                        break;
+    var requireds = form.querySelectorAll('.awm-needed:not(.awm_no_show)');
 
-                }
+    function isInputValid(input) {
+        return input.value.replace(/\s/g, '') !== '' && !input.disabled;
+    }
+
+    function isCheckboxMultipleValid(inputs) {
+        return Array.from(inputs).some(input => input.type === 'checkbox' && input.checked);
+    }
+
+    requireds.forEach(function (required) {
+        if (check) {
+            var type = required.getAttribute('data-type');
+            var inputs = required.querySelectorAll('input, select, textarea');
+            required.classList.remove("awm-form-error");
+
+            switch (type) {
+                case 'checkbox_multiple':
+                    if (!isCheckboxMultipleValid(inputs)) {
+                        check = false;
+                        error = required;
+                    }
+                    break;
+                default:
+                    if (!isInputValid(inputs[0])) {
+                        check = false;
+                        error = required;
+                    }
+                    break;
             }
-        });
-    }
-    if (!check) {
-        error.classList.add("awm-form-error");
-        var buttonElement;
-        if (document.getElementById('publish')) {
-            buttonElement = document.getElementById('publish');
-        } else {
-            buttonElement = form.querySelectorAll('input[type="submit"]')[0];
         }
-        if (typeof tippy_message == 'function') {
-            tippy_message(buttonElement, filoxTippyMessages.REQUIRED_FIELD + ' ' + '<strong>' + error.querySelectorAll('label > span')[0].innerHTML + '</strong>');
-        }
-    }
-    return check;
+    });
+
+    return { check: check, error: error };
 }
 
 
