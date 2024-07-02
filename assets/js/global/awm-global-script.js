@@ -130,17 +130,17 @@ function awm_selectr_box(elem) {
     });
 
 
-        var slim_options = {
-            select: elem,
-            data: data,
-            settings: {
-                showSearch: showSearch,
-                searchPlaceholder: awmGlobals.strings.searchText,
-                searchText: awmGlobals.strings.noResults,
-                placeholderText: awmGlobals.strings.placeholderText,
-                allowDeselect: true,
-            }
-        };
+    var slim_options = {
+        select: elem,
+        data: data,
+        settings: {
+            showSearch: showSearch,
+            searchPlaceholder: awmGlobals.strings.searchText,
+            searchText: awmGlobals.strings.noResults,
+            placeholderText: awmGlobals.strings.placeholderText,
+            allowDeselect: true,
+        }
+    };
     if (document.getElementById(id + '_select')) {
         slim_options.settings.contentLocation = document.getElementById(id + '_select');
         slim_options.settings.contentPosition = 'absolute';
@@ -279,6 +279,7 @@ function awm_check_call_back(elem, action) {
 function awmInitForms() {
     var forms = document.querySelectorAll('form');
     if (forms) {
+
         forms.forEach(function (form) {
             if (document.getElementById('publish')) {
                 document.getElementById('publish').addEventListener('click', function (e) {
@@ -299,44 +300,58 @@ function awmInitForms() {
 }
 
 
+
+
 function awmCheckValidation(form) {
     var check = true;
     var error = '';
     var requireds = form.querySelectorAll('.awm-needed:not(.awm_no_show)');
 
     function isInputValid(input) {
-        return input.value.replace(/\s/g, '') !== '' && !input.disabled;
+        return input.value.replace(/\s/g, '') !== '';
     }
 
     function isCheckboxMultipleValid(inputs) {
         return Array.from(inputs).some(input => input.type === 'checkbox' && input.checked);
     }
 
-    requireds.forEach(function (required) {
-        if (check) {
-            var type = required.getAttribute('data-type');
-            var inputs = required.querySelectorAll('input, select, textarea');
-            required.classList.remove("awm-form-error");
+    function isValidRequiredElement(element) {
+        // Check if the parent has the class "awm-repeater-content" with "data-counter=template"
+        var parent = element.closest('.awm-repeater-content[data-counter="template"]');
+        return !parent;
+    }
 
-            switch (type) {
-                case 'checkbox_multiple':
-                    if (!isCheckboxMultipleValid(inputs)) {
-                        check = false;
-                        error = required;
-                    }
-                    break;
-                default:
-                    if (!isInputValid(inputs[0])) {
-                        check = false;
-                        error = required;
-                    }
-                    break;
+    requireds.forEach(function (required) {
+        if (check && isValidRequiredElement(required)) {
+            var type = required.getAttribute('data-type');
+            var inputs = required.querySelectorAll('input:not(:disabled), select:not(:disabled), textarea:not(:disabled)');
+            if (inputs.length > 0) {
+                required.classList.remove("awm-form-error");
+
+                switch (type) {
+                    case 'checkbox_multiple':
+                        if (!isCheckboxMultipleValid(inputs)) {
+                            check = false;
+                            error = required;
+                            required.classList.add("awm-form-error");
+                        }
+                        break;
+                    default:
+                        if (inputs.length === 0 || !isInputValid(inputs[0])) {
+                            check = false;
+                            error = required;
+                            required.classList.add("awm-form-error");
+                        }
+                        break;
+                }
             }
         }
     });
 
     return { check: check, error: error };
 }
+
+
 
 
 function awmShowInputs() {
@@ -495,7 +510,6 @@ function awm_timestamp(d) {
  * @param domobject elem 
  */
 function awm_repeater_order(elem, action) {
-    console.log(elem);
     var repeater_div = elem.closest('.awm-repeater-content');
     if (repeater_div) {
         var repeater = repeater_div.getAttribute('data-id');
