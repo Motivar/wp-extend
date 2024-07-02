@@ -84,6 +84,12 @@ function awm_ensure_disabled_inputs() {
  * function to parse select with slim
  */
 function awm_selectr_box(elem) {
+    var select_box = document.getElementById(id + '_select');
+    if (!select_box || select_box.classList.hasClass('awm-slim-initialized')) {
+        return true;
+    }
+
+
     var showSearch = elem.length > 3 ? true : false;
     var data = [];
     var soptions = elem.options;
@@ -139,15 +145,12 @@ function awm_selectr_box(elem) {
                 allowDeselect: true,
             }
         };
-    console.log(slim_options);
-        if (document.getElementById(id + '_select')) {
-            slim_options.settings.contentLocation = document.getElementById(id + '_select');
-            slim_options.settings.contentPosition = 'absolute';
+    slim_options.settings.contentLocation = select_box;
+    slim_options.settings.contentPosition = 'absolute';
+    new SlimSelect(slim_options);
+    select_box.classList.addClass('awm-slim-initialized');
 
-        }
-        new SlimSelect(slim_options);
-
-    }
+}
 
 
 
