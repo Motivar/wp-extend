@@ -761,21 +761,18 @@ function awm_ajax_call(options) {
                 }
             } catch (e) {
                 console.error("Error processing the request: ", e);
-                alert("System is temporarily unavailable. Error: " + e.message);
             }
         }
     };
 
     function handleError(status) {
         console.error("Request failed with status: " + status);
-        alert("System is temporarily unavailable. Error code: " + status);
     }
 
     try {
         request.send(Options.data ? JSON.stringify(Options.data) : null);
     } catch (e) {
         console.error("Error sending the request: ", e);
-        alert("System is temporarily unavailable. Error: " + e.message);
     }
 
     return true;
