@@ -34,6 +34,12 @@ class EWP_WP_Content_Installer
     add_filter('template_include', array($this, 'taxonomy_page_redirect'), 90);
     add_filter('single_template', [$this, 'set_single'], 10);
     add_filter('use_block_editor_for_post_type', [$this, 'disable_gutenburg'], 10, 2);
+    add_action('plugins_loaded', function () {
+      if (isset($_REQUEST['ewp_delete_trans'])) {
+        awm_delete_transient_all();
+        die();
+      }
+    });
   }
 
 
