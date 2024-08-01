@@ -123,5 +123,6 @@ if (!function_exists('awm_delete_transient_all')) {
   delete_option('ewp_user_caps_version_old');
   flush_rewrite_rules();
   wp_cache_flush();
+    return true;
  }
 }
