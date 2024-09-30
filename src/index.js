@@ -63,13 +63,18 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
          }
         }));
         break;
-       case 'color':
-        elements.push(wp.element.createElement(wp.components.ColorPicker, {
-         label: data.label,
-         value: props.attributes[key],
-         onChangeComplete: function (value) { setAttributes({ [key]: value }); handleInputChange(key, value) }
-        }));
-        break;
+        case 'color':
+          elements.push(wp.element.createElement(wp.components.ColorPicker, {
+            label: data.label,
+            color: props.attributes[key], // Use 'color' instead of 'value'
+            onChangeComplete: function (value) {
+              // Extract the color from 'value.hex' instead of 'value' directly
+              const colorValue = value.hex;
+              setAttributes({ [key]: colorValue });
+              handleInputChange(key, colorValue);
+            }
+          }));
+          break;
        case 'textarea':
         elements.push(wp.element.createElement(wp.components.TextareaControl, {
          label: data.label,
