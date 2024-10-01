@@ -14,7 +14,7 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
       category: block.category,
       attributes: block.attributes,
       edit: function (props) {
-        const { attributes, setAttributes } = props;
+        const { attributes, setAttributes, clientId } = props;
 
         // Initialize inputValues with default or initial values from block.attributes
         const initialValues = Object.keys(block.attributes).reduce((acc, attrKey) => {
@@ -25,7 +25,8 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
 
         const [content, setContent] = useState('');
         const [inputValues, setInputValues] = useState(initialValues);
-        const [errorMessage, setErrorMessage] = useState('');
+        const [errorMessages, setErrorMessages] = useState({});  // Track errors for this block instance
+        const [isValid, setIsValid] = useState(true);  // Control validation for this block instance
 
         const handleInputChange = (identifier, newValue) => {
           setInputValues({
@@ -33,11 +34,24 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
             [identifier]: newValue,
           });
 
-          // Check if the field is required and not filled in
-          if (block.attributes[identifier].required && !newValue) {
-            setErrorMessage(`${block.attributes[identifier].label || identifier} is required.`);
+          // Validate field upon change
+          validateField(identifier, newValue);
+        };
+
+        const validateField = (identifier, value) => {
+          if (block.attributes[identifier].required && !value) {
+            setErrorMessages((prevErrors) => ({
+              ...prevErrors,
+              [identifier]: `${block.attributes[identifier].label || identifier} is required.`
+            }));
+            setIsValid(false);
           } else {
-            setErrorMessage(''); // Clear error if filled
+            // Clear the error for this field if it's valid
+            setErrorMessages((prevErrors) => {
+              const { [identifier]: _, ...rest } = prevErrors;  // Remove the error for this field
+              return rest;
+            });
+            setIsValid(true);
           }
         };
 
@@ -52,11 +66,31 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
           });
         }, [JSON.stringify(inputValues)]);
 
+        // Check all required fields for this block instance
+        const validateRequiredFields = () => {
+          let hasErrors = false;
+          Object.entries(block.attributes).forEach(([key, data]) => {
+            if (data.required && !inputValues[key]) {
+              setErrorMessages((prevErrors) => ({
+                ...prevErrors,
+                [key]: `${data.label || key} is required.`
+              }));
+              hasErrors = true;
+            }
+          });
+
+          setIsValid(!hasErrors);
+          return !hasErrors;  // Return the validation result
+        };
+
+        // Prevent block saving if this block instance is invalid
+        useEffect(() => {
+          validateRequiredFields();
+        }, [inputValues]); // Re-run validation when input values change
+
         if (typeof block.attributes === 'object' && block.attributes !== null) {
           var elements = [];
           Object.entries(block.attributes).forEach(([key, data]) => {
-        // key is the attribute name
-        // value is the attribute value
             switch (data.render_type) {
               case 'select':
                 elements.push(wp.element.createElement(wp.components.SelectControl, {
@@ -72,7 +106,7 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
               case 'color':
                 elements.push(wp.element.createElement(wp.components.ColorPicker, {
                   label: data.label,
-                  color: props.attributes[key], // Use 'color' instead of 'value'
+                  color: props.attributes[key],
                   onChangeComplete: function (value) {
                     const colorValue = value.hex;
                     setAttributes({ [key]: colorValue });
@@ -146,8 +180,10 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
               {
                 className: props.className,
               },
-              // Display error message if any required fields are missing
-              errorMessage && wp.element.createElement('p', { style: { color: 'red' } }, errorMessage),
+              // Display individual error messages
+              Object.keys(errorMessages).map((key) => (
+                wp.element.createElement('p', { style: { color: 'red' } }, errorMessages[key])
+              )),
               wp.element.createElement(
                 'div',
                 {
@@ -159,6 +195,7 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
         }
       },
       save: function () {
+        if (!isValid) return null;  // Prevent save if this block instance is invalid
         return null; // Server-side rendering, so no save needed
       },
     });
