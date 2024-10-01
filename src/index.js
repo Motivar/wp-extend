@@ -94,10 +94,13 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
         if (typeof block.attributes === 'object' && block.attributes !== null) {
           var elements = [];
           Object.entries(block.attributes).forEach(([key, data]) => {
+            // Add an asterisk to required fields' labels
+            const label = data.required ? `${data.label} *` : data.label;
+
             switch (data.render_type) {
               case 'select':
                 elements.push(wp.element.createElement(wp.components.SelectControl, {
-                  label: data.label,
+                  label: label,  // Use modified label with asterisk if required
                   value: props.attributes[key],
                   options: data.options,
                   onChange: function (value) {
@@ -108,7 +111,7 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                 break;
               case 'color':
                 elements.push(wp.element.createElement(wp.components.ColorPicker, {
-                  label: data.label,
+                  label: label,  // Use modified label with asterisk if required
                   color: props.attributes[key],
                   onChangeComplete: function (value) {
                     const colorValue = value.hex;
@@ -119,7 +122,7 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                 break;
               case 'textarea':
                 elements.push(wp.element.createElement(wp.components.TextareaControl, {
-                  label: data.label,
+                  label: label,  // Use modified label with asterisk if required
                   value: props.attributes[key],
                   onChange: function (value) {
                     setAttributes({ [key]: value });
@@ -129,7 +132,7 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                 break;
               case 'number':
                 elements.push(wp.element.createElement(wp.components.RangeControl, {
-                  label: data.label,
+                  label: label,  // Use modified label with asterisk if required
                   value: props.attributes[key],
                   onChange: function (value) {
                     setAttributes({ [key]: value });
@@ -142,7 +145,7 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                 break;
               case 'string':
                 elements.push(wp.element.createElement(wp.components.TextControl, {
-                  label: data.label,
+                  label: label,  // Use modified label with asterisk if required
                   value: props.attributes[key],
                   onChange: function (value) {
                     setAttributes({ [key]: value });
@@ -152,7 +155,7 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                 break;
               case 'boolean':
                 elements.push(wp.element.createElement(wp.components.ToggleControl, {
-                  label: data.label,
+                  label: label,  // Use modified label with asterisk if required
                   checked: props.attributes[key],
                   onChange: function (value) {
                     setAttributes({ [key]: value });
