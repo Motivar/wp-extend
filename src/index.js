@@ -8,15 +8,16 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
   Object.keys(ewp_blocks).forEach((key) => {
     const block = ewp_blocks[key];
     const namespace = `${block.namespace}/${block.name}`;
+
     registerBlockType(namespace, {
       title: block.title,
       icon: block.icon,
       category: block.category,
       attributes: {
         ...block.attributes,
-        isValid: { type: 'boolean', default: true }, // Add a new attribute for validation state
+        isValid: { type: 'boolean', default: true }, // Add validation as an attribute
       },
-      edit: function (props) {
+      edit: function EditBlock(props) {
         const { attributes, setAttributes, clientId } = props;
 
         // Initialize inputValues with default or initial values from block.attributes
@@ -41,7 +42,7 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
         };
 
         const validateField = (identifier, value) => {
-          if (block.attributes[identifier].required && !value) {
+          if (block.attributes[identifier]?.required && !value) {
             setErrorMessages((prevErrors) => ({
               ...prevErrors,
               [identifier]: `${block.attributes[identifier].label || identifier} is required.`
