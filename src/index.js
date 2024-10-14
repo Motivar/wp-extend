@@ -97,71 +97,151 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
             // Add an asterisk to required fields' labels
             const label = data.required ? `${data.label} *` : data.label;
 
+            // Generate explanation text (if provided) and style it as small
+            const explanation = data.explanation ? wp.element.createElement(
+              'small',
+              {
+                style: {
+                  display: 'block',
+                  marginBottom: '10px',
+                  lineHeight: 'normal',
+                  color: '#555'
+                }
+              },
+              data.explanation
+            ) : null;
+
             switch (data.render_type) {
               case 'select':
-                elements.push(wp.element.createElement(wp.components.SelectControl, {
-                  label: label,  // Use modified label with asterisk if required
-                  value: props.attributes[key],
-                  options: data.options,
-                  onChange: function (value) {
-                    setAttributes({ [key]: value });
-                    handleInputChange(key, value);
-                  }
-                }));
+                elements.push(
+                  wp.element.createElement(
+                    'div',
+                    null,
+                    wp.element.createElement(
+                      'label',
+                      { style: { display: 'block', marginBottom: '4px' } },
+                      label // Label first
+                    ),
+                    explanation, // Add explanation after the label and before the input
+                    wp.element.createElement(wp.components.SelectControl, {
+                      value: props.attributes[key],
+                      options: data.options,
+                      onChange: function (value) {
+                        setAttributes({ [key]: value });
+                        handleInputChange(key, value);
+                      }
+                    })
+                  )
+                );
                 break;
               case 'color':
-                elements.push(wp.element.createElement(wp.components.ColorPicker, {
-                  label: label,  // Use modified label with asterisk if required
-                  color: props.attributes[key],
-                  onChangeComplete: function (value) {
-                    const colorValue = value.hex;
-                    setAttributes({ [key]: colorValue });
-                    handleInputChange(key, colorValue);
-                  }
-                }));
+                elements.push(
+                  wp.element.createElement(
+                    'div',
+                    null,
+                    wp.element.createElement(
+                      'label',
+                      { style: { display: 'block', marginBottom: '4px' } },
+                      label // Label first
+                    ),
+                    explanation, // Add explanation after the label and before the input
+                    wp.element.createElement(wp.components.ColorPicker, {
+                      color: props.attributes[key],
+                      onChangeComplete: function (value) {
+                        const colorValue = value.hex;
+                        setAttributes({ [key]: colorValue });
+                        handleInputChange(key, colorValue);
+                      }
+                    })
+                  )
+                );
                 break;
               case 'textarea':
-                elements.push(wp.element.createElement(wp.components.TextareaControl, {
-                  label: label,  // Use modified label with asterisk if required
-                  value: props.attributes[key],
-                  onChange: function (value) {
-                    setAttributes({ [key]: value });
-                    handleInputChange(key, value);
-                  }
-                }));
+                elements.push(
+                  wp.element.createElement(
+                    'div',
+                    null,
+                    wp.element.createElement(
+                      'label',
+                      { style: { display: 'block', marginBottom: '4px' } },
+                      label // Label first
+                    ),
+                    explanation, // Add explanation after the label and before the input
+                    wp.element.createElement(wp.components.TextareaControl, {
+                      value: props.attributes[key],
+                      onChange: function (value) {
+                        setAttributes({ [key]: value });
+                        handleInputChange(key, value);
+                      }
+                    })
+                  )
+                );
                 break;
               case 'number':
-                elements.push(wp.element.createElement(wp.components.RangeControl, {
-                  label: label,  // Use modified label with asterisk if required
-                  value: props.attributes[key],
-                  onChange: function (value) {
-                    setAttributes({ [key]: value });
-                    handleInputChange(key, value);
-                  },
-                  min: data.attributes.min || 0,
-                  max: data.attributes.max || 100,
-                  step: data.attributes.step || 1
-                }));
+                elements.push(
+                  wp.element.createElement(
+                    'div',
+                    null,
+                    wp.element.createElement(
+                      'label',
+                      { style: { display: 'block', marginBottom: '4px' } },
+                      label // Label first
+                    ),
+                    explanation, // Add explanation after the label and before the input
+                    wp.element.createElement(wp.components.RangeControl, {
+                      value: props.attributes[key],
+                      onChange: function (value) {
+                        setAttributes({ [key]: value });
+                        handleInputChange(key, value);
+                      },
+                      min: data.attributes.min || 0,
+                      max: data.attributes.max || 100,
+                      step: data.attributes.step || 1
+                    })
+                  )
+                );
                 break;
               case 'string':
-                elements.push(wp.element.createElement(wp.components.TextControl, {
-                  label: label,  // Use modified label with asterisk if required
-                  value: props.attributes[key],
-                  onChange: function (value) {
-                    setAttributes({ [key]: value });
-                    handleInputChange(key, value);
-                  }
-                }));
+                elements.push(
+                  wp.element.createElement(
+                    'div',
+                    null,
+                    wp.element.createElement(
+                      'label',
+                      { style: { display: 'block', marginBottom: '4px' } },
+                      label // Label first
+                    ),
+                    explanation, // Add explanation after the label and before the input
+                    wp.element.createElement(wp.components.TextControl, {
+                      value: props.attributes[key],
+                      onChange: function (value) {
+                        setAttributes({ [key]: value });
+                        handleInputChange(key, value);
+                      }
+                    })
+                  )
+                );
                 break;
               case 'boolean':
-                elements.push(wp.element.createElement(wp.components.ToggleControl, {
-                  label: label,  // Use modified label with asterisk if required
-                  checked: props.attributes[key],
-                  onChange: function (value) {
-                    setAttributes({ [key]: value });
-                    handleInputChange(key, value);
-                  }
-                }));
+                elements.push(
+                  wp.element.createElement(
+                    'div',
+                    null,
+                    wp.element.createElement(
+                      'label',
+                      { style: { display: 'block', marginBottom: '4px' } },
+                      label // Label first
+                    ),
+                    explanation, // Add explanation after the label and before the input
+                    wp.element.createElement(wp.components.ToggleControl, {
+                      checked: props.attributes[key],
+                      onChange: function (value) {
+                        setAttributes({ [key]: value });
+                        handleInputChange(key, value);
+                      }
+                    })
+                  )
+                );
                 break;
               default:
                 // Handle other types
