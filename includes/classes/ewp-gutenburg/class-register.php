@@ -289,6 +289,8 @@ class EWP_Dynamic_Blocks
           break;
         case 'textarea':
           $render_type = 'textarea';
+          $wp_editor = isset($a['wp_editor']) ? $a['wp_editor'] : (isset($a['attributes']['wp_editor']) ? $a['attributes']['wp_editor'] : false);
+          $attribute['wp_editor'] = $wp_editor;
           break;
       }
       $prepared_attributes[$key] = $attribute;

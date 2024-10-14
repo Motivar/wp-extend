@@ -167,13 +167,25 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                       label // Label first
                     ),
                     explanation, // Add explanation after the label and before the input
-                    wp.element.createElement(wp.components.TextareaControl, {
-                      value: props.attributes[key],
-                      onChange: function (value) {
-                        setAttributes({ [key]: value });
-                        handleInputChange(key, value);
-                      }
-                    })
+                    data.wp_editor ? (
+                      wp.element.createElement(wp.blockEditor.RichText, {
+                        tagName: 'p',  // Default HTML tag for rich text content
+                        value: props.attributes[key],
+                        onChange: function (value) {
+                          setAttributes({ [key]: value });
+                          handleInputChange(key, value);
+                        },
+                        placeholder: data.placeholder || '',  // Add placeholder if provided
+                      })
+                    ) : (
+                        wp.element.createElement(wp.components.TextareaControl, {
+                          value: props.attributes[key],
+                          onChange: function (value) {
+                            setAttributes({ [key]: value });
+                            handleInputChange(key, value);
+                          }
+                        })
+                      )
                   )
                 );
                 break;
