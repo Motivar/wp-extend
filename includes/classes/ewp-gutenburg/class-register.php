@@ -289,7 +289,7 @@ class EWP_Dynamic_Blocks
           break;
         case 'textarea':
           $render_type = 'textarea';
-          $wp_editor = isset($a['wp_editor']) ? $a['wp_editor'] : (isset($a['attributes']['wp_editor']) ? $a['attributes']['wp_editor'] : false);
+          $wp_editor = isset($attribute['wp_editor']) ? $attribute['wp_editor'] : (isset($attribute['attributes']['wp_editor']) ? $attribute['attributes']['wp_editor'] : false);
           $attribute['wp_editor'] = $wp_editor;
           break;
       }
@@ -320,7 +320,7 @@ class EWP_Dynamic_Blocks
     if (!empty($blocks) && is_array($blocks)) {
       
     uasort($blocks, function ($a, $b) {
-      $first = isset($a['priority']) ? $a['priority'] : 100;
+        $first = isset($attribute['priority']) ? $attribute['priority'] : 100;
       $second = isset($b['priority']) ? $b['priority'] : 100;
       return $first - $second;
     });
