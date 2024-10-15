@@ -22,6 +22,8 @@ require_once 'class-list-form.php';
  */
 class AWM_List_Table extends WP_List_Table
 {
+    // Declare the property explicitly here
+    protected $date_modified_key;
 
     public static $content_totals = array();
     public static $columns = array();
@@ -105,7 +107,8 @@ class AWM_List_Table extends WP_List_Table
                 <div style="display: inline-block;">
                     <?php echo awm_show_content($this->list_filters, 0, 'restrict_manage_posts'); ?>
                 </div>
-                <input type="hidden" name="awm_restict_custom_list" id="awm_restict_custom_list" value="<?php echo $this->page_id; ?>" class="">
+                <input type="hidden" name="awm_restict_custom_list" id="awm_restict_custom_list" value="<?php echo $this->page_id; ?>"
+                    class="">
                 <?php submit_button(__('Filter', 'extend-wp'), 'secondary', 'action', false); ?>
             </div>
         <?php

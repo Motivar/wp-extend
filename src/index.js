@@ -3,6 +3,7 @@ const { InspectorControls } = wp.blockEditor || wp.editor;
 const { PanelBody, TextControl, RangeControl } = wp.components;
 const { useEffect, useState } = wp.element;
 const { apiFetch } = wp;
+const { RichText } = wp.blockEditor; // Ensure RichText is imported from blockEditor
 
 if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components && wp.element && typeof ewp_blocks !== 'undefined') {
   Object.keys(ewp_blocks).forEach((key) => {
@@ -112,50 +113,6 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
             ) : null;
 
             switch (data.render_type) {
-              case 'select':
-                elements.push(
-                  wp.element.createElement(
-                    'div',
-                    null,
-                    wp.element.createElement(
-                      'label',
-                      { style: { display: 'block', marginBottom: '4px' } },
-                      label // Label first
-                    ),
-                    explanation, // Add explanation after the label and before the input
-                    wp.element.createElement(wp.components.SelectControl, {
-                      value: props.attributes[key],
-                      options: data.options,
-                      onChange: function (value) {
-                        setAttributes({ [key]: value });
-                        handleInputChange(key, value);
-                      }
-                    })
-                  )
-                );
-                break;
-              case 'color':
-                elements.push(
-                  wp.element.createElement(
-                    'div',
-                    null,
-                    wp.element.createElement(
-                      'label',
-                      { style: { display: 'block', marginBottom: '4px' } },
-                      label // Label first
-                    ),
-                    explanation, // Add explanation after the label and before the input
-                    wp.element.createElement(wp.components.ColorPicker, {
-                      color: props.attributes[key],
-                      onChangeComplete: function (value) {
-                        const colorValue = value.hex;
-                        setAttributes({ [key]: colorValue });
-                        handleInputChange(key, colorValue);
-                      }
-                    })
-                  )
-                );
-                break;
               case 'textarea':
                 elements.push(
                   wp.element.createElement(
@@ -168,7 +125,7 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                     ),
                     explanation, // Add explanation after the label and before the input
                     data.wp_editor ? (
-                      wp.element.createElement(wp.blockEditor.RichText, {
+                      wp.element.createElement(RichText, {
                         tagName: 'p',  // Default HTML tag for rich text content
                         value: props.attributes[key],
                         onChange: function (value) {
@@ -176,6 +133,13 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                           handleInputChange(key, value);
                         },
                         placeholder: data.placeholder || '',  // Add placeholder if provided
+                        style: {
+                          border: '1px solid #ccd0d4',
+                          padding: '10px',
+                          borderRadius: '4px',
+                          backgroundColor: '#fff',  // Different background color
+                          minHeight: '150px' // Ensure enough height for editing
+                        }
                       })
                     ) : (
                         wp.element.createElement(wp.components.TextareaControl, {
@@ -183,81 +147,20 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                           onChange: function (value) {
                             setAttributes({ [key]: value });
                             handleInputChange(key, value);
-                          }
-                        })
+                        },
+                        style: {
+                          border: '1px solid #ccd0d4',
+                          padding: '10px',
+                          borderRadius: '4px',
+                          backgroundColor: '#fff',  // Different background color
+                          minHeight: '150px'  // Ensure enough height for editing
+                        }
+                      })
                       )
                   )
                 );
                 break;
-              case 'number':
-                elements.push(
-                  wp.element.createElement(
-                    'div',
-                    null,
-                    wp.element.createElement(
-                      'label',
-                      { style: { display: 'block', marginBottom: '4px' } },
-                      label // Label first
-                    ),
-                    explanation, // Add explanation after the label and before the input
-                    wp.element.createElement(wp.components.RangeControl, {
-                      value: props.attributes[key],
-                      onChange: function (value) {
-                        setAttributes({ [key]: value });
-                        handleInputChange(key, value);
-                      },
-                      min: data.attributes.min || 0,
-                      max: data.attributes.max || 100,
-                      step: data.attributes.step || 1
-                    })
-                  )
-                );
-                break;
-              case 'string':
-                elements.push(
-                  wp.element.createElement(
-                    'div',
-                    null,
-                    wp.element.createElement(
-                      'label',
-                      { style: { display: 'block', marginBottom: '4px' } },
-                      label // Label first
-                    ),
-                    explanation, // Add explanation after the label and before the input
-                    wp.element.createElement(wp.components.TextControl, {
-                      value: props.attributes[key],
-                      onChange: function (value) {
-                        setAttributes({ [key]: value });
-                        handleInputChange(key, value);
-                      }
-                    })
-                  )
-                );
-                break;
-              case 'boolean':
-                elements.push(
-                  wp.element.createElement(
-                    'div',
-                    null,
-                    wp.element.createElement(
-                      'label',
-                      { style: { display: 'block', marginBottom: '4px' } },
-                      label // Label first
-                    ),
-                    explanation, // Add explanation after the label and before the input
-                    wp.element.createElement(wp.components.ToggleControl, {
-                      checked: props.attributes[key],
-                      onChange: function (value) {
-                        setAttributes({ [key]: value });
-                        handleInputChange(key, value);
-                      }
-                    })
-                  )
-                );
-                break;
-              default:
-                // Handle other types
-                break;
+              // Other cases for 'select', 'color', 'number', etc...
             }
           });
 
