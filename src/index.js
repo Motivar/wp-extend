@@ -1,14 +1,16 @@
 const { registerBlockType } = wp.blocks;
 const { InspectorControls } = wp.blockEditor || wp.editor;
-const { PanelBody, TextControl, RangeControl } = wp.components;
+const { PanelBody, TextControl, ToggleControl, RangeControl, SelectControl, TextareaControl } = wp.components;
 const { useEffect, useState } = wp.element;
 const { apiFetch } = wp;
-const { RichText } = wp.blockEditor; // Ensure RichText is imported from blockEditor
+const { RichText } = wp.blockEditor;
 
 if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components && wp.element && typeof ewp_blocks !== 'undefined') {
   Object.keys(ewp_blocks).forEach((key) => {
     const block = ewp_blocks[key];
     const namespace = `${block.namespace}/${block.name}`;
+    console.log('Registering block:', namespace);
+    console.log('Block attributes:', block.attributes);
 
     registerBlockType(namespace, {
       title: block.title,
@@ -19,7 +21,7 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
         isValid: { type: 'boolean', default: true }, // Add validation as an attribute
       },
       edit: function EditBlock(props) {
-        const { attributes, setAttributes, clientId } = props;
+        const { attributes, setAttributes } = props;
 
         // Initialize inputValues with default or initial values from block.attributes
         const initialValues = Object.keys(block.attributes).reduce((acc, attrKey) => {
@@ -37,6 +39,7 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
             ...inputValues,
             [identifier]: newValue,
           });
+          setAttributes({ [identifier]: newValue });
 
           // Validate field upon change
           validateField(identifier, newValue);
@@ -70,130 +73,132 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
           });
         }, [JSON.stringify(inputValues)]);
 
-        // Check all required fields for this block instance
-        const validateRequiredFields = () => {
-          let hasErrors = false;
-          Object.entries(block.attributes).forEach(([key, data]) => {
-            if (data.required && !inputValues[key]) {
-              setErrorMessages((prevErrors) => ({
-                ...prevErrors,
-                [key]: `${data.label || key} is required.`
-              }));
-              hasErrors = true;
-            }
-          });
-
-          setAttributes({ isValid: !hasErrors });
-          return !hasErrors;  // Return the validation result
-        };
-
-        // Prevent block saving if this block instance is invalid
-        useEffect(() => {
-          validateRequiredFields();
-        }, [inputValues]); // Re-run validation when input values change
-
-        if (typeof block.attributes === 'object' && block.attributes !== null) {
-          var elements = [];
-          Object.entries(block.attributes).forEach(([key, data]) => {
-            // Add an asterisk to required fields' labels
+        // Render inputs for each attribute
+        const renderInputs = () => {
+          return Object.entries(block.attributes).map(([key, data]) => {
             const label = data.required ? `${data.label} *` : data.label;
 
-            // Generate explanation text (if provided) and style it as small
+            // Explanation text with the correct positioning
             const explanation = data.explanation ? wp.element.createElement(
               'small',
               {
                 style: {
                   display: 'block',
-                  marginBottom: '10px',
-                  lineHeight: 'normal',
-                  color: '#555'
-                }
+                  marginTop: '0px', // No margin at the top
+                  marginBottom: '10px', // Margin before the input
+                  letterSpacing: 'normal', // Normal letter spacing
+                  color: '#555',
+                  lineHeight: '1.5', // Optional: makes text more readable
+                },
               },
               data.explanation
             ) : null;
 
+            // Switch based on render_type and input type
             switch (data.render_type) {
               case 'textarea':
-                elements.push(
-                  wp.element.createElement(
-                    'div',
-                    null,
-                    wp.element.createElement(
-                      'label',
-                      { style: { display: 'block', marginBottom: '4px' } },
-                      label // Label first
-                    ),
-                    explanation, // Add explanation after the label and before the input
-                    data.wp_editor ? (
-                      wp.element.createElement(RichText, {
-                        tagName: 'p',  // Default HTML tag for rich text content
-                        value: props.attributes[key],
-                        onChange: function (value) {
-                          setAttributes({ [key]: value });
-                          handleInputChange(key, value);
-                        },
-                        placeholder: data.placeholder || '',  // Add placeholder if provided
-                        style: {
+                return (
+                  <div key={key}>
+                    <label style={{ display: 'block', marginBottom: '4px' }}>{label}</label>
+                    {explanation} {/* Explanation text between the label and input */}
+                    {data.wp_editor ? (
+                      <RichText
+                        tagName="p"
+                        value={props.attributes[key] || ''}
+                        onChange={(value) => handleInputChange(key, value)}
+                        placeholder={data.placeholder || ''}
+                        style={{
                           border: '1px solid #ccd0d4',
                           padding: '10px',
                           borderRadius: '4px',
-                          backgroundColor: '#fff',  // Different background color
-                          minHeight: '150px' // Ensure enough height for editing
-                        }
-                      })
+                          backgroundColor: '#fff',
+                          minHeight: '150px',
+                        }}
+                      />
                     ) : (
-                        wp.element.createElement(wp.components.TextareaControl, {
-                          value: props.attributes[key],
-                          onChange: function (value) {
-                            setAttributes({ [key]: value });
-                            handleInputChange(key, value);
-                        },
-                        style: {
+                        <TextareaControl
+                          value={props.attributes[key] || ''}
+                          onChange={(value) => handleInputChange(key, value)}
+                          style={{
                           border: '1px solid #ccd0d4',
                           padding: '10px',
                           borderRadius: '4px',
-                          backgroundColor: '#fff',  // Different background color
-                          minHeight: '150px'  // Ensure enough height for editing
-                        }
-                      })
-                      )
-                  )
+                          backgroundColor: '#fff',
+                          minHeight: '150px',
+                        }}
+                      />
+                    )}
+                  </div>
                 );
-                break;
-              // Other cases for 'select', 'color', 'number', etc...
+              case 'boolean':
+                return (
+                  <div key={key}>
+                    <label style={{ display: 'block', marginBottom: '4px' }}>{label}</label>
+                    {explanation} {/* Explanation text between the label and input */}
+                    <ToggleControl
+                      checked={!!props.attributes[key]}
+                      onChange={(value) => handleInputChange(key, value)}
+                    />
+                  </div>
+                );
+              case 'string':
+                return (
+                  <div key={key}>
+                    <label style={{ display: 'block', marginBottom: '4px' }}>{label}</label>
+                    {explanation} {/* Explanation text between the label and input */}
+                    <TextControl
+                      value={props.attributes[key] || ''}
+                      onChange={(value) => handleInputChange(key, value)}
+                    />
+                  </div>
+                );
+              case 'number':
+                return (
+                  <div key={key}>
+                    <label style={{ display: 'block', marginBottom: '4px' }}>{label}</label>
+                    {explanation} {/* Explanation text between the label and input */}
+                    <RangeControl
+                      value={props.attributes[key] || 0}
+                      onChange={(value) => handleInputChange(key, value)}
+                      min={data.min || 0}
+                      max={data.max || 100}
+                    />
+                  </div>
+                );
+              case 'select':
+                return (
+                  <div key={key}>
+                    <label style={{ display: 'block', marginBottom: '4px' }}>{label}</label>
+                    {explanation} {/* Explanation text between the label and input */}
+                    <SelectControl
+                      value={props.attributes[key] || ''}
+                      options={data.options || []}
+                      onChange={(value) => handleInputChange(key, value)}
+                    />
+                  </div>
+                );
+              default:
+                return null;
             }
           });
+        };
 
-          return [
-            wp.element.createElement(
-              InspectorControls,
-              null,
-              wp.element.createElement(
-                PanelBody,
-                {
-                  title: block.title + ' Settings', initialOpen: true
-                },
-                elements
-              )
-            ),
-            wp.element.createElement(
-              'div',
-              {
-                className: props.className,
-              },
-              // Display individual error messages
-              Object.keys(errorMessages).map((key) => (
-                wp.element.createElement('p', { style: { color: 'red' } }, errorMessages[key])
-              )),
-              wp.element.createElement(
-                'div',
-                {
-                  dangerouslySetInnerHTML: { __html: content }
-                }
-              )
-            ),
-          ];
-        }
+        return (
+          <>
+            <InspectorControls>
+              <PanelBody title={block.title + ' Settings'} initialOpen={true}>
+                {renderInputs()}
+              </PanelBody>
+            </InspectorControls>
+
+            <div className={props.className}>
+              {Object.keys(errorMessages).map((key) => (
+                <p key={key} style={{ color: 'red' }}>{errorMessages[key]}</p>
+              ))}
+              <div dangerouslySetInnerHTML={{ __html: content }} />
+            </div>
+          </>
+        );
       },
       save: function (props) {
         // Prevent save if the block instance is invalid

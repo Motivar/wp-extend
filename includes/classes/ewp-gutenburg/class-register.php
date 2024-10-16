@@ -254,11 +254,6 @@ class EWP_Dynamic_Blocks
     if (!is_array($attributes) || empty($attributes)) {
       return array();
     }
-    /*
-      * Filter attributes
-      */
-
-
     foreach ($attributes as $key => $attribute) {
       $attribute = awm_prepare_field($attribute, $block_name);
       $type = 'string';
@@ -298,6 +293,7 @@ class EWP_Dynamic_Blocks
       $prepared_attributes[$key]['render_type'] = $render_type;
       $prepared_attributes[$key]['default'] = isset($attribute['default']) ? $attribute['default'] : '';
     }
+
     return $prepared_attributes;
   }
 
