@@ -1,9 +1,10 @@
 const { registerBlockType } = wp.blocks;
 const { InspectorControls } = wp.blockEditor || wp.editor;
-const { PanelBody, TextControl, ToggleControl, RangeControl, SelectControl, TextareaControl } = wp.components;
+const { PanelBody, TextControl, ToggleControl, RangeControl, SelectControl, TextareaControl, ColorPicker } = wp.components;
 const { useEffect, useState } = wp.element;
 const { apiFetch } = wp;
 const { RichText } = wp.blockEditor;
+
 
 if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components && wp.element && typeof ewp_blocks !== 'undefined') {
   Object.keys(ewp_blocks).forEach((key) => {
@@ -96,6 +97,18 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
 
             // Switch based on render_type and input type
             switch (data.render_type) {
+              case 'color':
+                return (
+                  <div key={key}>
+                    <label style={{ display: 'block', marginBottom: '4px' }}>{label}</label>
+                    {explanation} {/* Explanation text between the label and input */}
+                    <ColorPicker
+                      color={props.attributes[key] || ''}
+                      onChangeComplete={(value) => handleInputChange(key, value.hex)}
+                      disableAlpha
+                    />
+                  </div>
+                );
               case 'textarea':
                 return (
                   <div key={key}>
