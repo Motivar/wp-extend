@@ -240,6 +240,11 @@ class Extend_WP_WP_Content
      'case' => 'input',
      'type' => 'checkbox'
     ),
+    'hierarchical' => array(
+     'label' => __('Has children', 'extend-wp'),
+     'case' => 'input',
+     'type' => 'checkbox'
+    ),
     'custom_template' => array(
      'label' => __('Is public', 'extend-wp'),
      'case' => 'input',

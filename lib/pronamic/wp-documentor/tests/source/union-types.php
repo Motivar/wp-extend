@@ -17,4 +17,4 @@
  *
  * @param int|string $value Union type value, integer or string.
  */
-do_action( 'test_union_types', $value );
+do_action('test_union_types', $value);
