@@ -92,6 +92,7 @@ class Extend_WP_WP_Content
       'taxonomies_connected' => isset($metas['taxonomies']) ? $metas['taxonomies'] : array(),
       'disable_gutenburg' => isset($metas['disable_gutenburg']) ? $metas['disable_gutenburg'] : false,
       'description' => isset($metas['description']) ? $metas['description'] : '',
+      'hierarchical' => isset($metas['hierarchical']) ? $metas['hierarchical'] : false,
       'flx_custom_template' => isset($metas['custom_template']) ? $metas['custom_template'] : false,
       'admin_access' => array(
        'fullAccess' => array('administrator'),
