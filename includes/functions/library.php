@@ -87,10 +87,12 @@ if (!function_exists('awm_prepare_field')) {
             case 'term':
                 $a['case'] = isset($a['view']) ? $a['view'] : 'select';
                 $number = isset($a['number']) ? $a['number'] : '-1';
+
                 $args = isset($a['args']) ? $a['args'] : array();
                 $option_key = isset($a['option_key']) ? $a['option_key'] : 'term_id';
                 $a['callback'] = 'awmTaxonomyFieldsForInput';
-                $a['callback_variables'] = array($a['taxonomy'], $number,  $args, $option_key, $awm_id);
+                $show_all = isset($a['show_all']) ? $a['show_all'] : false;
+                $a['callback_variables'] = array($a['taxonomy'], $number,  $args, $option_key, $awm_id, $show_all);
                 break;
             case 'user':
                 $roles = isset($a['roles']) ? $a['roles'] : array();

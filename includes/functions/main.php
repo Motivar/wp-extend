@@ -134,12 +134,14 @@ if (!function_exists('awmPostFieldsForInput')) {
  * @param string $option_key which key to bring back to the option value
  * @param array $args array for the get_posts function
  * @param string $awm_id the id of the library
+ * @param bool $show_all if we want to show the option all
  * 
  */
 if (!function_exists('awmTaxonomyFieldsForInput')) {
-    function awmTaxonomyFieldsForInput($taxonomy = '', $number = '-1', $args = array(), $option_key = 'term_id', $awm_id = '')
+    function awmTaxonomyFieldsForInput($taxonomy = '', $number = '-1', $args = array(), $option_key = 'term_id', $awm_id = '', $show_all = false)
     {
         $options = array();
+        $showed_all = false;
         $defaultArgs = array(
             'taxonomy'      => $taxonomy, // taxonomy name
             'orderby'       => 'name',
@@ -156,6 +158,10 @@ if (!function_exists('awmTaxonomyFieldsForInput')) {
         $content = get_terms($defaultArgs);
         if (!empty($content) && !is_wp_error($content)) {
             foreach ($content as $data) {
+                if ($show_all && !$showed_all) {
+                    $options[''] = array('label' => __('All', 'extend-wp'));
+                    $showed_all = true;
+                }
                 $options[$data->{$option_key}] = array('label' => $data->name);
             }
         }
