@@ -311,6 +311,15 @@ class Extend_WP_Search_Filters
     /*check the input fields*/
     $input_fields = $fields['query_fields'];
     $form_fields = $this->prepare_form_fields($input_fields, $id);
+    /*check if we have in Request the query keys*/
+    if (isset($_REQUEST)) {
+      foreach ($_REQUEST as $key => $value) {
+        if (isset($form_fields[$key])) {
+          $form_fields[$key]['attributes']['value'] = $value;
+        }
+      }
+    }
+
 
     /*check if we have sorting optio in the form*/
 
@@ -389,6 +398,35 @@ class Extend_WP_Search_Filters
   public function ewp_search_dev_notes()
   {
 
+    $guidelines = array(
+      array(
+        'text' => __('Change the card path of the displayed result', 'extend-wp'),
+        'code' => 'add_filter("ewp_search_result_path",$path,$wp_query);'
+      ),
+      array(
+        'text' => __('Change the card pagination path', 'extend-wp'),
+        'code' => 'add_filter("ewp_search_result_pagination_path",$path,$wp_query);'
+      ),
+      array(
+        'text' => __('Javascript trigger event after results ', 'extend-wp'),
+        'code' => 'document.addEventListener("ewp_search_results_loaded", function(e) {});'
+      ),
+      array(
+        'text' => __('Javascript init function (useful for ajax page transitions) ', 'extend-wp'),
+        'code' => 'ewp_search_forms();'
+      ),
+      array(
+        'text' => __('You can pre-select the values of the search filter by adding the query parameter in the url', 'extend-wp'),
+        'code' => __('?query_key=value&query_key2=value2', 'extend-wp')
+      )
+    );
+    $html = '<div class="awm-dev-info">';
+    $counter = 0;
+    foreach ($guidelines as $guideline) {
+      $html .= '<div>' . $counter . '. ' . $guideline['text'] . '<br><code>' . $guideline['code'] . '</code></div>';
+    }
+    $html .= '</div>';
+
     return array(
       'html' => array(
         'case' => 'html',
@@ -400,7 +438,7 @@ class Extend_WP_Search_Filters
         'case' => 'html',
         'label' => __('Hooks you can use', 'extend-wp'),
         'show_label' => true,
-        'value' => '<div class="awm-dev-info"><div>1. ' . __('Change the card path of the displayed result', 'extend-wp') . '<br><code>add_filter("ewp_search_result_path",$path,$wp_query);</code></div><div>2. ' . __('Change the card pagination path', 'extend-wp') . '<br><code>add_filter("ewp_search_result_pagination_path",$path,$wp_query);</code></div><div>3. ' . __('Javascript trigger event after results ', 'extend-wp') . '<br><code>document.addEventListener("ewp_search_results_loaded", function(e) {});</code></div><div>3. ' . __('Javascript init function (useful for ajax page transitions) ', 'extend-wp') . '<br><code>ewp_search_forms();</code></div></div>'
+        'value' => $html
       )
     );
   }
