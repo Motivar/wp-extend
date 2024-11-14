@@ -314,7 +314,8 @@ class Extend_WP_Search_Filters
     /*check if we have in Request the query keys*/
     if (isset($_REQUEST)) {
       foreach ($_REQUEST as $key => $value) {
-        if (isset($form_fields['ewp_' . $key])) {
+        $key = preg_replace('/ewp_/', '', $key, 1);
+        if (isset($form_fields[$key])) {
           $form_fields[$key]['attributes']['value'] = $value;
         }
       }
