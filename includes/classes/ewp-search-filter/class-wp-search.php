@@ -314,7 +314,7 @@ class Extend_WP_Search_Filters
     /*check if we have in Request the query keys*/
     if (isset($_REQUEST)) {
       foreach ($_REQUEST as $key => $value) {
-        if (isset($form_fields[$key])) {
+        if (isset($form_fields['ewp_' . $key])) {
           $form_fields[$key]['attributes']['value'] = $value;
         }
       }
@@ -417,7 +417,7 @@ class Extend_WP_Search_Filters
       ),
       array(
         'text' => __('You can pre-select the values of the search filter by adding the query parameter in the url', 'extend-wp'),
-        'code' => __('?query_key=value&query_key2=value2', 'extend-wp')
+        'code' => __('?<strong>ewp_</strong>query_key=value&<strong>ewp_</strong>query_key2=value2', 'extend-wp')
       )
     );
     $html = '<div class="awm-dev-info">';
