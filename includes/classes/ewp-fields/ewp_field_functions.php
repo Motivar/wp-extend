@@ -840,11 +840,13 @@ if (!function_exists('awm_term_options')) {
         'label' => __('Show empty categories', 'extend-wp'),
         'case' => 'input',
         'type' => 'checkbox',
+        'explanation' => __('Show empty categories', 'extend-wp'),
       ),
       'show_all' => array(
         'label' => __('Show all', 'extend-wp'),
         'case' => 'input',
         'type' => 'checkbox',
+        'explanation' => __('Show the \'All\' option', 'extend-wp'),
       ),
     );
   }
