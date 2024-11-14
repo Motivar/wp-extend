@@ -424,6 +424,7 @@ class Extend_WP_Search_Filters
     $counter = 0;
     foreach ($guidelines as $guideline) {
       $html .= '<div>' . $counter . '. ' . $guideline['text'] . '<br><code>' . $guideline['code'] . '</code></div>';
+      $counter++;
     }
     $html .= '</div>';
 
