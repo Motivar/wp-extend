@@ -15,7 +15,18 @@ class AWM_Meta
     {
         define('AWM_JQUERY_LOAD', apply_filters('awm_jquery_load_filter', true));
         add_action('plugins_loaded', function () {
-            load_plugin_textdomain('extend-wp', false, awm_path . '/languages/');
+
+            $locale = determine_locale(); // Get the current site or user locale.
+            $domain = 'extend-wp'; // Your plugin's text domain.
+            // Build the full path to the language file.
+            $mofile = awm_path . '/languages/' . $domain . '-' . $locale . '.mo';
+
+            // Load the text domain if the file exists.
+            if (file_exists($mofile)) {
+                load_textdomain($domain, $mofile);
+            }
+
+
         });
         add_action('init', array($this, 'awm_init'), 10);
         add_action('wp_enqueue_scripts', array($this, 'enqueue_styles_script'), 10);
