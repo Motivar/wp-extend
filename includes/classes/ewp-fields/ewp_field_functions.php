@@ -789,9 +789,9 @@ if (!function_exists('awmInputFields')) {
       'map' => array('label' => __('Map', 'extend-wp')),
       'postType' => array('label' => __('Post type(s) Content', 'extend-wp'), 'field-choices' => awm_post_type_options()),
       'post_types' => array('label' => __('Post types object', 'extend-wp')),
-
       'term' => array('label' => __('Taxonomies', 'extend-wp'), 'field-choices' => awm_term_options()),
       'taxonomies' => array('label' => __('Taxonomies object', 'extend-wp')),
+      'ewp_content' =>  array('label' => __('Ewp Content', 'extend-wp'), 'field-choices' => ewp_options()),
       'function' => array('label' => __('PHP Function', 'extend-wp'), 'field-choices' => array(
         'callback' => array(
           'case' => 'input',
@@ -809,6 +809,33 @@ if (!function_exists('awmInputFields')) {
         )
       )),
     ));
+  }
+}
+
+if (!function_exists('ewp_options')) {
+  function ewp_options()
+  {
+    // Get the singleton instance.
+    $db_content = AWM_Content_DB::get_instance();
+    $options = $db_content->get_content_types();
+    return array(
+      'content_type' => array(
+        'label' => __('Content Object', 'extend-wp'),
+        'case' => 'select',
+        'options' => $options,
+        'label_class' => array('awm-needed'),
+      ),
+      'view' => array(
+        'case' => 'select',
+        'label' => __('View', 'extend-wp'),
+        'removeEmpty' => true,
+        'options' => array(
+          'select' => array('label' => __('Select box', 'extend-wp')),
+          'radio' => array('label' => __('Radio', 'extend-wp')),
+          'checkbox_multiple' => array('label' => __('Multiple checkbox', 'extend-wp')),
+        )
+      ),
+    );
   }
 }
 

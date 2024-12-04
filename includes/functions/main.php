@@ -85,6 +85,19 @@ if (!function_exists('awmPostObjectsForInput')) {
 }
 
 
+if (!function_exists('awmEwpContentForInput')) {
+    function awmEwpContentForInput($content_type = '', $args = array())
+    {
+        $data = awm_get_db_content($content_type, $args);
+        $labels = array();
+        foreach ($data as $data_key => $data_value) {
+            $labels[$data_key] = array('label' => $data_value['content_title']);
+        }
+        return $labels;
+    }
+}
+
+
 /**
  * function to get the posts of a post type
  * @param string $postType wordpres post type / custom post type

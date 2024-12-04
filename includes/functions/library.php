@@ -65,6 +65,12 @@ if (!function_exists('awm_prepare_field')) {
     {
 
         switch ($a['case']) {
+            case 'ewp_content':
+                $a['case'] = isset($a['view']) ? $a['view'] : 'select';
+                $args = isset($a['args']) ? $a['args'] : array();
+                $a['callback'] = 'awmEwpContentForInput';
+                $a['callback_variables'] = array($a['content_type'], $args);
+                break;
             case 'taxonomies':
                 $a['case'] = isset($a['view']) ? $a['view'] : 'select';
                 $args = isset($a['args']) ? $a['args'] : array();
