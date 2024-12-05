@@ -92,16 +92,18 @@ if (!function_exists('awm_insert_db_content_meta')) {
 
 if (!function_exists('awm_get_db_content')) {
   /**
-   * similar to get posts
-   * @param string $field the db object to search
-   * @param array $args similar structure to get_posts
-   *@return array $results all the results
-   **/
+   * Similar to get_posts.
+   * @param string $field The database object to search.
+   * @param array $args Similar structure to get_posts.
+   * @return array $results All the results.
+   */
   function awm_get_db_content($field, $args = array())
   {
+    global $wpdb;
+
     $defaults = array(
-      'fields' => '*', /*accept array with certain fields*/
-      'limit' => -1, /*accept -1*/
+      'fields' => '*', /* Accept array with certain fields */
+      'limit' => -1, /* Accept -1 */
       'order_by' => array('column' => 'created', 'type' => 'desc'),
       'include' => array(),
       'meta_query' => array()
@@ -110,15 +112,23 @@ if (!function_exists('awm_get_db_content')) {
     $query_args = array_merge($defaults, $args);
     $wheres = array();
     $where_clause = '';
+
     if (!empty($query_args['status'])) {
       $query_args['status'] = !is_array($query_args['status']) ? array($query_args['status']) : $query_args['status'];
-      $wheres[]
-        = array('column' => 'status', 'value' =>  "('" . implode("','", $query_args['status']) . "')", 'compare' => 'IN');
+      $wheres[] = array(
+        'column' => 'status',
+        'value' => "('" . implode("','", $query_args['status']) . "')",
+        'compare' => 'IN'
+      );
     }
+
     if (!empty($query_args['include'])) {
       $query_args['include'] = !is_array($query_args['include']) ? array($query_args['include']) : $query_args['include'];
-      $wheres[]
-        = array('column' => 'content_id', 'value' =>  "('" . implode("','", $query_args['include']) . "')", 'compare' => 'IN');
+      $wheres[] = array(
+        'column' => 'content_id',
+        'value' => "('" . implode("','", $query_args['include']) . "')",
+        'compare' => 'IN'
+      );
 
       $query_args['limit'] = count($query_args['include']);
     }
@@ -128,35 +138,54 @@ if (!function_exists('awm_get_db_content')) {
       if (isset($query_args['meta_query']['relation'])) {
         unset($query_args['meta_query']['relation']);
       }
-      $meta_wheres = array();
 
-      foreach ($query_args['meta_query'] as $query) {
-        $meta_wheres[] = array(
-          'operator' => 'AND',
-          'clause' => array(
-            array('column' => 'meta_key', 'value' => $query['key'], 'compare' => '='),
-            array('column' => 'meta_value', 'value' => $query['value'], 'compare' => $query['compare'])
-          )
-        );
+      $table_name = "{$wpdb->prefix}{$field}_data";
+      $joins = [];
+      $conditions = [];
+
+      foreach ($query_args['meta_query'] as $index => $query) {
+        $alias = "meta_alias_{$index}";
+
+        // Add a join for each meta query condition
+        $joins[] = "INNER JOIN {$table_name} AS {$alias} ON main.content_id = {$alias}.content_id";
+
+        // Add condition for the meta key and value
+        $conditions[] = "({$alias}.meta_key = '" . esc_sql($query['key']) . "' AND {$alias}.meta_value {$query['compare']} '" . esc_sql($query['value']) . "')";
       }
-      if (!empty($meta_wheres)) {
-        $meta_where_clause = array(
-          "clause" => array(
-            array(
-              "operator" => $operator,
-              "clause" => $meta_wheres
-            )
-          )
+
+      $meta_where_clause = implode(" {$operator} ", $conditions);
+
+      // Build the self-join query
+      $meta_query_sql = "
+                SELECT DISTINCT main.content_id
+                FROM {$table_name} AS main
+                " . implode(' ', $joins) . "
+                WHERE {$meta_where_clause}
+            ";
+
+      // Debugging the generated query
+      // echo $meta_query_sql;
+      // die();
+
+      // Execute the query and fetch content IDs
+      $meta_query_results = $wpdb->get_col($meta_query_sql);
+
+      if (!empty($meta_query_results)) {
+        $wheres[] = array(
+          'column' => 'content_id',
+          'value' => "('" . implode("','", array_map('esc_sql', $meta_query_results)) . "')",
+          'compare' => 'IN'
         );
+      } else {
+        // No results match meta_query, return an empty array
+        return [];
       }
-      $inner_query = AWM_DB_Creator::get_db_data($field . '_data', array('content_id'), $meta_where_clause, '', '', 0, true);
-      $wheres[] = array('column' => 'content_id', 'value' =>  '(' . $inner_query . ')', 'compare' => 'IN');
     }
-    $results = array();
 
     if (empty($field)) {
       return array();
     }
+
     if (!empty($wheres)) {
       $where_clause = array(
         "clause" => array(
@@ -167,8 +196,8 @@ if (!function_exists('awm_get_db_content')) {
         )
       );
     }
-    $results = AWM_DB_Creator::get_db_data($field . '_main', $query_args['fields'], $where_clause, $query_args['order_by'], $query_args['limit'], 0);
 
+    $results = AWM_DB_Creator::get_db_data($field . '_main', $query_args['fields'], $where_clause, $query_args['order_by'], $query_args['limit'], 0);
 
     return $results;
   }
