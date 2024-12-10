@@ -519,6 +519,12 @@ class Extend_WP_Search_Filters
         'case' => 'input',
         'type' => 'checkbox',
       ),
+      'show_search_results_number' => array(
+        'removeEmpty' => true,
+        'label' => __('Show search results number', 'extend-wp'),
+        'case' => 'input',
+        'type' => 'checkbox',
+      ),
       'pagination_styles' => array(
         'case' => 'section',
         'label' => __('Pagination configuration', 'extend-wp'),
@@ -528,6 +534,7 @@ class Extend_WP_Search_Filters
             'label' => __('Load posts style', 'extend-wp'),
             'case' => 'select',
             'options' => array(
+              'none' => array('label' => __('None', 'extend-wp')),
               'pagination' => array('label' => __('Pagination', 'extend-wp')),
               'button' => array('label' => __('Button', 'extend-wp')),
             ),

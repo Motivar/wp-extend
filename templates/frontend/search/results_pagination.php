@@ -16,6 +16,8 @@ if (!isset($ewp_config['pagination_styles']['load_type'])) {
 ?>
 <div class="ewp-search-pagination"><?php
                                     switch ($ewp_config['pagination_styles']['load_type']) {
+                                      case 'none':
+                                        break;
                                       case 'button':
                                         if ($current_page < $ewp_search_query->max_num_pages) {
                                           echo '<button class="ewp-load-more" data-page="' . $current_page . '" data-max-pages="' . $ewp_search_query->max_num_pages . '">' . __($ewp_config['pagination_styles']['load_type_button'], 'extend-wp') . '</button>';
