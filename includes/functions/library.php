@@ -278,6 +278,9 @@ if (!function_exists('awm_show_content')) {
                             if ($k == 'min' && $val == 0) {
                                 $val = $v;
                             }
+                            if ($k == 'placeholder') {
+                                $v = __($v, 'extend-wp');
+                            }
                         }
                     }
 
