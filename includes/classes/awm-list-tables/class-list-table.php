@@ -287,7 +287,20 @@ class AWM_List_Table extends WP_List_Table
     {
         $actions = array(
             'edit' => sprintf('<a href="' . $this->page_link . '_form&id=%d">%s</a>', $item[$this->db_search_key], __('Edit', 'extend-wp')),
-            'delete' => sprintf('<a href="%s" class="cstm_tbl_delete" id="delete-' . $item[$this->db_search_key] . '-' . $this->list_name . '" style="color: red;">%s</a>', wp_nonce_url(admin_url($this->page_link . '&id=' . $item[$this->db_search_key] . '&action=delete'), $this->page_link . '_delete'), __('Delete', 'extend-wp'))
+            'delete' => sprintf(
+                '<a href="%s" class="cstm_tbl_delete" id="delete-%s-%s" style="color: red;">%s</a>',
+                wp_nonce_url(admin_url($this->page_link . '&id=' . $item[$this->db_search_key] . '&action=delete'), $this->page_link . '_delete'),
+                esc_attr($item[$this->db_search_key]),
+                esc_attr($this->list_name),
+                __('Delete', 'extend-wp')
+            ),
+            'duplicate' => sprintf(
+                '<a href="%s" class="cstm_tbl_duplicate" id="duplicate-%s-%s">%s</a>',
+                wp_nonce_url(admin_url($this->page_link . '&id=' . $item[$this->db_search_key] . '&action=duplicate'), $this->page_link . '_duplicate'),
+                esc_attr($item[$this->db_search_key]),
+                esc_attr($this->list_name),
+                __('Duplicate', 'extend-wp')
+            )
         );
         return apply_filters('ewp_row_actions_' . $this->page_id . '_filter', $actions, $item);
     }
@@ -366,9 +379,67 @@ class AWM_List_Table extends WP_List_Table
         if (!isset($_REQUEST['action'])) {
             return '';
         }
-        switch ($_REQUEST['action']) {
+
+        // Sanitize the action
+        $action = sanitize_text_field($_REQUEST['action']);
+
+        // Perform actions based on the sanitized action
+        switch ($action) {
             case 'delete':
-                awm_custom_content_delete($this->_args['ewp_custom_args']['id'], explode(',', $_REQUEST['id']));
+                // Verify nonce for delete action
+                if (!check_admin_referer($this->page_link . '_delete')) {
+                    wp_die(__('Invalid delete request.', 'extend-wp'));
+                }
+
+                // Ensure IDs are provided and sanitize
+                if (isset($_REQUEST['id'])) {
+                    $ids = explode(',', sanitize_text_field($_REQUEST['id']));
+                    $result = awm_custom_content_delete($this->_args['ewp_custom_args']['id'], $ids);
+
+                    // Display success or failure message
+                    if ($result) {
+                        add_action('admin_notices', function () {
+                            echo '<div class="notice notice-success is-dismissible"><p>' . __('Items deleted successfully.', 'extend-wp') . '</p></div>';
+                        });
+                    } else {
+                        add_action('admin_notices', function () {
+                            echo '<div class="notice notice-error is-dismissible"><p>' . __('Failed to delete items.', 'extend-wp') . '</p></div>';
+                        });
+                    }
+                } else {
+                    wp_die(__('No items selected for deletion.', 'extend-wp'));
+                }
+                break;
+
+            case 'duplicate':
+                // Verify nonce for duplicate action
+                if (!check_admin_referer($this->page_link . '_duplicate')) {
+                    wp_die(__('Invalid duplicate request.', 'extend-wp'));
+                }
+
+                // Ensure ID is provided and sanitize
+                if (isset($_REQUEST['id'])) {
+                    $id = intval($_REQUEST['id']);
+                    $new_id = awm_custom_content_duplicate($this->_args['ewp_custom_args']['id'], $id);
+
+                    // Display success or failure message
+                    if ($new_id) {
+                        add_action('admin_notices', function () use ($new_id) {
+                            echo '<div class="notice notice-success is-dismissible"><p>' . sprintf(__('Item duplicated successfully. New ID: %d', 'extend-wp'), $new_id) . '</p></div>';
+                        });
+                    } else {
+                        add_action('admin_notices', function () {
+                            echo '<div class="notice notice-error is-dismissible"><p>' . __('Failed to duplicate item.', 'extend-wp') . '</p></div>';
+                        });
+                    }
+                } else {
+                    wp_die(__('No item selected for duplication.', 'extend-wp'));
+                }
+                break;
+
+            default:
+                // Handle invalid actions
+                wp_die(__('Invalid action.', 'extend-wp'));
                 break;
         }
     }

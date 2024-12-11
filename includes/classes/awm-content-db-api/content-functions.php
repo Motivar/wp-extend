@@ -371,3 +371,67 @@ if (!function_exists('awm_custom_content_save')) {
     return $object_id;
   }
 }
+if (!function_exists('awm_custom_content_duplicate')) {
+  /**
+   * Duplicates a custom content item and its associated meta data.
+   *
+   * @param string $field The content object type (table name prefix).
+   * @param int    $id    The ID of the content item to duplicate.
+   * 
+   * @return int|false The ID of the new duplicated item, or false on failure.
+   */
+  function awm_custom_content_duplicate($field, $id)
+  {
+    // Return false if no valid ID is provided
+    if (empty($id)) {
+      return false;
+    }
+
+    // Fetch the main content data for the given ID
+    $original_content = awm_get_db_content($field, [
+      'fields' => '*',         // Select all fields from the main table
+      'include' => [$id]       // Limit results to the specific content ID
+    ]);
+
+    // Return false if the content item does not exist
+    if (empty($original_content)) {
+      return false;
+    }
+
+
+
+    // Extract the first (and only) item from the results
+    $original_content = $original_content[0];
+
+    // Fetch all meta data associated with the original content
+    $original_meta = awm_get_db_content_meta($field, $id);
+
+    // Remove fields that should not be duplicated
+    unset($original_content['content_id']); // Remove the unique ID of the original content
+    unset($original_content['modified']); // Remove the unique ID of the original content
+    unset($original_content['created']);   // Remove the creation timestamp of the original content
+    $original_content['user_id'] = get_current_user_id(); // Set the user ID to the current user
+    $original_content['content_title'] = $original_content['content_title'] . '-copy';
+    // Insert the duplicated content into the main table
+    $new_id = awm_insert_db_content($field, $original_content);
+    // If the insert fails, return false  
+    if (!$new_id) {
+      return false;
+    }
+
+    // If there is meta data for the original content, duplicate it
+    if (!empty($original_meta)) {
+      awm_insert_db_content_meta($field, $new_id, $original_meta);
+    }
+
+    // Trigger an action hook for any additional functionality after duplication
+    do_action($field . '_after_duplicate_action', $new_id, $id);
+
+    // Clear the cache and delete all related transients
+    wp_cache_flush();
+    awm_delete_transient_all();
+
+    // Return the ID of the newly duplicated content
+    return $new_id;
+  }
+}
