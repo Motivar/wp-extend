@@ -970,6 +970,9 @@ function awm_display_meta_value($meta, $data, $postId = 0, $external_value = '')
         case 'repeater':
             if (isset($data['include']) && !empty($data['include'])) {
                 $finalShow = array();
+                if (empty($value)) {
+                    continue;
+                }
                 foreach ($value as $val) {
                     $row_val = array();
                     foreach ($data['include'] as $key => $rep_data) {
