@@ -583,6 +583,7 @@ if (!function_exists('awm_fields_positions')) {
         'item_name' => __('Position', 'extend-wp'),
         'label' => __('Positions', 'extend-wp'),
         'case' => 'repeater',
+        'admin_list' => true,
         'include' => array(
           'case' => array(
             'label' => __('Position', 'extend-wp'),
@@ -590,6 +591,7 @@ if (!function_exists('awm_fields_positions')) {
             'options' => awm_position_options(),
             'label_class' => array('awm-needed'),
             'attributes' => array('data-callback' => "awm_get_position_settings"),
+            'admin_list' => true
           ),
           'position_content' => array(
             'label' => __('Position configuration', 'extend-wp'),

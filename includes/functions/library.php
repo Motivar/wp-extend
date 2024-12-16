@@ -967,6 +967,27 @@ function awm_display_meta_value($meta, $data, $postId = 0, $external_value = '')
     $original_value = $value;
     $case = isset($data['admin_list_view']) ? $data['admin_list_view'] : $data['case'];
     switch ($case) {
+        case 'repeater':
+            if (isset($data['include']) && !empty($data['include'])) {
+                $finalShow = array();
+                foreach ($value as $val) {
+                    $row_val = array();
+                    foreach ($data['include'] as $key => $rep_data) {
+                        if (!isset($rep_data['admin_list']) || !$rep_data['admin_list']) {
+                            continue;
+                        }
+                        $rep_val = isset($val[$key]) ? $val[$key] : '';
+                        if (!empty($rep_val)) {
+                            $rep_val = awm_display_meta_value($key, $rep_data, $awm_post_id, $rep_val);
+                        }
+
+                        $row_val[] = $rep_data['label'] . ': ' . $rep_val;
+                    }
+                    $finalShow[] = implode(' | ', $row_val);
+                }
+                $value = implode('<br>', $finalShow);
+            }
+            break;
         case 'input':
             switch ($data['type']) {
                 case 'checkbox':
