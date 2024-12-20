@@ -27,73 +27,98 @@ class AWM_DB_Creator
 
     public function dbUpdate($dbData)
     {
-        $databasesUpdated = array();
-        $databasesNotUpdated = array();
-        foreach ($dbData as $table => $tableData) {
-            /*check tableVersion*/
-            $registeredVersion = get_option('ewp_version_' . $table) ?: 0;
-            $currentVersion = isset($tableData['version']) ? $tableData['version'] : strtotime('now');
+        $databasesUpdated = [];
+        $databasesNotUpdated = [];
 
-            // If there is no version registered or there is a mismatch between versions, prepare the sql query
-            if ($currentVersion != $registeredVersion || $registeredVersion === 0) {
-                require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-                global $wpdb;
-                $charset_collate = $wpdb->get_charset_collate();
-                $sqlInsertString = $tableKeys = $foreignKeys = array();
-                if (isset($tableData['data']) && !empty($tableData['data'])) {
-                    foreach ($tableData['data'] as $tableKey => $tableSettings) {
-                        $sqlInsertString[] = $tableKey . ' ' . $tableSettings;
-                        $tableKeys[$tableKey] = $tableSettings;
-                    }
-                }
-                if (isset($tableData['primaryKey'])) {
-                    $sqlInsertString[] = 'PRIMARY KEY  (' . $tableData['primaryKey'] . ')';
+        try {
+            foreach ($dbData as $table => $tableData) {
+                // Validate table name and data
+                if (empty($table) || empty($tableData)) {
+                    throw new Exception(sprintf(__('Invalid table or data for table: %s.', 'filox'), $table));
                 }
 
-                if (isset($tableData['index'])) {
-                    $sqlInsertString[] = 'INDEX(' . $tableData['index'] . ')';
-                }
+                /* Check table version */
+                $registeredVersion = get_option('ewp_version_' . $table) ?: 0;
+                $currentVersion = isset($tableData['version']) ? $tableData['version'] : strtotime('now');
 
-                if (isset($tableData['foreignKey']) && !empty($tableData['foreignKey'])) {
-                    foreach ($tableData['foreignKey'] as $foreignKey) {
-                        $sqlInsertString[] = "FOREIGN KEY ({$foreignKey['key']}) REFERENCES {$wpdb->prefix}{$foreignKey['ref']}";
-                        $foreignKeys[$tableKey] = $foreignKey['ref'];
-                    }
-                }
+                // If there is no version registered or there is a mismatch between versions, prepare the SQL query
+                if ($currentVersion != $registeredVersion || $registeredVersion === 0) {
+                    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+                    global $wpdb;
+                    $wpdb->show_errors();
 
+                    $charset_collate = $wpdb->get_charset_collate();
+                    $sqlInsertString = $tableKeys = $foreignKeys = [];
 
-
-                $sql = 'CREATE TABLE IF NOT EXISTS ' . $wpdb->base_prefix . $table . ' (' . implode(',', $sqlInsertString) . ') ' . $charset_collate;
-                // If the case was a version mismatch, alter the table 
-                dbDelta($sql);
-                if ($currentVersion !== $registeredVersion && $registeredVersion !== 0) {
-                    foreach ($tableKeys as $id => $data) {
-                        $row = $wpdb->get_results("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '$wpdb->base_prefix$table' AND column_name = '$id'");
-                        if (empty($row)) {
-                            $wpdb->query("ALTER TABLE $wpdb->base_prefix$table ADD $id $data");
+                    if (isset($tableData['data']) && !empty($tableData['data'])) {
+                        foreach ($tableData['data'] as $tableKey => $tableSettings) {
+                            $sqlInsertString[] = $tableKey . ' ' . $tableSettings;
+                            $tableKeys[$tableKey] = $tableSettings;
                         }
                     }
-                }
-                $error = $wpdb->last_error;
-                if (empty($error)) {
+
+                    if (isset($tableData['primaryKey'])) {
+                        $sqlInsertString[] = 'PRIMARY KEY  (' . $tableData['primaryKey'] . ')';
+                    }
+
+                    if (isset($tableData['index'])) {
+                        $sqlInsertString[] = 'INDEX(' . $tableData['index'] . ')';
+                    }
+
+                    if (isset($tableData['foreignKey']) && !empty($tableData['foreignKey'])) {
+                        foreach ($tableData['foreignKey'] as $foreignKey) {
+                            $sqlInsertString[] = "FOREIGN KEY ({$foreignKey['key']}) REFERENCES {$wpdb->prefix}{$foreignKey['ref']}";
+                            $foreignKeys[$foreignKey['key']] = $foreignKey['ref'];
+                        }
+                    }
+
+                    $sql = 'CREATE TABLE IF NOT EXISTS ' . $wpdb->base_prefix . $table . ' (' . implode(',', $sqlInsertString) . ') ' . $charset_collate;
+
+                    // Execute the SQL query
+                    dbDelta($sql);
+
+                    // Handle version mismatch and add missing columns
+                    if ($currentVersion !== $registeredVersion && $registeredVersion !== 0) {
+                        foreach ($tableKeys as $id => $data) {
+                            $row = $wpdb->get_results("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{$wpdb->base_prefix}{$table}' AND column_name = '{$id}'");
+                            if (empty($row)) {
+                                $wpdb->query("ALTER TABLE {$wpdb->base_prefix}{$table} ADD {$id} {$data}");
+                            }
+                        }
+                    }
+
+                    // Check for errors
+                    if (!empty($wpdb->last_error)) {
+                        $message = sprintf(__('Table "%s" not updated! The error is: <strong>%s</strong>.', 'filox'), $table, $wpdb->last_error);
+                        $databasesNotUpdated[] = $message;
+                        continue; // Skip to the next table
+                    }
+
+                    // Update table version
                     update_option('ewp_version_' . $table, $currentVersion, false);
-                    $message = sprintf(__('Table "%s" just updated! Current versions is %s.', 'filox'), $table, $currentVersion);
+                    $message = sprintf(__('Table "%s" just updated! Current version is %s.', 'filox'), $table, $currentVersion);
                     $databasesUpdated[] = $message;
+
+                    // Trigger custom actions
                     if (function_exists('filoxUpdateActivity')) {
-                        filoxUpdateActivity(array('name' => 'flx', 'type' => 'dbUpdate', 'comment' => array('table' => $table, 'version' => $currentVersion)));
+                        filoxUpdateActivity(['name' => 'flx', 'type' => 'dbUpdate', 'comment' => ['table' => $table, 'version' => $currentVersion]]);
                     }
                     do_action('ewp_database_updated', $table, $tableData);
-                    continue;
                 }
-                $message = sprintf(__('Table "%s" not udpated! The error is: <strong>%s</strong>.', 'filox'), $table, $error);
-                $databasesNotUpdated[] = $message;
             }
+        } catch (Exception $e) {
+            error_log('Error in dbUpdate: ' . $e->getMessage());
+            $databasesNotUpdated[] = sprintf(__('Error in table "%s": %s', 'filox'), $table, $e->getMessage());
         }
+
+        // Display messages for updated tables
         if (!empty($databasesUpdated)) {
             $message = new Extend_WP_Notices();
             $message->set_message(implode('<br>', $databasesUpdated));
             $message->set_class('updated');
         }
+
+        // Display error messages for tables that failed to update
         if (!empty($databasesNotUpdated)) {
             $error_message = new Extend_WP_Notices();
             $error_message->set_message(implode('<br>', $databasesNotUpdated));
@@ -116,31 +141,41 @@ class AWM_DB_Creator
 
     public static function get_db_data($tableName, $select = '*', $where_clause = '', $orderBy = array(), $limit = '', $offset = 0, $prepare_only = false, $debug = false)
     {
-        if (isset($tableName) && isset($select)) {
-            // This is the format of the array to be passed in this function. Once the functionality is tested it will be removed from this function and transfered into proper documentation
+        try {
+            if (!isset($tableName) || !isset($select)) {
+                throw new Exception('Table name or select clause is missing.');
+            }
 
-
-            // Call wpdb to get accest to table prexis
+            // Call wpdb to get access to table prefix
             global $wpdb;
 
-            // Add the table prefix on the passed in datatable
+            // Enable error logging for wpdb
+            $wpdb->show_errors();
+
+            // Add the table prefix to the passed-in data table
             $tableName = "{$wpdb->prefix}$tableName";
 
-            // If "select" is an array implode it with seperating commas. If select was not an array select everything
+            // If "select" is an array, implode it with separating commas. If not, select everything
             $select = is_array($select) ? implode(',', $select) : "*";
-            $sql = array();
+            $sql = [];
+
             // Prepare the SQL query
             $sql[] = "SELECT {$select} FROM {$tableName}";
 
-            // Pass in the where_clause array to prepare the "WHERE" part of the SQL query
+            // Add WHERE clause if provided
             if ($where_clause !== '' && !empty($where_clause)) {
                 $sql[] = "WHERE " . self::recursiveQueryBuilder($where_clause);
             }
 
+            // Add ORDER BY clause if provided
             if (!empty($orderBy)) {
-                $sql[] = "ORDER BY {$orderBy["column"]} {$orderBy["type"]}";
+                if (!isset($orderBy['column']) || !isset($orderBy['type'])) {
+                    throw new Exception('Invalid orderBy clause. "column" and "type" are required.');
+                }
+                $sql[] = "ORDER BY {$orderBy['column']} {$orderBy['type']}";
             }
 
+            // Add LIMIT and OFFSET clauses if provided
             if ($limit > 0 && $limit !== '') {
                 $sql[] = "LIMIT {$limit}";
             }
@@ -148,44 +183,70 @@ class AWM_DB_Creator
                 $sql[] = "OFFSET {$offset}";
             }
 
+            // Build the final SQL query
             $sql = implode(' ', $sql);
 
+            // Debug mode
             if ($debug) {
-                print_r($wpdb->last_error);
-                echo PHP_EOL . $sql . PHP_EOL;
+                error_log("SQL Query: {$sql}");
+                error_log("Last Error: {$wpdb->last_error}");
             }
+
+            // If prepare_only is true, return the SQL query
             if ($prepare_only) {
                 return $sql;
             }
-            if ($wpdb->last_error === '') {
-                // Query the database and return the results.
-                return $wpdb->get_results($sql, ARRAY_A);
+
+            // Execute the query and check for errors
+            $results = $wpdb->get_results($sql, ARRAY_A);
+
+            if ($wpdb->last_error) {
+                throw new Exception('Database query failed: ' . $wpdb->last_error);
             }
 
-            return false;
+            return $results;
+        } catch (Exception $e) {
+            // Log the error
+            error_log('SQL Error: ' . $e->getMessage());
+            return false; // Return false to indicate failure
         }
     }
 
 
 
-
     public static function insert_db_data($tableName, $data, $primary_key = 'id')
     {
-        if ($tableName && $data && !empty($data)) {
-            // Call wpdb to get accest to table prefix
-            global $wpdb;
+        try {
+            if ($tableName && $data && !empty($data)) {
+                // Call wpdb to get access to table prefix
+                global $wpdb;
 
-            // Add the table prefix on the passed in datatable
-            $tableName = "{$wpdb->prefix}$tableName";
-            $final_data = array();
-            foreach ($data as $key => $value) {
-                $final_data[$key] = stripslashes(maybe_serialize($value));
+                // Enable error handling
+                $wpdb->show_errors();
+
+                // Add the table prefix to the passed-in data table
+                $tableName = "{$wpdb->prefix}$tableName";
+                $final_data = array();
+                foreach ($data as $key => $value) {
+                    $final_data[$key] = stripslashes(maybe_serialize($value));
+                }
+
+                // Insert new row
+                $result = $wpdb->insert($tableName, $final_data);
+
+                // Check for errors
+                if ($result === false) {
+                    throw new Exception('Database insert failed: ' . $wpdb->last_error);
+                }
+
+                return array(
+                    "id" => $wpdb->insert_id,
+                );
             }
-            // insert new row
-            $wpdb->insert($tableName, $final_data);
-            return array(
-                "id" => $wpdb->insert_id,
-            );
+            throw new Exception('Invalid table name or data.');
+        } catch (Exception $e) {
+            error_log('SQL Error: ' . $e->getMessage());
+            return false; // Return false to indicate failure
         }
     }
 
@@ -201,27 +262,48 @@ class AWM_DB_Creator
 
     public static function update_db_data($tableName, $updateClause, $where_clause = '')
     {
-        // Check that the parametrs are valid
-        if (isset($tableName) && isset($updateClause) && isset($where_clause)) {
-            // Call wpdb to get the table prexix
+        try {
+            // Check that the parameters are valid
+            if (empty($tableName) || empty($updateClause)) {
+                throw new Exception('Invalid parameters: Table name and update clause are required.');
+            }
+
+            // Call wpdb to get the table prefix
             global $wpdb;
+
+            // Enable error logging for wpdb
+            $wpdb->show_errors();
 
             // Add the prefix to the table name
             $tableName = "{$wpdb->prefix}{$tableName}";
 
             // Format the update clause
             $updateClause = self::functionToFormatTheClause($updateClause);
+            if (empty($updateClause)) {
+                throw new Exception('Invalid update clause: It cannot be empty.');
+            }
 
             // Prepare the SQL query
-            $sql = "UPDATE {$tableName} SET {$updateClause} ";
-            // Pass in the where_clause array to prepare the "WHERE" part of the SQL query
-            if ($where_clause !== '' && !empty($where_clause)) {
-                $sql .= "WHERE " . self::recursiveQueryBuilder($where_clause);
+            $sql = "UPDATE {$tableName} SET {$updateClause}";
+
+            // Add the WHERE clause if provided
+            if (!empty($where_clause)) {
+                $sql .= " WHERE " . self::recursiveQueryBuilder($where_clause);
             }
-            // Run the update
+
+            // Run the update query
             $query = $wpdb->query($sql);
 
-            return $query !== false ? 1 : 0;
+            // Check for errors
+            if ($query === false) {
+                throw new Exception('Database update failed: ' . $wpdb->last_error);
+            }
+
+            return $query; // Return the number of rows affected
+        } catch (Exception $e) {
+            // Log the error
+            error_log('SQL Error: ' . $e->getMessage());
+            return false; // Return false to indicate failure
         }
     }
 
@@ -236,21 +318,43 @@ class AWM_DB_Creator
 
     public static function delete_db_data($tableName, $where_clause = '')
     {
-        // Call wpdb to get the table prexix
-        global $wpdb;
+        try {
+            if (empty($tableName)) {
+                throw new Exception('Table name is required.');
+            }
 
-        // Add the prefix to the table name
-        $tableName = "{$wpdb->prefix}{$tableName}";
+            // Call wpdb to get the table prefix
+            global $wpdb;
 
-        // Prepare the SQL query
-        $sql = "DELETE FROM {$tableName} ";
+            // Enable error logging for wpdb
+            $wpdb->show_errors();
 
-        if ($where_clause !== '' && !empty($where_clause)) {
-            // Pass in the where_clause array to prepare the "WHERE" part of the SQL query
-            $sql .= "WHERE " . self::recursiveQueryBuilder($where_clause);
-            // Query the database and store the results.
+            // Add the prefix to the table name
+            $tableName = "{$wpdb->prefix}{$tableName}";
 
-            return $wpdb->query($sql);
+            // Prepare the SQL query
+            $sql = "DELETE FROM {$tableName}";
+
+            // Add the WHERE clause if provided
+            if (!empty($where_clause)) {
+                $sql .= " WHERE " . self::recursiveQueryBuilder($where_clause);
+            } else {
+                throw new Exception('A WHERE clause is required for DELETE operations to prevent accidental data loss.');
+            }
+
+            // Execute the query
+            $result = $wpdb->query($sql);
+
+            // Check for errors
+            if ($result === false) {
+                throw new Exception('Database delete failed: ' . $wpdb->last_error);
+            }
+
+            return $result; // Return the number of rows affected
+        } catch (Exception $e) {
+            // Log the error
+            error_log('SQL Error in delete_db_data: ' . $e->getMessage());
+            return false; // Return false to indicate failure
         }
     }
 
@@ -264,10 +368,21 @@ class AWM_DB_Creator
      */
     public static function insert_update_db_data($tableName, $data, $where_clause = array(), $unique = false)
     {
-        if (!empty($tableName)) {
+        try {
+            if (empty($tableName)) {
+                throw new Exception('Table name is required.');
+            }
+
+            if (empty($data)) {
+                throw new Exception('Data to insert or update is required.');
+            }
+
+            // If a WHERE clause is provided, check for existing data
             if (!empty($where_clause)) {
                 $results = self::get_db_data($tableName, '*', $where_clause);
+
                 if (!empty($results)) {
+                    // Handle unique constraint if specified
                     if ($unique) {
                         foreach ($results as $result_key => $result) {
                             if ($result_key != 0) {
@@ -281,17 +396,34 @@ class AWM_DB_Creator
                                         ),
                                     )
                                 );
+                                // Delete duplicate rows
                                 self::delete_db_data($tableName, $d_where_clause);
                             }
                         }
                     }
-                    return self::update_db_data($tableName, $data, $where_clause);
+
+                    // Perform update if data exists
+                    $update_result = self::update_db_data($tableName, $data, $where_clause);
+                    if ($update_result === false) {
+                        throw new Exception('Database update failed.');
+                    }
+
+                    return $update_result; // Return the number of rows updated
                 }
             }
 
-            return self::insert_db_data($tableName, $data, $unique ?: '');
+            // Perform insert if no existing data
+            $insert_result = self::insert_db_data($tableName, $data, $unique ?: '');
+            if ($insert_result === false) {
+                throw new Exception('Database insert failed.');
+            }
+
+            return $insert_result; // Return the ID of the inserted row
+        } catch (Exception $e) {
+            // Log the error
+            error_log('SQL Error in insert_update_db_data: ' . $e->getMessage());
+            return false; // Return false to indicate failure
         }
-        return false;
     }
 
 

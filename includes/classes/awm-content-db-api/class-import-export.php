@@ -29,7 +29,20 @@ class Extend_WP_Import_Export
    'method' => 'post',
    'php_callback' => [$this, 'import'],
    'permission_callback' => 'ewp_rest_check_user_is_admin',
+   'args' => array(
+    'content_type' => array(
+     'required' => true,
+     'type' => 'string',
+     'validate_callback' => 'rest_validate_request_arg',
+    ),
+    'content' => array(
+     'required' => true,
+     'type' => 'array',
+     'validate_callback' => 'rest_validate_request_arg',
+    )
+   ),
   );
+  
   $rest['ewp-export'] = array(
    'endpoint' => 'export',
    'namespace' =>  'ewp/v1',
@@ -59,23 +72,34 @@ class Extend_WP_Import_Export
  {
   if (isset($request)) {
    $params = $request->get_params();
-   print_r($params);
-   die();
-   if ($method === 'json') {
-    $data = json_decode(file_get_contents($_FILES['file']['tmp_name']), true);
-   } elseif ($method === 'php') {
-    $data = unserialize(file_get_contents($_FILES['file']['tmp_name']));
-   } else {
-    return new WP_Error('invalid_method', 'Invalid import method.', array('status' => 400));
+   $content_type = $params['content_type'];
+   $content = $params['content'];
+   if (empty($content_type) || empty($content)) {
+    return new WP_Error('no_content', 'No content provided', array('status' => 400));
    }
-   if (empty($data)) {
-    return new WP_Error('no_data', 'No data to import', array('status' => 400));
-   }
-   $this->import_content($content_types, $data);
-   return rest_ensure_response('Imported');
+   $this->import_content($content_type, $content);
+   return true;
   }
   return new WP_Error('no_params', 'No parameters provided', array('status' => 400));
  }
+
+ public function import_content($content_type, $data)
+ {
+  foreach ($data as $content_data) {
+   $meta = isset($content_data['meta']) ? $content_data['meta'] : array();
+   unset($content_data['meta']);
+   $import_action = awm_insert_db_content($content_type, $content_data, true);
+   if (!$import_action) {
+    return new WP_Error('not_imported_id', 'Id:' . $content_data['content_id'], array('status' => 400));
+   }
+   if (!empty($meta)) {
+    awm_insert_db_content_meta($content_type, $content_data['content_id'], $meta);
+   }
+  }
+  return true;
+ }
+
+
 
  /**
   * insert new coupons
@@ -176,7 +200,7 @@ class Extend_WP_Import_Export
     'case' => 'select',
     'options' => array(
      'json' => array('label' => __('JSON', 'extend-wp')),
-     'php' => array('label' => __('PHP', 'extend-wp')),
+     //'php' => array('label' => __('PHP', 'extend-wp')),
     ),
     'show-when' => array('case' => array('values' => array('export' => true))),
    ),
@@ -189,6 +213,12 @@ class Extend_WP_Import_Export
     'show-when' => array('case' => array('values' => array('import' => true))),
     'explanation' => __('Please upload a JSON file', 'extend-wp')
    ),
+   'import_message' => array(
+    'case' => 'html',
+    'show-when' => array('case' => array('values' => array('import' => true))),
+    'value' => '<div id="import-message"></div>',
+    'exclude_meta' => true,
+   )
   );
  }
 }

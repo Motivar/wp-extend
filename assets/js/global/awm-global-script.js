@@ -64,8 +64,27 @@ function ewp_jsVanillaSerialize(form, returnAsObject = false) {
 
         }
     }
-    return serialized;
+    // Convert serialized data to an object if returnAsObject is true
+    if (returnAsObject) {
+        var serializedObject = {};
+        serialized.forEach(function (item) {
+            var pair = item.split('=');
+            var key = decodeURIComponent(pair[0]);
+            var value = decodeURIComponent(pair[1] || '');
+            if (key in serializedObject) {
+                // Handle multiple values for the same key (e.g., checkboxes)
+                if (!Array.isArray(serializedObject[key])) {
+                    serializedObject[key] = [serializedObject[key]];
+                }
+                serializedObject[key].push(value);
+            } else {
+                serializedObject[key] = value;
+            }
+        });
+        return serializedObject;
+    }
 
+    return serialized; // Return as a query string array if returnAsObject is false
 }
 
 
@@ -699,7 +718,6 @@ function awm_serialize_data(obj, prefix) {
 
 
 }
-
 function awm_ajax_call(options) {
     var defaults = {
         method: 'POST',
@@ -716,9 +734,8 @@ function awm_ajax_call(options) {
 
     const Options = { ...defaults, ...options };
 
-    // Handle GET requests and append data as query string
-    if (Options.method.toLowerCase() === 'get' && typeof Options.data === 'string') {
-        Options.url += '?' + Options.data;
+    if (Options.method.toLowerCase() === 'get' && Options.data.length > 0) {
+        Options.url += '?' + Options.data.join("&");
         Options.data = null;
     }
 
@@ -729,18 +746,9 @@ function awm_ajax_call(options) {
     var request = new XMLHttpRequest();
     request.open(Options.method, Options.url, true);
 
-    // Set headers if not using FormData
-    if (!(Options.data instanceof FormData)) {
-        Options.headers.forEach(function (header) {
-            request.setRequestHeader(header.header, header.value);
-        });
-    } else {
-        // Always set the X-WP-Nonce header
-        const nonceHeader = Options.headers.find(header => header.header === 'X-WP-Nonce');
-        if (nonceHeader) {
-            request.setRequestHeader(nonceHeader.header, nonceHeader.value);
-        }
-    }
+    Options.headers.forEach(function (header) {
+        request.setRequestHeader(header.header, header.value);
+    });
 
     request.onreadystatechange = function () {
         if (request.readyState === 4) {
@@ -785,8 +793,7 @@ function awm_ajax_call(options) {
     }
 
     try {
-        // Send FormData directly if it's a FormData object, otherwise send JSON
-        request.send(Options.data instanceof FormData ? Options.data : JSON.stringify(Options.data));
+        request.send(Options.data ? JSON.stringify(Options.data) : null);
     } catch (e) {
         console.error("Error sending the request: ", e);
     }

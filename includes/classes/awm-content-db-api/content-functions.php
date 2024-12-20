@@ -13,14 +13,14 @@ if (!function_exists('awm_insert_db_content')) {
    *@return int/boolean the id if completed successfully otherwise false
    */
 
-  function awm_insert_db_content($field, $args)
+  function awm_insert_db_content($field, $args, $force = false)
   {
     if (empty($field) || empty($args)) {
       return false;
     }
     $table = $field . '_main';
     $where_clause = array();
-    if (isset($args['content_id']) && !empty($args['content_id']) && $args['content_id']) {
+    if (isset($args['content_id']) && !empty($args['content_id']) && $args['content_id'] && !$force) {
       unset($args['created']);
       unset($args['user_id']);
       $where_clause = array(
@@ -35,10 +35,10 @@ if (!function_exists('awm_insert_db_content')) {
     }
     $result = AWM_DB_Creator::insert_update_db_data($table, $args, $where_clause, 'content_id');
     if (!empty($where_clause) && $result) {
-      return $args['content_id'];
+      return (isset($args['content_id']) && !empty($args['content_id'])) ? $args['content_id'] : false;
     }
     if (isset($result['id'])) {
-      return $result['id'];
+      return isset($result['id']) ? $result['id'] : false;
     }
     return false;
   }
@@ -163,9 +163,6 @@ if (!function_exists('awm_get_db_content')) {
                 WHERE {$meta_where_clause}
             ";
 
-      // Debugging the generated query
-      // echo $meta_query_sql;
-      // die();
 
       // Execute the query and fetch content IDs
       $meta_query_results = $wpdb->get_col($meta_query_sql);
