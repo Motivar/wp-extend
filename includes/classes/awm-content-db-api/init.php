@@ -8,3 +8,4 @@ require_once 'class-content-setup.php';
 require_once 'class-content-proxy.php';
 require_once 'content-functions.php';
 require_once 'class-defaults.php';
+require_once 'class-import-export.php';

@@ -794,6 +794,7 @@ if (!function_exists('awmInputFields')) {
       'term' => array('label' => __('Taxonomies', 'extend-wp'), 'field-choices' => awm_term_options()),
       'taxonomies' => array('label' => __('Taxonomies object', 'extend-wp')),
       'ewp_content' =>  array('label' => __('Ewp Content', 'extend-wp'), 'field-choices' => ewp_options()),
+      'ewp_content_types' =>  array('label' => __('Ewp Content Types', 'extend-wp')),
       'function' => array('label' => __('PHP Function', 'extend-wp'), 'field-choices' => array(
         'callback' => array(
           'case' => 'input',

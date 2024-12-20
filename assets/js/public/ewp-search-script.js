@@ -103,7 +103,7 @@ function ewp_search_action(form, options, show_results, paged) {
         document.body.classList.add('ewp-search-loading');
     }
     /* set the data with the paged variable*/
-    var send_data = jsVanillaSerialize(form);
+    var send_data = ewp_jsVanillaSerialize(form);
     send_data.push("paged=" + paged);
     options.paged = paged;
     var defaults = {

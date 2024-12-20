@@ -347,7 +347,7 @@ function awm_options_rest_call(form, endpoint, callback, method) {
         console.log('no such form');
     }
 
-    var form_data = jsVanillaSerialize(document.getElementById(form));
+    var form_data = ewp_jsVanillaSerialize(document.getElementById(form));
 
     var defaults = {
         method: method,
