@@ -380,7 +380,6 @@ class AWM_DB_Creator
             // If a WHERE clause is provided, check for existing data
             if (!empty($where_clause)) {
                 $results = self::get_db_data($tableName, '*', $where_clause);
-
                 if (!empty($results)) {
                     // Handle unique constraint if specified
                     if ($unique) {
@@ -410,6 +409,9 @@ class AWM_DB_Creator
 
                     return $update_result; // Return the number of rows updated
                 }
+            }
+            if ($unique && isset($data[$unique]) && !empty($data[$unique])) {
+                unset($data[$unique]);
             }
 
             // Perform insert if no existing data

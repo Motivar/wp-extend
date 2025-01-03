@@ -13,16 +13,12 @@ if (!function_exists('awm_insert_db_content')) {
    *@return int/boolean the id if completed successfully otherwise false
    */
 
-  function awm_insert_db_content($field, $args, $extra_where_args = array())
+  function awm_insert_db_content($field, $args, $where_args = array('content_id'))
   {
     if (empty($field) || empty($args)) {
       return false;
     }
     $table = $field . '_main';
-    $where_args = array('content_id');
-    if (!empty($extra_where_args)) {
-      $where_args = array_merge($where_args, $extra_where_args);
-    }
     $where_clause = array();
     $clauses = array();
     foreach ($where_args as $where_arg) {

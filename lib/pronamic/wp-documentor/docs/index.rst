@@ -1,2 +1,0 @@
-Pronamic WordPress Documentor
------------------------------
