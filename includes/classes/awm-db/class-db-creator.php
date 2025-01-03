@@ -216,37 +216,50 @@ class AWM_DB_Creator
 
     public static function insert_db_data($tableName, $data, $primary_key = 'id')
     {
+        // Call wpdb to get access to table prefix
+        global $wpdb;
+
+        // Enable error handling
+        $wpdb->show_errors();
+
         try {
-            if ($tableName && $data && !empty($data)) {
-                // Call wpdb to get access to table prefix
-                global $wpdb;
-
-                // Enable error handling
-                $wpdb->show_errors();
-
-                // Add the table prefix to the passed-in data table
-                $tableName = "{$wpdb->prefix}$tableName";
-                $final_data = array();
-                foreach ($data as $key => $value) {
-                    $final_data[$key] = stripslashes(maybe_serialize($value));
-                }
-
-                // Insert new row
-                $result = $wpdb->insert($tableName, $final_data);
-
-                // Check for errors
-                if ($result === false) {
-                    throw new Exception('Database insert failed: ' . $wpdb->last_error);
-                }
-
-                return array(
-                    "id" => $wpdb->insert_id,
-                );
+            if (!$tableName || !$data || empty($data)) {
+                throw new Exception('Invalid table name or data.');
             }
-            throw new Exception('Invalid table name or data.');
+
+            // Add the table prefix to the passed-in data table
+            $tableName = "{$wpdb->prefix}$tableName";
+            $final_data = array();
+
+            // Remove the primary key if it's present in the data
+            if (isset($data[$primary_key])) {
+                unset($data[$primary_key]);
+            }
+
+            // Prepare the data for insertion
+            foreach ($data as $key => $value) {
+                $final_data[$key] = maybe_serialize($value);
+            }
+
+            // Insert new row
+            $result = $wpdb->insert($tableName, $final_data);
+
+            // Check for errors in insertion
+            if ($result === false) {
+                throw new Exception('Database insert failed: ' . $wpdb->last_error);
+            }
+            $last_insert_id = $wpdb->get_var("SELECT LAST_INSERT_ID()");
+            if (!$last_insert_id) {
+                throw new Exception('Unable to fetch last insert ID.');
+            }
+
+            return array(
+                $primary_key => $last_insert_id,
+            );
         } catch (Exception $e) {
+            // Log the error and return false
             error_log('SQL Error: ' . $e->getMessage());
-            return false; // Return false to indicate failure
+            return false;
         }
     }
 
@@ -260,7 +273,7 @@ class AWM_DB_Creator
      * @see where_clause (To be implemented after testing)
      */
 
-    public static function update_db_data($tableName, $updateClause, $where_clause = '')
+    public static function update_db_data($tableName, $updateClause, $where_clause = '', $unique = false)
     {
         try {
             // Check that the parameters are valid
@@ -295,11 +308,12 @@ class AWM_DB_Creator
             $query = $wpdb->query($sql);
 
             // Check for errors
-            if ($query === false) {
+            if ($query === false || !empty($wpdb->last_error)) {
                 throw new Exception('Database update failed: ' . $wpdb->last_error);
             }
 
-            return $query; // Return the number of rows affected
+            return true; // Query executed successfully, regardless of rows affected
+
         } catch (Exception $e) {
             // Log the error
             error_log('SQL Error: ' . $e->getMessage());
@@ -383,6 +397,7 @@ class AWM_DB_Creator
                 if (!empty($results)) {
                     // Handle unique constraint if specified
                     if ($unique) {
+                        $data[$unique] = $results[0][$unique];
                         foreach ($results as $result_key => $result) {
                             if ($result_key != 0) {
                                 $d_where_clause = array(
@@ -402,24 +417,25 @@ class AWM_DB_Creator
                     }
 
                     // Perform update if data exists
-                    $update_result = self::update_db_data($tableName, $data, $where_clause);
+                    $update_result = self::update_db_data($tableName, $data, $where_clause, $unique);
+                   
                     if ($update_result === false) {
                         throw new Exception('Database update failed.');
                     }
+                    if ($unique) {
+                        return array(
+                            $unique => $results[0][$unique]
+                        );
+                    }
 
-                    return $update_result; // Return the number of rows updated
+                    return $update_result; // Return boolean
                 }
             }
-            if ($unique && isset($data[$unique]) && !empty($data[$unique])) {
-                unset($data[$unique]);
-            }
-
             // Perform insert if no existing data
             $insert_result = self::insert_db_data($tableName, $data, $unique ?: '');
             if ($insert_result === false) {
                 throw new Exception('Database insert failed.');
             }
-
             return $insert_result; // Return the ID of the inserted row
         } catch (Exception $e) {
             // Log the error

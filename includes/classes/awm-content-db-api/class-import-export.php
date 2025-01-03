@@ -88,12 +88,13 @@ class Extend_WP_Import_Export
   foreach ($data as $content_data) {
    $meta = isset($content_data['meta']) ? $content_data['meta'] : array();
    unset($content_data['meta']);
-   $import_action = awm_insert_db_content($content_type, $content_data, array('hash'));
-   if (!$import_action) {
+   $import_id = awm_insert_db_content($content_type, $content_data, array('hash'));
+
+   if (!$import_id) {
     return new WP_Error('not_imported_id', 'Id:' . $content_data['content_id'], array('status' => 400));
    }
    if (!empty($meta)) {
-    awm_insert_db_content_meta($content_type, $content_data['content_id'], $meta);
+    awm_insert_db_content_meta($content_type, $import_id, $meta);
    }
   }
   return true;

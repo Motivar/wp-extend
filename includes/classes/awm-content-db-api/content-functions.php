@@ -37,11 +37,9 @@ if (!function_exists('awm_insert_db_content')) {
       }
     }
     $result = AWM_DB_Creator::insert_update_db_data($table, $args, $where_clause, 'content_id');
-    if (!empty($where_clause) && $result) {
-      return (isset($args['content_id']) && !empty($args['content_id'])) ? $args['content_id'] : false;
-    }
-    if (isset($result['id'])) {
-      return isset($result['id']) ? $result['id'] : false;
+
+    if (isset($result['content_id'])) {
+      return isset($result['content_id']) ? $result['content_id'] : false;
     }
     return false;
   }
@@ -365,6 +363,9 @@ if (!function_exists('awm_custom_content_save')) {
     }
     $metas = awm_meta_table_data($id, $data, $main_table_data['exclude']);
     $object_id = awm_insert_db_content($id, $main_table_data['table_data']);
+    if (!$object_id) {
+      return new WP_Error('not_saved', __('Not saved ', 'extend-wp'));
+    }
     awm_insert_db_content_meta($id, $object_id, $metas);
     do_action($id . '_save_action', $object_id, $data);
     wp_cache_flush();
