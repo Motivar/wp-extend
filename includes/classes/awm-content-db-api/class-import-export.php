@@ -88,7 +88,7 @@ class Extend_WP_Import_Export
   foreach ($data as $content_data) {
    $meta = isset($content_data['meta']) ? $content_data['meta'] : array();
    unset($content_data['meta']);
-   $import_action = awm_insert_db_content($content_type, $content_data, true);
+   $import_action = awm_insert_db_content($content_type, $content_data);
    if (!$import_action) {
     return new WP_Error('not_imported_id', 'Id:' . $content_data['content_id'], array('status' => 400));
    }
