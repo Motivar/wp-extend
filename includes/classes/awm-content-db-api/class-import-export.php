@@ -88,7 +88,7 @@ class Extend_WP_Import_Export
   foreach ($data as $content_data) {
    $meta = isset($content_data['meta']) ? $content_data['meta'] : array();
    unset($content_data['meta']);
-   $import_action = awm_insert_db_content($content_type, $content_data);
+   $import_action = awm_insert_db_content($content_type, $content_data, array('created'));
    if (!$import_action) {
     return new WP_Error('not_imported_id', 'Id:' . $content_data['content_id'], array('status' => 400));
    }
@@ -140,6 +140,12 @@ class Extend_WP_Import_Export
    $data[$content_type] = array();
    foreach ($contents as $content) {
     $content_data = $content;
+    if (!isset($content_data['hash']) || empty($content_data['hash'])) {
+     /* hash check for older version and update*/
+     $hash = md5(serialize($content));
+     $content_data['hash'] = $hash;
+     awm_insert_db_content($content_type, $content_data);
+    }
     $content_data['meta'] = awm_get_db_content_meta($content_type, $content['content_id']);
     $data[$content_type][$content['content_id']] = $content_data;
    }

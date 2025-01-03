@@ -13,25 +13,32 @@ if (!function_exists('awm_insert_db_content')) {
    *@return int/boolean the id if completed successfully otherwise false
    */
 
-  function awm_insert_db_content($field, $args, $force = false)
+  function awm_insert_db_content($field, $args, $extra_where_args = array())
   {
     if (empty($field) || empty($args)) {
       return false;
     }
     $table = $field . '_main';
+    $where_args = array('content_id');
+    if (!empty($extra_where_args)) {
+      $where_args = array_merge($where_args, $extra_where_args);
+    }
     $where_clause = array();
-    if (isset($args['content_id']) && !empty($args['content_id']) && $args['content_id'] && !$force) {
-      unset($args['created']);
-      unset($args['user_id']);
-      $where_clause = array(
-        "clause" => array(
-          array(
-            "clause" => array(
-              array('column' => 'content_id', 'value' => $args['content_id'], 'compare' => '=')
+    $clauses = array();
+    foreach ($where_args as $where_arg) {
+      if (isset($args[$where_arg]) && !empty($args[$where_arg])) {
+        $clauses[] = array('column' => $where_arg, 'value' => $args[$where_arg], 'compare' => '=');
+      }
+      if (!empty($clauses)) {
+        $where_clause = array(
+          "clause" => array(
+            array(
+              "operator" => "AND",
+              "clause" => $clauses
             ),
-          ),
-        )
-      );
+          )
+        );
+      }
     }
     $result = AWM_DB_Creator::insert_update_db_data($table, $args, $where_clause, 'content_id');
     if (!empty($where_clause) && $result) {
@@ -311,6 +318,7 @@ if (!function_exists('awm_main_table_data')) {
     }
     if ($main_data['content_id'] === 'new' || !$main_data['content_id']) {
       $main_data['created'] = current_time('mysql');
+      $main_data['hash'] = md5(serialize($main_data));
       unset($main_data['content_id']);
     }
     return apply_filters('awm_main_table_data_filter', array('table_data' => $main_data, 'exclude' => $exclude), $id, $data);
@@ -407,6 +415,7 @@ if (!function_exists('awm_custom_content_duplicate')) {
     unset($original_content['content_id']); // Remove the unique ID of the original content
     unset($original_content['modified']); // Remove the unique ID of the original content
     unset($original_content['created']);   // Remove the creation timestamp of the original content
+    unset($original_content['hash']);   // Remove the creation timestamp of the original content
     $original_content['user_id'] = get_current_user_id(); // Set the user ID to the current user
     $original_content['content_title'] = $original_content['content_title'] . '-copy';
     // Insert the duplicated content into the main table

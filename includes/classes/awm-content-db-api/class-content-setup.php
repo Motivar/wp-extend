@@ -28,7 +28,8 @@ class AWM_Add_Content_DB_Setup
   private $item_meta;
   private $main_columns;
   private $list;
-
+  private $main_table_data_version = 0.1;
+  private $meta_table_data_version = 0.1;
   public function init($args)
   {
     $this->get_table_conf($args);
@@ -125,6 +126,7 @@ class AWM_Add_Content_DB_Setup
     $this->table_name_main = $this->content_id . '_main';
     $this->table_name_meta = $this->content_id . '_data';
     $this->table_version = isset($this->data_content['version']) ? $this->data_content['version'] : 1;
+    $this->table_version = $this->table_version . '.' . $this->main_table_data_version . '.' . $this->meta_table_data_version;
     $this->main_table_data = isset($this->data_content['main_table_data']) ? $this->data_content['main_table_data'] : array();
     $this->meta_table_data = isset($this->data_content['meta_table_data']) ? $this->data_content['meta_table_data'] : array();
 
@@ -246,7 +248,10 @@ class AWM_Add_Content_DB_Setup
         ),
         'user_id' => array(
           'sql' => 'bigint unsigned'
-        )
+      ),
+      'hash' => array(
+        'sql' => 'varchar(100) NOT NULL',
+      ),
       );
 
     $extend = isset($this->main_table_data['data']) ? $this->main_table_data['data'] : array();
