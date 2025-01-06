@@ -11,6 +11,7 @@ update_wiki:
     - apt-get update && apt-get install -y git openssh-client bash
     - git config --global user.name "Nikos Giannopoulos"
     - git config --global user.email "gnnpls.nikos@gmail.com"
+
     # Start SSH agent
     - eval $(ssh-agent -s)
     - echo "$GITLAB_UPDATE_SSH_KEY" | tr -d '\r' | ssh-add -
@@ -29,9 +30,9 @@ update_wiki:
     # Remove existing wiki files to avoid duplication
     - rm -rf wp-extend.wiki/*
 
-    # Find and process README.md files in the parent plugin folder
+    # Find and process all variations of README.md files in the parent plugin folder
     - |
-      files=$(find .. -type f -name "README.md")
+      files=$(find .. -type f \( -iname "readme.md" -o -iname "Readme.md" -o -iname "README.md" \))
       if [ -z "$files" ]; then
         echo "No README.md files found in the parent folder. Exiting."
         exit 0
@@ -42,13 +43,16 @@ update_wiki:
         # Extract the header from the README.md file
         header=$(grep -m 1 "^# " "$file" | sed 's/^# //')
 
-        # Generate a filename based on the header and sanitize it
-        sanitized_header=$(echo "$header" | tr ' ' '_' | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]_').md
+        # Generate a filename based on the header, capitalize the first letter, and sanitize it
+        sanitized_header=$(echo "$header" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]-_' | sed 's/^./\U&/').md
 
-        # If the header is empty, use a default filename based on the original file path
+        # If the header is empty, use a default filename based on the original file name
         if [ -z "$sanitized_header" ]; then
-          sanitized_header=$(basename "$file" .md).md
+          sanitized_header=$(basename "$file" | sed 's/^./\U&/' | tr -cd '[:alnum:]-_').md
         fi
+
+        # Replace underscores with hyphens in the filename
+        sanitized_header=$(echo "$sanitized_header" | tr '_' '-')
 
         # Copy the README.md file to the wiki root with the generated filename
         cp "$file" "./wp-extend.wiki/$sanitized_header"

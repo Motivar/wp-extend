@@ -1,7 +1,7 @@
 
 # EWP IMPORT/EXPORT
 
-The Extend WP plugin provides two filters, `ewp_auto_import_settings_filter` and `ewp_auto_export_settings_filter`, to allow developers to customize the import and export settings programmatically. These filters can be used in both themes and plugins to override or modify the default settings.
+The Extend WP plugin provides two filters, `ewp_auto_import_settings_filter` and `ewp_auto_export_settings_filter`, to allow developers to customize the import and export settings programmatically. These filters can be used in both themes and plugins to override or modify the default settings. Please note that you can find a UI page for this at wp-admin/admin.php?page=extend-wp
 
 ---
 
