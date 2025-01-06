@@ -9,7 +9,8 @@ update_wiki:
   script:
     # Install necessary tools
     - apt-get update && apt-get install -y git openssh-client bash
-
+    - git config --global user.name "Nikos Giannopoulos"
+    - git config --global user.email "gnnpls.nikos@gmail.com"
     # Start SSH agent
     - eval $(ssh-agent -s)
     - echo "$GITLAB_UPDATE_SSH_KEY" | tr -d '\r' | ssh-add -
