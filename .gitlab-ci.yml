@@ -11,7 +11,7 @@ update_wiki:
     - apk add --no-cache git bash
 
     # Clone the GitLab Wiki repository
-    - git clone https://gitlab.motivar.io/plugins/extend-wp/wp-extend.wiki.git
+    - git clone https://$GITLAB_TOKEN@gitlab.motivar.io/plugins/extend-wp/wp-extend.wiki.git
     - cd wp-extend.wiki
 
     # Remove existing wiki files to avoid duplication
