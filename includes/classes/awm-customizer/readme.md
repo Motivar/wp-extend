@@ -1,8 +1,8 @@
-# Extend Customizer settings
+# EWP Customizer settings
 
 Developers can easily extend customizer settings
 
-# Full example
+## Full example
 ```
 add_filter('awm_add_customizer_settings_filter', function ($array) {
      $array['test'] => array(

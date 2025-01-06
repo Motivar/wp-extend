@@ -1,8 +1,7 @@
+# EWP Dynamic Blocks
+
 Based on the provided PHP class `EWP_Dynamic_Blocks`, which extends Gutenberg block functionality with dynamic registration and REST API extensions, I will create a README.md file content that outlines how developers can use the `ewp_gutenburg_blocks_filter` to add custom Gutenberg blocks through your plugin. The README will cover the basics of using the filter, expected block array structure, and a simple example.
 
----
-
-# EWP Dynamic Blocks
 
 EWP Dynamic Blocks provides a framework for dynamically registering custom Gutenberg blocks and corresponding REST API endpoints in WordPress. This allows developers to easily extend Gutenberg with custom functionality, ensuring a secure and optimized manner of block registration and usage.
 
