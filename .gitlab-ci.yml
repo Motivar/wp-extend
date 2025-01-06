@@ -56,5 +56,3 @@ update_wiki:
     else
       echo "No changes to the wiki, skipping commit and push."
     fi
-  only:
-    - schedules # Only run this job when triggered by a scheduled pipeline
