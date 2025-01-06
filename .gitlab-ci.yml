@@ -3,12 +3,13 @@ stages:
 
 update_wiki:
   stage: update_wiki
+  image: alpine/git
   tags:
     - docker
   script:
     # Clone the GitLab Wiki repository
     - git clone https://gitlab.motivar.io/plugins/extend-wp/wp-extend.wiki.git
-    - cd <project>.wiki
+    - cd wp-extend.wiki
 
     # Remove existing wiki files to avoid duplication
     - rm -rf ./*
@@ -26,11 +27,11 @@ update_wiki:
         filename=$(echo $header | tr ' ' '_' | tr '[:upper:]' '[:lower:]').md
 
         # Copy the README content to the wiki repo with a new filename
-        cp $file ./<project>.wiki/$filename
+        cp $file ./wp-extend.wiki/$filename
       done
 
     # Navigate back to the wiki repo
-    - cd <project>.wiki
+    - cd wp-extend.wiki
 
     # Commit and push the updated wiki pages
     - git add .
