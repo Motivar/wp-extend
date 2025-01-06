@@ -3,6 +3,8 @@ stages:
 
 update_wiki:
   stage: update_wiki
+  tags:
+    - docker
   script:
     # Clone the GitLab Wiki repository
     - git clone https://gitlab.com/<namespace>/<project>.wiki.git
