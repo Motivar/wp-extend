@@ -1,0 +1,36 @@
+stages:
+  - update_wiki
+
+update_wiki:
+  stage: update_wiki
+  script:
+    # Clone the GitLab Wiki repository
+    - git clone https://gitlab.com/<namespace>/<project>.wiki.git
+    - cd <project>.wiki
+
+    # Remove existing wiki files to avoid duplication
+    - rm -rf ./*
+
+    # Navigate back to the project directory
+    - cd ../
+
+    # Find all README.md files and process them
+    - |
+      for file in $(find . -name "README.md"); do
+        # Extract the main header from the README.md file
+        header=$(grep -m 1 "^# " $file | sed 's/^# //')
+        
+        # Generate a valid filename based on the header
+        filename=$(echo $header | tr ' ' '_' | tr '[:upper:]' '[:lower:]').md
+
+        # Copy the README content to the wiki repo with a new filename
+        cp $file ./<project>.wiki/$filename
+      done
+
+    # Navigate back to the wiki repo
+    - cd <project>.wiki
+
+    # Commit and push the updated wiki pages
+    - git add .
+    - git commit -m "Update wiki pages from README.md files"
+    - git push origin main
