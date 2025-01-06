@@ -16,6 +16,7 @@ class Extend_WP_Import_Export
   add_action('admin_enqueue_scripts', [$this, 'admin_scripts']);
   add_action('rest_api_init', [$this, 'rest_endpoints'], 10);
   add_action('ewp_custom_content_save_action', [$this, 'auto_export_content'], 100);
+  add_action('ewp_custom_content_delete_action', [$this, 'auto_export_content'], 100);
  }
 
  public function auto_export_content($id)

@@ -14,10 +14,6 @@ class Extend_WP_WP_Content
   add_filter('awm_register_content_db', [$this, 'register_defaults']);
   add_filter('epw_get_post_types', [$this, 'get_post_types'], 10);
   add_filter('epw_get_taxonomies', [$this, 'get_taxonomies'], 10);
-  add_action('ewp_post_types_save_action', [$this, 'clear_transients'], PHP_INT_MAX);
-  add_action('ewp_post_types_delete_action', [$this, 'clear_transients'], PHP_INT_MAX);
-  add_action('ewp_taxonomies_save_action', [$this, 'clear_transients'], PHP_INT_MAX);
-  add_action('ewp_taxonomies_delete_action', [$this, 'clear_transients'], PHP_INT_MAX);
  }
 
 
@@ -50,18 +46,6 @@ class Extend_WP_WP_Content
   awm_set_transient($transient_key, $taxes, 0, 36, 'awm_post_fields_transients');
   return $allready_registered + $taxes;
  }
-
-
- public function clear_transients()
- {
-  awm_delete_transient_group('awm_post_fields_transients');
-  awm_delete_transient_all();
-  delete_option('ewp_user_caps_version_old');
-  update_option('ewp_user_caps_version', strtotime('now'), false);
-  wp_cache_flush();
- }
-
-
 
  public function get_post_types($alreday_registered_types)
  {

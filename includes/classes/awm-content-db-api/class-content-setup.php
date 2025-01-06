@@ -37,7 +37,20 @@ class AWM_Add_Content_DB_Setup
     add_filter('awm_custom_lists_view_filter', [$this, 'set_custom_list'], PHP_INT_MAX);
     add_filter('ewp_column_' . $this->content_id . '_column_content_filter', [$this, 'awm_content_metas_columns'], 10, 3);
     add_action('rest_api_init', [$this, 'rest_endpoints'], 10);
+    add_action('ewp_custom_content_save_action', [$this, 'clear_transients'], PHP_INT_MAX);
+    add_action('ewp_custom_content_delete_action', [$this, 'clear_transients'], PHP_INT_MAX);
   }
+
+
+  public function clear_transients()
+  {
+    awm_delete_transient_group('awm_post_fields_transients');
+    awm_delete_transient_all();
+    delete_option('ewp_user_caps_version_old');
+    update_option('ewp_user_caps_version', strtotime('now'), false);
+    wp_cache_flush();
+  }
+
 
   /**
    * check if we are going to disable rest otherwise contsruct the endpoints

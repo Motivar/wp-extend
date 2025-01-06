@@ -21,8 +21,6 @@ class Extend_WP_Fields
  {
   $this->skip_existing_fields = false;
   add_filter('awm_register_content_db', [$this, 'register_defaults']);
-  add_action('ewp_fields_save_action', [$this, 'clear_transients']);
-  add_action('ewp_fields_delete_action', [$this, 'clear_transients']);
   add_filter('awm_add_meta_boxes_filter', array($this, 'dynamic_post_boxes'), PHP_INT_MAX);
   add_filter('awm_add_term_meta_boxes_filter', array($this, 'dynamic_term_boxes'), PHP_INT_MAX);
   add_filter('awm_add_user_boxes_filter', array($this, 'dynamic_user_boxes'), PHP_INT_MAX);
@@ -61,15 +59,6 @@ class Extend_WP_Fields
  }
 
 
-
- public function clear_transients()
- {
-  awm_delete_transient_group('awm_post_fields_transients');
-  awm_delete_transient_all();
-  delete_option('ewp_user_caps_version_old');
-  update_option('ewp_user_caps_version', strtotime('now'), false);
-  wp_cache_flush();
- }
 
  public function register_defaults($data)
  {

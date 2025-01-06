@@ -273,6 +273,7 @@ if (!function_exists('awm_custom_content_delete')) {
       AWM_DB_Creator::delete_db_data($field . '_main', $where_clause);
       /*action to run after delete*/
       do_action($field . '_after_delete_action', $ids, $where_clause);
+      do_action('ewp_custom_content_delete_action', $field, $ids);
       /*cache flushes and transients*/
       wp_cache_flush();
       awm_delete_transient_all();
