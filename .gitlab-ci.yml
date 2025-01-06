@@ -7,7 +7,7 @@ update_wiki:
     - docker
   script:
     # Clone the GitLab Wiki repository
-    - git clone https://gitlab.com/<namespace>/<project>.wiki.git
+    - git clone https://gitlab.motivar.io/plugins/extend-wp/wp-extend.wiki.git
     - cd <project>.wiki
 
     # Remove existing wiki files to avoid duplication
