@@ -49,7 +49,7 @@ add_filter('ewp_auto_export_settings_filter', function ($settings) {
     // Customize the settings
     $settings['store'] = true; // Enable auto-export
     $settings['path'] = 'plugins/your-plugin'; // Define a custom path
-    $settings['types'] = ['post_type', 'field']; // Specify the content types to export
+    $settings['types'] = ['ewp_fields', 'ewp_post_types']; // Specify the content types to export created by ewp
     return $settings;
 });
 ```
@@ -67,7 +67,7 @@ Below is an example of how you can use these filters in a WordPress theme (e.g.,
 add_filter('ewp_auto_import_settings_filter', function ($settings) {
     // Enable auto-import with a theme-specific path
     $settings['import'] = true;
-    $settings['path'] = 'themes/' . get_template() . ''; // Use the theme's directory for imports
+    $settings['path'] = 'themes/' . get_template() ; // Use the theme's directory for imports
     $settings['import_type'] = 'auto';
     return $settings;
 });
@@ -76,8 +76,8 @@ add_filter('ewp_auto_import_settings_filter', function ($settings) {
 add_filter('ewp_auto_export_settings_filter', function ($settings) {
     // Enable auto-export with a theme-specific path
     $settings['store'] = true;
-    $settings['path'] = 'themes/' . get_template() . ''; // Use the theme's directory for exports
-    $settings['types'] = ['custom_post_type', 'custom_field']; // Export specific custom content types
+    $settings['path'] = 'themes/' . get_template(); // Use the theme's directory for exports
+    $settings['types'] = ['ewp_fields', 'ewp_post_types']; // Export specific custom content types
     return $settings;
 });
 ```
@@ -111,7 +111,7 @@ You want to centralize all exported content into a specific folder within the `p
 add_filter('ewp_auto_export_settings_filter', function ($settings) {
     $settings['path'] = 'plugins/your-plugin/central-export-folder';
     $settings['store'] = true;
-    $settings['types'] = ['post', 'page', 'custom_post_type'];
+    $settings['types'] = ['ewp_post_types', 'ewp_fields'];
     return $settings;
 });
 ```
@@ -130,7 +130,7 @@ add_filter('ewp_auto_import_settings_filter', function ($settings) {
 add_filter('ewp_auto_export_settings_filter', function ($settings) {
     $settings['path'] = 'themes/' . get_stylesheet() . '';
     $settings['store'] = true;
-    $settings['types'] = ['custom_post_type'];
+    $settings['types'] = ['ewp_post_types','ewp_fields'];
     return $settings;
 });
 ```
