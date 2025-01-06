@@ -33,13 +33,8 @@ update_wiki:
     # Find all README.md files and process them
     - |
       for file in $(find . -name "README.md"); do
-        # Extract the main header from the README.md file
         header=$(grep -m 1 "^# " $file | sed 's/^# //')
-
-        # Generate a valid filename based on the header
         filename=$(echo $header | tr ' ' '_' | tr '[:upper:]' '[:lower:]').md
-
-        # Copy the README content to the wiki repo with a new filename
         cp $file ./wp-extend.wiki/$filename
       done
 
@@ -48,11 +43,11 @@ update_wiki:
 
     # Add, commit, and push changes
     - git add .
-    if ! git diff --quiet HEAD; then
-      COMMIT_MSG="Update wiki pages from README.md files $(date +'%Y-%m-%d')"
-      echo "$COMMIT_MSG"
-      git commit -m "$COMMIT_MSG"
-      git push
-    else
-      echo "No changes to the wiki, skipping commit and push."
-    fi
+    - |
+      if ! git diff --quiet HEAD; then
+        COMMIT_MSG="Update wiki pages from README.md files $(date +'%Y-%m-%d')"
+        echo "$COMMIT_MSG"
+        git commit -m "$COMMIT_MSG"
+        git push
+      else
+        echo "No changes to the wiki, skipping commit and push."
