@@ -3,29 +3,32 @@ stages:
 
 update_wiki:
   stage: update_wiki
-  image: alpine:latest
   tags:
     - docker
   script:
-    # Install git and other required tools
-    - apk add --no-cache git bash
-
-    # Clone the GitLab Wiki repository
-    - git clone https://$GITLAB_TOKEN@gitlab.motivar.io/plugins/extend-wp/wp-extend.wiki.git
-    - cd wp-extend.wiki
-
-    # Remove existing wiki files to avoid duplication
-    - rm -rf ./*
-
-    # Navigate back to the project directory
-    - cd ../
-
-    # Find all README.md files and process them
+    - eval $(ssh-agent -s)
+    - echo "$GITLAB_UPDATE_SSH_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh/
+    - ssh-keyscan gitlab.motivar.io >> ~/.ssh/known_hosts
     - |
+      set -e # Exit the script if any command fails
+      echo "Starting wiki update process..."
+
+      # Clone the GitLab Wiki repository
+      git clone git@gitlab.motivar.io:plugins/extend-wp/wp-extend.wiki.git
+      cd wp-extend.wiki
+
+      # Remove existing wiki files to avoid duplication
+      rm -rf ./*
+
+      # Navigate back to the project directory
+      cd ../
+
+      # Find all README.md files and process them
       for file in $(find . -name "README.md"); do
         # Extract the main header from the README.md file
         header=$(grep -m 1 "^# " $file | sed 's/^# //')
-        
+
         # Generate a valid filename based on the header
         filename=$(echo $header | tr ' ' '_' | tr '[:upper:]' '[:lower:]').md
 
@@ -33,10 +36,16 @@ update_wiki:
         cp $file ./wp-extend.wiki/$filename
       done
 
-    # Navigate back to the wiki repo
-    - cd wp-extend.wiki
+      # Navigate back to the wiki repo
+      cd wp-extend.wiki
 
-    # Commit and push the updated wiki pages
-    - git add .
-    - git commit -m "Update wiki pages from README.md files"
-    - git push origin main
+      # Add, commit, and push changes
+      git add .
+      if ! git diff --quiet HEAD; then
+        COMMIT_MSG="Update wiki pages from README.md files $(date +'%Y-%m-%d')"
+        echo "$COMMIT_MSG"
+        git commit -m "$COMMIT_MSG"
+        git push
+      else
+        echo "No changes to the wiki, skipping commit and push."
+      fi
