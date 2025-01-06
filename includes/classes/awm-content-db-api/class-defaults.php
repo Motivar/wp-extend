@@ -51,12 +51,13 @@ class Extend_WP_Default_Content
             ),
           )
         ),
-        'ewp_import_export_settings' => array(
+        'ewp_auto_export_settings' => array(
           'case' => 'section',
-          'label' => __('Auto Store Content Configuration', 'extend-wp'),
+          'label' => __('Export EWP Content Configuration', 'extend-wp'),
+          'explanation' => __('Export your content to a file for backup or migration purposes. The filename will be <strong>ewp_configuration.json</strong>.', 'extend-wp'),
           'include' => array(
             'store' => array(
-              'label' => __('Auto Store Content', 'extend-wp'),
+              'label' => __('Auto export', 'extend-wp'),
               'case' => 'input',
               'type' => 'checkbox',
               'after_message' => __('If enabled, the plugin will auto-export its content based on your configuration', 'extend-wp'),
@@ -76,6 +77,40 @@ class Extend_WP_Default_Content
               'show-when' => array('store' => array('values' => true)),
               'explanation' => sprintf(
                 __('Place the path following this address <strong>%s</strong>. Please also check that the path is writable by php!', 'extend-wp'),
+                WP_CONTENT_DIR
+              )
+            ),
+          ),
+        ),
+        'ewp_auto_import_settings' => array(
+          'case' => 'section',
+          'label' => __('Import EWP Content Configuration', 'extend-wp'),
+          'explanation' => __('Import EWP content based on the <strong>ewp_configuration.json</strong>. The file should exist in the path you are going to provide.', 'extend-wp'),
+          'include' => array(
+            'import' => array(
+              'label' => __('Enable import', 'extend-wp'),
+              'case' => 'input',
+              'type' => 'checkbox',
+              'after_message' => __('If enabled, the plugin will sync its content based on your configuration.', 'extend-wp'),
+            ),
+            'import_type' => array(
+              'label_class' => array('awm-needed'),
+              'label' => __('Import method', 'extend-wp'),
+              'case' => 'select',
+              'options' => array(
+                'manual' => array('label' => __('Manual', 'extend-wp')),
+                'auto' => array('label' => __('Auto', 'extend-wp')),
+              ),
+              'show-when' => array('import' => array('values' => true)),
+            ),
+            'path' => array(
+              'label_class' => array('awm-needed'),
+              'label' => __('Filepath load location', 'extend-wp'),
+              'case' => 'input',
+              'type' => 'text',
+              'show-when' => array('import' => array('values' => true)),
+              'explanation' => sprintf(
+                __('Place the path following this address <strong>%s</strong>.', 'extend-wp'),
                 WP_CONTENT_DIR
               )
             ),

@@ -17,12 +17,103 @@ class Extend_WP_Import_Export
   add_action('rest_api_init', [$this, 'rest_endpoints'], 10);
   add_action('ewp_custom_content_save_action', [$this, 'auto_export_content'], 100);
   add_action('ewp_custom_content_delete_action', [$this, 'auto_export_content'], 100);
+  add_action('admin_init', [$this, 'auto_import_content'], 100);
  }
+
+ public function get_import_options()
+ {
+  /**
+   * get the options for the import export settings
+   * @return array
+   */
+  return apply_filters('ewp_auto_import_settings_filter', get_option('ewp_auto_import_settings', array()));
+ }
+
+ public function auto_import_content()
+ {
+  try {
+   $options = $this->get_import_options();
+
+   // Ensure import option is enabled and the configuration is correct
+   if (empty($options) || empty($options['import']) || empty($options['path']) || $options['import_type'] !== 'auto') {
+    return;
+   }
+
+   // Ensure path exists
+   $path = WP_CONTENT_DIR . trailingslashit($options['path']);
+   if (!file_exists($path)) {
+    throw new Exception(sprintf(__('The path %s does not exist.', 'extend-wp'), $path));
+   }
+
+   // Check if the configuration file exists
+   $file = $path . 'ewp_configuration.json';
+   if (!file_exists($file)) {
+    throw new Exception(sprintf(__('The file %s does not exist.', 'extend-wp'), $file));
+   }
+
+   // Check file signature to prevent duplicate imports
+   $file_signature = md5_file($file);
+   $signature = get_option('ewp_file_import_signature') ?: false;
+   if ($signature && $signature === $file_signature) {
+    return; // No changes detected
+   }
+
+   // Read and decode the JSON file
+   $content = file_get_contents($file);
+   $data = json_decode($content, true);
+
+   if (json_last_error() !== JSON_ERROR_NONE) {
+    throw new Exception(__('Invalid JSON in the configuration file.', 'extend-wp'));
+   }
+
+
+   // Loop through the content types and call the import function
+   foreach ($data as $content_type => $items) {
+    if ($content_type === 'modified') {
+     continue; // Skip metadata
+    }
+    $this->import_content($content_type, $items);
+   }
+
+   // Update the file signature to prevent re-imports
+   update_option('ewp_file_import_signature', $file_signature);
+
+   // Add a dismissible admin notice
+   add_action('admin_notices', function () {
+    echo '<div class="notice notice-success is-dismissible">';
+    echo '<p>' . __('EWP Content has been successfully imported.', 'extend-wp') . '</p>';
+    echo '</div>';
+   });
+   return true;
+  } catch (Exception $e) {
+   // Handle exceptions and log the error
+   error_log(sprintf(__('Import error: %s', 'extend-wp'), $e->getMessage()));
+
+   // Add a dismissible admin notice for the error
+   add_action('admin_notices', function () use ($e) {
+    echo '<div class="notice notice-error is-dismissible">';
+    echo '<p>' . sprintf(__('Import failed: %s', 'extend-wp'), $e->getMessage()) . '</p>';
+    echo '</div>';
+   });
+  }
+ }
+
+
+
+ public function get_export_options()
+ {
+  /**
+   * get the options for the import export settings
+   * @return array
+   */
+  return apply_filters('ewp_auto_export_settings_filter', get_option('ewp_auto_export_settings ', array()));
+ }
+
 
  public function auto_export_content($id)
  {
   try {
-   $options = get_option('ewp_import_export_settings', array());
+   $options = $this->get_export_options();
 
    // Ensure store option is enabled
    if (empty($options) || empty($options['store']) || empty($options['path']) || empty($options['types'])) {
