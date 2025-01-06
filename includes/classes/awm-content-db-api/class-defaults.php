@@ -98,7 +98,7 @@ class Extend_WP_Default_Content
               'label' => __('Import method', 'extend-wp'),
               'case' => 'select',
               'options' => array(
-                'manual' => array('label' => __('Manual', 'extend-wp')),
+               // 'manual' => array('label' => __('Manual', 'extend-wp')),
                 'auto' => array('label' => __('Auto', 'extend-wp')),
               ),
               'show-when' => array('import' => array('values' => true)),
