@@ -7,41 +7,43 @@ update_wiki:
   tags:
     - docker
   script:
-    # Install necessary tools (bash, git, ssh-agent)
+    # Install necessary tools
     - apt-get update && apt-get install -y git openssh-client bash
 
     # Start SSH agent
     - eval $(ssh-agent -s)
-
-    # Add the SSH key
     - echo "$GITLAB_UPDATE_SSH_KEY" | tr -d '\r' | ssh-add -
-
-    # Add the GitLab server to known hosts
     - mkdir -p ~/.ssh
     - ssh-keyscan gitlab.motivar.io >> ~/.ssh/known_hosts
 
     # Clone the GitLab Wiki repository
     - git clone git@gitlab.motivar.io:plugins/extend-wp/wp-extend.wiki.git
-    - cd wp-extend.wiki
+
+    # Ensure the wiki directory exists
+    - if [ ! -d "wp-extend.wiki" ]; then
+        echo "Wiki directory does not exist. Exiting.";
+        exit 1;
+      fi
 
     # Remove existing wiki files to avoid duplication
-    - rm -rf ./*
+    - rm -rf wp-extend.wiki/*
 
-    # Navigate back to the project directory
-    - cd ../
-
-    # Find all README.md files and process them
+    # Find and process README.md files in the parent plugin folder
     - |
-      for file in $(find . -name "README.md"); do
-        header=$(grep -m 1 "^# " $file | sed 's/^# //')
-        filename=$(echo $header | tr ' ' '_' | tr '[:upper:]' '[:lower:]').md
-        cp $file ./wp-extend.wiki/$filename
+      files=$(find .. -type f -name "README.md")
+      if [ -z "$files" ]; then
+        echo "No README.md files found in the parent folder. Exiting."
+        exit 0
+      fi
+      for file in $files; do
+        echo "Processing file: $file"
+        header=$(grep -m 1 "^# " "$file" | sed 's/^# //')
+        filename=$(echo "$header" | tr ' ' '_' | tr '[:upper:]' '[:lower:]').md
+        cp "$file" "./wp-extend.wiki/$filename"
       done
 
-    # Navigate back to the wiki repo
+    # Navigate to the wiki directory and push changes
     - cd wp-extend.wiki
-
-    # Add, commit, and push changes
     - git add .
     - |
       if ! git diff --quiet HEAD; then
