@@ -3,28 +3,35 @@ stages:
 
 update_wiki:
   stage: update_wiki
+  image: debian:latest
   tags:
     - docker
   script:
+    # Install necessary tools (bash, git, ssh-agent)
+    - apt-get update && apt-get install -y git openssh-client bash
+
+    # Start SSH agent
     - eval $(ssh-agent -s)
+
+    # Add the SSH key
     - echo "$GITLAB_UPDATE_SSH_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh/
+
+    # Add the GitLab server to known hosts
+    - mkdir -p ~/.ssh
     - ssh-keyscan gitlab.motivar.io >> ~/.ssh/known_hosts
+
+    # Clone the GitLab Wiki repository
+    - git clone git@gitlab.motivar.io:plugins/extend-wp/wp-extend.wiki.git
+    - cd wp-extend.wiki
+
+    # Remove existing wiki files to avoid duplication
+    - rm -rf ./*
+
+    # Navigate back to the project directory
+    - cd ../
+
+    # Find all README.md files and process them
     - |
-      set -e # Exit the script if any command fails
-      echo "Starting wiki update process..."
-
-      # Clone the GitLab Wiki repository
-      git clone git@gitlab.motivar.io:plugins/extend-wp/wp-extend.wiki.git
-      cd wp-extend.wiki
-
-      # Remove existing wiki files to avoid duplication
-      rm -rf ./*
-
-      # Navigate back to the project directory
-      cd ../
-
-      # Find all README.md files and process them
       for file in $(find . -name "README.md"); do
         # Extract the main header from the README.md file
         header=$(grep -m 1 "^# " $file | sed 's/^# //')
@@ -36,16 +43,18 @@ update_wiki:
         cp $file ./wp-extend.wiki/$filename
       done
 
-      # Navigate back to the wiki repo
-      cd wp-extend.wiki
+    # Navigate back to the wiki repo
+    - cd wp-extend.wiki
 
-      # Add, commit, and push changes
-      git add .
-      if ! git diff --quiet HEAD; then
-        COMMIT_MSG="Update wiki pages from README.md files $(date +'%Y-%m-%d')"
-        echo "$COMMIT_MSG"
-        git commit -m "$COMMIT_MSG"
-        git push
-      else
-        echo "No changes to the wiki, skipping commit and push."
-      fi
+    # Add, commit, and push changes
+    - git add .
+    if ! git diff --quiet HEAD; then
+      COMMIT_MSG="Update wiki pages from README.md files $(date +'%Y-%m-%d')"
+      echo "$COMMIT_MSG"
+      git commit -m "$COMMIT_MSG"
+      git push
+    else
+      echo "No changes to the wiki, skipping commit and push."
+    fi
+  only:
+    - schedules # Only run this job when triggered by a scheduled pipeline
