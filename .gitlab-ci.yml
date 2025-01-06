@@ -43,20 +43,17 @@ update_wiki:
         # Extract the header from the README.md file
         header=$(grep -m 1 "^# " "$file" | sed 's/^# //')
 
-        # Generate a filename based on the header, capitalize the first letter, and sanitize it
-        sanitized_header=$(echo "$header" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]-_' | sed 's/^./\U&/').md
+        # Generate a filename by replacing blanks/special characters with hyphens
+        sanitized_header=$(echo "$header" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/^-*//;s/-*$//' | sed 's/^./\U&/')
 
         # If the header is empty, use a default filename based on the original file name
         if [ -z "$sanitized_header" ]; then
-          sanitized_header=$(basename "$file" | sed 's/^./\U&/' | tr -cd '[:alnum:]-_').md
+          sanitized_header=$(basename "$file" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/^./\U&/')
         fi
 
-        # Replace underscores with hyphens in the filename
-        sanitized_header=$(echo "$sanitized_header" | tr '_' '-')
-
         # Copy the README.md file to the wiki root with the generated filename
-        cp "$file" "./wp-extend.wiki/$sanitized_header"
-        echo "Copied $file to ./wp-extend.wiki/$sanitized_header"
+        cp "$file" "./wp-extend.wiki/$sanitized_header.md"
+        echo "Copied $file to ./wp-extend.wiki/$sanitized_header.md"
       done
 
     # Navigate to the wiki directory and push changes
