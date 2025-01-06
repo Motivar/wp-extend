@@ -39,6 +39,7 @@ update_wiki:
         echo "Processing file: $file"
         header=$(grep -m 1 "^# " "$file" | sed 's/^# //')
         filename=$(echo "$header" | tr ' ' '_' | tr '[:upper:]' '[:lower:]').md
+        echo "Copying $file to ./wp-extend.wiki/$filename"
         cp "$file" "./wp-extend.wiki/$filename"
       done
 
@@ -53,3 +54,4 @@ update_wiki:
         git push
       else
         echo "No changes to the wiki, skipping commit and push."
+    - echo "Wiki update process completed successfully."
