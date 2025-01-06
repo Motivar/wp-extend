@@ -37,10 +37,21 @@ update_wiki:
       fi
       for file in $files; do
         echo "Processing file: $file"
+
+        # Extract the header from the README.md file
         header=$(grep -m 1 "^# " "$file" | sed 's/^# //')
-        filename=$(echo "$header" | tr ' ' '_' | tr '[:upper:]' '[:lower:]').md
-        echo "Copying $file to ./wp-extend.wiki/$filename"
-        cp "$file" "./wp-extend.wiki/$filename"
+
+        # Generate a filename based on the header and sanitize it
+        sanitized_header=$(echo "$header" | tr ' ' '_' | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]_').md
+
+        # If the header is empty, use a default filename based on the original file path
+        if [ -z "$sanitized_header" ]; then
+          sanitized_header=$(basename "$file" .md).md
+        fi
+
+        # Copy the README.md file to the wiki root with the generated filename
+        cp "$file" "./wp-extend.wiki/$sanitized_header"
+        echo "Copied $file to ./wp-extend.wiki/$sanitized_header"
       done
 
     # Navigate to the wiki directory and push changes
