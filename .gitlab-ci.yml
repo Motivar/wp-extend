@@ -3,10 +3,13 @@ stages:
 
 update_wiki:
   stage: update_wiki
-  image: alpine/git
+  image: alpine:latest
   tags:
     - docker
   script:
+    # Install git and other required tools
+    - apk add --no-cache git bash
+
     # Clone the GitLab Wiki repository
     - git clone https://gitlab.motivar.io/plugins/extend-wp/wp-extend.wiki.git
     - cd wp-extend.wiki
