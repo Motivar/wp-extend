@@ -65,4 +65,5 @@ update_wiki:
         git push
       else
         echo "No changes to the wiki, skipping commit and push."
+      fi
     - echo "Wiki update process completed successfully."
