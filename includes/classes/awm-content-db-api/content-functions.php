@@ -368,6 +368,7 @@ if (!function_exists('awm_custom_content_save')) {
     }
     awm_insert_db_content_meta($id, $object_id, $metas);
     do_action($id . '_save_action', $object_id, $data);
+    do_action('ewp_custom_content_save_action', $id, $object_id, $data);
     wp_cache_flush();
     awm_delete_transient_all();
     return $object_id;

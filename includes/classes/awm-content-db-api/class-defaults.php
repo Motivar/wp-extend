@@ -11,9 +11,6 @@ class Extend_WP_Default_Content
 
   public function __construct()
   {
-
-
-
     add_filter('awm_add_options_boxes_filter', [$this, 'admin_menu']);
   }
   public function admin_menu($options)
@@ -42,14 +39,52 @@ class Extend_WP_Default_Content
   public function admin_fields()
   {
     return apply_filters('ewp_admin_fields_filter', array(
-      'ewp_user_access' => array(
-        'case' => 'user_roles',
-        'exclude' => array('administrator'),
-        'attributes' => array('multiple' => true),
-        'label' => __('Select user roles with access to the plugin', 'extend-wp'),
+        'ewp_general_settings' => array(
+          'case' => 'section',
+          'label' => __('General Settings', 'extend-wp'),
+          'include' => array(
+            'ewp_user_access' => array(
+              'case' => 'user_roles',
+              'exclude' => array('administrator'),
+              'attributes' => array('multiple' => true),
+              'label' => __('Select user roles with access to the plugin', 'extend-wp'),
+            ),
+          )
+        ),
+        'ewp_import_export_settings' => array(
+          'case' => 'section',
+          'label' => __('Auto Store Content Configuration', 'extend-wp'),
+          'include' => array(
+            'store' => array(
+              'label' => __('Auto Store Content', 'extend-wp'),
+              'case' => 'input',
+              'type' => 'checkbox',
+              'after_message' => __('If enabled, the plugin will auto-export its content based on your configuration', 'extend-wp'),
+            ),
+            'types' => array(
+              'label_class' => array('awm-needed'),
+              'label' => __('Content Types', 'extend-wp'),
+              'case' => 'ewp_content_types',
+              'attributes' => array('multiple' => true),
+              'show-when' => array('store' => array('values' => true))
+            ),
+            'path' => array(
+              'label_class' => array('awm-needed'),
+              'label' => __('Filepath save location', 'extend-wp'),
+              'case' => 'input',
+              'type' => 'text',
+              'show-when' => array('store' => array('values' => true)),
+              'explanation' => sprintf(
+                __('Place the path following this address <strong>%s</strong>. Please also check that the path is writable by php!', 'extend-wp'),
+                WP_CONTENT_DIR
+              )
+            ),
+          ),
+        ),
+
       ),
 
-    ));
+    );
   }
 }
 

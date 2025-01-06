@@ -15,6 +15,63 @@ class Extend_WP_Import_Export
   add_filter('awm_add_options_boxes_filter', [$this, 'admin_menu']);
   add_action('admin_enqueue_scripts', [$this, 'admin_scripts']);
   add_action('rest_api_init', [$this, 'rest_endpoints'], 10);
+  add_action('ewp_custom_content_save_action', [$this, 'auto_export_content'], 100);
+ }
+
+ public function auto_export_content($id)
+ {
+  try {
+   $options = get_option('ewp_import_export_settings', array());
+
+   // Ensure store option is enabled
+   if (empty($options) || empty($options['store']) || empty($options['path']) || empty($options['types'])) {
+    throw new Exception(__('Export settings are incomplete or disabled.', 'extend-wp'));
+   }
+
+   if (!in_array($id, $options['types'])) {
+    return;
+   }
+
+   // Ensure path exists
+   $path = WP_CONTENT_DIR . trailingslashit($options['path']);
+   if (!file_exists($path)) {
+    throw new Exception(sprintf(__('The path %s does not exist.', 'extend-wp'), $path));
+   }
+
+   // Ensure path is writable
+   if (!is_writable($path)) {
+    throw new Exception(sprintf(__('The path %s is not writable.', 'extend-wp'), $path));
+   }
+
+   // Directly call the export_content function
+   $data = $this->export_content($options['types']);
+   if (is_wp_error($data)) {
+    throw new Exception(sprintf(__('Failed to export content: %s', 'extend-wp'), $data->get_error_message()));
+   }
+
+   // Convert data to JSON
+   $json_data = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+   if ($json_data === false) {
+    throw new Exception(__('Failed to encode export data to JSON.', 'extend-wp'));
+   }
+
+   // Save JSON data to file
+   $file_path = $path . 'ewp_configuration.json';
+   $result = file_put_contents($file_path, $json_data);
+
+   if ($result === false) {
+    throw new Exception(sprintf(__('Failed to save exported content to %s.', 'extend-wp'), $file_path));
+   }
+
+   // Log success
+   error_log(sprintf(__('Exported content saved to %s.', 'extend-wp'), $file_path));
+  } catch (Exception $e) {
+   // Handle exceptions and log the error
+   error_log(sprintf(__('Export error: %s', 'extend-wp'), $e->getMessage()));
+
+   // Optionally stop execution and show an error to the user
+   wp_die($e->getMessage(), __('Export Error', 'extend-wp'), array('response' => 500));
+  }
  }
 
  /**
