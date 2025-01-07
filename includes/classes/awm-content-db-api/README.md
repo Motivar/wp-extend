@@ -17,6 +17,14 @@ The Extend WP plugin provides two filters, `ewp_auto_import_settings_filter` and
 
 ---
 
+### Key Points:
+1. **Auto Export**: Enable this in your **Development** environment to automatically export content types (e.g., `Field`, `Post Type`) to the specified path.
+   - **Filepath Save Location**: Define a writable path relative to `wp-content` (e.g., `themes/twentytwentyfour/export`).
+2. **Auto Import**: Enable this in your **QA/Production** environment to automatically import content based on the `ewp_configuration.json` file.
+   - **Filepath Load Location**: Ensure the path points to the same folder where the exported JSON is saved in the Development environment.
+
+> **Important**: This feature is designed to be used across **different environments**. Enable **Auto Export** in Development and **Auto Import** in QA/Production to ensure a seamless workflow.
+
 ## Example Usage
 
 ### Plugin Example
