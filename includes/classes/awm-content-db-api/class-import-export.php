@@ -115,8 +115,12 @@ class Extend_WP_Import_Export
   try {
    $options = $this->get_export_options();
 
+   if (empty($options) || !isset($options['store']) || !$options['store']) {
+    return;
+   }
+
    // Ensure store option is enabled
-   if (empty($options) || empty($options['store']) || empty($options['path']) || empty($options['types'])) {
+   if (empty($options['path']) || empty($options['types'])) {
     throw new Exception(__('Export settings are incomplete or disabled.', 'extend-wp'));
    }
 
