@@ -7,8 +7,13 @@ update_wiki:
   tags:
     - docker
   script:
-    # Install necessary tools
-    - apt-get update && apt-get install -y git openssh-client bash
+    # Install necessary tools (including Yarn)
+    - apt-get update && apt-get install -y git openssh-client bash curl
+    - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+    - echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+    - apt-get update && apt-get install -y yarn
+
+    # Configure Git
     - git config --global user.name "Nikos Giannopoulos"
     - git config --global user.email "gnnpls.nikos@gmail.com"
 
@@ -24,10 +29,14 @@ update_wiki:
     - git clone "$WIKI_REPO_URL" "$CI_PROJECT_NAME.wiki"
 
     # Ensure the wiki directory exists
-    - if [ ! -d "$CI_PROJECT_NAME.wiki" ]; then echo "Wiki directory does not exist. Exiting."; exit 1; fi
+    - |
+      if [ ! -d "$CI_PROJECT_NAME.wiki" ]; then
+        echo "Wiki directory does not exist. Exiting."
+        exit 1
+      fi
 
     # Remove existing wiki files to avoid duplication
-    - rm -rf "$CI_PROJECT_NAME.wiki/*"
+    - rm -rf "$CI_PROJECT_NAME.wiki"/*
 
     # Find and process all variations of README.md files in the parent plugin folder
     - |
