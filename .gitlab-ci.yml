@@ -18,8 +18,10 @@ update_wiki:
     - mkdir -p ~/.ssh
     - ssh-keyscan gitlab.motivar.io >> ~/.ssh/known_hosts
 
-    # Clone the GitLab Wiki repository
-    - git clone git@gitlab.motivar.io:plugins/extend-wp/wp-extend.wiki.git
+    # Clone the GitLab Wiki repository dynamically based on the main repo
+    - WIKI_REPO_URL="git@gitlab.motivar.io:$CI_PROJECT_PATH.wiki.git"
+    - echo "Cloning Wiki repository: $WIKI_REPO_URL"
+    - git clone "$WIKI_REPO_URL" wp-extend.wiki
 
     # Ensure the wiki directory exists
     - if [ ! -d "wp-extend.wiki" ]; then
@@ -32,7 +34,7 @@ update_wiki:
 
     # Find and process all variations of README.md files in the parent plugin folder
     - |
-      files=$(find .. -type f \( -iname "readme.md" -o -iname "Readme.md" -o -iname "README.md" \))
+      files=$(find .. -type f $begin:math:text$ -iname "readme.md" -o -iname "Readme.md" -o -iname "README.md" $end:math:text$)
       if [ -z "$files" ]; then
         echo "No README.md files found in the parent folder. Exiting."
         exit 0
