@@ -7,13 +7,8 @@ update_wiki:
   tags:
     - docker
   script:
-    # Install necessary tools (including Yarn)
-    - apt-get update && apt-get install -y git openssh-client bash curl
-    - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
-    - echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
-    - apt-get update && apt-get install -y yarn
-
-    # Configure Git
+    # Install necessary tools
+    - apt-get update && apt-get install -y git openssh-client bash
     - git config --global user.name "Nikos Giannopoulos"
     - git config --global user.email "gnnpls.nikos@gmail.com"
 
@@ -22,47 +17,56 @@ update_wiki:
     - echo "$GITLAB_UPDATE_SSH_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
     - ssh-keyscan gitlab.motivar.io >> ~/.ssh/known_hosts
-
-    # Clone the GitLab Wiki repository dynamically based on the main repo
-    - WIKI_REPO_URL="git@gitlab.motivar.io:$CI_PROJECT_PATH.wiki.git"
-    - echo "Cloning Wiki repository: $WIKI_REPO_URL"
-    - git clone "$WIKI_REPO_URL" "$CI_PROJECT_NAME.wiki"
+    # Dynamically set the Wiki repository URL
+    - WIKI_REPO_URL="git@gitlab.motivar.io:${CI_PROJECT_PATH}.wiki.git"
+    # Clone the GitLab Wiki repository dynamically based on the project path
+    - git clone "$WIKI_REPO_URL" "${CI_PROJECT_NAME}.wiki"
 
     # Ensure the wiki directory exists
-    - if [ ! -d "$CI_PROJECT_NAME.wiki" ]; then echo "Wiki directory does not exist. Exiting."; exit 1; fi
-
-    # Remove existing wiki files
-    - rm -rf "$CI_PROJECT_NAME.wiki"/*
-
-    # Find README.md files
-    - files=$(find .. -type f \( -iname "readme.md" -o -iname "Readme.md" -o -iname "README.md" \))
-    - if [ -z "$files" ]; then echo "No README.md files found in the parent folder. Exiting."; exit 0; fi
-
-    # Process each README.md file
-    - for file in $files; do
-        echo "Processing file: $file";
-        header=$(grep -m 1 "^# " "$file" | sed 's/^# //');
-        sanitized_header=$(echo "$header" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/^-*//;s/-*$//' | sed 's/^./\U&/');
-        if [ -z "$sanitized_header" ]; then
-          sanitized_header=$(basename "$file" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/^./\U&/');
-        fi;
-        cp "$file" "./$CI_PROJECT_NAME.wiki/$sanitized_header.md";
-        echo "Copied $file to ./$CI_PROJECT_NAME.wiki/$sanitized_header.md";
-      done
-
-    # Navigate to the wiki directory
-    - cd "$CI_PROJECT_NAME.wiki"
-    - git add .
-
-    # Commit changes if any
-    - if ! git diff --quiet HEAD; then
-        COMMIT_MSG="Update wiki pages from README.md files $(date +'%Y-%m-%d')";
-        echo "$COMMIT_MSG";
-        git commit -m "$COMMIT_MSG";
-        git push;
-      else
-        echo "No changes to the wiki, skipping commit and push.";
+    - if [ ! -d "${CI_PROJECT_NAME}.wiki" ]; then
+        echo "Wiki directory does not exist. Exiting.";
+        exit 1;
       fi
 
-    # Final success message
+    # Remove existing wiki files to avoid duplication
+    - rm -rf "${CI_PROJECT_NAME}.wiki/*"
+
+    # Find and process all variations of README.md files in the parent plugin folder
+    - |
+      files=$(find .. -type f \( -iname "readme.md" -o -iname "Readme.md" -o -iname "README.md" \))
+      if [ -z "$files" ]; then
+        echo "No README.md files found in the parent folder. Exiting."
+        exit 0
+      fi
+      for file in $files; do
+        echo "Processing file: $file"
+
+        # Extract the header from the README.md file
+        header=$(grep -m 1 "^# " "$file" | sed 's/^# //')
+
+        # Generate a filename by replacing blanks/special characters with hyphens
+        sanitized_header=$(echo "$header" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/^-*//;s/-*$//' | sed 's/^./\U&/')
+
+        # If the header is empty, use a default filename based on the original file name
+        if [ -z "$sanitized_header" ]; then
+          sanitized_header=$(basename "$file" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/^./\U&/')
+        fi
+
+        # Copy the README.md file to the wiki root with the generated filename
+        cp "$file" "./${CI_PROJECT_NAME}.wiki/$sanitized_header.md"
+        echo "Copied $file to ./${CI_PROJECT_NAME}.wiki/$sanitized_header.md"
+      done
+
+    # Navigate to the wiki directory and push changes
+    - cd "${CI_PROJECT_NAME}.wiki"
+    - git add .
+    - |
+      if ! git diff --quiet HEAD; then
+        COMMIT_MSG="Update wiki pages from README.md files $(date +'%Y-%m-%d')"
+        echo "$COMMIT_MSG"
+        git commit -m "$COMMIT_MSG"
+        git push
+      else
+        echo "No changes to the wiki, skipping commit and push."
+      fi
     - echo "Wiki update process completed successfully."
