@@ -29,43 +29,40 @@ update_wiki:
     - git clone "$WIKI_REPO_URL" "$CI_PROJECT_NAME.wiki"
 
     # Ensure the wiki directory exists
-    - |
-      if [ ! -d "$CI_PROJECT_NAME.wiki" ]; then
-        echo "Wiki directory does not exist. Exiting."
-        exit 1
-      fi
+    - if [ ! -d "$CI_PROJECT_NAME.wiki" ]; then echo "Wiki directory does not exist. Exiting."; exit 1; fi
 
-    # Remove existing wiki files to avoid duplication
+    # Remove existing wiki files
     - rm -rf "$CI_PROJECT_NAME.wiki"/*
 
-    # Find and process all variations of README.md files in the parent plugin folder
-    - |
-      files=$(find .. -type f \( -iname "readme.md" -o -iname "Readme.md" -o -iname "README.md" \))
-      if [ -z "$files" ]; then
-        echo "No README.md files found in the parent folder. Exiting."
-        exit 0
-      fi
-      for file in $files; do
-        echo "Processing file: $file"
-        header=$(grep -m 1 "^# " "$file" | sed 's/^# //')
-        sanitized_header=$(echo "$header" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/^-*//;s/-*$//' | sed 's/^./\U&/')
+    # Find README.md files
+    - files=$(find .. -type f \( -iname "readme.md" -o -iname "Readme.md" -o -iname "README.md" \))
+    - if [ -z "$files" ]; then echo "No README.md files found in the parent folder. Exiting."; exit 0; fi
+
+    # Process each README.md file
+    - for file in $files; do
+        echo "Processing file: $file";
+        header=$(grep -m 1 "^# " "$file" | sed 's/^# //');
+        sanitized_header=$(echo "$header" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/^-*//;s/-*$//' | sed 's/^./\U&/');
         if [ -z "$sanitized_header" ]; then
-          sanitized_header=$(basename "$file" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/^./\U&/')
-        fi
-        cp "$file" "./$CI_PROJECT_NAME.wiki/$sanitized_header.md"
-        echo "Copied $file to ./$CI_PROJECT_NAME.wiki/$sanitized_header.md"
+          sanitized_header=$(basename "$file" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/^./\U&/');
+        fi;
+        cp "$file" "./$CI_PROJECT_NAME.wiki/$sanitized_header.md";
+        echo "Copied $file to ./$CI_PROJECT_NAME.wiki/$sanitized_header.md";
       done
 
-    # Navigate to the wiki directory and push changes
+    # Navigate to the wiki directory
     - cd "$CI_PROJECT_NAME.wiki"
     - git add .
-    - |
-      if ! git diff --quiet HEAD; then
-        COMMIT_MSG="Update wiki pages from README.md files $(date +'%Y-%m-%d')"
-        echo "$COMMIT_MSG"
-        git commit -m "$COMMIT_MSG"
-        git push
+
+    # Commit changes if any
+    - if ! git diff --quiet HEAD; then
+        COMMIT_MSG="Update wiki pages from README.md files $(date +'%Y-%m-%d')";
+        echo "$COMMIT_MSG";
+        git commit -m "$COMMIT_MSG";
+        git push;
       else
-        echo "No changes to the wiki, skipping commit and push."
+        echo "No changes to the wiki, skipping commit and push.";
       fi
+
+    # Final success message
     - echo "Wiki update process completed successfully."
