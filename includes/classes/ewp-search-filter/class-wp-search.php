@@ -192,8 +192,10 @@ class Extend_WP_Search_Filters
       global $ewp_search_query;
       global $ewp_config;
       global $ewp_params;
+      global $ewp_args;
       $ewp_params = $params;
       $ewp_config = $conf;
+      $ewp_args =  $args;
       $ewp_search_query = new WP_Query($args['query']);
       /*set the content files */
       $content = array();
