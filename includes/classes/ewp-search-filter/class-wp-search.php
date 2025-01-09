@@ -161,15 +161,15 @@ class Extend_WP_Search_Filters
 
 
     /**
-     * change the search filter query qrgs
+     * Filter: 'ewp_search_query_filter'
      *
-     * with this filter we change the arguments for the WP_Query
+     * This filter allows customization of the WP_Query arguments for the search filter.
      *
-     * @since 3.9.0
-     *
-     * @param array $args the args for the wp query
-     * @param array $params the params from the json request
-     * @param array $conf the configuration of the search filter
+     * @param array $args The arguments for the WP_Query.
+     *   - query: array The query parameters for WP_Query.
+     *   - terms: array The terms for the search query.
+     * @param array $params The parameters passed in the REST request.
+     * @param array $conf The configuration for the search filter.
      */
 
     return apply_filters('ewp_search_query_filter', array('query' => $args, 'terms' => $ewp_search_query_terms), $params, $conf);
@@ -288,6 +288,15 @@ class Extend_WP_Search_Filters
         'attributes' => array('value' => $sitepress->get_default_language())
       );
     }
+    /**
+     * Filter: 'ewp_search_prepare_form_fields_filter'
+     *
+     * This filter allows customization of form fields for the search filter.
+     *
+     * @param array $form_fields The prepared form fields.
+     * @param array $input_fields The raw input fields.
+     * @param string $id The ID of the search filter.
+     */
     return apply_filters('ewp_search_prepare_form_fields_filter', $form_fields, $input_fields, $id);
   }
 
@@ -738,6 +747,13 @@ class Extend_WP_Search_Filters
         )
       )
     );
+    /**
+     * Filter: 'ewp_search_fields_configuration_filter'
+     *
+     * This filter allows customization of the fields configuration for the search filter.
+     *
+     * @param array $metas The configuration for the search fields.
+     */
     return apply_filters('ewp_search_fields_configuration_filter', $metas);
   }
 }
