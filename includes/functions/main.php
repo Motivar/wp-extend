@@ -334,3 +334,21 @@ if (!function_exists('awm_clean_string')) {
         return preg_replace('/[^ \w_]/', '', $string); // Removes special chars.
     }
 }
+
+if (!function_exists('ewp_debug')) {
+    /**
+     * Debug function to print arrays and objects within <pre> tags
+     *
+     * @param mixed $data The data to debug (array, object, string, etc.)
+     * @param bool $exit Whether to exit after printing (default: false)
+     */
+    function ewp_debug($data, $exit = false)
+    {
+        echo '<pre style="background: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 5px; color: #333;">';
+        echo htmlspecialchars(print_r($data, true), ENT_QUOTES, 'UTF-8');
+        echo '</pre>';
+        if ($exit) {
+            exit;
+        }
+    }
+}
