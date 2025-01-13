@@ -123,6 +123,17 @@ if (!function_exists('awm_get_db_content')) {
       );
     }
 
+    if (!empty($query_args['include_hashes'])) {
+      $query_args['include_hashes'] = !is_array($query_args['include_hashes']) ? array($query_args['include_hashes']) : $query_args['include_hashes'];
+      $wheres[] = array(
+        'column' => 'hash',
+        'value' => "('" . implode("','", $query_args['include_hashes']) . "')",
+        'compare' => 'IN'
+      );
+
+      $query_args['limit'] = count($query_args['include']);
+    }
+
     if (!empty($query_args['include'])) {
       $query_args['include'] = !is_array($query_args['include']) ? array($query_args['include']) : $query_args['include'];
       $wheres[] = array(
