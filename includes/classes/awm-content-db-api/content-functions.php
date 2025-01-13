@@ -107,6 +107,7 @@ if (!function_exists('awm_get_db_content')) {
       'limit' => -1, /* Accept -1 */
       'order_by' => array('column' => 'created', 'type' => 'desc'),
       'include' => array(),
+      'include_hashes' => array(),
       'meta_query' => array()
     );
 
@@ -130,6 +131,7 @@ if (!function_exists('awm_get_db_content')) {
         'value' => "('" . implode("','", $query_args['include_hashes']) . "')",
         'compare' => 'IN'
       );
+      print_r($wheres);
 
       $query_args['limit'] = count($query_args['include']);
     }
