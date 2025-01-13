@@ -131,7 +131,6 @@ if (!function_exists('awm_get_db_content')) {
         'value' => "('" . implode("','", $query_args['include_hashes']) . "')",
         'compare' => 'IN'
       );
-      print_r($wheres);
 
       $query_args['limit'] = count($query_args['include']);
     }
