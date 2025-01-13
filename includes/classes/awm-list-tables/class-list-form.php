@@ -242,6 +242,14 @@ class AWM_Add_Custom_List
     $id = isset($item_data['item']['content_id']) ? absint($item_data['item']['content_id']) : '';
 
     $save_text = $id != ''  ? __('Update', 'extend-wp') : __('Save', 'extend-wp');
+    $dev_notes = '';
+    if ($id) {
+      $dev_notes = array(
+        'content_id: ' . $id,
+        'hash: ' . $item_data['item']['hash']
+      );
+      $dev_notes = '<div class="ewp-dev-notes" style="font-size:90%;opacity:0.8;word-">' . implode('<br>', $dev_notes) . '</div>';
+    }
     $delete_button = $id != '' ? '<a class="submitdelete deletion" href="' . wp_nonce_url(admin_url($this->page_link . '&id=' . $id . '&action=delete'), $this->page_id . '_delete') . '">' . __('Delete ', 'extend-wp') . '</a>' : '';
     return '<div class="submitbox ewp-status-box"><div id="major-publishing-actions">' . $select_box . '
     <div>
@@ -252,10 +260,10 @@ class AWM_Add_Custom_List
         </div>
         </div>
         <div class="clear"></div>
+        ' . $dev_notes . '
         </div>
         </div>';
   }
-
 
 
   /**
