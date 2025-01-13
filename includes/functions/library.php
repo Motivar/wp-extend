@@ -303,7 +303,7 @@ if (!function_exists('awm_show_content')) {
                                 wp_enqueue_media();
                                 wp_enqueue_script('jquery-ui-sortable');
                             }
-                            $ins = awm_gallery_meta_box_html($original_meta_id, $val);
+                            $ins = '<div class="awm-meta-message" id="' . $original_meta_id . '"><div class="awm-meta-message-label">' . $a['label'] . $explanation . '</div>' . awm_gallery_meta_box_html($original_meta_id, $val) . '</div>';
                             break;
                         case 'message':
                             if (isset($a['value']) && !empty($a['value'])) {
