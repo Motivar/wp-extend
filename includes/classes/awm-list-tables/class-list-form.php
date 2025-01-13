@@ -261,6 +261,7 @@ class AWM_Add_Custom_List
         </div>
         <div class="clear"></div>
         ' . $dev_notes . '
+         <div class="clear"></div>
         </div>
         </div>';
   }
