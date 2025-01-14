@@ -263,9 +263,10 @@ if (!function_exists('awm_custom_content_delete')) {
    * with this function we delte the data and the relations
    * @param string $field the object to type to delete the data
    * @param array $ids
+   * @param string $column_id to delete based on this
    * 
    */
-  function awm_custom_content_delete($field, $ids = array())
+  function awm_custom_content_delete($field, $ids = array(), $column_id = 'content_id')
   {
     if (!empty($ids)) {
       $where_clause = array(
@@ -273,7 +274,7 @@ if (!function_exists('awm_custom_content_delete')) {
           array(
             "operator" => "AND",
             "clause" => array(
-              array('column' => 'content_id', 'value' => '(' . implode(',', $ids) . ')', 'compare' => 'IN')
+              array('column' => $column_id, 'value' => '(' . implode(',', $ids) . ')', 'compare' => 'IN')
             ),
           ),
         )

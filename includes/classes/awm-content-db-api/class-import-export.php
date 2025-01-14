@@ -66,7 +66,7 @@ class Extend_WP_Import_Export
     throw new Exception(__('Invalid JSON in the configuration file.', 'extend-wp'));
    }
 
-
+   $all_hashes = array();
    // Loop through the content types and call the import function
    foreach ($data as $content_type => $items) {
     if ($content_type === 'modified') {
@@ -77,11 +77,25 @@ class Extend_WP_Import_Export
      // throw an error with the related messsage
      throw new Exception(sprintf(__('Failed to import content of type %s.', 'extend-wp'), $content_type));
     }
+    $all_hashes[$content_type] = $import;
    }
-   
-   // Update the file signature to prevent re-imports
-   update_option('ewp_file_import_signature', $file_signature);
 
+   // Update the file signature to prevent re-imports
+
+   $old_hashes = get_option('ewp_auto_imported_hashes') ?: array();
+   foreach ($old_hashes as $content_type => $hashes) {
+    /*check if $old_hashes[$content_type] are different than $all_hashes[$content_type] and delete the non used anymore*/
+    $new_array = isset($all_hashes[$content_type]) ? $all_hashes[$content_type] : array();
+    // Find the hashes that exist in old but not in new
+    $unused_hashes = array_diff($hashes, $new_array);
+    if (empty($unused_hashes)) {
+     awm_custom_content_delete($content_type, $unused_hashes, 'hash');
+    }
+   }
+   update_option('ewp_file_import_signature', $file_signature, false);
+   update_option('ewp_auto_imported_hashes', $all_hashes, false);
+
+   
    // Add a dismissible admin notice
    add_action('admin_notices', function () {
     echo '<div class="notice notice-success is-dismissible">';
@@ -245,6 +259,7 @@ class Extend_WP_Import_Export
 
  public function import_content($content_type, $data)
  {
+  $successful_imported = array();
   foreach ($data as $content_data) {
    $meta = isset($content_data['meta']) ? $content_data['meta'] : array();
    unset($content_data['meta']);
@@ -256,6 +271,7 @@ class Extend_WP_Import_Export
    if (!empty($meta)) {
     awm_insert_db_content_meta($content_type, $import_id, $meta);
    }
+   $successful_imported[] = $content_data['hash'];
   }
   return true;
  }
