@@ -1191,7 +1191,7 @@ function awm_gallery_meta_box_html($meta, $val)
     }
     // If there are images, list them here
     $content .= '</ul>';
-    $content .= '<button id="' . $meta . '-button"class="button awm-upload-button" data-id="' . $meta . '">Add Images</button>';
+    $content .= '<button id="' . $meta . '-button"class="button awm-upload-button" data-id="' . $meta . '">' . __('Add', 'extend-wp') . '</button>';
     // Hidden field to store the IDs of the gallery images
     $content .= '</div>';
     return $content;
