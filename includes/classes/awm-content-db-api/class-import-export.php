@@ -74,13 +74,9 @@ class Extend_WP_Import_Export
     }
     $import = $this->import_content($content_type, $items);
     if (is_wp_error($import) || !$import) {
-     // Add a admin notice for the error
-     add_action('admin_notices', function () use ($content_type) {
-      echo '<div class="notice notice-error is-dismissible">';
-      echo '<p>' . sprintf(__('Failed to import content of type %s.', 'extend-wp'), $content_type) . '</p>';
-      echo '</div>';
-     });
-     return;
+     // throw an error with the related messsage
+     throw new Exception(sprintf(__('Failed to import content of type %s.', 'extend-wp'), $content_type));
+    }
    }
    
    // Update the file signature to prevent re-imports
