@@ -100,6 +100,7 @@ class Extend_WP_Import_Export
     echo '<p>' . sprintf(__('Import failed: %s', 'extend-wp'), $e->getMessage()) . '</p>';
     echo '</div>';
    });
+   ewp_flush_cache();
   }
  }
 
