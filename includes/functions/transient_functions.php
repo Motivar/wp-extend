@@ -132,10 +132,10 @@ if (!function_exists('ewp_flush_cache')) {
     do_action('ewp_flush_cache_pre_action');
     awm_delete_transient_group('awm_post_fields_transients');
     awm_delete_transient_all();
-  update_option('ewp_user_caps_version', strtotime('now'), false);
-  delete_option('ewp_user_caps_version_old');
-  flush_rewrite_rules();
-  wp_cache_flush();
+    update_option('ewp_user_caps_version', strtotime('now'), false);
+    delete_option('ewp_user_caps_version_old');
+    flush_rewrite_rules();
+    wp_cache_flush();
     do_action('ewp_flush_cache_action');
     return true;
  }

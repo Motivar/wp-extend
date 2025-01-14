@@ -226,7 +226,7 @@ class EWP_WP_Content_Installer
   public function add_caps()
   {
     /*init users first*/
-    $users_version_old = get_option('ewp_user_caps_version_old');
+    $users_version_old = get_option('ewp_user_caps_version_old') ?: false;
     $users_version = get_option('ewp_user_caps_version') ?: EWP_USERS_VERSION;
     if ($users_version_old != $users_version) {
       $types = $this->post_types;
