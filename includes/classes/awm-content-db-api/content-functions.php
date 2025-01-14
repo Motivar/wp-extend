@@ -286,9 +286,6 @@ if (!function_exists('awm_custom_content_delete')) {
       /*action to run after delete*/
       do_action($field . '_after_delete_action', $ids, $where_clause);
       do_action('ewp_custom_content_delete_action', $field, $ids);
-      /*cache flushes and transients*/
-      wp_cache_flush();
-      awm_delete_transient_all();
       return true;
     }
     return false;
@@ -382,8 +379,6 @@ if (!function_exists('awm_custom_content_save')) {
     awm_insert_db_content_meta($id, $object_id, $metas);
     do_action($id . '_save_action', $object_id, $data);
     do_action('ewp_custom_content_save_action', $id, $object_id, $data);
-    wp_cache_flush();
-    awm_delete_transient_all();
     return $object_id;
   }
 }
@@ -445,8 +440,7 @@ if (!function_exists('awm_custom_content_duplicate')) {
     do_action($field . '_after_duplicate_action', $new_id, $id);
 
     // Clear the cache and delete all related transients
-    wp_cache_flush();
-    awm_delete_transient_all();
+    ewp_flush_cache()
 
     // Return the ID of the newly duplicated content
     return $new_id;

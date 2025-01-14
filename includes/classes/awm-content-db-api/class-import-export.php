@@ -74,7 +74,7 @@ class Extend_WP_Import_Export
     }
     $this->import_content($content_type, $items);
    }
-
+   
    // Update the file signature to prevent re-imports
    update_option('ewp_file_import_signature', $file_signature);
 
@@ -84,6 +84,7 @@ class Extend_WP_Import_Export
     echo '<p>' . __('EWP Content has been successfully imported.', 'extend-wp') . '</p>';
     echo '</div>';
    });
+   ewp_flush_cache();
    return true;
   } catch (Exception $e) {
    // Handle exceptions and log the error
@@ -231,6 +232,7 @@ class Extend_WP_Import_Export
     return new WP_Error('no_content', 'No content provided', array('status' => 400));
    }
    $this->import_content($content_type, $content);
+   ewp_flush_cache();
    return true;
   }
   return new WP_Error('no_params', 'No parameters provided', array('status' => 400));

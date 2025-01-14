@@ -36,7 +36,7 @@ class EWP_WP_Content_Installer
     add_filter('use_block_editor_for_post_type', [$this, 'disable_gutenburg'], 10, 2);
     add_action('plugins_loaded', function () {
       if (isset($_REQUEST['ewp_delete_trans'])) {
-        awm_delete_transient_all();
+        ewp_flush_cache();
         die();
       }
     });
@@ -168,8 +168,7 @@ class EWP_WP_Content_Installer
       );
     }
     if ($updated) {
-      wp_cache_flush();
-      awm_delete_transient_all();
+      ewp_flush_cache();
     }
   }
 
@@ -209,7 +208,7 @@ class EWP_WP_Content_Installer
    */
   public function activate()
   {
-    awm_delete_transient_all();
+    ewp_flush_cache()
   }
   /**
    * working when de-activate the plugin
@@ -217,7 +216,7 @@ class EWP_WP_Content_Installer
 
   public function deactivate()
   {
-    awm_delete_transient_all();
+    ewp_flush_cache();
   }
 
 
