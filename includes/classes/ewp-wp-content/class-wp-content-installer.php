@@ -208,7 +208,7 @@ class EWP_WP_Content_Installer
    */
   public function activate()
   {
-    ewp_flush_cache()
+    ewp_flush_cache();
   }
   /**
    * working when de-activate the plugin

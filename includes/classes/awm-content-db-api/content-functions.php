@@ -440,7 +440,7 @@ if (!function_exists('awm_custom_content_duplicate')) {
     do_action($field . '_after_duplicate_action', $new_id, $id);
 
     // Clear the cache and delete all related transients
-    ewp_flush_cache()
+    ewp_flush_cache();
 
     // Return the ID of the newly duplicated content
     return $new_id;
