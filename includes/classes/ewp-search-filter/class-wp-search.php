@@ -419,8 +419,10 @@ class Extend_WP_Search_Filters
 
   public function ewp_search_dev_notes()
   {
-
-    $guidelines = array(
+    if (!isset($_REQUEST['id']) || empty($_REQUEST['id'])) {
+      return array();
+    }
+    $guidelines = array(  
       array(
         'text' => __('Change the card path of the displayed result', 'extend-wp'),
         'code' => 'add_filter("ewp_search_result_path",$path,$wp_query);'
