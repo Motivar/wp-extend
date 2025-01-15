@@ -603,7 +603,8 @@ if (!function_exists('awm_show_content')) {
                                 $minrows = isset($a['minrows']) ? absint($a['minrows']) : 0;
                                 $maxrows = isset($a['maxrows']) ? absint($a['maxrows']) : '';
                                 $ins .= '<div class="awm-repeater" data-count="' . count($a['include']) . '" data-id="' . $original_meta_id . '" maxrows="' . $maxrows . '">';
-                                $ins .= '<div class="awm-repeater-title">' . $a['label'] . $explanation . '</div>';
+                                $r_label = isset($a['label']) ? $a['label'] : '';
+                                $ins .= '<div class="awm-repeater-title">' . $r_label . $explanation . '</div>';
                                 $ins .= '<div class="awm-repeater-contents">';
                                 $val = !empty($val) ? array_values(maybe_unserialize($val)) : array();
                                 if ((empty($val)) && isset($a['prePopulated'])) {
