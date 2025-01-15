@@ -233,7 +233,7 @@ class Extend_WP_Search_Filters
     wp_enqueue_script('ewp-search');
   }
 
-  private function prepare_form_fields($input_fields, $id)
+  private function prepare_form_fields($input_fields, $id, $hash)
   {
     $form_fields = array();
     foreach ($input_fields as &$field) {
@@ -299,7 +299,7 @@ class Extend_WP_Search_Filters
      * @param array $input_fields The raw input fields.
      * @param string $id The ID of the search filter.
      */
-    return apply_filters('ewp_search_prepare_form_fields_filter', $form_fields, $input_fields, $id);
+    return apply_filters('ewp_search_prepare_form_fields_filter', $form_fields, $input_fields, $id, $hash);
   }
 
 
@@ -312,6 +312,14 @@ class Extend_WP_Search_Filters
     /*check if empty*/
     if (empty($id) && empty($hash)) {
       return '';
+    }
+
+    if (empty($hash)) {
+      $hash = awm_get_db_content('ewp_search', array('include' => $id));
+      if (empty($hash)) {
+        return '';
+      }
+      $hash = $hash[0]['hash'];
     }
 
     if (empty($id) && !empty($hash)) {
@@ -331,7 +339,7 @@ class Extend_WP_Search_Filters
     }
     /*check the input fields*/
     $input_fields = $fields['query_fields'];
-    $form_fields = $this->prepare_form_fields($input_fields, $id);
+    $form_fields = $this->prepare_form_fields($input_fields, $id, $hash);
     /*check if we have in Request the query keys*/
     if (isset($_REQUEST)) {
       foreach ($_REQUEST as $key => $value) {
