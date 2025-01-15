@@ -452,7 +452,7 @@ class Extend_WP_Search_Filters
     }
     $html .= '</div>';
 
-    $field = awm_get_db_content('ewp_search', array('args' => $_REQUEST['id']));
+    $field = awm_get_db_content('ewp_search', array('include' => $_REQUEST['id']));
     $hash = $field[0]['hash'];
     return array(
       'html' => array(
