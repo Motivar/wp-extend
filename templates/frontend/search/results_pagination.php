@@ -28,7 +28,7 @@ $current_page = get_query_var('paged') ? get_query_var('paged') : 1;
       }
       break;
     default:
-      echo paginate_links(array(
+      $pagination_links_args = apply_filters('ewp_pagination_links_args_filter', array(
         'format' => 'page/%#%/',
         'current' => $current_page,
         'total' => $ewp_search_query->get('max_num_pages'),
@@ -36,6 +36,7 @@ $current_page = get_query_var('paged') ? get_query_var('paged') : 1;
         'next_text' => __('next »', 'extend-wp'),
         'show_all' => true
       ));
+      echo paginate_links($pagination_links_args);
       break;
   }
   ?></div>
