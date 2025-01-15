@@ -205,7 +205,7 @@ class Extend_WP_Search_Filters
         $content[] = awm_parse_template(awm_path . 'templates/frontend/search/results-terms.php');
       }
       $main_content = __($conf['empty_results_message'], 'extend-wp');
-      if (empty(!$ewp_search_query->posts)) {
+      if (!empty($ewp_search_query->posts)) {
         $main_content = awm_parse_template(awm_path . 'templates/frontend/search/results.php');
       }
       $content[] = $main_content;
