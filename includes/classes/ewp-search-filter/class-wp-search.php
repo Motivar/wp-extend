@@ -307,11 +307,21 @@ class Extend_WP_Search_Filters
   {
     extract(shortcode_atts(array(
       'id' => '',
+      'hash' => ''
     ), $atts));
     /*check if empty*/
-    if (empty($id)) {
+    if (empty($id) && empty($hash)) {
       return '';
     }
+
+    if (empty($id) && !empty($hash)) {
+      $id = awm_get_db_content('ewp_search', array('include_hashes' => $hash));
+      if (empty($id)) {
+        return '';
+      }
+      $id = $id[0]['content_id'];
+    }
+
     /*get the fields*/
     $fields = awm_get_db_content_meta('ewp_search', $id);
 
@@ -440,12 +450,14 @@ class Extend_WP_Search_Filters
     }
     $html .= '</div>';
 
+    $field = awm_get_db_content('ewp_search', array('args' => $_REQUEST['id']));
+    $hash = $field[0]['hash'];
     return array(
       'html' => array(
         'case' => 'html',
         'label' => __('How to user the search filter', 'extend-wp'),
         'show_label' => true,
-        'value' => '<div class="awm-dev-info"><div>' . sprintf(__('Use the shortcode <strong>[ewp_search id="%s"]</strong>, and place it where you wish. If the dom element which you have set to show the results does not exists, then no action will be triggered as you interact with the form.', 'extend-wp'), (isset($_REQUEST['id']) ? $_REQUEST['id'] : '-')) . '</div></div>'
+        'value' => '<div class="awm-dev-info"><div>' . sprintf(__('Use the shortcode <strong>[ewp_search id="%s"]</strong> or <strong>[ewp_search hash="%s"]</strong>, and place it where you wish. If the dom element which you have set to show the results does not exists, then no action will be triggered as you interact with the form.', 'extend-wp'), (isset($_REQUEST['id']) ? $_REQUEST['id'] : '-'), $hash) . '</div></div>'
       ),
       'html2' => array(
         'case' => 'html',
