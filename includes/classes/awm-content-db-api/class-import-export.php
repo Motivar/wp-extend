@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) {
 
 class Extend_WP_Import_Export
 {
- private $version = '1.0';
+ private $version = '1.1';
 
  public function __construct()
  {
@@ -68,12 +68,14 @@ class Extend_WP_Import_Export
 
    $all_hashes = array();
    // Loop through the content types and call the import function
+
    foreach ($data as $content_type => $items) {
     if ($content_type === 'modified') {
      continue; // Skip metadata
     }
     $import = $this->import_content($content_type, $items);
     if (is_wp_error($import) || !$import) {
+
      // throw an error with the related messsage
      throw new Exception(sprintf(__('Failed to import content of type %s.', 'extend-wp'), $content_type));
     }
@@ -83,19 +85,24 @@ class Extend_WP_Import_Export
    // Update the file signature to prevent re-imports
 
    $old_hashes = get_option('ewp_auto_imported_hashes') ?: array();
-   foreach ($old_hashes as $content_type => $hashes) {
-    /*check if $old_hashes[$content_type] are different than $all_hashes[$content_type] and delete the non used anymore*/
-    $new_array = isset($all_hashes[$content_type]) ? $all_hashes[$content_type] : array();
-    // Find the hashes that exist in old but not in new
-    $unused_hashes = array_diff($hashes, $new_array);
-    if (empty($unused_hashes)) {
-     awm_custom_content_delete($content_type, $unused_hashes, 'hash');
+   if (!$old_hashes || empty($old_hashes)) {
+    foreach ($old_hashes as $content_type => $hashes) {
+     if (empty($hashes) || !$hashes || !is_array($hashes)) {
+      continue;
+     }
+     /*check if $old_hashes[$content_type] are different than $all_hashes[$content_type] and delete the non used anymore*/
+     $new_array = isset($all_hashes[$content_type]) ? $all_hashes[$content_type] : array();
+     // Find the hashes that exist in old but not in new
+     $unused_hashes = array_diff($hashes, $new_array);
+     if (empty($unused_hashes)) {
+      awm_custom_content_delete($content_type, $unused_hashes, 'hash');
+     }
     }
    }
    update_option('ewp_file_import_signature', $file_signature, false);
    update_option('ewp_auto_imported_hashes', $all_hashes, false);
 
-   
+
    // Add a dismissible admin notice
    add_action('admin_notices', function () {
     echo '<div class="notice notice-success is-dismissible">';
@@ -110,8 +117,8 @@ class Extend_WP_Import_Export
 
    // Add a dismissible admin notice for the error
    add_action('admin_notices', function () use ($e) {
-    echo '<div class="notice notice-error is-dismissible">';
-    echo '<p>' . sprintf(__('Import failed: %s', 'extend-wp'), $e->getMessage()) . '</p>';
+    echo '<div class="notice notice-error">';
+    echo '<p>' . sprintf(__('Import failed: %s. Please check your php error_logs.', 'extend-wp'), $e->getMessage()) . '</p>';
     echo '</div>';
    });
    ewp_flush_cache();
@@ -215,7 +222,7 @@ class Extend_WP_Import_Export
     )
    ),
   );
-  
+
   $rest['ewp-export'] = array(
    'endpoint' => 'export',
    'namespace' =>  'ewp/v1',
@@ -273,7 +280,7 @@ class Extend_WP_Import_Export
    }
    $successful_imported[] = $content_data['hash'];
   }
-  return true;
+  return $successful_imported;
  }
 
 

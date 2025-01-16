@@ -203,7 +203,8 @@ class AWM_DB_Creator
             if ($wpdb->last_error) {
                 throw new Exception('Database query failed: ' . $wpdb->last_error);
             }
-
+            // Clean the results using stripslashes_deep
+            $results = stripslashes_deep($results);
             return $results;
         } catch (Exception $e) {
             // Log the error
@@ -238,7 +239,7 @@ class AWM_DB_Creator
 
             // Prepare the data for insertion
             foreach ($data as $key => $value) {
-                $final_data[$key] = maybe_serialize($value);
+                $final_data[$key] = addslashes(maybe_serialize($value));
             }
 
             // Insert new row
@@ -418,7 +419,7 @@ class AWM_DB_Creator
 
                     // Perform update if data exists
                     $update_result = self::update_db_data($tableName, $data, $where_clause, $unique);
-                   
+
                     if ($update_result === false) {
                         throw new Exception('Database update failed.');
                     }
@@ -555,7 +556,8 @@ class AWM_DB_Creator
         if (isset($clause) && !empty($clause)) {
             $setStatement = array();
             foreach ($clause as $key => $value) {
-                $setStatement[] = $key . '=\'' . stripslashes(maybe_serialize($value)) . '\',';
+                $escaped_value = addslashes(maybe_serialize($value)); // Escape special characters
+                $setStatement[] = $key . '=\'' . $escaped_value . '\',';
             }
         }
 
