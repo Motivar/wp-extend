@@ -76,7 +76,7 @@ class Extend_WP_Default_Content
               'type' => 'text',
               'show-when' => array('store' => array('values' => true)),
               'explanation' => sprintf(
-                __('Place the path following this address <strong>%s</strong>. Please also check that the path is writable by php!', 'extend-wp'),
+                __('Place just the folder path following this address <strong>%s</strong>. Filename is auto-configured. Please also check that the path is writable by php!', 'extend-wp'),
                 WP_CONTENT_DIR
               )
             ),
@@ -110,7 +110,7 @@ class Extend_WP_Default_Content
               'type' => 'text',
               'show-when' => array('import' => array('values' => true)),
               'explanation' => sprintf(
-                __('Place the path following this address <strong>%s</strong>.', 'extend-wp'),
+                __('Place just the folder path following this address <strong>%s</strong>. Filename is auto-configured.', 'extend-wp'),
                 WP_CONTENT_DIR
               )
             ),
