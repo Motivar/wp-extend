@@ -99,7 +99,8 @@ class AWM_API extends WP_REST_Controller
   {
     if (isset($request)) {
       $options = array();
-      $options['key'] = '';
+      $dev_settings = get_option('ewp_dev_settings') ?: array();
+      $options['key'] = isset($dev_settings['google_maps_api_key']) ? $dev_settings['google_maps_api_key'] : '';
       $options['lat'] = '39.0742';
       $options['lng'] = '21.8243';
       $options['map_options'] = array(

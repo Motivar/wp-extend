@@ -15,8 +15,12 @@ class Extend_WP_Default_Content
   }
   public function admin_menu($options)
   {
+    $allowed_users = array();
+    $settings = get_option('ewp_general_settings') ?: array();
+    if (isset($settings['ewp_user_access']) && !empty($settings['ewp_user_access'])) {
+      $allowed_users = $settings['ewp_user_access'];
+    } 
 
-    $allowed_users = get_option('ewp_user_access', array());
     $allowed_users[] = 'administrator';
     /*check if current user can access the page based on the user role get first the user role and then check if in array*/
     $user = wp_get_current_user();
@@ -115,6 +119,17 @@ class Extend_WP_Default_Content
               )
             ),
           ),
+        ),
+        'ewp_dev_settings' => array(
+          'case' => 'section',
+          'label' => __('Developer Settings', 'extend-wp'),
+          'include' => array(
+            'google_maps_api_key' => array(
+              'case' => 'input',
+              'type' => 'text',
+              'label' => __('Google Maps API key', 'extend-wp'),
+            ),
+          )
         ),
 
       ),
