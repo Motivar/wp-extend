@@ -287,7 +287,7 @@ class Extend_WP_Search_Filters
         'case' => 'input',
         'type' => 'hidden',
         'exclude_meta' => true,
-        'attributes' => array('value' => $sitepress->get_default_language())
+        'attributes' => array('value' => $sitepress->get_current_language())
       );
     }
     /**
