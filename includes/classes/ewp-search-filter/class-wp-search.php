@@ -59,7 +59,7 @@ class Extend_WP_Search_Filters
       'post_type' => $conf['post_types'],
       'post_status' => 'publish',
       'posts_per_page' => $conf['limit'],
-      'orderby'        => isset($conf['orderby']) ?  $conf['orderby'] : 'modified'// Order by the last modified date.
+      'orderby'        => isset($conf['orderby']) ?  $conf['orderby'] : 'modified',// Order by the last modified date.
       'order'          => isset($conf['order']) ?  $conf['order'] : 'DESC', // Order by the last modified date.
       'tax_query' => array(),
       'date_query' => array(),
