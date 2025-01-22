@@ -59,8 +59,8 @@ class Extend_WP_Search_Filters
       'post_type' => $conf['post_types'],
       'post_status' => 'publish',
       'posts_per_page' => $conf['limit'],
-      'orderby' => 'ID',
-      'order' => 'ASC',
+      'orderby'        => isset($conf['orderby']) ?  $conf['orderby'] : 'modified'// Order by the last modified date.
+      'order'          => isset($conf['order']) ?  $conf['order'] : 'DESC', // Order by the last modified date.
       'tax_query' => array(),
       'date_query' => array(),
       'meta_query' => array(),
@@ -526,6 +526,24 @@ class Extend_WP_Search_Filters
         'type' => 'number',
         'label_class' => array('awm-needed'),
         'label' => __('Results limit', 'extend-wp'),
+      ),
+      'orderby' => array(
+        'case' => 'select',
+        'removeEmpty' => true,
+        'options' => array(
+          'modified' => array('label' => __('Modified', 'extend-wp')),
+          'date' => array('label' => __('Date', 'extend-wp')),
+          'title' => array('label' => __('Title', 'extend-wp')),
+          'rand' => array('label' => __('Random', 'extend-wp')),
+        ),
+      ),
+      'order' => array(
+        'case' => 'select',
+        'removeEmpty' => true,
+        'options' => array(
+          'ASC' => array('label' => __('Ascending', 'extend-wp')),
+          'DESC' => array('label' => __('Descending', 'extend-wp')),
+        ),
       ),
       'button_apply' => array(
         'case' => 'input',
