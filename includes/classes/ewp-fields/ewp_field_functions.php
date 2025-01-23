@@ -793,6 +793,25 @@ if (!function_exists('awmInputFields')) {
       'post_types' => array('label' => __('Post types object', 'extend-wp')),
       'term' => array('label' => __('Taxonomies', 'extend-wp'), 'field-choices' => awm_term_options()),
       'taxonomies' => array('label' => __('Taxonomies object', 'extend-wp')),
+      'user' => array('label' => __('Users', 'extend-wp'), 'field-choices' => array(
+        'roles' => array(
+          'label' => __('Role', 'extend-wp'),
+          'case' => 'select',
+          'options' => awm_user_roles(),
+          'attributes' => array('multiple' => true),
+          'label_class' => array('awm-needed'),
+        ),
+        'view' => array(
+          'case' => 'select',
+          'label' => __('View', 'extend-wp'),
+          'removeEmpty' => true,
+          'options' => array(
+            'select' => array('label' => __('Select box', 'extend-wp')),
+            'radio' => array('label' => __('Radio', 'extend-wp')),
+            'checkbox_multiple' => array('label' => __('Multiple checkbox', 'extend-wp')),
+          )
+        ),
+      )),
       'ewp_content' =>  array('label' => __('Ewp Content', 'extend-wp'), 'field-choices' => ewp_options()),
       'ewp_content_types' =>  array('label' => __('Ewp Content Types', 'extend-wp')),
       'function' => array('label' => __('PHP Function', 'extend-wp'), 'field-choices' => array(
@@ -814,6 +833,20 @@ if (!function_exists('awmInputFields')) {
     ));
   }
 }
+
+if (!function_exists('awm_user_roles')) {
+  function awm_user_roles()
+  {
+    global $wp_roles;
+    $roles = $wp_roles->roles;
+    $role_names = array();
+    foreach ($roles as $role => $data) {
+      $role_names[$role] = array('label' => $data['name']);
+    }
+    return $role_names;
+  }
+}
+
 
 if (!function_exists('ewp_options')) {
   function ewp_options()
