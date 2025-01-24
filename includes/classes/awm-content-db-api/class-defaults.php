@@ -24,7 +24,7 @@ class Extend_WP_Default_Content
     $allowed_users[] = 'administrator';
     /*check if current user can access the page based on the user role get first the user role and then check if in array*/
     $user = wp_get_current_user();
-    if (!$user->ID || WP_Error::is_wp_error($user)) {
+    if (!$user->ID) {
       return $options;
     }
     $user_role = $user->roles[0];
