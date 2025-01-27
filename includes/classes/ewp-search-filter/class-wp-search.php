@@ -427,7 +427,7 @@ class Extend_WP_Search_Filters
 
   public function ewp_search_dev_notes()
   {
-    if (!isset($_REQUEST['id']) || empty($_REQUEST['id'])) {
+    if (!isset($_REQUEST['id']) || empty($_REQUEST['id']) || $_REQUEST['page'] != 'ewp_search_form') {
       return array();
     }
     $guidelines = array(  
