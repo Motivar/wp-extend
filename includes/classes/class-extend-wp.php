@@ -425,30 +425,48 @@ class AWM_Meta
      */
     public function awm_add_options_page()
     {
-        global $pagenow;
+        global $pagenow; // Get the current page in the WordPress admin area.
+
+        // Retrieve the options pages array (defined elsewhere in your class).
         $optionsPages = $this->options_boxes();
 
+        // Check if there are options pages to add.
         if (!empty($optionsPages)) {
+            // Iterate through each option page and configure its settings.
             foreach ($optionsPages as $optionKey => $optionData) {
-                $optionData['id'] = $optionKey;
-                $parent = isset($optionData['parent']) ? $optionData['parent'] : 'options-general.php';
-                $icon = isset($optionData['icon']) ? $optionData['icon'] : '';
-                $cap = (isset($optionData['cap']) && !empty($optionData['cap'])) ? $optionData['cap'] : 'manage_options';
-                $callback = isset($optionData['ext_callback']) ? $optionData['ext_callback'] : 'awm_options_callback';
-                global $awm_settings;
-                $awm_settings = $optionData;
-                if ($parent) {
-                    add_submenu_page($parent, ucwords($optionData['title']), ucwords($optionData['title']), $cap, $optionKey, $callback);
-                    continue;
-                }
-                add_menu_page(
-                    ucwords($optionData['title']),
-                    ucwords($optionData['title']),
-                    $cap,
-                    $optionKey,
-                    $callback,
-                    $icon
+                $optionData['id'] = $optionKey; // Assign the key as the ID for the option page.
 
+                // Define settings for the options page.
+                $parent = isset($optionData['parent']) ? $optionData['parent'] : 'options-general.php'; // Parent menu (default: Options menu).
+                $icon = isset($optionData['icon']) ? $optionData['icon'] : ''; // Menu icon (used for top-level menus).
+                $cap = (isset($optionData['cap']) && !empty($optionData['cap'])) ? $optionData['cap'] : 'manage_options'; // Capability required to access this page.
+                $callback = isset($optionData['ext_callback']) ? $optionData['ext_callback'] : 'awm_options_callback'; // Callback function to render the page.
+
+                global $awm_settings; // Set global settings for access in callbacks.
+                $awm_settings = $optionData;
+
+                // Add the submenu or top-level menu based on the parent setting.
+                if ($parent) {
+                    // Add a submenu under the specified parent menu.
+                    add_submenu_page(
+                        $parent,
+                        ucwords($optionData['title']), // Page title (displayed in the browser tab).
+                        ucwords($optionData['title']), // Menu title (displayed in the admin menu).
+                        $cap,                          // Capability required to access this page.
+                        $optionKey,                    // Unique slug for the menu page.
+                        $callback                      // Function to render the page content.
+                    );
+                    continue; // Skip to the next iteration for submenu items.
+                }
+
+                // Add a top-level menu if no parent is specified.
+                add_menu_page(
+                    ucwords($optionData['title']), // Page title.
+                    ucwords($optionData['title']), // Menu title.
+                    $cap,                          // Capability.
+                    $optionKey,                    // Unique slug.
+                    $callback,                     // Function to render the content.
+                    $icon                          // Icon for the top-level menu.
                 );
             }
         }
