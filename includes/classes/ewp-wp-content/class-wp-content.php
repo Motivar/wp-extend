@@ -74,6 +74,7 @@ class Extend_WP_WP_Content
       'flx_enable' => true,
       'slug' => get_option($post_name . '_slug') ?: $prefix . '_' . awm_clean_string(strtolower($metas['singular'])),
       'taxonomies_connected' => isset($metas['taxonomies']) ? $metas['taxonomies'] : array(),
+      'meta_boxes_connected' => isset($metas['meta_boxes']) ? $metas['meta_boxes'] : array(),
       'disable_gutenburg' => isset($metas['disable_gutenburg']) ? $metas['disable_gutenburg'] : false,
       'description' => isset($metas['description']) ? $metas['description'] : '',
       'hierarchical' => isset($metas['hierarchical']) ? $metas['hierarchical'] : false,
@@ -265,6 +266,12 @@ class Extend_WP_WP_Content
      'label' => __('Attach taxonomies', 'extend-wp'),
      'attributes' => array('multiple' => 1)
     ),
+    /*'meta_boxes' => array(
+     'case' => 'select',
+     'label' => __('Attach existing Meta Boxes', 'extend-wp'),
+     'callback' => 'all_awm_meta_libraries',
+     'attributes' => array('multiple' => 1),
+    ),*/
     'extra_slug' => array(
      'label' => __('With front (taxonomy_label)', 'extend-wp'),
      'case' => 'input',
