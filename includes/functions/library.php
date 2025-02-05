@@ -1025,6 +1025,13 @@ function awm_display_meta_value($meta, $data, $postId = 0, $external_value = '')
             }
             $value = implode(', ', $msg);
             break;
+        case 'user':
+            $user = get_user_by('id', $value);
+            if ($user && !is_wp_error($user)) {
+                /*get edit link also*/
+                $value = '<a href="' . admin_url('user-edit.php?user_id=' . $value) . '" target="_blank">' . $user->display_name . '</a>';
+            }
+            break;
         case 'postType':
             $values = empty($value) ? array() : (!is_array($value) ? array($value) : $value);
             $msg = array();
