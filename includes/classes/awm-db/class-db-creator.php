@@ -126,35 +126,32 @@ class AWM_DB_Creator
         }
     }
 
-    /**
-     * Check if a specific table exists in the database.
-     *
-     * @param string $tableName The name of the table (without the prefix).
-     * @return bool True if the table exists, false otherwise.
-     */
+    private static $table_existence_cache = [];
+
     public static function check_table_exists($tableName)
     {
-        static $table_cache = array();
         global $wpdb;
 
-        $full_table_name = $wpdb->prefix . $tableName;
+        // Add the prefix to the table name
+        $tableName = "{$wpdb->prefix}{$tableName}";
 
-        // Check cache first
-        if (isset($table_cache[$full_table_name])) {
-            return $table_cache[$full_table_name];
+        // Check if result is already cached
+        if (isset(self::$table_existence_cache[$tableName])) {
+            return self::$table_existence_cache[$tableName];
         }
 
-        // Query the INFORMATION_SCHEMA to see if the table exists
-        $result = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s",
-            DB_NAME, // Database name
-            $full_table_name // Full table name
-        ));
+        // Query INFORMATION_SCHEMA once if not cached
+        $result = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s",
+                DB_NAME,
+                $tableName
+            )
+        );
 
-        // Cache the result
-        $table_cache[$full_table_name] = ($result > 0);
-
-        return $table_cache[$full_table_name];
+        // Cache the result for future calls within the same request
+        self::$table_existence_cache[$tableName] = ($result > 0);
+        return self::$table_existence_cache[$tableName];
     }
 
 
