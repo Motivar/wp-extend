@@ -127,6 +127,39 @@ class AWM_DB_Creator
     }
 
     /**
+     * Check if a specific table exists in the database.
+     *
+     * @param string $tableName The name of the table (without the prefix).
+     * @return bool True if the table exists, false otherwise.
+     */
+    public static function check_table_exists($tableName)
+    {
+        static $table_cache = array();
+        global $wpdb;
+
+        $full_table_name = $wpdb->prefix . $tableName;
+
+        // Check cache first
+        if (isset($table_cache[$full_table_name])) {
+            return $table_cache[$full_table_name];
+        }
+
+        // Query the INFORMATION_SCHEMA to see if the table exists
+        $result = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s",
+            DB_NAME, // Database name
+            $full_table_name // Full table name
+        ));
+
+        // Cache the result
+        $table_cache[$full_table_name] = ($result > 0);
+
+        return $table_cache[$full_table_name];
+    }
+
+
+
+    /**
      * Runs a select query in the custom Filox DB
      * 
      * @param tableName The name of the table to run the query on
@@ -144,6 +177,11 @@ class AWM_DB_Creator
         try {
             if (!isset($tableName) || !isset($select)) {
                 throw new Exception('Table name or select clause is missing.');
+            }
+
+            // Check if table exists
+            if (!self::check_table_exists($tableName)) {
+                throw new Exception("Table '{$tableName}' does not exist.");
             }
 
             // Call wpdb to get access to table prefix
@@ -228,6 +266,11 @@ class AWM_DB_Creator
                 throw new Exception('Invalid table name or data.');
             }
 
+            // Check if table exists
+            if (!self::check_table_exists($tableName)) {
+                throw new Exception("Table '{$tableName}' does not exist.");
+            }
+
             // Add the table prefix to the passed-in data table
             $tableName = "{$wpdb->prefix}$tableName";
             $final_data = array();
@@ -282,6 +325,10 @@ class AWM_DB_Creator
                 throw new Exception('Invalid parameters: Table name and update clause are required.');
             }
 
+            // Check if table exists
+            if (!self::check_table_exists($tableName)) {
+                throw new Exception("Table '{$tableName}' does not exist.");
+            }
             // Call wpdb to get the table prefix
             global $wpdb;
 
@@ -338,6 +385,11 @@ class AWM_DB_Creator
                 throw new Exception('Table name is required.');
             }
 
+            // Check if table exists
+            if (!self::check_table_exists($tableName)) {
+                throw new Exception("Table '{$tableName}' does not exist.");
+            }
+
             // Call wpdb to get the table prefix
             global $wpdb;
 
@@ -386,6 +438,11 @@ class AWM_DB_Creator
         try {
             if (empty($tableName)) {
                 throw new Exception('Table name is required.');
+            }
+
+            // Check if table exists
+            if (!self::check_table_exists($tableName)) {
+                throw new Exception("Table '{$tableName}' does not exist.");
             }
 
             if (empty($data)) {
