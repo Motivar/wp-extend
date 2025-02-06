@@ -348,7 +348,7 @@ if (!function_exists('ewp_debug')) {
         echo htmlspecialchars(print_r($data, true), ENT_QUOTES, 'UTF-8');
         echo '</pre>';
         if ($exit) {
-            exit;
+            die();
         }
     }
 }

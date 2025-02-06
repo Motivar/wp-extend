@@ -29,10 +29,10 @@ class AWM_Add_Custom_List
   public function show_message()
   {
     if (isset($_REQUEST['ewp_updated'])) { ?>
-      <div class="notice notice-success">
-        <p><?php _e('Content updated!', 'extend-wp'); ?></p>
-      </div>
-    <?php
+<div class="notice notice-success">
+ <p><?php _e('Content updated!', 'extend-wp'); ?></p>
+</div>
+<?php
       unset($_REQUEST['ewp_updated']);
     }
   }
@@ -100,7 +100,8 @@ class AWM_Add_Custom_List
         }
       );
 
-      $this->meta_boxes = isset($args['metaboxes']) ? $args['metaboxes'] : array();
+      $this->meta_boxes = apply_filters('awm_content_db_metaboxes_filter', isset($args['metaboxes']) ? $args['metaboxes'] : array(), $id);
+
       $this->page_hook = $this->pagehook;
       $this->update_metas = isset($args['update_metas']) ? $args['update_metas'] : array();
       $this->page_id = $args['id'];
@@ -136,16 +137,16 @@ class AWM_Add_Custom_List
   public function on_page_footer()
   {
     ?>
-    <script type="text/javascript">
-      //<![CDATA[
-      jQuery(document).ready(function($) {
-        // close postboxes that should be closed
-        $('.if-js-closed').removeClass('if-js-closed').addClass('closed');
-        // postboxes setup
-        postboxes.add_postbox_toggles('<?php echo $this->page_hook; ?>');
-      });
-      //]]>
-    </script>
+<script type="text/javascript">
+//<![CDATA[
+jQuery(document).ready(function($) {
+ // close postboxes that should be closed
+ $('.if-js-closed').removeClass('if-js-closed').addClass('closed');
+ // postboxes setup
+ postboxes.add_postbox_toggles('<?php echo $this->page_hook; ?>');
+});
+//]]>
+</script>
 <?php
   }
 
@@ -155,6 +156,7 @@ class AWM_Add_Custom_List
       return self::$item_data;
     }
     $current_id = isset($_REQUEST['id']) ? $_REQUEST['id'] : '';
+    self::$item_data['item'] = self::$item_data['meta'] = array();
     if (!empty($current_id)) {
       self::$item_data['item'] = awm_get_db_content($this->custom_id, array('include' => array($current_id)))[0];
       self::$item_data['meta'] = awm_get_db_content_meta($this->custom_id, $current_id);
@@ -173,11 +175,15 @@ class AWM_Add_Custom_List
     $metaboxes = $this->meta_boxes;
     $update_metas = $this->update_metas;
     if (!empty($metaboxes)) {
+
       foreach ($metaboxes as $metaBoxKey => $metaBoxData) {
         if ($metaBoxKey != 'basics') {
           $metaBoxData['library'] = awm_callback_library(awm_callback_library_options($metaBoxData), $metaBoxKey);
+
           if (!empty($metaBoxData['library'])) {
+
             if (isset($item_data['meta'])) {
+
               foreach ($metaBoxData['library'] as $key => &$meta) {
                 /*get the value from meta item*/
                 $value = isset($item_data['meta'][$key]) ? $item_data['meta'][$key] : '';
@@ -194,6 +200,7 @@ class AWM_Add_Custom_List
               $metaBoxKey,
               $metaBoxData['title'], // $title
               function () use ($metaBoxData) {
+
                 $view = isset($metaBoxData['view']) ? $metaBoxData['view'] : 'post';
                 $metaBoxData['library']['awm-id'] = $metaBoxData['id'];
                 echo apply_filters('awm_add_meta_boxes_filter_content', awm_show_content($metaBoxData['library'], $metaBoxData['post'], $view), $metaBoxData['id']);

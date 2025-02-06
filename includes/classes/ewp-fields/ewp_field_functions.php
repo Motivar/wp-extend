@@ -528,6 +528,17 @@ if (!function_exists('awm_create_boxes')) {
             'sections' => $section
           );
           break;
+
+        case 'content_types':
+          $boxes[$id] = array(
+            'title' => __($awm_field['content_title'], 'extend-wp'),
+            'library' => awm_create_library($awm_field),
+            'context' =>  isset($awm_field['position']['context']) ? $awm_field['position']['context'] : 'normal',
+            'priority' =>  isset($awm_field['position']['priority'])  ? $awm_field['position']['priority'] : 'high',
+            'explanation' => isset($awm_field['explanation']) ? $awm_field['explanation'] : '',
+            'view' => isset($awm_field['position']['view']) ? $awm_field['position']['view'] : ''
+          );
+          break;  
         case 'post_type':
           $boxes[$id] = array(
             'title' => __($awm_field['content_title'], 'extend-wp'),
@@ -721,9 +732,39 @@ if (!function_exists('awm_position_options')) {
           'attibutes' => array('multiple' => 1),
           'callback' => 'all_awm_meta_libraries',
           'label_class' => array('awm-needed'),
+          )
+        )),
+        'content_types' => array(
+          'label' => __('Content types', 'extend-wp'),
+          'field-choices' => array(
+            'ewp_content_types' => array(
+              'label' => __('Content types', 'extend-wp'),
+              'case' => 'ewp_content_types',
+              'attributes' => array('multiple' => true),
+              'label_class' => array('awm-needed'),
+            ),
+            'context' => array(
+              'label' => __('Context', 'extend-wp'),
+              'case' => 'select',
+              'removeEmpty' => true,
+              'options' => array(
+                'normal' => array('label' => __('Normal', 'extend-wp')),
+                'side' => array('label' => __('Side', 'extend-wp')),
+              )
+            ),
+            'priority' => array(
+              'label' => __('Priority', 'extend-wp'),
+              'removeEmpty' => true,
+              'case' => 'select',
+              'options' => array(
+                'high' => array('label' => __('High', 'extend-wp')),
+                'low' => array('label' => __('Low', 'extend-wp')),
+              )
+            ),
+          )
         )
-      ))
-    ));
+      )
+    );
   }
 }
 

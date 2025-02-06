@@ -28,6 +28,29 @@ class Extend_WP_Fields
   add_filter('awm_show_content_fields_filter', array($this, 'dynamic_existing_edits'), PHP_INT_MAX, 2);
   add_filter('awm_add_customizer_settings_filter', [$this, 'get_customizer_boxes'], PHP_INT_MAX);
   add_filter('ewp_gutenburg_blocks_filter', [$this, 'get_blocks'], PHP_INT_MAX);
+  add_filter('awm_content_db_metaboxes_filter', [$this, 'dynamic_content_metaboxes_registration'], PHP_INT_MAX, 2);
+ }
+
+ public function dynamic_content_metaboxes_registration($metaboxes, $view)
+ {
+  $metaboxData = awm_get_fields('content_types');
+  if (empty($metaboxData)) {
+   return $metaboxes;
+  }
+  $keep = array();
+  foreach ($metaboxData as $key => $data) {
+
+   if (in_array($view, $data['position']['ewp_content_types'])) {
+    $keep[$key] = $data;
+    $keep[$key]['position']['view'] = $view . '_data';
+    break;
+   }
+  }
+  if (empty($keep)) {
+   return $metaboxes;
+  }
+  $metaboxes += awm_create_boxes('content_types', $keep);
+  return $metaboxes;
  }
 
  public function get_customizer_boxes($boxes)
