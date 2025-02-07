@@ -43,7 +43,6 @@ class Extend_WP_Fields
    if (in_array($view, $data['position']['ewp_content_types'])) {
     $keep[$key] = $data;
     $keep[$key]['position']['view'] = $view . '_data';
-    break;
    }
   }
   if (empty($keep)) {
