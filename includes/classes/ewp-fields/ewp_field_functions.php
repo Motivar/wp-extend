@@ -838,7 +838,7 @@ if (!function_exists('awmInputFields')) {
         'roles' => array(
           'label' => __('Role', 'extend-wp'),
           'case' => 'select',
-          'options' => awm_user_roles(),
+          'callback' => 'awm_user_roles',
           'attributes' => array('multiple' => true),
           'label_class' => array('awm-needed'),
         ),
