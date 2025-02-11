@@ -33,6 +33,8 @@ class AWM_Meta
         add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_styles_scripts'), 10);
         add_action('add_meta_boxes', array($this, 'awm_add_post_meta_boxes'), 10, 2);
         add_action('admin_init', array($this, 'awm_admin_post_columns'), 10);
+        add_action('admin_menu', array($this, 'awm_admin_terms_columns'), 10);
+        add_action('admin_menu', array($this, 'awm_admin_user_columns'), 10);
         add_action('admin_init', array($this, 'awm_add_term_meta_boxes'), 10);
         add_action('admin_init', array($this, 'awm_add_user_meta_boxes'), 10);
         add_action('admin_menu', array($this, 'awm_add_options_page'), 10);
@@ -132,7 +134,7 @@ class AWM_Meta
                                             add_action('manage_' . $postType . '_posts_custom_column', function ($column) use ($data) {
                                                 global $post;
                                                 if ($data['key'] == $column) {
-                                                    echo awm_display_meta_value($data['key'], $data, $post->ID);
+                                                    echo awm_display_meta_value($data['key'], $data, $post->ID, '', 'post_type');
                                                 }
                                             }, 10, 1);
                                             /*add the sortables*/
@@ -474,6 +476,55 @@ class AWM_Meta
 
 
 
+    public function awm_admin_terms_columns()
+    {
+        global $pagenow;
+
+        if ($pagenow === 'edit-tags.php') {
+            $metaBoxes = $this->term_meta_boxes();
+
+            if (!empty($metaBoxes)) {
+                foreach ($metaBoxes as $metaBoxKey => $metaBoxData) {
+                    $metaBoxData['library'] = awm_callback_library(awm_callback_library_options($metaBoxData), $metaBoxKey);
+
+                    if (!empty($metaBoxData['library'])) {
+                        foreach ($metaBoxData['library'] as $meta => $data) {
+                            if (isset($data['admin_list']) && $data['admin_list']) {
+                                $data['key'] = $meta;
+
+                                foreach ($metaBoxData['taxonomies'] as $taxonomy) {
+                                    if (isset($_GET['taxonomy']) && $_GET['taxonomy'] === $taxonomy) {
+                                        /* Add term columns */
+                                        add_filter('manage_edit-' . $taxonomy . '_columns', function ($columns) use ($data) {
+                                            $columns[$data['key']] = $data['label'];
+                                            return $columns;
+                                        });
+
+                                        /* Display term column values */
+                                        add_filter('manage_' . $taxonomy . '_custom_column', function ($content, $column, $term_id) use ($data) {
+                                            if ($data['key'] === $column) {
+                                                return awm_display_meta_value($data['key'], $data, $term_id, '', 'term');
+                                            }
+                                            return $content;
+                                        }, 10, 3);
+
+                                        /* Add sortable term columns */
+                                        if (isset($data['sortable']) && $data['sortable']) {
+                                            add_filter('manage_edit-' . $taxonomy . '_sortable_columns', function ($columns) use ($data) {
+                                                $columns[$data['key']] = $data['key'] . '_ewp_sort_by_' . $data['sortable'];
+                                                return $columns;
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 
     /**
      * add term meta boxes to taxonomies
@@ -519,6 +570,51 @@ class AWM_Meta
                                         echo '<input type="hidden" name="awm_metabox_case" value="term"/>';
                                     }
                                 });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public function awm_admin_user_columns()
+    {
+        global $pagenow;
+
+        if ($pagenow === 'users.php') {
+            $metaBoxes = $this->user_boxes();
+
+            if (!empty($metaBoxes)) {
+                foreach ($metaBoxes as $metaBoxKey => $metaBoxData) {
+                    $metaBoxData['library'] = awm_callback_library(awm_callback_library_options($metaBoxData), $metaBoxKey);
+
+                    if (!empty($metaBoxData['library'])) {
+                        foreach ($metaBoxData['library'] as $meta => $data) {
+                            if (isset($data['admin_list']) && $data['admin_list']) {
+                                $data['key'] = $meta;
+
+                                /* Add user columns */
+                                add_filter('manage_users_columns', function ($columns) use ($data) {
+                                    $columns[$data['key']] = $data['label'];
+                                    return $columns;
+                                });
+
+                                /* Display user column values */
+                                add_filter('manage_users_custom_column', function ($output, $column_name, $user_id) use ($data) {
+                                    if ($data['key'] === $column_name) {
+                                        return awm_display_meta_value($data['key'], $data, $user_id, '', 'user');
+                                    }
+                                    return $output;
+                                }, 10, 3);
+
+                                /* Add sortable user columns */
+                                if (isset($data['sortable']) && $data['sortable']) {
+                                    add_filter('manage_users_sortable_columns', function ($columns) use ($data) {
+                                        $columns[$data['key']] = $data['key'] . '_ewp_sort_by_' . $data['sortable'];
+                                        return $columns;
+                                    });
+                                }
                             }
                         }
                     }

@@ -965,11 +965,25 @@ if (!function_exists('awm_translated_ids')) {
     }
 }
 
-function awm_display_meta_value($meta, $data, $postId = 0, $external_value = '')
+function awm_display_meta_value($meta, $data, $postId = 0, $external_value = false, $case = 'post_type')
 {
     global $awm_post_id;
     $awm_post_id = $postId;
-    $value = $external_value != '' ? $external_value : (get_post_meta($postId, $meta, true) ?: false);
+    $case = $external_value ? 'external' : $case;
+    switch ($case) {
+        case 'post_type':
+            $value = get_post_meta($postId, $meta, true) ?: false;
+            break;
+        case 'term':
+            $value = get_term_meta($postId, $meta, true) ?: false;
+            break;
+        case 'user':
+            $value = get_user_meta($postId, $meta, true) ?: false;
+            break;
+        case 'external':
+            $value = $external_value;
+            break;
+    }
     $original_value = $value;
     $case = isset($data['admin_list_view']) ? $data['admin_list_view'] : $data['case'];
     switch ($case) {
