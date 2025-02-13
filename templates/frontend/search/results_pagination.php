@@ -14,6 +14,9 @@ if (!isset($ewp_config['pagination_styles']['load_type'])) {
   $ewp_config['pagination_styles']['load_type'] = 'pagination';
 }
 $current_page = get_query_var('paged') ? get_query_var('paged') : 1;
+if (isset($_REQUEST['paged'])) {
+  $current_page = absint($_REQUEST['paged']);
+}
 $total_pages = $ewp_search_query->max_num_pages ?: $ewp_search_query->get('max_num_pages');
 ?>
 
