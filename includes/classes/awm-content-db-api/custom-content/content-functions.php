@@ -368,6 +368,12 @@ if (!function_exists('awm_custom_content_save')) {
    */
   function awm_custom_content_save($id, $data)
   {
+
+    /**
+     * 
+     */
+    $data = apply_filters('awm_custom_content_save_filter', $data, $id);
+
     $main_table_data = awm_main_table_data($id, $data);
     if (is_wp_error($main_table_data)) {
       return new WP_Error('missing_fields', __('Missing fields ', 'extend-wp'));
