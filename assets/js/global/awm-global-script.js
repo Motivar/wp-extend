@@ -308,12 +308,14 @@ function awmInitForms() {
             if (document.getElementById('publish')) {
                 document.getElementById('publish').addEventListener('click', function (e) {
                     if (!awmCheckValidation(form).check) {
+                        awmShowError();
                         e.preventDefault();
                     }
                 });
             } else {
                 form.addEventListener('submit', function (e) {
                     if (!awmCheckValidation(form).check) {
+                        awmShowError();
                         e.preventDefault();
                     }
                 }, false);
@@ -322,6 +324,16 @@ function awmInitForms() {
         });
     }
 }
+
+function awmShowError() {
+    /*scroll to first item with class .awm-form-error*/
+    var firstError = document.querySelector('.awm-form-error');
+    if (firstError) {
+        firstError.scrollIntoView();
+    };
+}
+
+
 
 
 
