@@ -213,7 +213,7 @@ function noenter() {
 
 
 function awmSelectrBoxes() {
-    var elems = document.querySelectorAll('.awm-meta-field select,.awm-term-input select');
+    var elems = document.querySelectorAll('.awm-meta-field select,.awm-term-input select,.awm-user-input select');
     if (elems) {
         elems.forEach(function (elem) {
             if (elem.id != '' && !elem.getAttribute('data-id') && !elem.getAttribute('awm-template') && !elem.getAttribute('awm-skip-selectr')) {
