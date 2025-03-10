@@ -4,7 +4,8 @@
     }
     input:not([type="checkbox"]),
     select,
-    textarea {
+    textarea,
+    .ss-main {
         width: 25em;
     }
 }
