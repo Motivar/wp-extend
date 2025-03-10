@@ -1,8 +1,8 @@
 .awm-user-input {
-    label {
+    label,.awm-explanation {
         display: none;
     }
-    input,
+    input:not([type="checkbox"]),
     select,
     textarea {
         width: 25em;
