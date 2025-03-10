@@ -664,7 +664,7 @@ if (!function_exists('awm_show_content')) {
                                 break;
                             case 'user':
                                 /*user view*/
-                                $msg[] = '<tr data-input="' . $original_meta_id . '" ' . $labelAttrs . ' class="' . implode(' ', $label_class) . '" data-input="' . $original_meta_id . '" data-type="' . $a['case'] . '"><th><label for="' . $original_meta_id . '" class="awm-input-label">' . $a['label'] . '</label>' . $explanation . '</th>';
+                                $msg[] = '<tr data-input="' . $original_meta_id . '" ' . $labelAttrs . ' class="' . implode(' ', $label_class) . '" data-input="' . $original_meta_id . '" data-type="' . $a['case'] . '"><th><label for="' . $original_meta_id . '" class="awm-input-label"><span>' . $a['label'] . '</span></label>' . $explanation . '</th>';
                                 $msg[] = '<td class="awm-user-input">' . $ins . '</td></tr>';
                                 break;
                             default:
