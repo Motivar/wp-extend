@@ -379,7 +379,7 @@ function awmCheckValidation(form) {
 
 
 function awmShowInputs() {
-    var elems = document.querySelectorAll('div[show-when]:not(.awm-initialized)');
+    var elems = document.querySelectorAll('div[show-when]:not(.awm-initialized),tr[show-when]:not(.awm-initialized)');
     if (elems) {
         elems.forEach(function (elem) {
             var parent = elem;
