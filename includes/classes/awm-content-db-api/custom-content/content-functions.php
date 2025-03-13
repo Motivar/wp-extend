@@ -120,7 +120,7 @@ if (!function_exists('awm_get_db_content')) {
     if (!empty($query_args['title'])) {
       $wheres[] = array(
         'column' => 'content_title',
-        'value' => $query_args['title'],
+        'value' => sanitize_text_field($query_args['title']),
         'compare' => 'LIKE'
       );
     }
