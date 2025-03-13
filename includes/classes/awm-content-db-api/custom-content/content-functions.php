@@ -108,12 +108,22 @@ if (!function_exists('awm_get_db_content')) {
       'order_by' => array('column' => 'created', 'type' => 'desc'),
       'include' => array(),
       'include_hashes' => array(),
-      'meta_query' => array()
+      'meta_query' => array(),
+      'title' => '',
     );
 
     $query_args = array_merge($defaults, $args);
     $wheres = array();
     $where_clause = '';
+
+
+    if (!empty($query_args['title'])) {
+      $wheres[] = array(
+        'column' => 'content_title',
+        'value' => $query_args['title'],
+        'compare' => 'LIKE'
+      );
+    }
 
     if (!empty($query_args['status'])) {
       $query_args['status'] = !is_array($query_args['status']) ? array($query_args['status']) : $query_args['status'];
