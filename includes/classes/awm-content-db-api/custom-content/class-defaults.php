@@ -27,8 +27,9 @@ class Extend_WP_Default_Content
     if (!$user->ID) {
       return $options;
     }
-    $user_role = $user->roles[0];
-    if (!in_array($user_role, $allowed_users)) {
+    $user_roles = $user->roles;
+    /*check if $user_roles and $allowed_user have intersection*/
+    if (empty(array_intersect($user_roles, $allowed_users))) {
       return $options;
     }
   
