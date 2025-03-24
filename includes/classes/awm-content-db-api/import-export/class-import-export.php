@@ -270,6 +270,7 @@ class Extend_WP_Import_Export
   foreach ($data as $content_data) {
    $meta = isset($content_data['meta']) ? $content_data['meta'] : array();
    unset($content_data['meta']);
+   $content_data['user_id'] = get_current_user_id(); // Set the user ID to the current user
    $import_id = awm_insert_db_content($content_type, $content_data, array('hash'));
 
    if (!$import_id) {
