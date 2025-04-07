@@ -3,17 +3,75 @@ if (!defined('ABSPATH')) {
   exit;
 }
 
+/**
+ * Class for handling custom list views in WordPress admin
+ * 
+ * @since 1.0.0
+ */
 class AWM_Add_Custom_List
 {
-
+  /**
+   * Static item data storage
+   * 
+   * @var array
+   */
   private static $item_data = array();
+  
+  /**
+   * Meta boxes configuration
+   * 
+   * @var array
+   */
   private $meta_boxes;
+  
+  /**
+   * Page hook for the main page
+   * 
+   * @var string
+   */
   private $page_hook;
+  
+  /**
+   * Update metas configuration
+   * 
+   * @var array
+   */
   private $update_metas;
+  
+  /**
+   * Page ID
+   * 
+   * @var string
+   */
   private $page_id;
+  
+  /**
+   * Page link URL
+   * 
+   * @var string
+   */
   private $page_link;
+  
+  /**
+   * Custom ID
+   * 
+   * @var string
+   */
   private $custom_id;
+  
+  /**
+   * Custom list configuration
+   * 
+   * @var array
+   */
   private $custom_list;
+  
+  /**
+   * Page hook for submenu page
+   * 
+   * @var string
+   */
+  private $pagehook;
 
   public function __construct($args)
   {
@@ -106,11 +164,14 @@ class AWM_Add_Custom_List
       $this->update_metas = isset($args['update_metas']) ? $args['update_metas'] : array();
       $this->page_id = $args['id'];
 
-      $pre = isset($args['parent']) ? $args['parent'] : '';
+      $pre = isset($args['parent']) ? (string)$args['parent'] : '';
 
-      if ($pre != '' && strpos('edit.php', $pre) === false) {
+      // Fix strpos parameter order and add null check
+      if ($pre !== '' && strpos($pre, 'edit.php') === false) {
         $pre = '';
       }
+      
+      // Ensure we're not passing null to str_replace (used in admin_url)
       $this->page_link = !empty($pre) ? $pre . '&page=' . $args['id'] : 'admin.php?page=' . $args['id'];
     }
   }
