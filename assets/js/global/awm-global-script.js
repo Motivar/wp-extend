@@ -581,15 +581,16 @@ function awm_repeater_order(elem, action) {
  */
 function repeater(elem) {
 
-    var repeater_div = elem.closest('.awm-repeater'); //jQuery(elem).closest('.awm-repeater').attr('data-id');
+    var repeater_div = elem.closest('.awm-repeater');
+
     var maxRows = repeater_div.getAttribute('maxrows') ? parseInt(repeater_div.getAttribute('maxrows')) : 0;
     var repeater = repeater_div.getAttribute('data-id');
+
     var clicked_element = elem.closest('.awm-repeater[data-id="' + repeater + '"] .awm-repeater-content[data-id="' + repeater + '"]');
     var add = false;
     if (elem.classList.contains('awm-add')) {
         add = true;
         var last_element = document.querySelectorAll('.awm-repeater[data-id="' + repeater + '"] .awm-repeater-content:not(.temp-source)[data-id="' + repeater + '"]');
-
         var old_counter = last_element.length - 1;
         switch (last_element.length) {
             case 1:
@@ -682,14 +683,16 @@ function repeater(elem) {
 
 function awm_repeater_clone(cloned, new_counter, repeater) {
     cloned.setAttribute('data-counter', new_counter);
+    // Replace the problematic :scope selector with direct children selection
+    var inputsAll = cloned.querySelectorAll('input,select,textarea');
 
-    var inputsAll = cloned.querySelectorAll(':scope > input,:scope > select,:scope > textarea');
-    if (inputsAll) {
+    if (inputsAll && inputsAll.length > 0) {
         inputsAll.forEach(function (input) {
             var old_id = input.getAttribute('id');
             var label = cloned.querySelector('label[for="' + old_id + '"]');
             var namee, id;
             if (input.name) {
+                console.log(input.name);
                 namee = input.getAttribute("input-name") + "[" + new_counter + "]" + "[" + input.getAttribute("input-key") + "]";
                 id = namee.replace(/\[/g, '_').replace(/\]/g, '_');
                 input.setAttribute("name", namee);
