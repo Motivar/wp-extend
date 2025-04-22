@@ -711,7 +711,7 @@ function awm_repeater_content($i, $original_meta, $a, $original_meta_id, $val)
         $data['attributes'] = (isset($data['attributes']) ? $data['attributes'] : array()) + (isset($a['attributes']) ? $a['attributes'] : array());
         $inputname = $original_meta . '[' . $i . '][' . $key . ']';
         if (isset($val[$i][$key])) {
-            $data['attributes']['value'] = str_replace('"', '&quot;', $val[$i][$key]);
+            $data['attributes']['value'] = awm_repeater_check_quotes($val[$i][$key]);
         }
         $data['attributes']['exclude_meta'] = true;
         $data['attributes']['id'] = str_replace(']', '_', str_replace('[', '_', $original_meta)) . '_' . $i . '_' . $key;
@@ -1223,4 +1223,15 @@ function awm_gallery_meta_box_html($meta, $val)
 function ewp_rest_check_user_is_admin()
 {
     return current_user_can('manage_options');
+}
+
+function awm_repeater_check_quotes($value)
+{
+    if (is_array($value)) {
+        foreach ($value as $key => &$val) {
+            $val = awm_repeater_check_quotes($val);
+        }
+        return $value;
+    }
+    return str_replace('"', '&quot;', $value);
 }
