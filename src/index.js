@@ -36,22 +36,17 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
         const [errorMessages, setErrorMessages] = useState({});  // Track errors for this block instance
 
         const handleInputChange = (identifier, newValue) => {
-          // For select controls, ensure we're saving the option value, not the label
+          // For select controls, we're now receiving the direct value (not an object)
+          // because we transformed the options format to use value/label pairs
           const attributeData = block.attributes[identifier];
-          let valueToSave = newValue;
-          
-          // If this is a select control, make sure we're saving the option value
-          if (attributeData && attributeData.render_type === 'select' && typeof newValue === 'object') {
-            valueToSave = newValue.option || newValue;
-          }
           
           setInputValues({
             ...inputValues,
-            [identifier]: newValue, // Keep the full object in the UI state
+            [identifier]: newValue, // Store the value in UI state
           });
           
-          // Save only the option value to the block attributes
-          setAttributes({ [identifier]: valueToSave });
+          // Save the value directly to block attributes
+          setAttributes({ [identifier]: newValue });
 
           // Validate field upon change
           validateField(identifier, newValue);
@@ -190,13 +185,19 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                   </div>
                 );
               case 'select':
+                // Transform options to the format expected by WordPress SelectControl
+                const selectOptions = Array.isArray(data.options) ? data.options.map(opt => ({
+                  value: opt.option,
+                  label: opt.label
+                })) : [];
+                
                 return (
                   <div key={key}>
                     <label style={{ display: 'block', marginBottom: '4px' }}>{label}</label>
                     {explanation} {/* Explanation text between the label and input */}
                     <SelectControl
                       value={props.attributes[key] || ''}
-                      options={data.options || []}
+                      options={selectOptions}
                       onChange={(value) => handleInputChange(key, value)}
                     />
                   </div>
