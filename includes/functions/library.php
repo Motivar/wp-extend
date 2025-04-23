@@ -398,7 +398,6 @@ if (!function_exists('awm_show_content')) {
                             }
 
                             $select_name = $original_meta;
-                            $label_class[] = 'awm-cls-33';
                             if (isset($a['attributes']) && array_key_exists('multiple', $a['attributes']) && $a['attributes']['multiple']) {
                                 $select_name .= '[]';
                             }
@@ -468,7 +467,6 @@ if (!function_exists('awm_show_content')) {
                             $ins .= '<label for="' . $original_meta_id . '" class="awm-input-label">' . $a['label'] . '</label>' . $explanation;
                             $ins .= awm_custom_image_image_uploader_field($original_meta, $original_meta_id, $val, $multiple, $required);
                             $label_class[] = 'awm-custom-image-meta';
-                            $label_class[] = 'awm-cls-33';
                             break;
                         case 'textarea':
                             $label_class[] = 'awm-cls-100';
