@@ -36,11 +36,22 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
         const [errorMessages, setErrorMessages] = useState({});  // Track errors for this block instance
 
         const handleInputChange = (identifier, newValue) => {
+          // For select controls, ensure we're saving the option value, not the label
+          const attributeData = block.attributes[identifier];
+          let valueToSave = newValue;
+          
+          // If this is a select control, make sure we're saving the option value
+          if (attributeData && attributeData.render_type === 'select' && typeof newValue === 'object') {
+            valueToSave = newValue.option || newValue;
+          }
+          
           setInputValues({
             ...inputValues,
-            [identifier]: newValue,
+            [identifier]: newValue, // Keep the full object in the UI state
           });
-          setAttributes({ [identifier]: newValue });
+          
+          // Save only the option value to the block attributes
+          setAttributes({ [identifier]: valueToSave });
 
           // Validate field upon change
           validateField(identifier, newValue);
