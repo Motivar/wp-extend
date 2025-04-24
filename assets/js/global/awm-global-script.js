@@ -705,7 +705,10 @@ function awm_repeater_clone(cloned, new_counter, repeater) {
             if (image_input && image_input.classList.contains('awm-custom-image-meta')) {
                 cloned.querySelector('.awm-custom-image-meta').setAttribute('data-input', id);
                 cloned.querySelector('.awm-image-upload').setAttribute('id', 'awm_image' + id);
-                cloned.querySelector('.awm-image-upload .awm_custom_image_remove_image_button').trigger('click');
+                const removeButton = cloned.querySelector('.awm-image-upload .awm_custom_image_remove_image_button');
+                if (removeButton) {
+                    removeButton.click();
+                }
             }
 
         });
