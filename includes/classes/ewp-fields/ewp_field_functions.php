@@ -123,7 +123,7 @@ if (!function_exists('awm_create_library')) {
         $repeater_meta_data = awm_get_db_content_meta('ewp_fields', $awm_field['content_id']);
         foreach ($repeater_fields as $meta_key) {
           $field_key = str_replace($awm_field['type'] . '_', '', $meta_key);
-          $repeater_data[$field_key] = $repeater_meta_data[$meta_key] ?: false;
+          $repeater_data[$field_key] = isset($repeater_meta_data[$meta_key]) ? $repeater_meta_data[$meta_key] : false;
         }
         if ($repeater_data['key']) {
 
