@@ -115,13 +115,14 @@ if (!function_exists('awm_create_library')) {
 
     switch ($awm_field['type']) {
       case 'repeater':
+      case 'section':
         $include = $metas;
         $metas = array();
         $repeater_fields = array_keys(awm_fields_usages());
         $repeater_data = array();
         $repeater_meta_data = awm_get_db_content_meta('ewp_fields', $awm_field['content_id']);
         foreach ($repeater_fields as $meta_key) {
-          $field_key = str_replace('repeater_', '', $meta_key);
+          $field_key = str_replace($awm_field['type'] . '_', '', $meta_key);
           $repeater_data[$field_key] = $repeater_meta_data[$meta_key] ?: false;
         }
         if ($repeater_data['key']) {
@@ -130,7 +131,7 @@ if (!function_exists('awm_create_library')) {
           $metas[$meta_key]['label'] = __($repeater_data['label'], 'extend-wp');
           $metas[$meta_key] = $repeater_data;
           $metas[$meta_key]['include'] = $include;
-          $metas[$meta_key]['case'] = 'repeater';
+          $metas[$meta_key]['case'] = $awm_field['type'];
           $metas[$meta_key]['class'] = !empty($repeater_data['class']) ? explode(',', $repeater_data['class']) : array();
           $attributes = array();
           if (isset($repeater_data['item']) && !empty($repeater_data['item'])) {
@@ -337,8 +338,26 @@ if (!function_exists('awm_fields_usages')) {
           'repeater' => array(
             'label' => __('Repeater', 'extend-wp')
           ),
+          'section' => array(
+            'label' => __('Section', 'extend-wp')
+          ),
         ),
       ),
+      'section_key' => array(
+        'show-when' => array('awm_type' => array('values' => array('section' => true))),
+        'label' => __('Section Meta key', 'extend-wp'),
+        'case' => 'input',
+        'type' => 'text',
+        'label_class' => array('awm-needed'),
+      ),
+      'section_label' => array(
+        'show-when' => array('awm_type' => array('values' => array('section' => true))),
+        'label' => __('Section Meta label', 'extend-wp'),
+        'case' => 'input',
+        'type' => 'text',
+        'label_class' => array('awm-needed'),
+      ),
+
       'repeater_key' => array(
         'show-when' => array('awm_type' => array('values' => array('repeater' => true))),
         'label' => __('Repeater Meta key', 'extend-wp'),
