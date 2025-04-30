@@ -663,13 +663,16 @@ class AWM_Meta
                         $fields = function ($user) use ($metaBoxData) {
                             $user_id = isset($user->ID) ? $user->ID : 0;
                             $metaBoxData['library']['awm-id'] = $metaBoxData['id'];
-                            echo '<div class="awm-user-fields" id="awm-table-' . $metaBoxData['id'] . '">';
-                            echo '<h2>' . $metaBoxData['title'] . '</h2>';
-                            echo awm_show_explanation($metaBoxData);
-                            echo '<table class="form-table" >' . awm_show_content($metaBoxData['library'], $user_id, 'user') . '</table>';
-                            echo '<input type="hidden" name="awm_metabox[]" value="' . $metaBoxData['id'] . '"/>';
+                            $metas = awm_show_content($metaBoxData['library'], $user_id, 'user');
+                            if (!empty($metas)) {
+                                echo '<div class="awm-user-fields" id="awm-table-' . $metaBoxData['id'] . '">';
+                                echo '<h2>' . $metaBoxData['title'] . '</h2>';
+                                echo awm_show_explanation($metaBoxData);
+                                echo '<table class="form-table" >' . $metas . '</table>';
+                                echo '<input type="hidden" name="awm_metabox[]" value="' . $metaBoxData['id'] . '"/>';
                             echo '<input type="hidden" name="awm_metabox_case" value="user"/>';
                             echo '</div>';
+                            }
                         };
                         add_action('show_user_profile', $fields);
                         add_action('edit_user_profile', $fields);

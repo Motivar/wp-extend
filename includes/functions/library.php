@@ -153,6 +153,8 @@ if (!function_exists('awm_show_content')) {
      */
     function awm_show_content($arrs, $id = 0, $view = 'post', $target = 'edit', $label = true, $specific = '', $sep = ', ')
     {
+        static $user_roles = array();
+        static $user_checked = false;
         $msg = array();
         global $awm_post_id;
         $awm_post_id = $id;
@@ -170,8 +172,15 @@ if (!function_exists('awm_show_content')) {
             return $first - $second;
         });
         $meta_counter = 0;
-
-
+        if (!$user_checked) {
+            if (is_user_logged_in() && empty($user_roles)) {
+                $user = wp_get_current_user();
+                if (!is_wp_error($user)) {
+                    $user_roles = $user->roles;
+                }
+            }
+            $user_checked = true;
+        }
 
         foreach ($arrs as $n => $a) {
             /**
@@ -186,7 +195,26 @@ if (!function_exists('awm_show_content')) {
                     continue;
                 }
             }
+            if (!in_array('administrator', $user_roles)) {
+                if (isset($a['not_visible_by']) && !empty($a['not_visible_by'])) {
+                    $a['not_visible_by'] = is_array($a['not_visible_by']) ? $a['not_visible_by'] : array($a['not_visible_by']);
+                    $matching_roles = array_intersect($user_roles, $a['not_visible_by']);
 
+                    if (!empty($matching_roles)) {
+                        unset($arrs[$n]);
+                        continue;
+                    }
+                }
+                if (isset($a['not_editable_by']) && !empty($a['not_editable_by'])) {
+                    $a['not_editable_by'] = is_array($a['not_editable_by']) ? $a['not_editable_by'] : array($a['not_editable_by']);
+                    $matching_roles = array_intersect($user_roles, $a['not_editable_by']);
+                    if (!empty($matching_roles)) {
+                        $a['attributes']['disabled'] = 'disabled';
+                        $a['attributes']['readonly'] = 'readonly';
+                        $a['disabled'] = true;
+                    }
+                }
+            }
 
             /*check if hidden val or not*/
             $required = (isset($a['required']) && $a['required']) ? 'required="true"' : false;
@@ -680,6 +708,9 @@ if (!function_exists('awm_show_content')) {
                     }
                 }
             }
+        }
+        if (empty($msg) || empty($arrs)) {
+            return '';
         }
 
         $msg = apply_filters('awm_show_content_filter', $msg, $id, $arrs, $view, $target, $label, $specific, $sep);

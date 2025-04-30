@@ -282,6 +282,21 @@ if (!function_exists('awm_fields_configuration')) {
               ),
             )
           ),
+          'not_visible_by' => array(
+            'label' => __('Restrict visibility to roles', 'extend-wp'),
+            'case' => 'user_roles',
+            'exclude' => array('administrator'),
+            'attributes' => array('multiple' => true),
+            'explanation' => __('If you select roles here, the field will not be visible to them', 'extend-wp')
+          ),
+          'not_editable_by' => array(
+            'label' => __('Restrict editing to roles', 'extend-wp'),
+            'case' => 'user_roles',
+            'exclude' => array('administrator'),
+            'attributes' => array('multiple' => true),
+            'explanation' => __('If you select roles here, the field will be not editable to them', 'extend-wp')
+          ),
+
           'class' => array(
             'label' => __('Class', 'extend-wp'),
             'case' => 'input',
