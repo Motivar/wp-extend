@@ -1,5 +1,5 @@
 .awm-user-input {
-    label,.awm-explanation {
+     > label, > .awm-explanation {
         display: none;
     }
     input:not([type="checkbox"]),
