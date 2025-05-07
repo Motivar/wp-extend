@@ -164,17 +164,33 @@ class AWM_Add_Custom_List
       $this->update_metas = isset($args['update_metas']) ? $args['update_metas'] : array();
       $this->page_id = $args['id'];
 
-      $pre = isset($args['parent']) ? (string)$args['parent'] : '';
 
-      // Fix strpos parameter order and add null check
-      if ($pre !== '' && strpos($pre, 'edit.php') === false) {
-        $pre = '';
-      }
+      // Create a method to handle parent path validation
+      $pre = $this->validateParentPath($args);
       
       // Ensure we're not passing null to str_replace (used in admin_url)
       $this->page_link = !empty($pre) ? $pre . '&page=' . $args['id'] : 'admin.php?page=' . $args['id'];
     }
   }
+
+  private function validateParentPath($args)
+  {
+    // Default to empty string
+    $parentPath = '';
+
+    // Check if parent is set and not empty
+    if (isset($args['parent']) && !empty($args['parent'])) {
+      $parentPath = (string)$args['parent'];
+
+      // Only keep parent path if it contains 'edit.php'
+      if (strpos($parentPath, 'edit.php') === false) {
+        $parentPath = '';
+      }
+    }
+
+    return $parentPath;
+  }
+
 
   public function save_page()
   {
