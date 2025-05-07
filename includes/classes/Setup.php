@@ -19,6 +19,9 @@ class Setup
 {
  public function __construct()
  {
+  add_action('init', function () {
+   load_plugin_textdomain('extend-wp', false, awm_relative_path . '/languages');
+  });
   require_once 'adminMessages/class-adminMessages.php';
   require_once 'gallery-meta-box/gallery-meta-box.php';
   require_once 'ewp-fields/class-field.php';
