@@ -192,7 +192,13 @@ class EWP_Dynamic_Blocks
     foreach ($blocks as $block) {
 
       $dependencies = array_merge($core_dependencies, isset($block['dependencies']) ? $block['dependencies'] : array());
-      register_block_type($block['namespace'] . '/' . $block['name'], array(
+
+      $block_name = $block['namespace'] . '/' . $block['name'];
+      if (WP_Block_Type_Registry::get_instance()->is_registered($block_name)) {
+        continue; // Skip this block as it's already registered
+      }
+
+      register_block_type($block_name, array(
         'attributes' => (isset($block['attributes']) && !empty($block['attributes'])) ? $block['attributes'] : array(),
         'editor_style' => isset($block['style']) ? $block['style'] : '',
         'style' => isset($block['style']) ? $block['style'] : '',
