@@ -147,10 +147,18 @@ class AWM_Add_Custom_List
       }
       // Edit page form
 
+      /**
+       * Add submenu page with proper parameter validation
+       * Ensures no null values are passed to WordPress functions
+       */
+      $menu_title = isset($args['list_name_singular']) ? sprintf(__('New %s', 'extend-wp'), $args['list_name_singular']) : __('New Item', 'extend-wp');
+      $page_title = $menu_title;
+      $parent_menu = isset($args['show_new']) && $args['show_new'] === false ? null : $parent;
+
       $this->pagehook = add_submenu_page(
-        !$args['show_new'] ? null : $parent,
-        sprintf(__('New %s', 'extend-wp'), $args['list_name_singular']),
-        sprintf(__('New %s', 'extend-wp'), $args['list_name_singular']),
+        $parent_menu,
+        $page_title,
+        $menu_title,
         $args['capability'],
         $id . '_form',
         function () use ($args) {
