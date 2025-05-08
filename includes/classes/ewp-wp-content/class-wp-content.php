@@ -36,8 +36,8 @@ class Extend_WP_WP_Content
      'name' => __($metas['name'], 'extend-wp'),
      'label' => __($metas['label'], 'extend-wp'),
      'custom-slug' => true,
-     'post_types' => $metas['post_types'],
-     'template' => $metas['template'],
+     'post_types' => isset($metas['post_types']) ? $metas['post_types'] : array(),
+     'template' => isset($metas['template']) ? $metas['template'] : '',
      'show_admin_column' => isset($metas['show_admin_column']) ? $metas['show_admin_column'] : false,
     );
    }
