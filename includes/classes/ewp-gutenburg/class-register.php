@@ -274,7 +274,8 @@ class EWP_Dynamic_Blocks
           $attribute['options'] = $options;
           break;
         case 'input':
-          switch ($attribute['type']) {
+          $attribute_type = (isset($attribute['type']) && !empty($attribute['type'])) ? $attribute['type'] : 'text'; // Default to 'text' if not set
+          switch ($attribute_type) {
             case 'color':
               $render_type = 'color';
               break;
