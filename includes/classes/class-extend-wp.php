@@ -718,8 +718,8 @@ class AWM_Meta
                                     echo '<input type="hidden" name="awm_metabox_case" value="post"/>';
                                 },
                                 $metaBoxData['postTypes'], // $page
-                                $metaBoxData['context'], // $context
-                                $metaBoxData['priority'] // $priority
+                                isset($metaBoxData['context']) ? $metaBoxData['context'] : 'normal', // $context
+                                isset($metaBoxData['priority']) ? $metaBoxData['priority'] : 'low' // $priority
                             );
                         }
                     }
