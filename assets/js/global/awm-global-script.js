@@ -573,14 +573,50 @@ function awm_repeater_order(elem, action) {
         }
     }
 }
+function ewp_repeater_clone_row(elem) {
+    // Find the repeater content div that contains this element
+    const repeater_div = elem.closest('.awm-repeater-content');
 
+    // Find the parent repeater that contains this element
+    const repeater_parent = elem.closest('.repeater');
 
+    if (!repeater_div || !repeater_parent) return false;
+
+    // Get the repeater ID from the repeater content div
+    const repeaterId = repeater_div.getAttribute('data-id');
+
+    // Store all input values from the current row
+    const originalValues = {};
+    const inputs = repeater_div.querySelectorAll('input:not([disabled]), select:not([disabled]), textarea:not([disabled])');
+
+    // Create a map of all input values by their input-key attribute
+    inputs.forEach(function (input) {
+        const key = input.getAttribute('input-key');
+        if (key) {
+            if (input.type === 'checkbox' || input.type === 'radio') {
+                originalValues[key] = input.checked;
+            } else {
+                originalValues[key] = input.value;
+            }
+        }
+    });
+
+    // Find the template source for this specific repeater
+    const templateSource = repeater_parent.querySelector(`.awm-repeater-content.temp-source[data-id="${repeaterId}"]`);
+    if (!templateSource) return false;
+    console.log(templateSource);
+    // Call the repeater function with the add button from the template source
+    const addButton = templateSource.querySelector(`.awm-repeater-add[data-id="${repeaterId}"] .awm-add`);
+    console.log(addButton);
+    if (addButton) {
+        repeater(addButton, originalValues);
+    }
+}
 /**
  * 
  * @param domobject elem 
  */
-function repeater(elem) {
-
+function repeater(elem, prePopulated = []) {
     var repeater_div = elem.closest('.awm-repeater');
 
     var maxRows = repeater_div.getAttribute('maxrows') ? parseInt(repeater_div.getAttribute('maxrows')) : 0;
@@ -655,6 +691,11 @@ function repeater(elem) {
                         }, 200);
 
                     }
+                    var inputKey = input.getAttribute('input-key') || '';
+                    if (inputKey && prePopulated[inputKey]) {
+                        input.value = prePopulated[inputKey];
+                        input.dispatchEvent(new Event('change'));
+                    }
                 });
             }
 
@@ -692,7 +733,6 @@ function awm_repeater_clone(cloned, new_counter, repeater) {
             var label = cloned.querySelector('label[for="' + old_id + '"]');
             var namee, id;
             if (input.name) {
-                console.log(input.name);
                 namee = input.getAttribute("input-name") + "[" + new_counter + "]" + "[" + input.getAttribute("input-key") + "]";
                 id = namee.replace(/\[/g, '_').replace(/\]/g, '_');
                 input.setAttribute("name", namee);
