@@ -38,5 +38,6 @@ class Setup
   require_once 'ewp-third-party/class-wpml.php';
   require_once 'ewp-gutenburg/class-register.php';
   require_once 'wp-cli/class-cli-commands.php';
+  require_once 'dev-tools/init.php';
  }
 }

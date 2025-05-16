@@ -232,6 +232,12 @@ class Extend_WP_Default_Content
               'type' => 'text',
               'label' => __('Google Maps API key', 'extend-wp'),
             ),
+            'recently_seen' => array(
+              'case' => 'post_types',
+              'label' => __('Enable recenlty seen functionality for', 'extend-wp'),
+              'attributes' => array('multiple' => true),
+              'explanation' => __('Enable recenlty seen functionality for the selected post types. You can access recently seen via php/js', 'extend-wp'),
+            ),
           )
         ),
       ),
