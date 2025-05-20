@@ -564,6 +564,12 @@ class Extend_WP_Search_Filters
         'type' => 'checkbox',
         'label' => __('Execute on page load', 'extend-wp')
       ),
+      'run_on_load_empty' => array(
+        'case' => 'input',
+        'type' => 'checkbox',
+        'label' => __('Execute on page load even if form is empty', 'extend-wp'),
+        'show-when' => array('run_on_load' => array('values' => true)),
+      ),
       'show_search_terms' => array(
         'removeEmpty' => true,
         'label' => __('Show search terms', 'extend-wp'),

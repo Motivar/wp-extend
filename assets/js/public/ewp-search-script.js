@@ -89,11 +89,16 @@ function ewp_search_forms() {
             /*execute on load*/
             if (options.run_on_load) {
                 let empty = true;
-                form.querySelectorAll('input,select,textarea').forEach(function (input) {
-                    if (input.value !== '' && input.type !== 'submit' && input.type !== 'button' && input.type !== 'hidden') {
-                        empty = false;
-                    }
-                });
+
+                if (options.run_on_load_empty) {
+                    empty = false;
+                } else {
+                    form.querySelectorAll('input,select,textarea').forEach(function (input) {
+                        if (input.value !== '' && input.type !== 'submit' && input.type !== 'button' && input.type !== 'hidden') {
+                            empty = false;
+                        }
+                    });
+                }
                 if (!empty) {
                     ewp_search_action(form, options, show_results, 1);
                 }
