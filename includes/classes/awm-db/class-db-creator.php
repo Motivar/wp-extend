@@ -62,7 +62,20 @@ class AWM_DB_Creator
                     }
 
                     if (isset($tableData['index'])) {
-                        $sqlInsertString[] = 'INDEX(' . $tableData['index'] . ')';
+                        if (is_array($tableData['index'])) {
+                            foreach ($tableData['index'] as $index) {
+                                if (is_array($index)) {
+                                    // Composite index
+                                    $sqlInsertString[] = 'INDEX (' . implode(',', $index) . ')';
+                                } else {
+                                    // Single column index
+                                    $sqlInsertString[] = 'INDEX (' . $index . ')';
+                                }
+                            }
+                        } else {
+                            // Backward compatibility: single string index
+                            $sqlInsertString[] = 'INDEX (' . $tableData['index'] . ')';
+                        }
                     }
 
                     if (isset($tableData['foreignKey']) && !empty($tableData['foreignKey'])) {
