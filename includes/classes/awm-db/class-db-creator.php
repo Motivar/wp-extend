@@ -111,12 +111,7 @@ class AWM_DB_Creator
                     update_option('ewp_version_' . $table, $currentVersion, false);
                     $message = sprintf(__('Table "%s" just updated! Current version is %s.', 'filox'), $table, $currentVersion);
                     $databasesUpdated[] = $message;
-
-                    // Trigger custom actions
-                    if (function_exists('filoxUpdateActivity')) {
-                        filoxUpdateActivity(['name' => 'flx', 'type' => 'dbUpdate', 'comment' => ['table' => $table, 'version' => $currentVersion]]);
-                    }
-                    do_action('ewp_database_updated', $table, $tableData);
+                    do_action('ewp_database_updated', $table, $tableData, $currentVersion);
                 }
             }
         } catch (Exception $e) {
