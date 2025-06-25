@@ -542,36 +542,124 @@ function awm_timestamp(d) {
 
 
 /**
+ * Handles the reordering of repeater elements when moving up or down
  * 
- * @param domobject elem 
+ * @param {HTMLElement} elem - The DOM element that triggered the action
+ * @param {boolean} action - True for move up, false for move down
  */
 function awm_repeater_order(elem, action) {
+    // Get the repeater container element
     var repeater_div = elem.closest('.awm-repeater-content');
     if (repeater_div) {
         var repeater = repeater_div.getAttribute('data-id');
         var counter = parseInt(repeater_div.getAttribute('data-counter'));
-        var prev = repeater_div.previousSibling;
-        var next = repeater_div.nextSibling;
-        var new_counter;
-        if (action) {
-            if (prev) {
-                new_counter = counter - 1;
-                repeater_div.innerHtml = awm_repeater_clone(repeater_div, new_counter, repeater);
-                prev.innerHtml = awm_repeater_clone(prev, counter, repeater);
-
-                prev.parentNode.insertBefore(repeater_div, prev);
-
-            }
+        var parent = repeater_div.parentNode;
+        
+        // Find the element to swap with based on action (up or down)
+        var targetElement = action ? repeater_div.previousElementSibling : repeater_div.nextElementSibling;
+        
+        // Only proceed if there's an element to swap with and it's not the template
+        if (targetElement && !targetElement.classList.contains('temp-source')) {
+            var targetCounter = parseInt(targetElement.getAttribute('data-counter'));
+            
+            console.log('Swapping element', counter, action ? 'up with' : 'down with', targetCounter);
+            
+            // Store original positions for DOM manipulation
+            var nextSibling = action ? targetElement : repeater_div.nextElementSibling.nextElementSibling;
+            
+            // Swap data-counter attributes
+            repeater_div.setAttribute('data-counter', targetCounter);
+            targetElement.setAttribute('data-counter', counter);
+            
+            // Update IDs to reflect new positions
+            repeater_div.id = 'awm-' + repeater + '-' + targetCounter;
+            targetElement.id = 'awm-' + repeater + '-' + counter;
+            
+            // Preserve all input values and update their names/ids
+            swapInputAttributes(repeater_div, targetElement, repeater, counter, targetCounter);
+            
+            // Move the DOM elements
+            parent.insertBefore(repeater_div, nextSibling);
+            
             return true;
         }
-
-        if (next) {
-            new_counter = counter + 1;
-            repeater_div.innerHtml = awm_repeater_clone(repeater_div, new_counter, repeater);
-            next.innerHtml = awm_repeater_clone(next, counter, repeater);
-            next.parentNode.insertBefore(repeater_div, next.nextSibling);
-        }
     }
+}
+
+/**
+ * Helper function to swap input attributes between two repeater elements
+ * 
+ * @param {HTMLElement} elem1 - First repeater element
+ * @param {HTMLElement} elem2 - Second repeater element
+ * @param {string} repeater - Repeater ID
+ * @param {number} counter1 - Original counter of first element
+ * @param {number} counter2 - Original counter of second element
+ */
+function swapInputAttributes(elem1, elem2, repeater, counter1, counter2) {
+    // Process all inputs in both elements
+    updateInputAttributes(elem1, repeater, counter1, counter2);
+    updateInputAttributes(elem2, repeater, counter2, counter1);
+}
+
+/**
+ * Updates input attributes in a repeater element
+ * 
+ * @param {HTMLElement} elem - Repeater element to update
+ * @param {string} repeater - Repeater ID
+ * @param {number} oldCounter - Original counter value
+ * @param {number} newCounter - New counter value
+ */
+function updateInputAttributes(elem, repeater, oldCounter, newCounter) {
+    // Update all input elements
+    var inputs = elem.querySelectorAll('input, select, textarea');
+    inputs.forEach(function(input) {
+        // Update name attribute
+        if (input.name) {
+            input.name = input.name.replace(
+                new RegExp(repeater + '\\[' + oldCounter + '\\]', 'g'), 
+                repeater + '[' + newCounter + ']'
+            );
+        }
+        
+        // Update id attribute
+        if (input.id) {
+            input.id = input.id.replace(
+                new RegExp(repeater + '_' + oldCounter + '_', 'g'), 
+                repeater + '_' + newCounter + '_'
+            );
+        }
+    });
+    
+    // Update data-input attributes on containers
+    var containers = elem.querySelectorAll('[data-input]');
+    containers.forEach(function(container) {
+        var dataInput = container.getAttribute('data-input');
+        if (dataInput) {
+            container.setAttribute('data-input', dataInput.replace(
+                new RegExp(repeater + '_' + oldCounter + '_', 'g'), 
+                repeater + '_' + newCounter + '_'
+            ));
+        }
+        
+        // Also update the id attribute if it contains the element prefix
+        if (container.id && container.id.includes('awm-element-')) {
+            container.id = container.id.replace(
+                new RegExp(repeater + '_' + oldCounter + '_', 'g'), 
+                repeater + '_' + newCounter + '_'
+            );
+        }
+    });
+    
+    // Update image upload containers
+    var imageContainers = elem.querySelectorAll('.awm-image-upload');
+    imageContainers.forEach(function(container) {
+        if (container.id) {
+            container.id = container.id.replace(
+                new RegExp(repeater + '_' + oldCounter + '_', 'g'), 
+                repeater + '_' + newCounter + '_'
+            );
+        }
+    });
 }
 function ewp_repeater_clone_row(elem) {
     // Find the repeater content div that contains this element
