@@ -773,16 +773,41 @@ function repeater(elem, prePopulated = []) {
                 inputs.forEach(function (input) {
                     if (input.classList.contains('wp-editor-area')) {
                         setTimeout(() => {
-                            // Check if TinyMCE container exists before trying to remove it
-                            const tinyMceContainers = document.querySelectorAll('#wp-' + input.id + '-editor-container .mce-tinymce.mce-container');
-                            if (tinyMceContainers && tinyMceContainers.length > 0) {
-                                tinyMceContainers[0].remove();
-                            }
-                            // Initialize or reinitialize TinyMCE editor
+                            // First, properly destroy any existing editor instance
                             if (typeof tinymce !== 'undefined') {
+                                // Check if there's an existing editor instance
+                                if (tinymce.get(input.id)) {
+                                    // Save content to textarea before removing
+                                    tinymce.get(input.id).save();
+                                    // Remove the editor instance
+                                    tinymce.EditorManager.execCommand('mceRemoveEditor', true, input.id);
+                                }
+
+                                // Remove any leftover TinyMCE containers
+                                const tinyMceContainers = document.querySelectorAll('#wp-' + input.id + '-editor-container .mce-tinymce.mce-container');
+                                if (tinyMceContainers && tinyMceContainers.length > 0) {
+                                    for (let i = 0; i < tinyMceContainers.length; i++) {
+                                        tinyMceContainers[i].remove();
+                                    }
+                                }
+
+                                // Initialize the new editor instance
                                 tinymce.EditorManager.execCommand('mceAddEditor', true, input.id);
+
+                                // Add event listener to ensure content is saved to textarea
+                                const editor = tinymce.get(input.id);
+                                if (editor) {
+                                    editor.on('change', function () {
+                                        editor.save();
+                                    });
+
+                                    // Also save on blur
+                                    editor.on('blur', function () {
+                                        editor.save();
+                                    });
+                                }
                             }
-                        }, 200);
+                        }, 300); // Increased timeout for better stability
 
                     }
                     var inputKey = input.getAttribute('input-key') || '';
@@ -827,7 +852,27 @@ function awm_repeater_clone(cloned, new_counter, repeater) {
             var label = cloned.querySelector('label[for="' + old_id + '"]');
             var namee, id;
             if (input.name) {
-                namee = input.getAttribute("input-name") + "[" + new_counter + "]" + "[" + input.getAttribute("input-key") + "]";
+                // Get input-name and input-key attributes with fallbacks
+                var inputName = input.getAttribute("input-name") || repeater;
+                var inputKey = input.getAttribute("input-key") || '';
+                
+                // For wp-editor fields, if input-key is missing, try to get it from the label
+                if (input.classList.contains('wp-editor-area') && (!inputKey || inputKey === '')) {
+                    // Find the editor container
+                    var editorContainer = input.closest('.awm-wp-editor');
+                    if (editorContainer) {
+                        // Try to get key from label text
+                        var editorLabel = editorContainer.querySelector('.awm-input-label span');
+                        if (editorLabel && editorLabel.textContent) {
+                            inputKey = editorLabel.textContent.toLowerCase().trim();
+                            // Update the input-key attribute for future reference
+                            input.setAttribute('input-key', inputKey);
+                        }
+                    }
+                }
+                
+                // Create proper name and id attributes
+                namee = inputName + "[" + new_counter + "]" + "[" + inputKey + "]";
                 id = namee.replace(/\[/g, '_').replace(/\]/g, '_');
                 input.setAttribute("name", namee);
                 input.setAttribute("id", id);
