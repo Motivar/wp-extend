@@ -837,11 +837,53 @@ function awm_repeater_clone(cloned, new_counter, repeater) {
             }
             var image_input = input.closest('.awm-meta-field');
             if (image_input && image_input.classList.contains('awm-custom-image-meta')) {
-                cloned.querySelector('.awm-custom-image-meta').setAttribute('data-input', id);
-                cloned.querySelector('.awm-image-upload').setAttribute('id', 'awm_image' + id);
-                const removeButton = cloned.querySelector('.awm-image-upload .awm_custom_image_remove_image_button');
-                if (removeButton) {
-                    removeButton.click();
+                // Handle the main image container
+                var imageContainer = image_input;
+                if (imageContainer) {
+                    // Get the label text to use as key if needed
+                    var imageLabel = imageContainer.querySelector('.awm-input-label');
+                    var labelText = '';
+                    if (imageLabel) {
+                        labelText = imageLabel.textContent.toLowerCase().trim();
+                    }
+                    
+                    // Update data-input attribute
+                    imageContainer.setAttribute('data-input', id);
+                    
+                    // Update image upload container
+                    var imageUpload = imageContainer.querySelector('.awm-image-upload');
+                    if (imageUpload) {
+                        imageUpload.setAttribute('id', 'awm_image' + id);
+                        
+                        // Find and update the hidden input field
+                        var hiddenInput = imageUpload.querySelector('input[type="hidden"]');
+                        if (hiddenInput) {
+                            // If input-key is missing or empty, use the label text
+                            if (!hiddenInput.getAttribute('input-key') || hiddenInput.getAttribute('input-key') === '') {
+                                hiddenInput.setAttribute('input-key', labelText);
+                            }
+                            
+                            // Update name and id attributes
+                            var inputName = hiddenInput.getAttribute('input-name') || repeater;
+                            var inputKey = hiddenInput.getAttribute('input-key') || labelText;
+                            var newName = inputName + '[' + new_counter + '][' + inputKey + ']';
+                            var newId = newName.replace(/\[/g, '_').replace(/\]/g, '_');
+                            
+                            hiddenInput.setAttribute('name', newName);
+                            hiddenInput.setAttribute('id', newId);
+                            
+                            // Update the label's for attribute if it exists
+                            if (imageLabel) {
+                                imageLabel.setAttribute('for', newId);
+                            }
+                        }
+                        
+                        // Reset image if needed
+                        const removeButton = imageUpload.querySelector('.awm_custom_image_remove_image_button');
+                        if (removeButton) {
+                            removeButton.click();
+                        }
+                    }
                 }
             }
 
