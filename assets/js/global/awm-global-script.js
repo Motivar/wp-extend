@@ -773,9 +773,15 @@ function repeater(elem, prePopulated = []) {
                 inputs.forEach(function (input) {
                     if (input.classList.contains('wp-editor-area')) {
                         setTimeout(() => {
-                            document.querySelectorAll('#wp-' + input.id + '-editor-container .mce-tinymce.mce-container')[0].remove();
-                            tinymce.EditorManager.execCommand('mceAddEditor', true, input.id);
-
+                            // Check if TinyMCE container exists before trying to remove it
+                            const tinyMceContainers = document.querySelectorAll('#wp-' + input.id + '-editor-container .mce-tinymce.mce-container');
+                            if (tinyMceContainers && tinyMceContainers.length > 0) {
+                                tinyMceContainers[0].remove();
+                            }
+                            // Initialize or reinitialize TinyMCE editor
+                            if (typeof tinymce !== 'undefined') {
+                                tinymce.EditorManager.execCommand('mceAddEditor', true, input.id);
+                            }
                         }, 200);
 
                     }
