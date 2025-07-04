@@ -79,7 +79,7 @@
     }
     &.awm-custom-image-meta {
         img {
-            max-width: 150px;
+            max-width: 150px !important;
         }
     }
     *:not(.ss-main),

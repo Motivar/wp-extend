@@ -940,10 +940,10 @@ function awm_custom_image_image_uploader_field($name, $id, $value = '', $multipl
         $default_image = site_url() . '/wp-includes/images/media/document.png';
         switch ($file_type['type']) {
             case 'zip':
-                $image = site_url() . '/wp-includes/images/media/archive.svg';
+                $show_image = site_url() . '/wp-includes/images/media/archive.svg';
                 break;
             default:
-                $image = wp_get_attachment_thumb_url($value);
+                $show_image = wp_get_attachment_thumb_url($value);
                 break;
         }
         if (!$show_image) {
