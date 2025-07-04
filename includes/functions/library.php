@@ -930,19 +930,28 @@ function awm_custom_meta_update_vars($meta, $metaa, $id, $view)
 function awm_custom_image_image_uploader_field($name, $id, $value = '', $multiple = false, $required = '')
 {
     $image = ' button">' .  __('Insert media', 'extend-wp');
-    $image_size = 'large'; // it would be better to use thumbnail size here (150x150 or so)
+
     $display = 'none'; // display state ot the "Remove image" button
     if ($value && !empty($value) && get_attached_file($value)) {
-        $image = wp_get_attachment_thumb_url($value);
-
-        if (!$image) {
-            $image = site_url() . '/wp-includes/images/media/document.png';
+        /* check file type*/
+        $file_type = wp_check_filetype($value);
+        $show_image = false;
+        $after = '';
+        $default_image = site_url() . '/wp-includes/images/media/document.png';
+        switch ($file_type['type']) {
+            case 'zip':
+                $image = site_url() . '/wp-includes/images/media/archive.svg';
+                break;
+            default:
+                $image = wp_get_attachment_thumb_url($value);
+                break;
         }
-
-        if ($image) {
-            $image = '" data-image="' . $value . '"><img src="' . $image . '"/>';
-            $display = 'block';
+        if (!$show_image) {
+            $show_image = $default_image;
+            $after = '<br><small>' . get_attached_file($value) . '</small>';
         }
+        $image = '" data-image="' . $value . '"><img src="' . $show_image . '"/>' . $after;
+        $display = 'block';
     }
     $content = '<div class="awm-image-upload" id="awm_image' . $id . '"data-multiple="' . $multiple . '" data-add_label="' . __('Insert media', 'extend-wp') . '" data-remove_label="' . __('Remove media', 'extend-wp') . '">';
 
