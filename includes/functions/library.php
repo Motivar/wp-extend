@@ -1025,6 +1025,14 @@ function awm_display_meta_value($meta, $data, $postId = 0, $external_value = fal
     $original_value = $value;
     $case = isset($data['admin_list_view']) ? $data['admin_list_view'] : $data['case'];
     switch ($case) {
+        case 'ewp_content':
+            $object = awm_get_db_content($data['content_type'], array('include' => $value));
+            if (!$object || empty($object)) {
+                break;
+            }
+            $object = $object[0];
+            $value = $object['content_title'];
+            break;
         case 'repeater':
             if (isset($data['include']) && !empty($data['include'])) {
                 $finalShow = array();
