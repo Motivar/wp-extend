@@ -283,25 +283,35 @@ class AWM_List_Table extends WP_List_Table
     }
 
 
+    /**
+     * Get the row actions for an item
+     * Uses centralized nonce handling for consistency
+     * 
+     * @param array $item The item data
+     * @return array The row actions
+     */
     public function get_row_actions($item)
     {
+        $item_id = $item[$this->db_search_key];
+        
         $actions = array(
-            'edit' => sprintf('<a href="' . $this->page_link . '_form&id=%d">%s</a>', $item[$this->db_search_key], __('Edit', 'extend-wp')),
+            'edit' => sprintf('<a href="' . $this->page_link . '_form&id=%d">%s</a>', $item_id, __('Edit', 'extend-wp')),
             'delete' => sprintf(
                 '<a href="%s" class="cstm_tbl_delete" id="delete-%s-%s" style="color: red;">%s</a>',
-                wp_nonce_url(admin_url($this->page_link . '&id=' . $item[$this->db_search_key] . '&action=delete'), $this->page_link . '_delete'),
-                esc_attr($item[$this->db_search_key]),
+                $this->get_nonce_url('delete', $item_id, 'row'),
+                esc_attr($item_id),
                 esc_attr($this->list_name),
                 __('Delete', 'extend-wp')
             ),
             'duplicate' => sprintf(
                 '<a href="%s" class="cstm_tbl_duplicate" id="duplicate-%s-%s">%s</a>',
-                wp_nonce_url(admin_url($this->page_link . '&id=' . $item[$this->db_search_key] . '&action=duplicate'), $this->page_link . '_duplicate'),
-                esc_attr($item[$this->db_search_key]),
+                $this->get_nonce_url('duplicate', $item_id, 'row'),
+                esc_attr($item_id),
                 esc_attr($this->list_name),
                 __('Duplicate', 'extend-wp')
             )
         );
+        
         return apply_filters('ewp_row_actions_' . $this->page_id . '_filter', $actions, $item);
     }
 
@@ -368,11 +378,55 @@ class AWM_List_Table extends WP_List_Table
     }
 
     /**
-     * [OPTIONAL] This method processes bulk actions
-     * it can be outside of class
-     * it can not use wp_redirect coz there is output already
-     * in this example we are processing delete action
-     * message about successful deletion will be shown on page in next part
+     * Get the nonce action name for a specific action
+     * This centralizes nonce handling for consistency across the application
+     * 
+     * @param string $action The action name (e.g., 'delete', 'duplicate')
+     * @param string $type The type of nonce ('bulk' or 'row')
+     * @return string The nonce action name
+     */
+    protected function get_nonce_action($action = '', $type = 'bulk')
+    {
+        if ($type === 'bulk') {
+            // For bulk actions, use the standard WP format
+            return 'bulk-' . $this->_args['plural'];
+        } else {
+            // For row actions, use our custom format
+            return $this->page_link . '_' . $action;
+        }
+    }
+    
+    /**
+     * Generate a URL with nonce for an action
+     * 
+     * @param string $action The action name (e.g., 'delete', 'duplicate')
+     * @param int|string $item_id The ID of the item for the action
+     * @param string $type The type of nonce ('bulk' or 'row')
+     * @return string The URL with nonce
+     */
+    protected function get_nonce_url($action, $item_id, $type = 'row')
+    {
+        $nonce_action = $this->get_nonce_action($action, $type);
+        return wp_nonce_url(admin_url($this->page_link . '&id=' . $item_id . '&action=' . $action), $nonce_action);
+    }
+    
+    /**
+     * Verify a nonce for an action
+     * 
+     * @param string $action The action name
+     * @param string $type The type of nonce ('bulk' or 'row')
+     * @return bool True if nonce is valid, false otherwise
+     */
+    protected function verify_nonce($action = '', $type = 'bulk')
+    {
+        $nonce_action = $this->get_nonce_action($action, $type);
+        return check_admin_referer($nonce_action);
+    }
+
+    /**
+     * Process bulk actions and row actions
+     * Handles both bulk actions from the dropdown and row actions from item links
+     * Uses centralized nonce verification for consistency
      * 
      * @return string Empty string if no action or action processing completed
      */
@@ -386,36 +440,63 @@ class AWM_List_Table extends WP_List_Table
         // Sanitize the action
         $action = sanitize_text_field($_REQUEST['action']);
         
-        // Define valid bulk actions
+        // Define valid actions
         $valid_actions = array('delete', 'duplicate');
         
-        // Only process if it's a valid bulk action
+        // Only process if it's a valid action
         if (!in_array($action, $valid_actions)) {
             return '';
         }
+        
+        // Determine if this is a row action or bulk action
+        // Row actions have a single ID, bulk actions may have multiple IDs
+        $is_row_action = isset($_REQUEST['id']) && !is_array($_REQUEST['id']);
+        $nonce_type = $is_row_action ? 'row' : 'bulk';
 
         // Perform actions based on the sanitized action
         switch ($action) {
             case 'delete':
-                // Verify nonce for delete action
-                if (!check_admin_referer($this->page_link . '_delete')) {
+                // Verify nonce for delete action using our centralized method with correct type
+                if (!$this->verify_nonce('delete', $nonce_type)) {
                     wp_die(__('Invalid delete request.', 'extend-wp'));
                 }
 
                 // Ensure IDs are provided and sanitize
                 if (isset($_REQUEST['id'])) {
-                    $ids = explode(',', sanitize_text_field($_REQUEST['id']));
-                    $result = awm_custom_content_delete($this->_args['ewp_custom_args']['id'], $ids);
-
-                    // Display success or failure message
-                    if ($result) {
-                        add_action('admin_notices', function () {
-                            echo '<div class="notice notice-success is-dismissible"><p>' . __('Items deleted successfully.', 'extend-wp') . '</p></div>';
-                        });
+                    // Handle both array and string formats for IDs
+                    $ids = [];
+                    
+                    if (is_array($_REQUEST['id'])) {
+                        // For bulk actions, IDs come as an array
+                        foreach ($_REQUEST['id'] as $id) {
+                            $ids[] = intval($id);
+                        }
                     } else {
-                        add_action('admin_notices', function () {
-                            echo '<div class="notice notice-error is-dismissible"><p>' . __('Failed to delete items.', 'extend-wp') . '</p></div>';
-                        });
+                        // For row actions, ID comes as a string
+                        $ids[] = intval($_REQUEST['id']);
+                    }
+                    
+                    // Only proceed if we have valid IDs
+                    if (!empty($ids)) {
+                        $result = awm_custom_content_delete($this->_args['ewp_custom_args']['id'], $ids);
+                        
+                        // Display success or failure message
+                        if ($result) {
+                            add_action('admin_notices', function () use ($ids) {
+                                $count = count($ids);
+                                echo '<div class="notice notice-success is-dismissible"><p>' . 
+                                     sprintf(__('Items deleted: %d', 'extend-wp'), $count) . 
+                                     '</p></div>';
+                            });
+                        } else {
+                            add_action('admin_notices', function () {
+                                echo '<div class="notice notice-error is-dismissible"><p>' . 
+                                     __('Failed to delete items.', 'extend-wp') . 
+                                     '</p></div>';
+                            });
+                        }
+                    } else {
+                        wp_die(__('Invalid item IDs for deletion.', 'extend-wp'));
                     }
                 } else {
                     wp_die(__('No items selected for deletion.', 'extend-wp'));
@@ -423,25 +504,47 @@ class AWM_List_Table extends WP_List_Table
                 break;
 
             case 'duplicate':
-                // Verify nonce for duplicate action
-                if (!check_admin_referer($this->page_link . '_duplicate')) {
+                // Verify nonce for duplicate action using our centralized method with correct type
+                if (!$this->verify_nonce('duplicate', $nonce_type)) {
                     wp_die(__('Invalid duplicate request.', 'extend-wp'));
                 }
 
                 // Ensure ID is provided and sanitize
                 if (isset($_REQUEST['id'])) {
-                    $id = intval($_REQUEST['id']);
-                    $new_id = awm_custom_content_duplicate($this->_args['ewp_custom_args']['id'], $id);
-
-                    // Display success or failure message
-                    if ($new_id) {
-                        add_action('admin_notices', function () use ($new_id) {
-                            echo '<div class="notice notice-success is-dismissible"><p>' . sprintf(__('Item duplicated successfully. New ID: %d', 'extend-wp'), $new_id) . '</p></div>';
-                        });
+                    // Handle both array and string formats for IDs
+                    // Note: Duplicate typically works with a single ID, but we'll handle array case too
+                    $id = 0;
+                    
+                    if (is_array($_REQUEST['id'])) {
+                        // For bulk actions, take the first ID if multiple are selected
+                        if (!empty($_REQUEST['id'])) {
+                            $id = intval($_REQUEST['id'][0]);
+                        }
                     } else {
-                        add_action('admin_notices', function () {
-                            echo '<div class="notice notice-error is-dismissible"><p>' . __('Failed to duplicate item.', 'extend-wp') . '</p></div>';
-                        });
+                        // For row actions, ID comes as a string
+                        $id = intval($_REQUEST['id']);
+                    }
+                    
+                    // Only proceed if we have a valid ID
+                    if ($id > 0) {
+                        $new_id = awm_custom_content_duplicate($this->_args['ewp_custom_args']['id'], $id);
+                        
+                        // Display success or failure message
+                        if ($new_id) {
+                            add_action('admin_notices', function () use ($new_id) {
+                                echo '<div class="notice notice-success is-dismissible"><p>' . 
+                                     sprintf(__('Item duplicated successfully. New ID: %d', 'extend-wp'), $new_id) . 
+                                     '</p></div>';
+                            });
+                        } else {
+                            add_action('admin_notices', function () {
+                                echo '<div class="notice notice-error is-dismissible"><p>' . 
+                                     __('Failed to duplicate item.', 'extend-wp') . 
+                                     '</p></div>';
+                            });
+                        }
+                    } else {
+                        wp_die(__('Invalid item ID for duplication.', 'extend-wp'));
                     }
                 } else {
                     wp_die(__('No item selected for duplication.', 'extend-wp'));

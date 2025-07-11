@@ -88,7 +88,17 @@ function flx_table_list_page_handler($args)
 
     $message = '';
     if ('delete' === $table->current_action()) {
-        $message = '<div class="updated below-h2" id="message"><p>' . sprintf(__('Items deleted: %d', 'custom_table_example'), count(explode(',', $_REQUEST['id']))) . '</p></div>';
+        // Handle $_REQUEST['id'] properly whether it's an array or string
+        $ids = isset($_REQUEST['id']) ? $_REQUEST['id'] : '';
+        $count = 0;
+        
+        if (is_array($ids)) {
+            $count = count($ids);
+        } elseif (is_string($ids) && !empty($ids)) {
+            $count = count(explode(',', $ids));
+        }
+        
+        $message = '<div class="updated below-h2" id="message"><p>' . sprintf(__('Items deleted: %d', 'custom_table_example'), $count) . '</p></div>';
     }
 ?>
     <div class="wrap filox-custom-list">
