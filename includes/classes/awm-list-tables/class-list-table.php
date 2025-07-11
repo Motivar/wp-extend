@@ -373,15 +373,26 @@ class AWM_List_Table extends WP_List_Table
      * it can not use wp_redirect coz there is output already
      * in this example we are processing delete action
      * message about successful deletion will be shown on page in next part
+     * 
+     * @return string Empty string if no action or action processing completed
      */
     function process_bulk_action()
     {
-        if (!isset($_REQUEST['action'])) {
+        // If no action is set or action is empty, return early (handles search requests)
+        if (!isset($_REQUEST['action']) || empty($_REQUEST['action'])) {
             return '';
         }
 
         // Sanitize the action
         $action = sanitize_text_field($_REQUEST['action']);
+        
+        // Define valid bulk actions
+        $valid_actions = array('delete', 'duplicate');
+        
+        // Only process if it's a valid bulk action
+        if (!in_array($action, $valid_actions)) {
+            return '';
+        }
 
         // Perform actions based on the sanitized action
         switch ($action) {
@@ -435,11 +446,6 @@ class AWM_List_Table extends WP_List_Table
                 } else {
                     wp_die(__('No item selected for duplication.', 'extend-wp'));
                 }
-                break;
-
-            default:
-                // Handle invalid actions
-                wp_die(__('Invalid action.', 'extend-wp'));
                 break;
         }
     }
