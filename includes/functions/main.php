@@ -324,14 +324,17 @@ if (!function_exists('awm_show_featured_image')) {
 
 if (!function_exists('awm_clean_string')) {
     /**
-     * with this function we allow only numbers and characters
-     * @param string $string the string to clean
+     * Clean string to allow only letters, numbers, spaces, and underscores
+     * Supports Unicode characters (including Greek, Russian, etc.)
+     * @param string $string The string to clean
+     * @return string The cleaned string
      */
     function awm_clean_string($string)
     {
-        $string = str_replace(' ', '_', strtolower($string)); // Replaces all spaces with hyphens.
-
-        return preg_replace('/[^ \w_]/', '', $string); // Removes special chars.
+        $string = str_replace(' ', '_', strtolower($string)); // Replaces all spaces with underscores
+        
+        // Use the /u modifier for Unicode support and keep only letters, numbers, spaces and underscores
+        return preg_replace('/[^\p{L}\p{N} _]/u', '', $string);
     }
 }
 
