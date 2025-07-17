@@ -78,6 +78,25 @@
           outline: 2px solid #007bff;
           outline-offset: -2px;
         }
+
+        &[aria-label],
+        &[aria-labelledby] {
+          margin: 0;  /* Ensure proper spacing for labeled inputs */
+        }
+      }
+
+      /* Ensure label is visible but can be hidden visually if needed */
+      .ss-search-label {
+        &.visually-hidden {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          border: 0;
+        }
       }
     }
     

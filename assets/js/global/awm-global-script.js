@@ -3,6 +3,41 @@ awm_toggle_password();
 awmShowInputs();
 awm_ensure_disabled_inputs();
 
+// Initialize accessible listbox
+function initAccessibleListbox() {
+    const listboxes = document.querySelectorAll('[role="listbox"]');
+    listboxes.forEach(listbox => {
+        // Ensure search has proper labeling
+        const search = listbox.querySelector('.ss-search input[type="search"]');
+        if (search && !search.hasAttribute('aria-label')) {
+            const searchId = `search-${Math.random().toString(36).substr(2, 9)}`;
+            const label = document.createElement('label');
+            label.classList.add('ss-search-label', 'visually-hidden');
+            label.textContent = 'Search items';
+            label.setAttribute('for', searchId);
+            search.parentNode.insertBefore(label, search);
+            search.id = searchId;
+            search.setAttribute('aria-label', 'Search items');
+        }
+
+        // Ensure list items have proper roles
+        const list = listbox.querySelector('.ss-list');
+        if (list) {
+            const options = list.querySelectorAll('.ss-option');
+            options.forEach(option => {
+                if (!option.hasAttribute('role')) {
+                    option.setAttribute('role', 'option');
+                }
+                if (!option.hasAttribute('tabindex')) {
+                    option.setAttribute('tabindex', '0');
+                }
+            });
+        }
+    });
+}
+
+// Call on page load and after any dynamic content updates
+document.addEventListener('DOMContentLoaded', initAccessibleListbox);
 
 function jsVanillaSerialize(form, returnAsObject = false) {
     return ewp_jsVanillaSerialize(form, returnAsObject);
