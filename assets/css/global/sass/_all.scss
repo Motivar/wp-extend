@@ -69,16 +69,14 @@
       position: relative;
       z-index: 2;
       
-      input {
-        &[role="searchbox"] {
-          width: 100%;
-          padding: 8px;
-          margin-bottom: 8px;
-          
-          &:focus {
-            outline: 2px solid #007bff;
-            outline-offset: -2px;
-          }
+      input[type="search"] {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 8px;
+        
+        &:focus {
+          outline: 2px solid #007bff;
+          outline-offset: -2px;
         }
       }
     }
@@ -98,7 +96,7 @@
         
         &[aria-selected="true"] {
           background-color: #007bff;
-          color: white;
+          color: #fff;
         }
       }
     }

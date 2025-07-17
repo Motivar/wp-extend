@@ -374,10 +374,9 @@ jQuery(document).ready(function($) {
     $args['page_hook'] = $this->page_hook;
     $ewp_args = $args + $this->get_current_view_data();
     ?>
-    <form id="mtv-passenger-list-form">
-      <h1>Trip Information</h1>
-      <div id="step1" role="region" aria-labelledby="step1-heading">
-        <h2 id="step1-heading">Step 1/2</h2>
+    <form id="mtv-passenger-list-form" aria-labelledby="form-title">
+      <h2 id="form-title">Trip information - Step 1/2</h2>
+      <div id="step1" role="region">
         <?php echo awm_parse_template(awm_path . 'templates/admin-view/edit-post.php'); ?>
       </div>
     </form>
