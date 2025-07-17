@@ -5,8 +5,13 @@ awm_ensure_disabled_inputs();
 
 // Initialize accessible listbox
 function initAccessibleListbox() {
-    const listboxes = document.querySelectorAll('[role="listbox"]');
+    const listboxes = document.querySelectorAll('.ss-content');
     listboxes.forEach(listbox => {
+        // Set proper role for the container
+        if (!listbox.hasAttribute('role')) {
+            listbox.setAttribute('role', 'listbox');
+        }
+
         // Ensure search has proper labeling
         const search = listbox.querySelector('.ss-search input[type="search"]');
         if (search && !search.hasAttribute('aria-label')) {
@@ -20,9 +25,15 @@ function initAccessibleListbox() {
             search.setAttribute('aria-label', 'Search items');
         }
 
-        // Ensure list items have proper roles
+        // Ensure list items have proper roles and are in a proper container
         const list = listbox.querySelector('.ss-list');
         if (list) {
+            // Set the list as a group
+            if (!list.hasAttribute('role')) {
+                list.setAttribute('role', 'group');
+                list.setAttribute('aria-label', 'Options');
+            }
+
             const options = list.querySelectorAll('.ss-option');
             options.forEach(option => {
                 if (!option.hasAttribute('role')) {
@@ -30,6 +41,9 @@ function initAccessibleListbox() {
                 }
                 if (!option.hasAttribute('tabindex')) {
                     option.setAttribute('tabindex', '0');
+                }
+                if (!option.hasAttribute('aria-selected')) {
+                    option.setAttribute('aria-selected', 'false');
                 }
             });
         }
