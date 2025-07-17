@@ -5,6 +5,25 @@ awm_ensure_disabled_inputs();
 
 // Initialize accessible listbox
 function initAccessibleListbox() {
+    // Handle original select elements and their SlimSelect wrappers
+    document.querySelectorAll('select').forEach(select => {
+        if (!select.id) {
+            select.id = `select-${Math.random().toString(36).substr(2, 9)}`;
+        }
+        
+        // Find or create label for the select
+        if (!document.querySelector(`label[for="${select.id}"]`)) {
+            const selectWrapper = select.closest('.ss-main');
+            if (selectWrapper) {
+                const label = document.createElement('label');
+                label.setAttribute('for', select.id);
+                label.classList.add('ss-label');
+                label.textContent = select.getAttribute('aria-label') || 'Select option';
+                selectWrapper.parentNode.insertBefore(label, selectWrapper);
+            }
+        }
+    });
+
     const listboxContainers = document.querySelectorAll('.ss-content');
     listboxContainers.forEach(container => {
         // Ensure search has proper labeling
@@ -23,7 +42,6 @@ function initAccessibleListbox() {
         // Set up the listbox
         const list = container.querySelector('.ss-list');
         if (list) {
-            // Make the list the listbox container
             if (!list.hasAttribute('role')) {
                 list.setAttribute('role', 'listbox');
                 list.setAttribute('aria-label', 'Options');

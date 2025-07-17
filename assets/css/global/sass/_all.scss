@@ -14,6 +14,26 @@
 .awm-meta-field {
     position: relative;
     width: 100%;
+    
+    // Add styles for select labels
+    .ss-label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+        color: inherit;
+    }
+    
+    .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+    }
+    
     .input-wrapper {
         position: relative;
         display: block;
