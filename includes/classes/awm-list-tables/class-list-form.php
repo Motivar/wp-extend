@@ -373,6 +373,14 @@ jQuery(document).ready(function($) {
     global $ewp_args;
     $args['page_hook'] = $this->page_hook;
     $ewp_args = $args + $this->get_current_view_data();
-    echo awm_parse_template(awm_path . 'templates/admin-view/edit-post.php');
+    ?>
+    <form id="mtv-passenger-list-form">
+      <h1>Trip Information</h1>
+      <div id="step1" role="region" aria-labelledby="step1-heading">
+        <h2 id="step1-heading">Step 1/2</h2>
+        <?php echo awm_parse_template(awm_path . 'templates/admin-view/edit-post.php'); ?>
+      </div>
+    </form>
+    <?php
   }
 }

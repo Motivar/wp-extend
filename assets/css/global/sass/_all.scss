@@ -52,13 +52,75 @@
     text-transform: lowercase !important;
 }
 
-.ss-content 
-{
-    &.ss-open-above,
-    &.ss-open-below{
-    z-index:999999999999;
-    }
-    .ss-list .ss-option {
+.ss-content {
+  &.ss-open-above,
+  &.ss-open-below {
+    z-index: 1000;
+  }
+
+  .ss-list .ss-option {
     padding: 10px !important;
+  }
+
+  &[role="listbox"] {
+    position: relative;
+    
+    .ss-search {
+      position: relative;
+      z-index: 2;
+      
+      input {
+        &[role="searchbox"] {
+          width: 100%;
+          padding: 8px;
+          margin-bottom: 8px;
+          
+          &:focus {
+            outline: 2px solid #007bff;
+            outline-offset: -2px;
+          }
+        }
+      }
+    }
+    
+    .ss-list {
+      position: relative;
+      z-index: 1;
+      
+      [role="option"] {
+        padding: 10px;
+        cursor: pointer;
+        
+        &:focus {
+          outline: 2px solid #007bff;
+          outline-offset: -2px;
+        }
+        
+        &[aria-selected="true"] {
+          background-color: #007bff;
+          color: white;
+        }
+      }
+    }
+  }
 }
+
+// Form heading hierarchy
+.mtv-passenger-list-form {
+  h1, h2, h3 {
+    margin: 1em 0 0.5em;
+    line-height: 1.2;
+  }
+  
+  h1 {
+    font-size: 2em;
+  }
+  
+  h2 {
+    font-size: 1.5em;
+  }
+  
+  h3 {
+    font-size: 1.17em;
+  }
 }
