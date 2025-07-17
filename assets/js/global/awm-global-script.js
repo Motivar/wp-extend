@@ -5,15 +5,10 @@ awm_ensure_disabled_inputs();
 
 // Initialize accessible listbox
 function initAccessibleListbox() {
-    const listboxes = document.querySelectorAll('.ss-content');
-    listboxes.forEach(listbox => {
-        // Set proper role for the container
-        if (!listbox.hasAttribute('role')) {
-            listbox.setAttribute('role', 'listbox');
-        }
-
+    const listboxContainers = document.querySelectorAll('.ss-content');
+    listboxContainers.forEach(container => {
         // Ensure search has proper labeling
-        const search = listbox.querySelector('.ss-search input[type="search"]');
+        const search = container.querySelector('.ss-search input[type="search"]');
         if (search && !search.hasAttribute('aria-label')) {
             const searchId = `search-${Math.random().toString(36).substr(2, 9)}`;
             const label = document.createElement('label');
@@ -25,12 +20,12 @@ function initAccessibleListbox() {
             search.setAttribute('aria-label', 'Search items');
         }
 
-        // Ensure list items have proper roles and are in a proper container
-        const list = listbox.querySelector('.ss-list');
+        // Set up the listbox
+        const list = container.querySelector('.ss-list');
         if (list) {
-            // Set the list as a group
+            // Make the list the listbox container
             if (!list.hasAttribute('role')) {
-                list.setAttribute('role', 'group');
+                list.setAttribute('role', 'listbox');
                 list.setAttribute('aria-label', 'Options');
             }
 
