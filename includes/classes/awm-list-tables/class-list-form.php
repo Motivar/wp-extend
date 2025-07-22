@@ -73,10 +73,13 @@ class AWM_Add_Custom_List
    */
   private $pagehook;
 
+  private $show_delete;
+
   public function __construct($args)
   {
     $this->custom_id = $args['custom_id'];
     $this->custom_list = $args['custom_list'];
+    $this->show_delete = isset($args['show_delete']) ? $args['show_delete'] : true;
     $this->flx_register_custom_list_view($this->custom_id, $this->custom_list);
     add_action('load-' . $this->pagehook, array($this, 'on_load_page'));
     add_action('admin_footer-' . $this->pagehook, array($this, 'on_page_footer'), 100);
@@ -345,7 +348,10 @@ jQuery(document).ready(function($) {
       );
       $dev_notes = '<div class="ewp-dev-notes" style="font-size:90%;opacity:0.8;word-">' . implode('<br>', $dev_notes) . '</div>';
     }
-    $delete_button = $id != '' ? '<a class="submitdelete deletion" href="' . wp_nonce_url(admin_url($this->page_link . '&id=' . $id . '&action=delete'), $this->page_id . '_delete') . '">' . __('Delete ', 'extend-wp') . '</a>' : '';
+    $delete_button = '';
+    if ($this->show_delete) {
+      $delete_button = $id != '' ? '<a class="submitdelete deletion awm-delete-content-id" href="' . wp_nonce_url(admin_url($this->page_link . '&id=' . $id . '&action=delete'), $this->page_id . '_delete') . '">' . __('Delete ', 'extend-wp') . '</a>' : '';
+    }
     return '<div class="submitbox ewp-status-box"><div id="major-publishing-actions">' . $select_box . '
     <div>
         <div id="delete-action">' . $delete_button . '</div>
