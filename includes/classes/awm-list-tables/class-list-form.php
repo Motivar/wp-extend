@@ -151,23 +151,24 @@ class AWM_Add_Custom_List
       // Edit page form
 
       /**
-       * Add submenu page with proper parameter validation
-       * Ensures no null values are passed to WordPress functions
+       * Add submenu page only when show_new is not explicitly set to false
+       * Prevents null values from being passed to WordPress functions
        */
-      $menu_title = isset($args['list_name_singular']) ? sprintf(__('New %s', 'extend-wp'), $args['list_name_singular']) : __('New Item', 'extend-wp');
-      $page_title = $menu_title;
-      $parent_menu = isset($args['show_new']) && $args['show_new'] === false ? null : $parent;
+      if (!isset($args['show_new']) || $args['show_new'] !== false) {
+        $menu_title = isset($args['list_name_singular']) ? sprintf(__('New %s', 'extend-wp'), $args['list_name_singular']) : __('New Item', 'extend-wp');
+        $page_title = $menu_title;
 
-      $this->pagehook = add_submenu_page(
-        $parent_menu,
-        $page_title,
-        $menu_title,
-        $args['capability'],
-        $id . '_form',
-        function () use ($args) {
-          $this->flx_table_list_sub_page_handler($args);
-        }
-      );
+        $this->pagehook = add_submenu_page(
+          $parent,
+          $page_title,
+          $menu_title,
+          $args['capability'],
+          $id . '_form',
+          function () use ($args) {
+            $this->flx_table_list_sub_page_handler($args);
+          }
+        );
+      }
 
       $this->meta_boxes = apply_filters('awm_content_db_metaboxes_filter', isset($args['metaboxes']) ? $args['metaboxes'] : array(), $id);
 
