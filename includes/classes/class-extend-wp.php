@@ -174,6 +174,26 @@ class AWM_Meta
         wp_enqueue_script('awm-slim-lib-script');
         wp_enqueue_script('awm-global-script');
         wp_enqueue_script('awm-admin-script');
+        
+        // Enqueue delete confirmation script for admin pages
+        wp_enqueue_script(
+            'awm-delete-confirmation',
+            awm_url . '/assets/js/class-delete-confirmation.js',
+            array(), // No dependencies - pure vanilla JS
+            $this->version,
+            true // Load in footer
+        );
+        
+        // Localize script with translatable strings
+        wp_localize_script(
+            'awm-delete-confirmation',
+            'awmDeleteConfirmationL10n',
+            array(
+                'singleDeleteMessage' => __('Are you sure you want to delete this item? This action cannot be undone.', 'extend-wp'),
+                'bulkDeleteMessage' => __('Are you sure you want to delete the selected items? This action cannot be undone and will permanently remove all selected data.', 'extend-wp'),
+                'noItemsSelectedMessage' => __('Please select at least one item to delete.', 'extend-wp')
+            )
+        );
     }
 
     /**

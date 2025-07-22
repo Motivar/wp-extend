@@ -79,7 +79,7 @@ class AWM_Add_Custom_List
   {
     $this->custom_id = $args['custom_id'];
     $this->custom_list = $args['custom_list'];
-    $this->show_delete = isset($args['show_delete']) ? $args['show_delete'] : true;
+    $this->show_delete = isset($this->custom_list['show_delete']) ? $this->custom_list['show_delete'] : true;
     $this->flx_register_custom_list_view($this->custom_id, $this->custom_list);
     add_action('load-' . $this->pagehook, array($this, 'on_load_page'));
     add_action('admin_footer-' . $this->pagehook, array($this, 'on_page_footer'), 100);
