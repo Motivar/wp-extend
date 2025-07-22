@@ -65,6 +65,7 @@ class AWM_List_Table extends WP_List_Table
 
     private $title_key;
     private $date_key;
+    private $show_delete;
 
     /**
      * [REQUIRED] You must declare a constructor and give some basic params
@@ -91,6 +92,7 @@ class AWM_List_Table extends WP_List_Table
         $this->icon_url = $args['icon_url'];
         $this->is_data_encrypted = $args['is_data_encrypted'];
         $this->db_search_key = isset($args['db_search_key']) ? $args['db_search_key'] : 'id';
+        $this->show_delete = isset($args['show_delete']) ? $args['show_delete'] : true;
         parent::__construct(array(
             'singular' => $args['list_name_singular'],
             'plural'   => $args['list_name'],

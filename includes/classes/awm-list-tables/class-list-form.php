@@ -74,6 +74,8 @@ class AWM_Add_Custom_List
   private $pagehook;
 
 
+  private $show_delete;
+
   public function __construct($args)
   {
     $this->custom_id = $args['custom_id'];
@@ -173,7 +175,7 @@ class AWM_Add_Custom_List
       $this->page_hook = $this->pagehook;
       $this->update_metas = isset($args['update_metas']) ? $args['update_metas'] : array();
       $this->page_id = $args['id'];
-
+      $this->show_delete = isset($args['show_delete']) ? $args['show_delete'] : true;
 
       // Create a method to handle parent path validation
       $pre = $this->validateParentPath($args);
@@ -348,7 +350,7 @@ jQuery(document).ready(function($) {
       $dev_notes = '<div class="ewp-dev-notes" style="font-size:90%;opacity:0.8;word-">' . implode('<br>', $dev_notes) . '</div>';
     }
     $delete_button = '';
-    if ($this->custom_list['show_delete']) {
+    if ($this->show_delete) {
       $delete_button = $id != '' ? '<a class="submitdelete deletion awm-delete-content-id" href="' . wp_nonce_url(admin_url($this->page_link . '&id=' . $id . '&action=delete'), $this->page_id . '_delete') . '">' . __('Delete ', 'extend-wp') . '</a>' : '';
     }
     return '<div class="submitbox ewp-status-box"><div id="major-publishing-actions">' . $select_box . '
