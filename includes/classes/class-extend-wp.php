@@ -174,16 +174,9 @@ class AWM_Meta
         wp_enqueue_script('awm-slim-lib-script');
         wp_enqueue_script('awm-global-script');
         wp_enqueue_script('awm-admin-script');
-        
-        // Enqueue delete confirmation script for admin pages
-        wp_enqueue_script(
-            'awm-delete-confirmation',
-            awm_url . '/assets/js/class-delete-confirmation.js',
-            array(), // No dependencies - pure vanilla JS
-            $this->version,
-            true // Load in footer
-        );
-        
+        wp_enqueue_script('awm-delete-confirmation');
+
+
         // Localize script with translatable strings
         wp_localize_script(
             'awm-delete-confirmation',
@@ -247,6 +240,14 @@ class AWM_Meta
         wp_register_script('awm-admin-script', awm_url . 'assets/js/admin/awm-admin-script.js', array(), $version, true);
         wp_register_script('awm-slim-lib-script', awm_url . 'assets/js/global/slimselect.min.js', array(), $version, true);
         wp_register_style('jquery-ui-awm', awm_url . 'assets/css/global/jquery-ui.min.css');
+        // Enqueue delete confirmation script for admin pages
+        wp_register_script(
+            'awm-delete-confirmation',
+            awm_url . '/assets/js/class-delete-confirmation.js',
+            array(), // No dependencies - pure vanilla JS
+            $version,
+            true // Load in footer
+        );
     }
 
 
