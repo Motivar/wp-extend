@@ -144,6 +144,7 @@ class AWM_Add_Content_DB_Setup
     $this->list = array(
       'parent' => isset($this->data_content['parent']) ? $this->data_content['parent'] : '',
       'show_new' => isset($this->data_content['show_new']) ? $this->data_content['show_new'] : true,
+      'show_delete' => isset($this->data_content['show_delete']) ? $this->data_content['show_delete'] : true,
       'disable_new' => isset($this->data_content['disable_new']) ? $this->data_content['disable_new'] : false,
       'list_name' => $this->data_content['list_name'],
       'status' => $this->get_statuses(),
