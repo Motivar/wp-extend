@@ -297,9 +297,18 @@ class AWM_DB_Creator
             if ($result === false) {
                 throw new Exception('Database insert failed: ' . $wpdb->last_error);
             }
+            
+            // Try to get the last insert ID using MySQL's LAST_INSERT_ID() first
             $last_insert_id = $wpdb->get_var("SELECT LAST_INSERT_ID()");
+            
+            // Fallback to WordPress's built-in insert_id if LAST_INSERT_ID() fails
             if (!$last_insert_id) {
-                throw new Exception('Unable to fetch last insert ID.');
+                $last_insert_id = $wpdb->insert_id;
+            }
+            
+            // Final check - if both methods fail, throw exception
+            if (!$last_insert_id) {
+                throw new Exception('Unable to fetch last insert ID using both LAST_INSERT_ID() and wpdb->insert_id.');
             }
 
             return array(
