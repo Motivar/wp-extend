@@ -306,9 +306,18 @@ class AWM_DB_Creator
                 $last_insert_id = $wpdb->insert_id;
             }
             
-            // Final check - if both methods fail, throw exception
+            // Handle tables without auto-increment (like metadata tables with composite keys)
+            if (!$last_insert_id && empty($primary_key)) {
+                // For metadata tables, return success without ID
+                return array(
+                    'success' => true,
+                    'rows_affected' => $result
+                );
+            }
+            
+            // Final check - if we still don't have an ID for tables that should have one
             if (!$last_insert_id) {
-                throw new Exception('Unable to fetch last insert ID using both LAST_INSERT_ID() and wpdb->insert_id.');
+                throw new Exception('Unable to fetch last insert ID.');
             }
 
             return array(
