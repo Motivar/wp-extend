@@ -759,9 +759,33 @@ function awm_get_tinymce_args(editorId) {
  * @param {string} editorId - The ID of the wp-editor textarea
  */
 function awm_initialize_repeater_wp_editor(editorId) {
+    // Immediate check to prevent multiple simultaneous inits
+    if (window.awmEditorInitializing && window.awmEditorInitializing[editorId]) {
+        return; // Already initializing this editor
+    }
+    
+    // Mark as initializing globally
+    if (!window.awmEditorInitializing) window.awmEditorInitializing = {};
+    window.awmEditorInitializing[editorId] = true;
+    
+    // Wait longer to ensure any other init processes complete first
     setTimeout(() => {
         // First, properly destroy any existing editor instance
         if (typeof tinymce !== 'undefined') {
+            // Ensure wrapper is in a clean state and hidden during init to avoid UI glitches
+            var wrap = document.getElementById('wp-' + editorId + '-wrap');
+            var container = document.getElementById('wp-' + editorId + '-editor-container');
+            if (wrap) {
+                wrap.classList.remove('html-active');
+                wrap.classList.add('tmce-active');
+                // Hide visually but keep layout to prevent jumps
+                wrap.style.visibility = 'hidden';
+            }
+            // Remove any existing QuickTags toolbar for this cloned editor to prevent duplicates
+            var qtToolbar = document.getElementById('qt_' + editorId + '_toolbar');
+            if (qtToolbar && qtToolbar.parentNode) {
+                qtToolbar.parentNode.removeChild(qtToolbar);
+            }
             // Check if there's an existing editor instance
             if (tinymce.get(editorId)) {
                 // Save content to textarea before removing
@@ -770,13 +794,43 @@ function awm_initialize_repeater_wp_editor(editorId) {
                 tinymce.remove('#' + editorId);
             }
 
-            // Remove any leftover TinyMCE containers
-            const tinyMceContainers = document.querySelectorAll('#wp-' + editorId + '-editor-container .mce-tinymce.mce-container');
-            if (tinyMceContainers && tinyMceContainers.length > 0) {
-                for (let i = 0; i < tinyMceContainers.length; i++) {
-                    tinyMceContainers[i].remove();
-                }
+            // Nuclear cleanup: remove ALL TinyMCE instances related to this editor
+            if (container) {
+                // First pass: remove all TinyMCE containers
+                const mceContainers = container.querySelectorAll('.mce-tinymce, .mce-container');
+                mceContainers.forEach(function(el) { el.remove(); });
+                
+                // Second pass: remove any remaining non-textarea, non-quicktags children
+                Array.prototype.slice.call(container.children).forEach(function(child) {
+                    if (child.tagName && child.tagName.toLowerCase() === 'textarea') return;
+                    if (child.id && child.id.indexOf('qt_') === 0) return; // Keep QuickTags
+                    child.remove();
+                });
             }
+            
+            // Global cleanup: find and remove any orphaned TinyMCE instances
+            document.querySelectorAll('.mce-tinymce').forEach(function(mceEl) {
+                // Check if this belongs to our editor by iframe ID or container proximity
+                const iframe = mceEl.querySelector('iframe');
+                if (iframe && iframe.id) {
+                    const baseId = editorId.replace(/template/g, '').replace(/__/g, '_').replace(/_+/g, '_');
+                    if (iframe.id.indexOf(baseId) !== -1 || iframe.id.indexOf(editorId) !== -1) {
+                        mceEl.remove();
+                    }
+                }
+            });
+
+            // Force remove any existing TinyMCE instances by all possible ID variations
+            const possibleIds = [
+                editorId,
+                editorId.replace(/_/g, '__'), // double underscore variant
+                editorId.replace(/template/g, '0'), // template replacement variant
+            ];
+            possibleIds.forEach(function(id) {
+                if (tinymce.get(id)) {
+                    tinymce.remove('#' + id);
+                }
+            });
 
             // Get our custom TinyMCE configuration
             const tinymceConfig = awm_get_tinymce_args(editorId);
@@ -787,10 +841,36 @@ function awm_initialize_repeater_wp_editor(editorId) {
             if (window.AWMEditorUtil) {
                 window.AWMEditorUtil.waitForEditor(editorId, function (editor) {
                     window.AWMEditorUtil.activateVisual(editorId, editor);
+                    // Reveal wrapper now that TinyMCE is ready
+                    if (wrap) {
+                        // Prefer reveal on skin loaded for stable UI
+                        var reveal = function(){
+                            try { editor.execCommand('mceRepaint'); } catch (e) {}
+                            wrap.style.visibility = '';
+                            // Clear the global init flag
+                            if (window.awmEditorInitializing) {
+                                delete window.awmEditorInitializing[editorId];
+                            }
+                        };
+                        try {
+                            editor.once('SkinLoaded', reveal);
+                            // Fallback in case event doesn't fire
+                            setTimeout(reveal, 300);
+                        } catch (e) { setTimeout(reveal, 300); }
+                    }
+                    // Reinitialize QuickTags toolbar once after TinyMCE is set up
+                    try {
+                        if (window.quicktags) {
+                            quicktags({ id: editorId });
+                            if (window.QTags && typeof QTags._buttonsInit === 'function') {
+                                QTags._buttonsInit();
+                            }
+                        }
+                    } catch (e) { /* noop */ }
                 });
             }
         }
-    }, 300); // Increased timeout for better stability
+    }, 500); // Longer delay to prevent race conditions
 }
 
 /**
