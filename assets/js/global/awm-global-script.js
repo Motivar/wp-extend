@@ -794,18 +794,26 @@ function repeater(elem, prePopulated = []) {
                                 // Initialize the new editor instance
                                 tinymce.EditorManager.execCommand('mceAddEditor', true, input.id);
 
-                                // Add event listener to ensure content is saved to textarea
-                                const editor = tinymce.get(input.id);
-                                if (editor) {
-                                    editor.on('change', function () {
-                                        editor.save();
-                                    });
+                                // Wait for editor to be fully initialized, then apply our fix
+                                setTimeout(() => {
+                                    const editor = tinymce.get(input.id);
+                                    if (editor && editor.initialized) {
+                                        // Add event listener to ensure content is saved to textarea
+                                        editor.on('change', function () {
+                                            editor.save();
+                                        });
 
-                                    // Also save on blur
-                                    editor.on('blur', function () {
-                                        editor.save();
-                                    });
-                                }
+                                        // Also save on blur
+                                        editor.on('blur', function () {
+                                            editor.save();
+                                        });
+
+                                        // Apply our WP Editor fix for this new editor
+                                        if (window.AWMWPEditorFix) {
+                                            window.AWMWPEditorFix.fixEditor(input.id);
+                                        }
+                                    }
+                                }, 100);
                             }
                         }, 300); // Increased timeout for better stability
 
