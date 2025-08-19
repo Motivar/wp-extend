@@ -28,13 +28,16 @@ window.AWMEditorUtil = window.AWMEditorUtil || (function () {
     }
 
     function activateVisual(id, editor) {
+        // Preserve current scroll to avoid jump
+        var y = window.scrollY;
         try { window.wpActiveEditor = id; } catch (e) { }
         if (isSafari && typeof window.switchEditors !== 'undefined' && typeof window.switchEditors.go === 'function') {
             try { window.switchEditors.go(id, 'tmce'); } catch (e) { }
+            // Restore scroll ASAP after mode switch
+            setTimeout(function(){ try { window.scrollTo(0, y); } catch (e) {} }, 0);
         }
-        try { editor.show(); } catch (e) { }
+        // Do not force-show or focus to prevent auto-scroll
         try { editor.save(); } catch (e) { }
-        try { editor.focus(); } catch (e) { }
     }
 
     function initNonRepeaterEditors() {
@@ -1076,30 +1079,13 @@ function awm_repeater_clone(cloned, new_counter, repeater) {
                             if (!hiddenInput.getAttribute('input-key') || hiddenInput.getAttribute('input-key') === '') {
                                 hiddenInput.setAttribute('input-key', labelText);
                             }
-                            
-                            // Update name and id attributes
+                            // Update name and id attributes only (do NOT initialize TinyMCE on hidden inputs)
                             var inputName = hiddenInput.getAttribute('input-name') || repeater;
                             var inputKey = hiddenInput.getAttribute('input-key') || labelText;
                             var newName = inputName + '[' + new_counter + '][' + inputKey + ']';
                             var newId = newName.replace(/\[/g, '_').replace(/\]/g, '_');
-                            
                             hiddenInput.setAttribute('name', newName);
                             hiddenInput.setAttribute('id', newId);
-                            
-                            // Initialize the new editor instance with custom configuration
-                            setTimeout(function() {
-                                tinymce.init({
-                                    selector: '#' + newId,
-                                    setup: function(ed) {
-                                        ed.on('init', function() {
-                                            ed.execCommand('mceAddControl', false, newId);
-                                            ed.execCommand('mceVisualAid');
-                                            ed.execCommand('mceShowEditor');
-                                            ed.save();
-                                        });
-                                    }
-                                });
-                            }, 300); // Increased timeout for better stability
                         }
                     }
                 }

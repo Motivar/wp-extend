@@ -72,8 +72,8 @@ if (!function_exists('awm_get_wp_editor_args')) {
             'teeny' => false,
             'dfw' => false,
             'default_editor' => 'tinymce',
-            // Ensure the Visual editor shows on init
-            'init_instance_callback' => 'function(editor) { try { editor.show(); } catch(e) {} }',
+            // Do not force-show on init to avoid auto-scrolling to editor
+            'init_instance_callback' => '',
             'tinymce' => array(
                 'toolbar1' => 'formatselect,bold,italic,bullist,numlist,blockquote,alignleft,aligncenter,alignright,link,wp_more,spellchecker,fullscreen,wp_adv',
                 'toolbar2' => 'strikethrough,hr,forecolor,pastetext,removeformat,charmap,outdent,indent,undo,redo,wp_help',
@@ -83,11 +83,8 @@ if (!function_exists('awm_get_wp_editor_args')) {
                 'remove_linebreaks' => false,
                 'convert_newlines_to_brs' => false,
                 'remove_redundant_brs' => false,
-                // Make sure TinyMCE becomes interactive immediately and saves content properly
+                // Save handlers only; do not auto-show to prevent scroll jump
                 'setup' => 'function(editor) {
-                    editor.on("init", function() {
-                        try { editor.show(); } catch(e) {}
-                    });
                     editor.on("change", function(){ editor.save(); });
                     editor.on("blur", function(){ editor.save(); });
                 }',
