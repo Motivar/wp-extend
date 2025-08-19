@@ -527,9 +527,12 @@ if (!function_exists('awm_show_content')) {
                                     $wp_args['tinymce']['readonly'] = 1;
                                 }
                                 
+                                // Decode HTML entities to prevent double encoding in wp_editor
+                                $decoded_val = html_entity_decode($val, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                                
                                 $wp_editor_textarea = '';
                                 ob_start();
-                                wp_editor($val, $original_meta_id, $wp_args);
+                                wp_editor($decoded_val, $original_meta_id, $wp_args);
                                 $wp_editor_textarea = ob_get_clean();
                                 $ins .= $wp_editor_textarea;
                                 $label_class[] = 'awm-wp-editor';
