@@ -501,11 +501,32 @@ if (!function_exists('awm_show_content')) {
                             $wp_editor = isset($a['wp_editor']) ? $a['wp_editor'] : (isset($a['attributes']['wp_editor']) ? $a['attributes']['wp_editor'] : false);
 
                             if ($wp_editor) {
-                                $wp_args = array('textarea_name' => $original_meta, 'editor_class' => $class, 'textarea_rows' => 10);
-                                $wp_disalbed = isset($a['disabled']) ? $a['disabled'] : false;
-                                if ($wp_disalbed) {
-                                    // $wp_args['tinymce'] = array('readonly' => 1);
+                                $wp_args = array(
+                                    'textarea_name' => $original_meta,
+                                    'editor_class' => $class,
+                                    'textarea_rows' => 10,
+                                    'tinymce' => array(
+                                        'toolbar1' => 'formatselect,bold,italic,bullist,numlist,blockquote,alignleft,aligncenter,alignright,link,wp_more,spellchecker,fullscreen,wp_adv',
+                                        'toolbar2' => 'strikethrough,hr,forecolor,pastetext,removeformat,charmap,outdent,indent,undo,redo,wp_help',
+                                        'content_css' => false,
+                                        'forced_root_block' => 'p',
+                                        'force_p_newlines' => true,
+                                        'remove_linebreaks' => false,
+                                        'convert_newlines_to_brs' => false,
+                                        'remove_redundant_brs' => false
+                                    ),
+                                    'quicktags' => array(
+                                        'buttons' => 'strong,em,link,block,del,ins,img,ul,ol,li,code,more,close'
+                                    ),
+                                    'media_buttons' => true,
+                                    'drag_drop_upload' => true
+                                );
+                                
+                                $wp_disabled = isset($a['disabled']) ? $a['disabled'] : false;
+                                if ($wp_disabled) {
+                                    $wp_args['tinymce']['readonly'] = 1;
                                 }
+                                
                                 $wp_editor_textarea = '';
                                 ob_start();
                                 wp_editor($val, $original_meta_id, $wp_args);
