@@ -174,12 +174,8 @@ class AWM_Meta
         wp_enqueue_script('awm-slim-lib-script');
         wp_enqueue_script('awm-global-script');
         wp_enqueue_script('awm-admin-script');
-        
-        // Enqueue WP Editor fix script for admin pages with editors
-        if ($this->has_wp_editor_on_page()) {
-            wp_enqueue_script('awm-wp-editor-fix');
-        }
-        
+
+
         // Only load delete confirmation script when custom list tables are active
         if ($this->is_custom_list_table_page()) {
             wp_enqueue_script('awm-delete-confirmation');
@@ -276,29 +272,33 @@ class AWM_Meta
      */
     private function register_script_styles()
     {
-        $version = 0.29;
+        $version = 0.291;
         wp_register_style('awm-slim-lib-style', awm_url . 'assets/css/global/slimselect.min.css', false, $version);
         wp_register_style('awm-global-style', awm_url . 'assets/css/global/awm-global-style.min.css', false, $version);
         wp_register_style('awm-admin-style', awm_url . 'assets/css/admin/awm-admin-style.min.css', false, $version);
+
         wp_register_script('awm-global-script', awm_url . 'assets/js/global/awm-global-script.js', array(), $version, true);
         wp_register_script('awm-public-script', awm_url . 'assets/js/public/awm-public-script.js', array(), $version, true);
-        wp_localize_script('awm-global-script', 'awmGlobals', array('strings' => array('placeholderText' => __('Select Value', 'extend-wp'), 'noResults' => __('No results', 'extend-wp'), 'searchText' => __('Search', 'extend-wp')), 'url' => esc_url(home_url()), 'nonce' => wp_create_nonce('wp_rest')));
-        wp_register_script('awm-admin-script', awm_url . 'assets/js/admin/awm-admin-script.js', array(), $version, true);
+        // Get wp_editor args for JavaScript use
+        $wp_editor_args = awm_get_wp_editor_args('', '', '');
+        
+        wp_localize_script('awm-global-script', 'awmGlobals', array(
+            'strings' => array(
+                'placeholderText' => __('Select Value', 'extend-wp'), 
+                'noResults' => __('No results', 'extend-wp'), 
+                'searchText' => __('Search', 'extend-wp')
+            ), 
+            'url' => esc_url(home_url()), 
+            'nonce' => wp_create_nonce('wp_rest'),
+            'wpEditorArgs' => $wp_editor_args
+        ));
+        wp_register_script('awm-admin-script', awm_url . 'assets/js/admin/awm-admin-script.js', array('awm-global-script'), $version, true);
         wp_register_script('awm-slim-lib-script', awm_url . 'assets/js/global/slimselect.min.js', array(), $version, true);
         wp_register_style('jquery-ui-awm', awm_url . 'assets/css/global/jquery-ui.min.css');
         // Enqueue delete confirmation script for admin pages
         wp_register_script(
             'awm-delete-confirmation',
             awm_url . '/assets/js/class-delete-confirmation.js',
-            array(), // No dependencies - pure vanilla JS
-            $version,
-            true // Load in footer
-        );
-        
-        // Register WP Editor fix script for admin pages
-        wp_register_script(
-            'awm-wp-editor-fix',
-            awm_url . '/assets/js/admin/class-wp-editor-fix.js',
             array(), // No dependencies - pure vanilla JS
             $version,
             true // Load in footer
@@ -802,56 +802,6 @@ class AWM_Meta
                 }
             }
         }
-    }
-
-    /**
-     * Check if current admin page has WP editors
-     * Determines if the WP Editor fix script should be loaded
-     * 
-     * @return bool True if page likely has WP editors
-     */
-    private function has_wp_editor_on_page()
-    {
-        global $pagenow;
-        
-        // Standard WordPress pages that use wp_editor
-        $editor_pages = array(
-            'post.php',
-            'post-new.php',
-            'edit.php',
-            'term.php',
-            'edit-tags.php',
-            'user-edit.php',
-            'user-new.php',
-            'profile.php',
-            'options-general.php'
-        );
-        
-        // Check if current page is in the list
-        if (in_array($pagenow, $editor_pages)) {
-            return true;
-        }
-        
-        // Check for custom admin pages that might use wp_editor
-        $current_screen = get_current_screen();
-        if ($current_screen) {
-            // Check for custom post types
-            if (strpos($current_screen->id, 'edit-') === 0 || strpos($current_screen->id, 'post') !== false) {
-                return true;
-            }
-            
-            // Check for custom taxonomy pages
-            if (strpos($current_screen->id, 'edit-tags') !== false || strpos($current_screen->id, 'term') !== false) {
-                return true;
-            }
-            
-            // Check for custom admin pages that might contain forms
-            if (isset($_GET['page']) && !empty($_GET['page'])) {
-                return true;
-            }
-        }
-        
-        return false;
     }
 }
 

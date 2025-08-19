@@ -587,6 +587,133 @@ function awm_repeater_order(elem, action) {
 }
 
 /**
+ * Get wp-editor arguments from localized PHP configuration
+ * Uses DRY principle by getting config from awm_get_wp_editor_args()
+ * 
+ * @param {string} editorId - The ID of the editor
+ * @return {Object} TinyMCE configuration object
+ */
+function awm_get_tinymce_args(editorId) {
+    // Get localized wp_editor args from PHP
+    const wpEditorArgs = (typeof awmGlobals !== 'undefined' && awmGlobals.wpEditorArgs)
+        ? awmGlobals.wpEditorArgs
+        : {};
+
+    // Base TinyMCE configuration
+    const baseConfig = {
+        selector: '#' + editorId,
+        theme: 'modern',
+        skin: 'lightgray',
+        language: 'en',
+        relative_urls: false,
+        remove_script_host: false,
+        convert_urls: false,
+        browser_spellcheck: true,
+        fix_list_elements: true,
+        entities: '38,amp,60,lt,62,gt',
+        entity_encoding: 'raw',
+        keep_styles: false,
+        paste_webkit_styles: 'font-weight font-style color',
+        paste_strip_class_attributes: 'mso',
+        paste_remove_spans: true,
+        paste_remove_styles: true,
+        paste_auto_cleanup_on_paste: true,
+        wpeditimage_disable_captions: false,
+        wpeditimage_html5_captions: true,
+        plugins: 'charmap,colorpicker,hr,lists,media,paste,tabfocus,textcolor,fullscreen,wordpress,wpautoresize,wpeditimage,wpgallery,wplink,wpdialogs,wpview',
+        formats: {
+            alignleft: [
+                { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li', styles: { textAlign: 'left' } },
+                { selector: 'img,table,dl.wp-caption', classes: 'alignleft' }
+            ],
+            aligncenter: [
+                { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li', styles: { textAlign: 'center' } },
+                { selector: 'img,table,dl.wp-caption', classes: 'aligncenter' }
+            ],
+            alignright: [
+                { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li', styles: { textAlign: 'right' } },
+                { selector: 'img,table,dl.wp-caption', classes: 'alignright' }
+            ],
+            strikethrough: { inline: 'del' }
+        },
+        setup: function (editor) {
+            // Ensure editor shows properly and is interactive
+            editor.on('init', function () {
+                editor.show();
+            });
+
+            // Save content on change
+            editor.on('change', function () {
+                editor.save();
+            });
+
+            // Save content on blur
+            editor.on('blur', function () {
+                editor.save();
+            });
+        }
+    };
+
+    // Merge PHP configuration with base config
+    if (wpEditorArgs.tinymce) {
+        Object.assign(baseConfig, wpEditorArgs.tinymce);
+    }
+
+    // Apply other wp_editor settings
+    if (wpEditorArgs.wpautop !== undefined) {
+        baseConfig.wpautop = wpEditorArgs.wpautop;
+    }
+
+    return baseConfig;
+}
+
+/**
+ * Initialize wp-editor in repeater context
+ * Handles TinyMCE editor setup for cloned repeater fields
+ * 
+ * @param {string} editorId - The ID of the wp-editor textarea
+ */
+function awm_initialize_repeater_wp_editor(editorId) {
+    setTimeout(() => {
+        // First, properly destroy any existing editor instance
+        if (typeof tinymce !== 'undefined') {
+            // Check if there's an existing editor instance
+            if (tinymce.get(editorId)) {
+                // Save content to textarea before removing
+                tinymce.get(editorId).save();
+                // Remove the editor instance
+                tinymce.remove('#' + editorId);
+            }
+
+            // Remove any leftover TinyMCE containers
+            const tinyMceContainers = document.querySelectorAll('#wp-' + editorId + '-editor-container .mce-tinymce.mce-container');
+            if (tinyMceContainers && tinyMceContainers.length > 0) {
+                for (let i = 0; i < tinyMceContainers.length; i++) {
+                    tinyMceContainers[i].remove();
+                }
+            }
+
+            // Get our custom TinyMCE configuration
+            const tinymceConfig = awm_get_tinymce_args(editorId);
+
+            // Initialize the new editor instance with custom configuration
+            tinymce.init(tinymceConfig).then(() => {
+                // Wait for editor to be fully initialized, then apply our fix
+                setTimeout(() => {
+                    const editor = tinymce.get(editorId);
+                    if (editor && editor.initialized) {
+                        // Apply our WP Editor fix for this new editor
+                        if (window.AWMWPEditorFix) {
+                            window.AWMWPEditorFix.fixEditor(editorId);
+                        }
+                    }
+                }, 100);
+            });
+        }
+    }, 300); // Increased timeout for better stability
+}
+
+/**
  * Helper function to swap input attributes between two repeater elements
  * 
  * @param {HTMLElement} elem1 - First repeater element
@@ -772,50 +899,7 @@ function repeater(elem, prePopulated = []) {
             if (inputs) {
                 inputs.forEach(function (input) {
                     if (input.classList.contains('wp-editor-area')) {
-                        setTimeout(() => {
-                            // First, properly destroy any existing editor instance
-                            if (typeof tinymce !== 'undefined') {
-                                // Check if there's an existing editor instance
-                                if (tinymce.get(input.id)) {
-                                    // Save content to textarea before removing
-                                    tinymce.get(input.id).save();
-                                    // Remove the editor instance
-                                    tinymce.EditorManager.execCommand('mceRemoveEditor', true, input.id);
-                                }
-
-                                // Remove any leftover TinyMCE containers
-                                const tinyMceContainers = document.querySelectorAll('#wp-' + input.id + '-editor-container .mce-tinymce.mce-container');
-                                if (tinyMceContainers && tinyMceContainers.length > 0) {
-                                    for (let i = 0; i < tinyMceContainers.length; i++) {
-                                        tinyMceContainers[i].remove();
-                                    }
-                                }
-
-                                // Initialize the new editor instance
-                                tinymce.EditorManager.execCommand('mceAddEditor', true, input.id);
-
-                                // Wait for editor to be fully initialized, then apply our fix
-                                setTimeout(() => {
-                                    const editor = tinymce.get(input.id);
-                                    if (editor && editor.initialized) {
-                                        // Add event listener to ensure content is saved to textarea
-                                        editor.on('change', function () {
-                                            editor.save();
-                                        });
-
-                                        // Also save on blur
-                                        editor.on('blur', function () {
-                                            editor.save();
-                                        });
-
-                                        // Apply our WP Editor fix for this new editor
-                                        if (window.AWMWPEditorFix) {
-                                            window.AWMWPEditorFix.fixEditor(input.id);
-                                        }
-                                    }
-                                }, 100);
-                            }
-                        }, 300); // Increased timeout for better stability
+                        awm_initialize_repeater_wp_editor(input.id);
 
                     }
                     var inputKey = input.getAttribute('input-key') || '';

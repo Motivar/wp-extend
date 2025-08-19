@@ -53,6 +53,66 @@ if (!function_exists('awm_get_field_value')) {
     }
 }
 
+if (!function_exists('awm_get_wp_editor_args')) {
+    /**
+     * Get default wp_editor arguments with filter support
+     * 
+     * @param string $textarea_name The name attribute for the textarea
+     * @param string $editor_class CSS class for the editor
+     * @param string $editor_id The ID for the editor instance
+     * @return array Filtered wp_editor arguments
+     */
+    function awm_get_wp_editor_args($textarea_name, $editor_class = '', $editor_id = '')
+    {
+        $default_args = array(
+            'textarea_name' => $textarea_name,
+            'editor_class' => $editor_class,
+            'textarea_rows' => 10,
+            'wpautop' => true,
+            'teeny' => false,
+            'dfw' => false,
+            'default_editor' => 'tinymce',
+            'tinymce' => array(
+                'toolbar1' => 'formatselect,bold,italic,bullist,numlist,blockquote,alignleft,aligncenter,alignright,link,wp_more,spellchecker,fullscreen,wp_adv',
+                'toolbar2' => 'strikethrough,hr,forecolor,pastetext,removeformat,charmap,outdent,indent,undo,redo,wp_help',
+                'content_css' => false,
+                'forced_root_block' => 'p',
+                'force_p_newlines' => true,
+                'remove_linebreaks' => false,
+                'convert_newlines_to_brs' => false,
+                'remove_redundant_brs' => false,
+            ),
+            'quicktags' => array(
+                'buttons' => 'strong,em,link,block,del,ins,img,ul,ol,li,code,more,close'
+            ),
+            'media_buttons' => true,
+            'drag_drop_upload' => true
+        );
+
+        /**
+         * Filter wp_editor arguments for AWM fields
+         * 
+         * Allows developers to customize wp_editor settings for all AWM textarea fields
+         * with wp_editor enabled.
+         * 
+         * @param array  $default_args   Default wp_editor arguments
+         * @param string $textarea_name  The textarea name attribute
+         * @param string $editor_class   CSS class for the editor
+         * @param string $editor_id      The editor ID
+         * 
+         * @return array Modified wp_editor arguments
+         * 
+         * @example
+         * // Add custom TinyMCE settings
+         * add_filter('awm_wp_editor_args', function($args, $name, $class, $id) {
+         *     $args['tinymce']['toolbar1'] = 'bold,italic,link';
+         *     $args['default_editor'] = 'tinymce';
+         *     return $args;
+         * }, 10, 4);
+         */
+        return apply_filters('awm_wp_editor_args', $default_args, $textarea_name, $editor_class, $editor_id);
+    }
+}
 
 if (!function_exists('awm_prepare_field')) {
     /**
@@ -501,26 +561,7 @@ if (!function_exists('awm_show_content')) {
                             $wp_editor = isset($a['wp_editor']) ? $a['wp_editor'] : (isset($a['attributes']['wp_editor']) ? $a['attributes']['wp_editor'] : false);
 
                             if ($wp_editor) {
-                                $wp_args = array(
-                                    'textarea_name' => $original_meta,
-                                    'editor_class' => $class,
-                                    'textarea_rows' => 10,
-                                    'tinymce' => array(
-                                        'toolbar1' => 'formatselect,bold,italic,bullist,numlist,blockquote,alignleft,aligncenter,alignright,link,wp_more,spellchecker,fullscreen,wp_adv',
-                                        'toolbar2' => 'strikethrough,hr,forecolor,pastetext,removeformat,charmap,outdent,indent,undo,redo,wp_help',
-                                        'content_css' => false,
-                                        'forced_root_block' => 'p',
-                                        'force_p_newlines' => true,
-                                        'remove_linebreaks' => false,
-                                        'convert_newlines_to_brs' => false,
-                                        'remove_redundant_brs' => false
-                                    ),
-                                    'quicktags' => array(
-                                        'buttons' => 'strong,em,link,block,del,ins,img,ul,ol,li,code,more,close'
-                                    ),
-                                    'media_buttons' => true,
-                                    'drag_drop_upload' => true
-                                );
+                                $wp_args = awm_get_wp_editor_args($original_meta, $class, $original_meta_id);
                                 
                                 $wp_disabled = isset($a['disabled']) ? $a['disabled'] : false;
                                 if ($wp_disabled) {
