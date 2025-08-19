@@ -8,6 +8,60 @@ function jsVanillaSerialize(form, returnAsObject = false) {
     return ewp_jsVanillaSerialize(form, returnAsObject);
 }
 
+// --- Editor utility: shared activation helpers (Safari-safe) ---
+window.AWMEditorUtil = window.AWMEditorUtil || (function () {
+    'use strict';
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+    function isTemplate(elem) {
+        const wrapper = elem.closest('.awm-repeater-content');
+        return wrapper && wrapper.classList.contains('temp-source');
+    }
+
+    function waitForEditor(id, callback, tries = 0) {
+        if (window.tinymce && tinymce.get(id) && tinymce.get(id).initialized) {
+            callback(tinymce.get(id));
+            return;
+        }
+        if (tries > 40) return; // ~4s
+        setTimeout(() => waitForEditor(id, callback, tries + 1), 100);
+    }
+
+    function activateVisual(id, editor) {
+        try { window.wpActiveEditor = id; } catch (e) { }
+        if (isSafari && typeof window.switchEditors !== 'undefined' && typeof window.switchEditors.go === 'function') {
+            try { window.switchEditors.go(id, 'tmce'); } catch (e) { }
+        }
+        try { editor.show(); } catch (e) { }
+        try { editor.save(); } catch (e) { }
+        try { editor.focus(); } catch (e) { }
+    }
+
+    function initNonRepeaterEditors() {
+        const textareas = document.querySelectorAll('textarea.wp-editor-area');
+        if (!textareas || !textareas.length) return;
+        textareas.forEach((ta) => {
+            if (!ta.id || isTemplate(ta)) return;
+            waitForEditor(ta.id, (editor) => activateVisual(ta.id, editor));
+        });
+    }
+
+    function runOnLoad() {
+        initNonRepeaterEditors();
+        setTimeout(initNonRepeaterEditors, 400);
+        setTimeout(initNonRepeaterEditors, 1200);
+    }
+
+    return { isSafari, waitForEditor, activateVisual, initNonRepeaterEditors, runOnLoad };
+})();
+
+// Initialize non-repeater editors on load using the shared util
+window.addEventListener('load', function () {
+    if (window.AWMEditorUtil && typeof window.AWMEditorUtil.runOnLoad === 'function') {
+        window.AWMEditorUtil.runOnLoad();
+    }
+});
+
 /*!
  * Serialize all form data into a query string or object
  * (c) 2018 Chris Ferdinandi, MIT License, https://gomakethings.com
@@ -599,6 +653,24 @@ function awm_get_tinymce_args(editorId) {
         ? awmGlobals.wpEditorArgs
         : {};
 
+    // Helper to convert a stringified function to a real function
+    function awmStringToFunction(maybeFn) {
+        if (typeof maybeFn !== 'string') return maybeFn;
+        const s = maybeFn.trim();
+        if (!s) return undefined;
+        // Accept only plain function syntax for safety
+        const looksLikeFn = s.startsWith('function');
+        if (!looksLikeFn) return undefined;
+        try {
+            // Wrap in parentheses so it evaluates to a function expression
+            /* eslint no-eval: 0 */
+            const fn = eval('(' + s + ')');
+            return typeof fn === 'function' ? fn : undefined;
+        } catch (e) {
+            return undefined;
+        }
+    }
+
     // Base TinyMCE configuration
     const baseConfig = {
         selector: '#' + editorId,
@@ -654,9 +726,19 @@ function awm_get_tinymce_args(editorId) {
         }
     };
 
-    // Merge PHP configuration with base config
+    // Merge PHP configuration with base config (normalize callbacks)
     if (wpEditorArgs.tinymce) {
-        Object.assign(baseConfig, wpEditorArgs.tinymce);
+        const phpTiny = Object.assign({}, wpEditorArgs.tinymce);
+        // Normalize callback fields that TinyMCE expects to be functions
+        if (typeof phpTiny.setup === 'string') {
+            const parsedSetup = awmStringToFunction(phpTiny.setup);
+            if (parsedSetup) {
+                phpTiny.setup = parsedSetup;
+            } else {
+                delete phpTiny.setup; // fallback to baseConfig.setup
+            }
+        }
+        Object.assign(baseConfig, phpTiny);
     }
 
     // Apply other wp_editor settings
@@ -697,18 +779,13 @@ function awm_initialize_repeater_wp_editor(editorId) {
             const tinymceConfig = awm_get_tinymce_args(editorId);
 
             // Initialize the new editor instance with custom configuration
-            tinymce.init(tinymceConfig).then(() => {
-                // Wait for editor to be fully initialized, then apply our fix
-                setTimeout(() => {
-                    const editor = tinymce.get(editorId);
-                    if (editor && editor.initialized) {
-                        // Apply our WP Editor fix for this new editor
-                        if (window.AWMWPEditorFix) {
-                            window.AWMWPEditorFix.fixEditor(editorId);
-                        }
-                    }
-                }, 100);
-            });
+            tinymce.init(tinymceConfig);
+            // After init, ensure Visual is active and editor is interactive (Safari-safe)
+            if (window.AWMEditorUtil) {
+                window.AWMEditorUtil.waitForEditor(editorId, function (editor) {
+                    window.AWMEditorUtil.activateVisual(editorId, editor);
+                });
+            }
         }
     }, 300); // Increased timeout for better stability
 }
@@ -1009,16 +1086,20 @@ function awm_repeater_clone(cloned, new_counter, repeater) {
                             hiddenInput.setAttribute('name', newName);
                             hiddenInput.setAttribute('id', newId);
                             
-                            // Update the label's for attribute if it exists
-                            if (imageLabel) {
-                                imageLabel.setAttribute('for', newId);
-                            }
-                        }
-                        
-                        // Reset image if needed
-                        const removeButton = imageUpload.querySelector('.awm_custom_image_remove_image_button');
-                        if (removeButton) {
-                            removeButton.click();
+                            // Initialize the new editor instance with custom configuration
+                            setTimeout(function() {
+                                tinymce.init({
+                                    selector: '#' + newId,
+                                    setup: function(ed) {
+                                        ed.on('init', function() {
+                                            ed.execCommand('mceAddControl', false, newId);
+                                            ed.execCommand('mceVisualAid');
+                                            ed.execCommand('mceShowEditor');
+                                            ed.save();
+                                        });
+                                    }
+                                });
+                            }, 300); // Increased timeout for better stability
                         }
                     }
                 }
