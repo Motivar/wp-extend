@@ -331,6 +331,10 @@ class EWP_Dynamic_Blocks
           $wp_editor = isset($attribute['wp_editor']) ? $attribute['wp_editor'] : (isset($attribute['attributes']['wp_editor']) ? $attribute['attributes']['wp_editor'] : false);
           $attribute['wp_editor'] = $wp_editor;
           break;
+        case 'awm_gallery':
+          $render_type = 'gallery';
+          $type = 'array';
+          break;
       }
       $prepared_attributes[$key] = $attribute;
       $prepared_attributes[$key]['type'] = $type;
