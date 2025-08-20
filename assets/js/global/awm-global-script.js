@@ -622,13 +622,11 @@ function awm_repeater_order(elem, action) {
 
                 console.log('Swapping element', counter, action ? 'up with' : 'down with', targetCounter);
 
+
+
                 // Execute all reordering actions synchronously
                 awm_execute_reorder_actions(repeater_div, targetElement, repeater, counter, targetCounter, action);
 
-
-
-                // Log completion
-                awm_reorder_completed(repeater, counter, targetCounter, action);
 
                 return true;
             }
@@ -677,22 +675,6 @@ function awm_execute_reorder_actions(repeater_div, targetElement, repeater, coun
     console.log('Step 6: All DOM operations completed');
 }
 
-/**
- * Log completion of reordering actions
- * 
- * @param {string} repeater - Repeater ID
- * @param {number} counter - Original counter of moving element
- * @param {number} targetCounter - Original counter of target element
- * @param {boolean} action - True for move up, false for move down
- */
-function awm_reorder_completed(repeater, counter, targetCounter, action) {
-    console.log('=== REORDER COMPLETED ===');
-    console.log('Repeater:', repeater);
-    console.log('Moved element from position', counter, 'to position', targetCounter);
-    console.log('Action:', action ? 'MOVE UP' : 'MOVE DOWN');
-    console.log('All reordering actions have finished successfully');
-    console.log('========================');
-}
 
 /**
  * Get wp-editor arguments from localized PHP configuration
@@ -959,8 +941,8 @@ function updateInputAttributes(elem, repeater, oldCounter, newCounter) {
             );
         }
         
-        // Update id attribute
-        if (input.id) {
+        // Update id attribute - but skip wp-editor textareas
+        if (input.id && !input.classList.contains('wp-editor-area')) {
             input.id = input.id.replace(
                 new RegExp(repeater + '_' + oldCounter + '_', 'g'), 
                 repeater + '_' + newCounter + '_'
