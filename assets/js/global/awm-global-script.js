@@ -622,8 +622,6 @@ function awm_repeater_order(elem, action) {
 
                 console.log('Swapping element', counter, action ? 'up with' : 'down with', targetCounter);
 
-
-
                 // Execute all reordering actions synchronously
                 awm_execute_reorder_actions(repeater_div, targetElement, repeater, counter, targetCounter, action);
 
@@ -980,6 +978,14 @@ function updateInputAttributes(elem, repeater, oldCounter, newCounter) {
             );
         }
     });
+
+
+    var inputs = elem.querySelectorAll('textarea.wp-editor-area');
+    if (inputs) {
+        inputs.forEach(function (input) {
+            awm_initialize_repeater_wp_editor(input.id);
+        });
+    }
 
 }
 function ewp_repeater_clone_row(elem) {
