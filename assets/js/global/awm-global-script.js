@@ -605,42 +605,93 @@ function awm_timestamp(d) {
  * @param {boolean} action - True for move up, false for move down
  */
 function awm_repeater_order(elem, action) {
-    // Get the repeater container element
-    var repeater_div = elem.closest('.awm-repeater-content');
-    if (repeater_div) {
-        var repeater = repeater_div.getAttribute('data-id');
-        var counter = parseInt(repeater_div.getAttribute('data-counter'));
-        var parent = repeater_div.parentNode;
-        
-        // Find the element to swap with based on action (up or down)
-        var targetElement = action ? repeater_div.previousElementSibling : repeater_div.nextElementSibling;
-        
-        // Only proceed if there's an element to swap with and it's not the template
-        if (targetElement && !targetElement.classList.contains('temp-source')) {
-            var targetCounter = parseInt(targetElement.getAttribute('data-counter'));
-            
-            console.log('Swapping element', counter, action ? 'up with' : 'down with', targetCounter);
-            
-            // Store original positions for DOM manipulation
-            var nextSibling = action ? targetElement : repeater_div.nextElementSibling.nextElementSibling;
-            
-            // Swap data-counter attributes
-            repeater_div.setAttribute('data-counter', targetCounter);
-            targetElement.setAttribute('data-counter', counter);
-            
-            // Update IDs to reflect new positions
-            repeater_div.id = 'awm-' + repeater + '-' + targetCounter;
-            targetElement.id = 'awm-' + repeater + '-' + counter;
-            
-            // Preserve all input values and update their names/ids
-            swapInputAttributes(repeater_div, targetElement, repeater, counter, targetCounter);
-            
-            // Move the DOM elements
-            parent.insertBefore(repeater_div, nextSibling);
-            
-            return true;
+    try {
+        // Get the repeater container element
+        var repeater_div = elem.closest('.awm-repeater-content');
+        if (repeater_div) {
+            var repeater = repeater_div.getAttribute('data-id');
+            var counter = parseInt(repeater_div.getAttribute('data-counter'));
+            var parent = repeater_div.parentNode;
+
+            // Find the element to swap with based on action (up or down)
+            var targetElement = action ? repeater_div.previousElementSibling : repeater_div.nextElementSibling;
+
+            // Only proceed if there's an element to swap with and it's not the template
+            if (targetElement && !targetElement.classList.contains('temp-source')) {
+                var targetCounter = parseInt(targetElement.getAttribute('data-counter'));
+
+                console.log('Swapping element', counter, action ? 'up with' : 'down with', targetCounter);
+
+                // Execute all reordering actions synchronously
+                awm_execute_reorder_actions(repeater_div, targetElement, repeater, counter, targetCounter, action);
+
+
+
+                // Log completion
+                awm_reorder_completed(repeater, counter, targetCounter, action);
+
+                return true;
+            }
         }
+        return false;
+    } catch (error) {
+        console.error('Error in awm_repeater_order:', error);
+        console.error('Error stack:', error.stack);
+        return false;
     }
+}
+
+/**
+ * Execute all reordering actions synchronously
+ * 
+ * @param {HTMLElement} repeater_div - The repeater element being moved
+ * @param {HTMLElement} targetElement - The target element to swap with
+ * @param {string} repeater - Repeater ID
+ * @param {number} counter - Original counter of moving element
+ * @param {number} targetCounter - Original counter of target element
+ * @param {boolean} action - True for move up, false for move down
+ */
+function awm_execute_reorder_actions(repeater_div, targetElement, repeater, counter, targetCounter, action) {
+    console.log('Step 1: Calculating DOM positions...');
+    // Store original positions for DOM manipulation
+    var nextSibling = action ? targetElement : repeater_div.nextElementSibling.nextElementSibling;
+
+    console.log('Step 2: Swapping data-counter attributes...');
+    // Swap data-counter attributes
+    repeater_div.setAttribute('data-counter', targetCounter);
+    targetElement.setAttribute('data-counter', counter);
+
+    console.log('Step 3: Updating element IDs...');
+    // Update IDs to reflect new positions
+    repeater_div.id = 'awm-' + repeater + '-' + targetCounter;
+    targetElement.id = 'awm-' + repeater + '-' + counter;
+
+    console.log('Step 4: Swapping input attributes...');
+    // Preserve all input values and update their names/ids
+    swapInputAttributes(repeater_div, targetElement, repeater, counter, targetCounter);
+
+    console.log('Step 5: Moving DOM elements...');
+    // Move the DOM elements
+    repeater_div.parentNode.insertBefore(repeater_div, nextSibling);
+
+    console.log('Step 6: All DOM operations completed');
+}
+
+/**
+ * Log completion of reordering actions
+ * 
+ * @param {string} repeater - Repeater ID
+ * @param {number} counter - Original counter of moving element
+ * @param {number} targetCounter - Original counter of target element
+ * @param {boolean} action - True for move up, false for move down
+ */
+function awm_reorder_completed(repeater, counter, targetCounter, action) {
+    console.log('=== REORDER COMPLETED ===');
+    console.log('Repeater:', repeater);
+    console.log('Moved element from position', counter, 'to position', targetCounter);
+    console.log('Action:', action ? 'MOVE UP' : 'MOVE DOWN');
+    console.log('All reordering actions have finished successfully');
+    console.log('========================');
 }
 
 /**
@@ -947,6 +998,7 @@ function updateInputAttributes(elem, repeater, oldCounter, newCounter) {
             );
         }
     });
+
 }
 function ewp_repeater_clone_row(elem) {
     // Find the repeater content div that contains this element
