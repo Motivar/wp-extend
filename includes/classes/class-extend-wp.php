@@ -174,6 +174,7 @@ class AWM_Meta
         wp_enqueue_script('awm-slim-lib-script');
         wp_enqueue_script('awm-global-script');
         wp_enqueue_script('awm-admin-script');
+        wp_enqueue_script('awm-dynamic-block-events');
 
 
         // Only load delete confirmation script when custom list tables are active
@@ -299,6 +300,14 @@ class AWM_Meta
         wp_register_script(
             'awm-delete-confirmation',
             awm_url . '/assets/js/class-delete-confirmation.js',
+            array(), // No dependencies - pure vanilla JS
+            $version,
+            true // Load in footer
+        );
+        // Register dynamic block events handler for admin area
+        wp_register_script(
+            'awm-dynamic-block-events',
+            awm_url . '/assets/js/admin/class-dynamic-block-events.js',
             array(), // No dependencies - pure vanilla JS
             $version,
             true // Load in footer

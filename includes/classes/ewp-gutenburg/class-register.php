@@ -233,6 +233,43 @@ class EWP_Dynamic_Blocks
   {
     $attributes = $request->get_params();
     $content = call_user_func_array($attributes['php_callback'], array($attributes));
+    
+    // Find the block data to get script information
+    $blocks = $this->gather_blocks();
+    $current_block = null;
+    
+    // Extract namespace and name from the request route
+    $route = $request->get_route();
+    if (preg_match('/\/([^\/]+)\/([^\/]+)\/preview/', $route, $matches)) {
+      $namespace = $matches[1];
+      $name = $matches[2];
+      
+      // Find the matching block
+      foreach ($blocks as $block) {
+        if ($block['namespace'] === $namespace && $block['name'] === $name) {
+          $current_block = $block;
+          break;
+        }
+      }
+    }
+    
+    // Wrap content with data attributes for event handling
+    if ($current_block && !empty($content)) {
+      $script_handle = isset($current_block['script']) ? $current_block['script'] : '';
+      $data_attrs = '';
+      
+      if (!empty($script_handle)) {
+        $data_attrs .= ' data-block-script="' . esc_attr($script_handle) . '"';
+        $data_attrs .= ' data-block-namespace="' . esc_attr($current_block['namespace']) . '"';
+        $data_attrs .= ' data-block-name="' . esc_attr($current_block['name']) . '"';
+      }
+      
+      // Only wrap if we have data attributes to add
+      if (!empty($data_attrs)) {
+        $content = '<div class="ewp-dynamic-block"' . $data_attrs . '>' . $content . '</div>';
+      }
+    }
+    
     $response = new WP_REST_Response($content);
     // Set Content-Type header to text/html
     $response->set_headers(['Content-Type' => 'text/html; charset=UTF-8']);
