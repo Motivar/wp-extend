@@ -232,7 +232,19 @@ class EWP_Dynamic_Blocks
   public function handle_rest_callback($request)
   {
     $attributes = $request->get_params();
-    $content = call_user_func_array($attributes['php_callback'], array($attributes));
+    
+    // Validate the callback before calling it
+    $callback = isset($attributes['php_callback']) ? $attributes['php_callback'] : '';
+    $validated_callback = $this->check_callback($callback);
+    
+    if (empty($validated_callback)) {
+      return new WP_REST_Response(
+        ['error' => 'Invalid or missing render callback'], 
+        400
+      );
+    }
+    
+    $content = call_user_func_array($validated_callback, array($attributes));
     
     // Find the block data to get script information
     $blocks = $this->gather_blocks();
