@@ -351,7 +351,8 @@ class EWP_WP_Content_Installer
             'with_front' => false,
           ),
           'show_admin_column' => isset($term_data['show_admin_column']) ? $term_data['show_admin_column'] : false,
-          'show_in_rest' =>   true,
+          'show_in_rest' =>   isset($term_data['show_in_rest']) ? $term_data['show_in_rest'] : true,
+          'public' => isset($term_data['public']) ? $term_data['public'] : true,
         );
         register_taxonomy($term, $term_data['post_types'], $args);
         do_action('ewp_register_taxonomy_action', $term, $term_data);
