@@ -488,13 +488,40 @@ class AWM_Meta
     {
         $optionsPages = $this->options_boxes();
         if (!empty($optionsPages)) {
-
+            // Get current user roles
+            $current_user = wp_get_current_user();
+            $user_roles = $current_user->roles;
 
             foreach ($optionsPages as $optionKey => $optionData) {
                 if ((isset($optionData['library']) && !empty($optionData['library'])) || (isset($optionData['callback']) && !empty($optionData['callback']))) {
                     $args = array();
                     $options = awm_callback_library(awm_callback_library_options($optionData), $optionKey);
+
                     if (!isset($optionData['disable_register']) || !$optionData['disable_register']) {
+                        // Check role-based visibility for individual fields within options
+                        if (!in_array('administrator', $user_roles)) {
+                            foreach ($options as $fieldKey => $fieldData) {
+                                if (isset($fieldData['not_visible_by']) && !empty($fieldData['not_visible_by'])) {
+                                    $fieldData['not_visible_by'] = is_array($fieldData['not_visible_by']) ? $fieldData['not_visible_by'] : array($fieldData['not_visible_by']);
+                                    $matching_roles = array_intersect($user_roles, $fieldData['not_visible_by']);
+
+                                    if (!empty($matching_roles)) {
+                                        unset($options[$fieldKey]);
+                                        continue;
+                                    }
+                                }
+                                if (isset($fieldData['not_editable_by']) && !empty($fieldData['not_editable_by'])) {
+                                    $fieldData['not_editable_by'] = is_array($fieldData['not_editable_by']) ? $fieldData['not_editable_by'] : array($fieldData['not_editable_by']);
+                                    $matching_roles = array_intersect($user_roles, $fieldData['not_editable_by']);
+                                    if (!empty($matching_roles)) {
+                                        $options[$fieldKey]['attributes']['disabled'] = 'disabled';
+                                        $options[$fieldKey]['attributes']['readonly'] = 'readonly';
+                                        $options[$fieldKey]['disabled'] = true;
+                                    }
+                                }
+                            }
+                        }
+
                         foreach ($options as $key => $data) {
                             register_setting($optionKey, $key, $args);
                         }
