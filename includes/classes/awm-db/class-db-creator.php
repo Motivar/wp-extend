@@ -90,12 +90,40 @@ class AWM_DB_Creator
                     // Execute the SQL query
                     dbDelta($sql);
 
-                    // Handle version mismatch and add missing columns
+                    // Handle version mismatch and add missing columns or modify existing ones
                     if ($currentVersion !== $registeredVersion && $registeredVersion !== 0) {
                         foreach ($tableKeys as $id => $data) {
-                            $row = $wpdb->get_results("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{$wpdb->base_prefix}{$table}' AND column_name = '{$id}'");
-                            if (empty($row)) {
-                                $wpdb->query("ALTER TABLE {$wpdb->base_prefix}{$table} ADD {$id} {$data}");
+                            // Check if column exists and get its current definition
+                            $existing_column = $wpdb->get_row(
+                                $wpdb->prepare(
+                                    "SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT 
+                                     FROM INFORMATION_SCHEMA.COLUMNS 
+                                     WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s",
+                                    DB_NAME,
+                                    $wpdb->base_prefix . $table,
+                                    $id
+                                )
+                            );
+                            
+                            if (empty($existing_column)) {
+                                // Column doesn't exist, add it
+                                $result = $wpdb->query("ALTER TABLE {$wpdb->base_prefix}{$table} ADD COLUMN {$id} {$data}");
+                                if ($result === false) {
+                                    error_log("Failed to add column {$id} to table {$table}: " . $wpdb->last_error);
+                                }
+                            } else {
+                                // Column exists, check if definition has changed
+                                $needs_modification = self::mtv_column_definition_changed($existing_column, $data);
+                                
+                                if ($needs_modification) {
+                                    // Modify the existing column
+                                    $result = $wpdb->query("ALTER TABLE {$wpdb->base_prefix}{$table} MODIFY COLUMN {$id} {$data}");
+                                    if ($result === false) {
+                                        error_log("Failed to modify column {$id} in table {$table}: " . $wpdb->last_error);
+                                    } else {
+                                        error_log("Successfully modified column {$id} in table {$table}");
+                                    }
+                                }
                             }
                         }
                     }
@@ -135,6 +163,92 @@ class AWM_DB_Creator
     }
 
     private static $table_existence_cache = [];
+
+    /**
+     * Compare existing column definition with new definition to determine if modification is needed
+     * 
+     * @param object $existing_column Column information from INFORMATION_SCHEMA.COLUMNS
+     * @param string $new_definition New column definition (e.g., 'VARCHAR(32) NOT NULL')
+     * @return bool True if column needs modification, false otherwise
+     */
+    private static function mtv_column_definition_changed($existing_column, $new_definition)
+    {
+        if (empty($existing_column) || empty($new_definition)) {
+            return false;
+        }
+
+        // Parse the new definition to extract components
+        $new_parts = self::mtv_parse_column_definition($new_definition);
+        
+        // Get current column properties
+        $current_type = strtoupper($existing_column->COLUMN_TYPE);
+        $current_nullable = ($existing_column->IS_NULLABLE === 'YES');
+        $current_default = $existing_column->COLUMN_DEFAULT;
+        
+        // Compare data type
+        if (strtoupper($new_parts['type']) !== $current_type) {
+            return true;
+        }
+        
+        // Compare nullable constraint
+        if ($new_parts['nullable'] !== $current_nullable) {
+            return true;
+        }
+        
+        // Compare default value (if specified in new definition)
+        if (isset($new_parts['default']) && $new_parts['default'] !== $current_default) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Parse column definition string to extract type, nullable, default, etc.
+     * 
+     * @param string $definition Column definition (e.g., 'VARCHAR(32) NOT NULL DEFAULT "test"')
+     * @return array Parsed components
+     */
+    private static function mtv_parse_column_definition($definition)
+    {
+        $definition = trim($definition);
+        $parts = [
+            'type' => '',
+            'nullable' => true,
+            'default' => null,
+            'auto_increment' => false
+        ];
+        
+        // Extract data type (everything before first space or end of string)
+        if (preg_match('/^([^\s]+)/', $definition, $matches)) {
+            $parts['type'] = strtoupper($matches[1]);
+        }
+        
+        // Check for NOT NULL
+        if (stripos($definition, 'NOT NULL') !== false) {
+            $parts['nullable'] = false;
+        }
+        
+        // Check for AUTO_INCREMENT
+        if (stripos($definition, 'AUTO_INCREMENT') !== false) {
+            $parts['auto_increment'] = true;
+        }
+        
+        // Extract DEFAULT value
+        if (preg_match('/DEFAULT\s+([^\s]+)/i', $definition, $matches)) {
+            $default_value = $matches[1];
+            // Remove quotes if present
+            $default_value = trim($default_value, '"\'');
+            // Handle special MySQL defaults
+            if (strtoupper($default_value) === 'CURRENT_TIMESTAMP') {
+                $parts['default'] = 'CURRENT_TIMESTAMP';
+            } else {
+                $parts['default'] = $default_value;
+            }
+        }
+        
+        return $parts;
+    }
 
     public static function check_table_exists($tableName)
     {
