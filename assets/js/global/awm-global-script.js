@@ -458,12 +458,13 @@ function awmShowInputs() {
                 var element = document.getElementById(p)
                 if (element && element !== null && typeof element === 'object') {
                     element.addEventListener('change', function () {
+                        var shouldShow = false;
+
                         switch (element.tagName) {
                             case 'SELECT':
                                 if (this.value in inputs[p].values) {
                                     if (inputs[p].values[this.value]) {
-                                        parent.classList.remove('awm_no_show');
-                                        return true;
+                                        shouldShow = true;
                                     }
                                 }
                                 break;
@@ -471,15 +472,20 @@ function awmShowInputs() {
                                 switch (element.getAttribute('type')) {
                                     case 'checkbox':
                                         if (element.checked == inputs[p].values) {
-                                            parent.classList.remove('awm_no_show');
-                                            return true;
+                                            shouldShow = true;
                                         }
                                         break;
                                 }
                                 break;
                         }
-                        parent.classList.add('awm_no_show');
 
+                        if (shouldShow) {
+                            parent.classList.remove('awm_no_show');
+                            awmToggleDisabledInputs(parent, false);
+                        } else {
+                            parent.classList.add('awm_no_show');
+                            awmToggleDisabledInputs(parent, true);
+                        }
                     });
                     element.dispatchEvent(new window.Event('change', { bubbles: true }));
                 }
@@ -487,28 +493,17 @@ function awmShowInputs() {
             elem.classList.add('awm-initialized')
         });
     }
-    /*check for disabled elements*/
-    var elems_disabled = document.querySelectorAll('input[disable-elements]');
-    if (elems_disabled) {
+}
 
-        elems_disabled.forEach(function (elem) {
-            elem.addEventListener('change', function () {
-                var inputs = JSON.parse(elem.getAttribute('disable-elements').replace(/\'/g, '\"'));
-                var prop = elem.checked;
-                for (var p in inputs) {
-                    var element = document.getElementById(inputs[p]);
-                    if (element && element !== null && typeof element === 'object') {
-                        element.removeAttribute('disabled');
-                        if (prop) {
-                            element.setAttribute('disabled', prop);
-                        }
-                    }
-                }
-
-            });
-
-        });
-    }
+function awmToggleDisabledInputs(container, disable) {
+    var inputElements = container.querySelectorAll('input, select, textarea, button');
+    inputElements.forEach(function (input) {
+        if (disable) {
+            input.setAttribute('disabled', 'disabled');
+        } else {
+            input.removeAttribute('disabled');
+        }
+    });
 }
 
 
