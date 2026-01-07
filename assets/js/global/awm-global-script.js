@@ -293,13 +293,19 @@ function awm_open_tab(evt, div) {
     awm_tabcontent = document.getElementsByClassName("awm_tabcontent");
     for (i = 0; i < awm_tabcontent.length; i++) {
         awm_tabcontent[i].style.display = "none";
+        awm_tabcontent[i].classList.remove("awm-tab-active");
+        awmToggleDisabledInputs(awm_tabcontent[i], true);
     }
     awm_tablinks = document.getElementsByClassName("awm_tablinks");
 
     for (i = 0; i < awm_tablinks.length; i++) {
         awm_tablinks[i].className = awm_tablinks[i].className.replace(" active", "");
     }
-    document.getElementById(div + '_content_tab').style.display = "block";
+
+    var activeTab = document.getElementById(div + '_content_tab');
+    activeTab.style.display = "block";
+    activeTab.classList.add("awm-tab-active");
+    awmToggleDisabledInputs(activeTab, false);
     evt.currentTarget.className += " active";
 
     /*open the first*/
