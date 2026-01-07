@@ -2,6 +2,7 @@ awm_auto_fill_inputs();
 awm_toggle_password();
 awmShowInputs();
 awm_ensure_disabled_inputs();
+awmInitTabStates();
 
 
 function jsVanillaSerialize(form, returnAsObject = false) {
@@ -286,6 +287,27 @@ function awm_auto_fill_inputs() {
     }
 }
 
+
+function awmInitTabStates() {
+    var awm_tabcontent = document.getElementsByClassName("awm_tabcontent");
+    if (awm_tabcontent.length === 0) {
+        return;
+    }
+
+    for (var i = 0; i < awm_tabcontent.length; i++) {
+        var tabContent = awm_tabcontent[i];
+        var isVisible = tabContent.style.display !== "none" &&
+            window.getComputedStyle(tabContent).display !== "none";
+
+        if (isVisible) {
+            tabContent.classList.add("awm-tab-active");
+            awmToggleDisabledInputs(tabContent, false);
+        } else {
+            tabContent.classList.remove("awm-tab-active");
+            awmToggleDisabledInputs(tabContent, true);
+        }
+    }
+}
 
 function awm_open_tab(evt, div) {
     var i, awm_tabcontent, awm_tablinks;
