@@ -416,6 +416,9 @@ if (!function_exists('awm_show_content')) {
                             switch ($input_type) {
                                 case 'number':
                                     $val = (int) $val;
+                                    if ($val == 0 && isset($a['attributes']['min']) && $a['attributes']['min'] > 0) {
+                                        $val = $a['attributes']['min'];
+                                    }
                                     break;
                                 case 'checkbox':
                                     if ($val == 1) {
