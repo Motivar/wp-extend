@@ -290,19 +290,23 @@ function awm_auto_fill_inputs() {
 function awm_open_tab(evt, div) {
     var i, awm_tabcontent, awm_tablinks;
     div = div.trim();
+    var activeTabId = div + '_content_tab';
+
     awm_tabcontent = document.getElementsByClassName("awm_tabcontent");
     for (i = 0; i < awm_tabcontent.length; i++) {
-        awm_tabcontent[i].style.display = "none";
-        awm_tabcontent[i].classList.remove("awm-tab-active");
-        awmToggleDisabledInputs(awm_tabcontent[i], true);
+        if (awm_tabcontent[i].id !== activeTabId) {
+            awm_tabcontent[i].style.display = "none";
+            awm_tabcontent[i].classList.remove("awm-tab-active");
+            awmToggleDisabledInputs(awm_tabcontent[i], true);
+        }
     }
-    awm_tablinks = document.getElementsByClassName("awm_tablinks");
 
+    awm_tablinks = document.getElementsByClassName("awm_tablinks");
     for (i = 0; i < awm_tablinks.length; i++) {
         awm_tablinks[i].className = awm_tablinks[i].className.replace(" active", "");
     }
 
-    var activeTab = document.getElementById(div + '_content_tab');
+    var activeTab = document.getElementById(activeTabId);
     activeTab.style.display = "block";
     activeTab.classList.add("awm-tab-active");
     awmToggleDisabledInputs(activeTab, false);
