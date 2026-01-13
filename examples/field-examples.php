@@ -1,9 +1,31 @@
 <?php
+
 /**
  * WP-Extend Field Examples
  * 
  * This file provides comprehensive examples of how to add custom fields to posts, terms, and users
  * using the awm_show_content function.
+ * 
+ * ## Default Values
+ * 
+ * All field types support default values using the 'default' key. When a field value is empty
+ * (not saved or null), the default value will be used automatically.
+ * 
+ * Example:
+ * ```php
+ * 'my_field' => array(
+ *     'case' => 'input',
+ *     'type' => 'text',
+ *     'label' => 'My Field',
+ *     'default' => 'Default Value'  // Applied when field is empty
+ * )
+ * ```
+ * 
+ * Notes:
+ * - Default values work for all field types: input, select, textarea, radio, etc.
+ * - Zero values (0 or '0') are preserved and not replaced by defaults
+ * - Default values only apply when the field has no saved value
+ * - Once a user saves a value (even empty string), the default won't override it
  * 
  * @package WP-Extend
  */
@@ -49,7 +71,20 @@ class AWM_Field_Examples {
                     'maxlength' => 100
                 )
             ),
-            
+
+            // Text input with default value
+            'text_with_default' => array(
+                'case' => 'input',
+                'type' => 'text',
+                'label' => 'Text Field with Default',
+                'explanation' => 'This field has a default value when empty',
+                'order' => 15,
+                'default' => 'Default Text Value',
+                'attributes' => array(
+                    'placeholder' => 'Enter text or use default'
+                )
+            ),
+
             // Number input
             'number_field' => array(
                 'case' => 'input',
@@ -63,7 +98,21 @@ class AWM_Field_Examples {
                     'step' => 5
                 )
             ),
-            
+
+            // Number input with default value
+            'number_with_default' => array(
+                'case' => 'input',
+                'type' => 'number',
+                'label' => 'Number Field with Default',
+                'explanation' => 'This number field defaults to 50',
+                'order' => 25,
+                'default' => 50,
+                'attributes' => array(
+                    'min' => 0,
+                    'max' => 100
+                )
+            ),
+
             // Checkbox
             'checkbox_field' => array(
                 'case' => 'input',
@@ -99,7 +148,21 @@ class AWM_Field_Examples {
                     'value3' => array('label' => 'Value 3')
                 )
             ),
-            
+
+            // Select dropdown with default value
+            'select_with_default' => array(
+                'case' => 'select',
+                'label' => 'Select Field with Default',
+                'explanation' => 'This select defaults to value2',
+                'order' => 55,
+                'default' => 'value2',
+                'options' => array(
+                    'value1' => array('label' => 'Value 1'),
+                    'value2' => array('label' => 'Value 2'),
+                    'value3' => array('label' => 'Value 3')
+                )
+            ),
+
             // Select with optgroups
             'select_with_groups' => array(
                 'case' => 'select',
@@ -146,7 +209,21 @@ class AWM_Field_Examples {
                     'option3' => array('label' => 'Option 3')
                 )
             ),
-            
+
+            // Radio buttons with default value
+            'radio_with_default' => array(
+                'case' => 'radio',
+                'label' => 'Radio Field with Default',
+                'explanation' => 'This radio defaults to option2',
+                'order' => 85,
+                'default' => 'option2',
+                'options' => array(
+                    'option1' => array('label' => 'Option 1'),
+                    'option2' => array('label' => 'Option 2'),
+                    'option3' => array('label' => 'Option 3')
+                )
+            ),
+
             // Textarea
             'textarea_field' => array(
                 'case' => 'textarea',
@@ -158,7 +235,20 @@ class AWM_Field_Examples {
                     'cols' => 50
                 )
             ),
-            
+
+            // Textarea with default value
+            'textarea_with_default' => array(
+                'case' => 'textarea',
+                'label' => 'Textarea with Default',
+                'explanation' => 'This textarea has default content',
+                'order' => 95,
+                'default' => 'This is the default textarea content that appears when the field is empty.',
+                'attributes' => array(
+                    'rows' => 5,
+                    'cols' => 50
+                )
+            ),
+
             // WYSIWYG editor
             'wysiwyg_field' => array(
                 'case' => 'textarea',

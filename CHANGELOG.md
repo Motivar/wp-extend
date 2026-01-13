@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Default Value Support for Input Fields**: Added ability to set default values for all input field types using the `default` key in field definitions.
+  - **Original Question**: "Is it possible for the simple inputs to set default value if value is not set?"
+  - **Solution**: Enhanced `awm_show_content()` function to check for `default` key and apply it when field value is empty (preserves zero values)
+  - **Affected Files**: `/includes/functions/library.php`
+  - **Usage**: Add `'default' => 'value'` to any field definition (input, select, textarea, radio, etc.)
+  - **Backwards Compatibility**: Fully backwards compatible - only applies when `default` key is explicitly set
+
 ### Fixed
 - **Database Schema Updates**: Fixed issue where column data type changes (e.g., LONGTEXT to VARCHAR) were not being applied during table version updates. The AWM_DB_Creator class now properly detects and modifies existing columns when their definitions change, not just adds missing columns.
   - **Original Issue**: Column alterations for `cookie_id` (LONGTEXT → VARCHAR(32)) and `address` (LONGTEXT → VARCHAR(45)) in `flx_session_users` table were not being applied
