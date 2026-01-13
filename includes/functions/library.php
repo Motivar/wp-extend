@@ -337,6 +337,11 @@ if (!function_exists('awm_show_content')) {
                         unset($a['attributes']['value']);
                     }
 
+                    /*apply default value if value is empty*/
+                    if ((empty($val) && $val !== '0' && $val !== 0) && isset($a['default'])) {
+                        $val = $a['default'];
+                    }
+
                     /*change the id*/
                     $original_meta_id = $original_meta;
                     if (isset($a['attributes']['id'])) {
