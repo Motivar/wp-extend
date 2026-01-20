@@ -33,7 +33,7 @@ class AWM_Add_Content_DB_Setup
   public function init($args)
   {
     $this->get_table_conf($args);
-    add_action('admin_init', [$this, 'on_load']);
+    add_action('admin_init', [$this, 'on_load'], 1);
     add_filter('awm_custom_lists_view_filter', [$this, 'set_custom_list'], PHP_INT_MAX);
     add_filter('ewp_column_' . $this->content_id . '_column_content_filter', [$this, 'awm_content_metas_columns'], 10, 3);
     add_action('rest_api_init', [$this, 'rest_endpoints'], 10);

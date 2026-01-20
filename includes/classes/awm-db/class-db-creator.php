@@ -78,17 +78,22 @@ class AWM_DB_Creator
                         }
                     }
 
+                    // Store foreign keys for later processing (after table creation)
                     if (isset($tableData['foreignKey']) && !empty($tableData['foreignKey'])) {
                         foreach ($tableData['foreignKey'] as $foreignKey) {
-                            $sqlInsertString[] = "FOREIGN KEY ({$foreignKey['key']}) REFERENCES {$wpdb->prefix}{$foreignKey['ref']}";
                             $foreignKeys[$foreignKey['key']] = $foreignKey['ref'];
                         }
                     }
 
-                    $sql = 'CREATE TABLE IF NOT EXISTS ' . $wpdb->base_prefix . $table . ' (' . implode(',', $sqlInsertString) . ') ' . $charset_collate;
+                    $sql = 'CREATE TABLE IF NOT EXISTS ' . $wpdb->prefix . $table . ' (' . implode(',', $sqlInsertString) . ') ' . $charset_collate;
 
-                    // Execute the SQL query
+                    // Execute the SQL query (without foreign keys)
                     dbDelta($sql);
+
+                    // Add foreign keys separately after table creation to avoid dbDelta issues
+                    if (!empty($foreignKeys)) {
+                        $this->ewp_add_foreign_keys($table, $foreignKeys, $wpdb);
+                    }
 
                     // Handle version mismatch and add missing columns or modify existing ones
                     if ($currentVersion !== $registeredVersion && $registeredVersion !== 0) {
@@ -100,14 +105,14 @@ class AWM_DB_Creator
                                      FROM INFORMATION_SCHEMA.COLUMNS 
                                      WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s",
                                     DB_NAME,
-                                    $wpdb->base_prefix . $table,
+                                    $wpdb->prefix . $table,
                                     $id
                                 )
                             );
                             
                             if (empty($existing_column)) {
                                 // Column doesn't exist, add it
-                                $result = $wpdb->query("ALTER TABLE {$wpdb->base_prefix}{$table} ADD COLUMN {$id} {$data}");
+                                $result = $wpdb->query("ALTER TABLE {$wpdb->prefix}{$table} ADD COLUMN {$id} {$data}");
                                 if ($result === false) {
                                     error_log("Failed to add column {$id} to table {$table}: " . $wpdb->last_error);
                                 }
@@ -117,7 +122,7 @@ class AWM_DB_Creator
                                 
                                 if ($needs_modification) {
                                     // Modify the existing column
-                                    $result = $wpdb->query("ALTER TABLE {$wpdb->base_prefix}{$table} MODIFY COLUMN {$id} {$data}");
+                                    $result = $wpdb->query("ALTER TABLE {$wpdb->prefix}{$table} MODIFY COLUMN {$id} {$data}");
                                     if ($result === false) {
                                         error_log("Failed to modify column {$id} in table {$table}: " . $wpdb->last_error);
                                     } else {
@@ -248,6 +253,124 @@ class AWM_DB_Creator
         }
         
         return $parts;
+    }
+
+    /**
+     * Add foreign keys to a table after creation
+     * 
+     * This method adds foreign keys separately from table creation to avoid dbDelta() issues.
+     * If the source or referenced table is not InnoDB, the foreign key is skipped but the column remains.
+     * 
+     * @param string $table Table name (without prefix)
+     * @param array $foreignKeys Array of foreign keys: ['column_name' => 'referenced_table(column)']
+     * @param object $wpdb WordPress database object
+     */
+    private function ewp_add_foreign_keys($table, $foreignKeys, $wpdb)
+    {
+        $full_table_name = $wpdb->prefix . $table;
+
+        // Check if source table is InnoDB
+        $source_engine = $wpdb->get_var($wpdb->prepare(
+            "SELECT ENGINE 
+             FROM INFORMATION_SCHEMA.TABLES 
+             WHERE TABLE_SCHEMA = %s 
+             AND TABLE_NAME = %s",
+            DB_NAME,
+            $full_table_name
+        ));
+
+        if (strtoupper($source_engine) !== 'INNODB') {
+            error_log("Skipping all foreign keys for table {$table}: Source table uses {$source_engine} engine (InnoDB required for foreign keys)");
+            return;
+        }
+
+        foreach ($foreignKeys as $key => $ref) {
+            // Generate constraint name
+            $constraint_name = 'fk_' . $table . '_' . $key;
+
+            // Check if foreign key constraint already exists
+            $existing_fk = $wpdb->get_var($wpdb->prepare(
+                "SELECT CONSTRAINT_NAME 
+                 FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+                 WHERE TABLE_SCHEMA = %s 
+                 AND TABLE_NAME = %s 
+                 AND COLUMN_NAME = %s 
+                 AND CONSTRAINT_NAME = %s",
+                DB_NAME,
+                $full_table_name,
+                $key,
+                $constraint_name
+            ));
+
+            // Skip if constraint already exists
+            if ($existing_fk) {
+                continue;
+            }
+
+            // Extract referenced table name and column
+            $ref_table = preg_replace('/\(.*\)$/', '', $ref);
+            $ref_column = preg_match('/\(([^)]+)\)/', $ref, $matches) ? $matches[1] : 'ID';
+            $full_ref_table = $wpdb->prefix . $ref_table;
+
+            // Check if referenced table exists
+            $table_exists = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) 
+                 FROM INFORMATION_SCHEMA.TABLES 
+                 WHERE TABLE_SCHEMA = %s 
+                 AND TABLE_NAME = %s",
+                DB_NAME,
+                $full_ref_table
+            ));
+
+            if (!$table_exists) {
+                error_log("Skipping foreign key {$constraint_name} for table {$table}: Referenced table {$full_ref_table} does not exist yet");
+                continue;
+            }
+
+            // Check if referenced column exists
+            $column_exists = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) 
+                 FROM INFORMATION_SCHEMA.COLUMNS 
+                 WHERE TABLE_SCHEMA = %s 
+                 AND TABLE_NAME = %s 
+                 AND COLUMN_NAME = %s",
+                DB_NAME,
+                $full_ref_table,
+                $ref_column
+            ));
+
+            if (!$column_exists) {
+                error_log("Skipping foreign key {$constraint_name} for table {$table}: Referenced column {$ref_column} does not exist in table {$full_ref_table}");
+                continue;
+            }
+
+            // Check referenced table engine
+            $ref_engine = $wpdb->get_var($wpdb->prepare(
+                "SELECT ENGINE 
+                 FROM INFORMATION_SCHEMA.TABLES 
+                 WHERE TABLE_SCHEMA = %s 
+                 AND TABLE_NAME = %s",
+                DB_NAME,
+                $full_ref_table
+            ));
+
+            if (strtoupper($ref_engine) !== 'INNODB') {
+                error_log("Skipping foreign key {$constraint_name} for table {$table}: Referenced table {$full_ref_table} uses {$ref_engine} engine (InnoDB required)");
+                continue;
+            }
+
+            // Build and execute the ALTER TABLE statement
+            $sql = "ALTER TABLE {$full_table_name} 
+                    ADD CONSTRAINT {$constraint_name} 
+                    FOREIGN KEY ({$key}) 
+                    REFERENCES {$wpdb->prefix}{$ref}";
+
+            $result = $wpdb->query($sql);
+
+            if ($result === false) {
+                error_log("Failed to add foreign key {$constraint_name} to table {$table}. SQL: {$sql}. Error: " . $wpdb->last_error);
+            }
+        }
     }
 
     public static function check_table_exists($tableName)
