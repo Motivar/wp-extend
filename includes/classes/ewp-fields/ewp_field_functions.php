@@ -808,7 +808,6 @@ if (!function_exists('awm_position_options')) {
   }
 }
 
-
 if (!function_exists('all_awm_meta_libraries')) {
   /**
    * function to get all existsing php registered meta libraries
