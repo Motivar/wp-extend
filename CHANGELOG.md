@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Backwards Compatibility**: Fully backwards compatible - only applies when `default` key is explicitly set
 
 ### Fixed
+- **Gutenberg number attribute RangeControl min/max**: Fixed `RangeControl` not respecting `min`/`max` (and added `step`) for `number` attributes when values are `0` or provided under nested `attributes`.
+  - **Original Question**: "when we have in the attribute table the column 'attributes' min/max is not getting into account by case 'number'"
+  - **Solution**: Replaced falsy fallbacks (`||`) with nullish checks and introduced a safe numeric resolver that reads from both `data.min`/`data.max` and `data.attributes.min`/`data.attributes.max`.
+  - **Affected Files**: `/src/index.js`
+  - **Backwards Compatibility**: Fully backwards compatible - only affects number RangeControl configuration
 - **Database Schema Updates**: Fixed issue where column data type changes (e.g., LONGTEXT to VARCHAR) were not being applied during table version updates. The AWM_DB_Creator class now properly detects and modifies existing columns when their definitions change, not just adds missing columns.
   - **Original Issue**: Column alterations for `cookie_id` (LONGTEXT → VARCHAR(32)) and `address` (LONGTEXT → VARCHAR(45)) in `flx_session_users` table were not being applied
   - **Solution**: Enhanced `dbUpdate()` method to compare existing column definitions with new ones and execute `ALTER TABLE MODIFY COLUMN` statements when changes are detected

@@ -111,6 +111,23 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
           });
         }, [JSON.stringify(inputValues)]);
 
+        const getNumberSetting = (attributeData, settingKey, defaultValue) => {
+          if (!attributeData || typeof attributeData !== 'object') {
+            return defaultValue;
+          }
+
+          const directValue = attributeData[settingKey];
+          const nestedValue = attributeData.attributes && attributeData.attributes[settingKey];
+          const rawValue = (directValue ?? nestedValue);
+
+          if (rawValue === '' || rawValue === null || typeof rawValue === 'undefined') {
+            return defaultValue;
+          }
+
+          const parsed = Number(rawValue);
+          return Number.isFinite(parsed) ? parsed : defaultValue;
+        };
+
         // Render inputs for each attribute
         const renderInputs = () => {
           return Object.entries(block.attributes).map(([key, data]) => {
@@ -208,10 +225,11 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                     <label style={{ display: 'block', marginBottom: '4px' }}>{label}</label>
                     {explanation} {/* Explanation text between the label and input */}
                     <RangeControl
-                      value={props.attributes[key] || 0}
+                      value={props.attributes[key] ?? 0}
                       onChange={(value) => handleInputChange(key, value)}
-                      min={data.min || 0}
-                      max={data.max || 100}
+                      min={getNumberSetting(data, 'min', 0)}
+                      max={getNumberSetting(data, 'max', 100)}
+                      step={getNumberSetting(data, 'step', 1)}
                     />
                   </div>
                 );
