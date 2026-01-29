@@ -51,6 +51,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Outputs in `<head>` before external stylesheets load
     - Improves FCP (First Contentful Paint) and LCP scores
     - Filterable via `ewp_dynamic_assets_critical_css` hook
+  - **Context-Specific Loading**: Added `context` parameter to control where assets load
+    - `'frontend'` - Load only on public-facing pages
+    - `'admin'` - Load only in WordPress admin
+    - `'both'` - Load everywhere (default)
+    - Reduces unnecessary script loading in admin/frontend
+  - **Debug Mode**: Added WP_DEBUG integration for development logging
+    - Automatically enabled when `WP_DEBUG` is true
+    - Comprehensive console logging for asset lifecycle
+    - Zero performance impact in production
+    - Logs initialization, DOM checks, asset loading, and errors
 - **Default Value Support for Input Fields**: Added ability to set default values for all input field types using the `default` key in field definitions.
   - **Original Question**: "Is it possible for the simple inputs to set default value if value is not set?"
   - **Solution**: Enhanced `awm_show_content()` function to check for `default` key and apply it when field value is empty (preserves zero values)

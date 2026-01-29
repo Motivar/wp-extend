@@ -22,8 +22,34 @@ class EWPDynamicAssetLoader {
         this.checkInterval = null;
         this.performance = this.config.performance || {};
         this.lazyLoadEnabled = this.performance.lazyLoad !== false;
+        this.debug = this.config.debug === true;
+
+        this.log('Initializing Dynamic Asset Loader', {
+            assetsCount: this.assets.length,
+            lazyLoadEnabled: this.lazyLoadEnabled,
+            performance: this.performance
+        });
         
         this.init();
+    }
+
+    /**
+     * Log debug messages when WP_DEBUG is enabled
+     * 
+     * @param {string} message Log message
+     * @param {*} data Optional data to log
+     * @return {void}
+     */
+    log(message, data) {
+        if (!this.debug) {
+            return;
+        }
+
+        if (data !== undefined) {
+            console.log(`[EWP Dynamic Assets] ${message}`, data);
+        } else {
+            console.log(`[EWP Dynamic Assets] ${message}`);
+        }
     }
 
     /**
@@ -49,6 +75,8 @@ class EWPDynamicAssetLoader {
      * @return {void}
      */
     checkDOMForAssets() {
+        this.log('Checking DOM for assets');
+
         this.assets.forEach(asset => {
             if (this.loadedAssets.has(asset.handle)) {
                 return;
@@ -59,6 +87,8 @@ class EWPDynamicAssetLoader {
             }
 
             if (this.elementExists(asset.selector)) {
+                this.log(`Selector found: ${asset.selector}`, { handle: asset.handle, lazy: asset.lazy });
+
                 if (asset.lazy && this.lazyLoadEnabled) {
                     this.observeElementForLazyLoad(asset);
                 } else {
@@ -93,6 +123,8 @@ class EWPDynamicAssetLoader {
         if (this.loadedAssets.has(asset.handle)) {
             return;
         }
+
+        this.log(`Loading asset: ${asset.handle}`, { type: asset.type, src: asset.src });
 
         if (asset.type === 'script') {
             this.loadScript(asset);
@@ -138,6 +170,8 @@ class EWPDynamicAssetLoader {
             }
 
             script.onload = () => {
+                this.log(`Script loaded: ${asset.handle}`);
+
                 if (asset.localize) {
                     this.localizeScript(asset.localize);
                 }
@@ -147,7 +181,8 @@ class EWPDynamicAssetLoader {
             };
 
             script.onerror = () => {
-                console.error('EWP Dynamic Asset Loader: Failed to load script', asset.handle, asset.src);
+                console.error('[EWP Dynamic Assets] Failed to load script', asset.handle, asset.src);
+                this.log(`Script load failed: ${asset.handle}`, { src: asset.src });
                 this.loadedAssets.delete(asset.handle);
                 this.dispatchAssetLoadedEvent(asset, false);
             };
@@ -183,12 +218,14 @@ class EWPDynamicAssetLoader {
             }
 
             link.onload = () => {
+                this.log(`Style loaded: ${asset.handle}`);
                 this.markPerformance(asset.handle, 'loaded');
                 this.dispatchAssetLoadedEvent(asset, true);
             };
 
             link.onerror = () => {
-                console.error('EWP Dynamic Asset Loader: Failed to load style', asset.handle, asset.src);
+                console.error('[EWP Dynamic Assets] Failed to load style', asset.handle, asset.src);
+                this.log(`Style load failed: ${asset.handle}`, { src: asset.src });
                 this.loadedAssets.delete(asset.handle);
                 this.dispatchAssetLoadedEvent(asset, false);
             };
@@ -285,7 +322,10 @@ class EWPDynamicAssetLoader {
             return;
         }
 
+        this.log('Setting up MutationObserver');
+
         this.observer = new MutationObserver(() => {
+            this.log('DOM mutation detected');
             this.checkDOMForAssets();
         });
 
@@ -302,8 +342,14 @@ class EWPDynamicAssetLoader {
      */
     setupIntersectionObserver() {
         if (!this.lazyLoadEnabled || typeof IntersectionObserver === 'undefined') {
+            this.log('IntersectionObserver not available or lazy load disabled');
             return;
         }
+
+        this.log('Setting up IntersectionObserver', {
+            threshold: this.performance.intersectionThreshold || 0.1,
+            rootMargin: this.performance.rootMargin || '50px'
+        });
 
         const options = {
             root: null,
@@ -356,10 +402,11 @@ class EWPDynamicAssetLoader {
      * @return {void}
      */
     loadCriticalAssets() {
-        const criticalAssets = this.assets.filter(asset => asset.critical);
+        const criticalAssets = this.assets.filter(a => a.critical && !this.loadedAssets.has(a.handle));
+        this.log('Loading critical assets', { count: criticalAssets.length, handles: criticalAssets.map(a => a.handle) });
         
-        criticalAssets.forEach(asset => {
-            if (!this.loadedAssets.has(asset.handle)) {
+        this.assets.forEach(asset => {
+            if (asset.critical && !this.loadedAssets.has(asset.handle)) {
                 this.loadAsset(asset);
             }
         });
@@ -567,15 +614,16 @@ class EWPDynamicAssetLoader {
      * @return {boolean} True if asset was loaded, false otherwise
      */
     loadAssetByHandle(handle) {
+        this.log(`Manual load requested: ${handle}`);
         const asset = this.assets.find(a => a.handle === handle);
 
         if (!asset) {
-            console.warn('EWP Dynamic Asset Loader: Asset not found', handle);
+            console.warn('[EWP Dynamic Assets] Asset not found', handle);
             return false;
         }
 
         if (this.loadedAssets.has(handle)) {
-            console.log('EWP Dynamic Asset Loader: Asset already loaded', handle);
+            this.log(`Asset already loaded: ${handle}`);
             return false;
         }
 
@@ -584,7 +632,7 @@ class EWPDynamicAssetLoader {
             return true;
         }
 
-        console.warn('EWP Dynamic Asset Loader: Selector not found for asset', handle, asset.selector);
+        console.warn('[EWP Dynamic Assets] Selector not found for asset', handle, asset.selector);
         return false;
     }
 
@@ -596,15 +644,16 @@ class EWPDynamicAssetLoader {
      * @return {boolean} True if asset was loaded, false otherwise
      */
     forceLoadAsset(handle) {
+        this.log(`Force load requested: ${handle}`);
         const asset = this.assets.find(a => a.handle === handle);
 
         if (!asset) {
-            console.warn('EWP Dynamic Asset Loader: Asset not found', handle);
+            console.warn('[EWP Dynamic Assets] Asset not found', handle);
             return false;
         }
 
         if (this.loadedAssets.has(handle)) {
-            console.log('EWP Dynamic Asset Loader: Asset already loaded', handle);
+            this.log(`Asset already loaded: ${handle}`);
             return false;
         }
 

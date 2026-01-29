@@ -120,15 +120,27 @@ class Dynamic_Asset_Loader
             return;
         }
 
+        // Filter assets based on current context
+        $current_context = is_admin() ? 'admin' : 'frontend';
+        $filtered_assets = array_filter($assets, function($asset) use ($current_context) {
+            return $asset['context'] === 'both' || $asset['context'] === $current_context;
+        });
+
+        if (empty($filtered_assets)) {
+            return;
+        }
+
         wp_enqueue_script(self::LOADER_HANDLE);
         
         wp_localize_script(
             self::LOADER_HANDLE,
             'ewpDynamicAssets',
             array(
-                'assets' => $assets,
+                'assets' => array_values($filtered_assets),
                 'nonce' => wp_create_nonce('ewp_dynamic_assets'),
                 'ajaxUrl' => admin_url('admin-ajax.php'),
+                'debug' => defined('WP_DEBUG') && WP_DEBUG,
+                'context' => $current_context,
                 'performance' => array(
                     'lazyLoad' => apply_filters('ewp_dynamic_assets_lazy_load', true),
                     'intersectionThreshold' => apply_filters('ewp_dynamic_assets_intersection_threshold', 0.1),
@@ -185,11 +197,12 @@ class Dynamic_Asset_Loader
          * @param array $assets Empty array to be populated with asset configurations
          * 
          * Each asset should have the following structure:
-         * - handle (string, required): Unique identifier for the asset
+         * - handle (string, required): Unique asset identifier
          * - selector (string, required): CSS selector to check for DOM element presence
          * - type (string, required): 'script' or 'style'
          * - src (string, required): URL to the asset file
          * - version (string, optional): Asset version for cache busting
+         * - context (string, optional): Where to load - 'frontend', 'admin', or 'both' (default: 'both')
          * - dependencies (array, optional): Array of dependency handles (scripts only)
          * - in_footer (bool, optional): Load script in footer (scripts only, default: true)
          * - media (string, optional): Media type for styles (styles only, default: 'all')
@@ -278,7 +291,12 @@ class Dynamic_Asset_Loader
             'type' => sanitize_key($asset['type']),
             'src' => esc_url($asset['src']),
             'version' => isset($asset['version']) ? sanitize_text_field($asset['version']) : self::VERSION,
+            'context' => isset($asset['context']) ? sanitize_key($asset['context']) : 'both',
         );
+        
+        if (!in_array($sanitized['context'], array('frontend', 'admin', 'both'), true)) {
+            $sanitized['context'] = 'both';
+        }
 
         if ($asset['type'] === 'script') {
             $sanitized['dependencies'] = isset($asset['dependencies']) && is_array($asset['dependencies']) 

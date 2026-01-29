@@ -18,6 +18,7 @@ if (!defined('ABSPATH')) {
  * Example 1: Basic Script Registration
  * 
  * Register a script that loads when .my-widget element exists
+ * Loads on both frontend and admin (default)
  */
 add_filter('ewp_register_dynamic_assets', function ($assets) {
     $assets[] = array(
@@ -26,6 +27,7 @@ add_filter('ewp_register_dynamic_assets', function ($assets) {
         'type' => 'script',
         'src' => plugin_dir_url(__FILE__) . 'js/widget.js',
         'version' => '1.0.0',
+        'context' => 'both',  // 'frontend', 'admin', or 'both' (default)
         'dependencies' => array('jquery'),
         'in_footer' => true
     );
@@ -202,7 +204,7 @@ add_filter('ewp_register_dynamic_assets', function ($assets) {
  * 
  * JavaScript example to listen for asset load events
  */
-function mtv_add_asset_load_listener()
+function ewp_add_asset_load_listener()
 {
 ?>
     <script>
@@ -237,8 +239,8 @@ function mtv_add_asset_load_listener()
     </script>
 <?php
 }
-add_action('wp_footer', 'mtv_add_asset_load_listener');
-add_action('admin_footer', 'mtv_add_asset_load_listener');
+add_action('wp_footer', 'ewp_add_asset_load_listener');
+add_action('admin_footer', 'ewp_add_asset_load_listener');
 
 /**
  * ========================================
@@ -601,3 +603,46 @@ add_filter('ewp_dynamic_assets_critical_css', function ($critical_css) {
 
     return $critical_css;
 });
+
+/**
+ * ========================================
+ * EXAMPLE 20: Context-Specific Loading (Admin/Frontend)
+ * ========================================
+ */
+add_filter('ewp_register_dynamic_assets', function ($assets) {
+    // Frontend-only asset
+    $assets[] = array(
+        'handle' => 'public-slider',
+        'selector' => '.slider',
+        'type' => 'script',
+        'src' => plugin_dir_url(__FILE__) . 'js/slider.js',
+        'context' => 'frontend'  // Only loads on frontend
+    );
+
+    // Admin-only asset
+    $assets[] = array(
+        'handle' => 'admin-dashboard-widget',
+        'selector' => '.admin-dashboard-widget',
+        'type' => 'script',
+        'src' => plugin_dir_url(__FILE__) . 'js/admin-widget.js',
+        'context' => 'admin',  // Only loads in admin
+        'localize' => array(
+            'objectName' => 'adminWidgetData',
+            'data' => array(
+                'restUrl' => rest_url('my-plugin/v1/'),
+                'nonce' => wp_create_nonce('wp_rest')
+            )
+        )
+    );
+
+    // Both contexts (default behavior)
+    $assets[] = array(
+        'handle' => 'universal-component',
+        'selector' => '.universal-component',
+        'type' => 'script',
+        'src' => plugin_dir_url(__FILE__) . 'js/universal.js',
+        'context' => 'both'  // Loads everywhere (default if omitted)
+    );
+
+    return $assets;
+}, 10);

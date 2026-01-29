@@ -71,7 +71,6 @@ function ewp_reset_search_form(id) {
 function ewp_search_forms() {
     /*get the forms*/
     var form_boxes = document.querySelectorAll('.ewp-search-box');
-    console.log(form_boxes);
     if (form_boxes.length > 0) {
         /*check form box configuration and set the actions*/
         Array.from(form_boxes).forEach(function (form_box) {

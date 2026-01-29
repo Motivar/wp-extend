@@ -1,0 +1,849 @@
+<!-- wp:paragraph -->
+<p>This document explains how to implement and use the <strong>Dynamic Asset Loader</strong> system in the Extend WP plugin. The Dynamic Asset Loader improves page load performance by loading scripts and styles only when their corresponding DOM elements are present on the page.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><!-- wp:paragraph -->
+<p>💡 <strong>What is Dynamic Asset Loading?</strong><br>
+Dynamic Asset Loading is a performance optimization technique that loads JavaScript and CSS files on-demand based on DOM element presence. This eliminates unnecessary HTTP requests, reduces initial page weight, and improves Core Web Vitals metrics (FCP, LCP, TTI).</p>
+<!-- /wp:paragraph --></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"><strong>1. How It Works</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>The system operates in two phases:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">PHP Phase (Server-Side)</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list {"ordered":true} -->
+<ol class="wp-block-list"><!-- wp:list-item -->
+<li>Developers register assets using the <code>ewp_register_dynamic_assets</code> filter</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Assets are validated and sanitized</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Configuration is passed to JavaScript via <code>wp_localize_script</code></li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Resource hints and preload links are added to <code>&lt;head&gt;</code></li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Critical CSS is inlined in <code>&lt;head&gt;</code> (priority 3)</li>
+<!-- /wp:list-item --></ol>
+<!-- /wp:list -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">JavaScript Phase (Client-Side)</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list {"ordered":true} -->
+<ol class="wp-block-list"><!-- wp:list-item -->
+<li>The loader initializes on <code>DOMContentLoaded</code></li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Checks DOM for registered selectors</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Loads assets when selectors are found</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Uses MutationObserver to detect dynamically added content</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Supports Intersection Observer for lazy loading</li>
+<!-- /wp:list-item --></ol>
+<!-- /wp:list -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"><strong>2. Basic Registration</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Minimal Script Example</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>add_filter('ewp_register_dynamic_assets', function($assets) {
+    $assets[] = array(
+        'handle' => 'my-widget',
+        'selector' => '.my-widget',
+        'type' => 'script',
+        'src' => plugin_dir_url(__FILE__) . 'js/widget.js',
+        'context' => 'both'  // 'frontend', 'admin', or 'both' (default)
+    );
+    return $assets;
+});</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Minimal Style Example</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>add_filter('ewp_register_dynamic_assets', function($assets) {
+    $assets[] = array(
+        'handle' => 'my-widget-styles',
+        'selector' => '.my-widget',
+        'type' => 'style',
+        'src' => plugin_dir_url(__FILE__) . 'css/widget.css'
+    );
+    return $assets;
+});</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"><strong>3. Runtime Execution Order</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Server-Side Execution</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>1. wp_enqueue_scripts (priority 5)
+   └─ Register loader script
+
+2. wp_enqueue_scripts (priority 999)
+   └─ Enqueue loader with localized data
+
+3. wp_head (priority 1)
+   └─ Output resource hints (preconnect, dns-prefetch)
+
+4. wp_head (priority 2)
+   └─ Output preload links
+
+5. wp_head (priority 3)
+   └─ Output inline critical CSS</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Client-Side Execution</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>1. DOMContentLoaded event
+   └─ EWPDynamicAssetLoader initializes
+
+2. Load critical assets (critical: true)
+   └─ Bypasses DOM check, loads immediately
+
+3. Check DOM for selectors
+   └─ Load assets when selectors found
+
+4. Setup MutationObserver
+   └─ Watch for dynamically added content
+
+5. Setup IntersectionObserver
+   └─ Watch for lazy-loaded elements (lazy: true)
+
+6. Periodic check (every 5 seconds)
+   └─ Fallback for missed mutations</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"><strong>4. Critical CSS Implementation</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Critical CSS is inlined in the <code>&lt;head&gt;</code> to eliminate render-blocking requests for above-the-fold content.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Basic Critical CSS</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>add_filter('ewp_register_dynamic_assets', function($assets) {
+    $assets[] = array(
+        'handle' => 'hero-section',
+        'selector' => '.hero',
+        'type' => 'style',
+        'src' => get_template_directory_uri() . '/css/hero.css',
+        'critical' => true,
+        'critical_css' => '
+            .hero {
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            .hero-title {
+                font-size: 3rem;
+                color: white;
+            }
+        '
+    );
+    return $assets;
+});</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Output in HTML</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>&lt;style id="ewp-critical-css" data-assets="hero-section,navigation"&gt;
+/* hero-section */
+.hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+}
+/* navigation */
+.main-nav {
+    position: fixed;
+    top: 0;
+}
+&lt;/style&gt;</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Filter Critical CSS</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>add_filter('ewp_dynamic_assets_critical_css', function($critical_css) {
+    // Add global critical CSS
+    $critical_css['global'] = '
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: system-ui, sans-serif; }
+    ';
+    return $critical_css;
+});</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"><strong>5. Public API Methods</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>The loader exposes public methods via <code>window.EWPDynamicAssetLoader</code> for manual control.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Check All Assets After AJAX</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>// After AJAX call loads new content
+fetch('/api/load-content')
+    .then(response => response.text())
+    .then(html => {
+        document.getElementById('content').innerHTML = html;
+        
+        // Trigger asset check
+        window.EWPDynamicAssetLoader.checkAssets();
+    });</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Load Specific Asset</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>// Load asset by handle if selector exists
+window.EWPDynamicAssetLoader.loadAssetByHandle('my-widget');</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Force Load Asset</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>// Force load without DOM check (use with caution)
+window.EWPDynamicAssetLoader.forceLoadAsset('emergency-script');</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Check Asset Status</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>// Check if asset is loaded
+if (window.EWPDynamicAssetLoader.isAssetLoaded('my-widget')) {
+    console.log('Widget is ready!');
+}
+
+// Get all loaded assets
+const loaded = window.EWPDynamicAssetLoader.getLoadedAssets();
+// ['ewp-search', 'my-widget']
+
+// Get all registered assets
+const registered = window.EWPDynamicAssetLoader.getRegisteredAssets();</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"><strong>6. Advanced Configuration</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Script with Dependencies</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>$assets[] = array(
+    'handle' => 'my-app',
+    'selector' => '.my-app',
+    'type' => 'script',
+    'src' => plugin_dir_url(__FILE__) . 'js/app.js',
+    'dependencies' => array('jquery', 'wp-api'),
+    'defer' => true
+);</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">ES6 Module</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>$assets[] = array(
+    'handle' => 'my-module',
+    'selector' => '.my-component',
+    'type' => 'script',
+    'src' => plugin_dir_url(__FILE__) . 'js/module.js',
+    'module' => true  // Loads as type="module"
+);</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Localized Script</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>$assets[] = array(
+    'handle' => 'my-widget',
+    'selector' => '.my-widget',
+    'type' => 'script',
+    'src' => plugin_dir_url(__FILE__) . 'js/widget.js',
+    'localize' => array(
+        'objectName' => 'myWidgetData',
+        'data' => array(
+            'apiUrl' => rest_url('my-plugin/v1/'),
+            'nonce' => wp_create_nonce('wp_rest'),
+            'strings' => array(
+                'loading' => __('Loading...', 'my-plugin')
+            )
+        )
+    )
+);</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Lazy Loading</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>$assets[] = array(
+    'handle' => 'gallery',
+    'selector' => '.gallery',
+    'type' => 'script',
+    'src' => plugin_dir_url(__FILE__) . 'js/gallery.js',
+    'lazy' => true  // Uses Intersection Observer
+);</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Resource Hints</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>$assets[] = array(
+    'handle' => 'google-maps',
+    'selector' => '[data-map]',
+    'type' => 'script',
+    'src' => 'https://maps.googleapis.com/maps/api/js?key=KEY',
+    'async' => true,
+    'resource_hints' => array(
+        'preconnect' => array(
+            'https://maps.googleapis.com',
+            'https://maps.gstatic.com'
+        )
+    )
+);</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"><strong>7. Performance Configuration</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Global Lazy Load Settings</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>// Disable lazy loading globally
+add_filter('ewp_dynamic_assets_lazy_load', '__return_false');
+
+// Adjust Intersection Observer threshold
+add_filter('ewp_dynamic_assets_intersection_threshold', function() {
+    return 0.25; // Load when 25% visible
+});
+
+// Adjust root margin
+add_filter('ewp_dynamic_assets_root_margin', function() {
+    return '100px'; // Load 100px before viewport
+});</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Global Resource Hints</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>add_filter('ewp_dynamic_assets_resource_hints', function($hints) {
+    $hints['preconnect'][] = 'https://cdn.example.com';
+    $hints['dns-prefetch'][] = 'https://analytics.example.com';
+    return $hints;
+});</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"><strong>8. Event Listeners</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Asset Loading Events</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>// Listen for asset loading start
+document.addEventListener('ewp_dynamic_asset_loading', function(e) {
+    console.log('Loading:', e.detail.asset.handle);
+});
+
+// Listen for asset loaded
+document.addEventListener('ewp_dynamic_asset_loaded', function(e) {
+    console.log('Loaded:', e.detail.asset.handle);
+    console.log('Success:', e.detail.success);
+});</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"><strong>9. Best Practices</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Critical CSS Guidelines</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>Keep it minimal</strong> - Only above-the-fold content (&lt; 14KB)</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Mobile-first</strong> - Prioritize mobile viewport styles</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>No duplication</strong> - Don't repeat styles from main CSS</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Compress</strong> - Always minify critical CSS</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Test</strong> - Use Lighthouse to verify FCP/LCP improvements</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Selector Best Practices</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>Be specific</strong> - Use unique class names (<code>.my-widget</code> not <code>.widget</code>)</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Avoid generic</strong> - Don't use <code>.container</code>, <code>.wrapper</code>, etc.</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Use data attributes</strong> - <code>[data-component="gallery"]</code> for clarity</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Test selectors</strong> - Verify they match intended elements only</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Performance Tips</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>Combine assets</strong> - Group related scripts/styles under one selector</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Use lazy loading</strong> - For below-the-fold content</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Set critical flag</strong> - For above-the-fold assets</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Monitor metrics</strong> - Use Performance API methods</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"><strong>10. Extracting Critical CSS</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Manual Method (Chrome DevTools)</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list {"ordered":true} -->
+<ol class="wp-block-list"><!-- wp:list-item -->
+<li>Open page in Chrome</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Press <code>Cmd+Shift+P</code> (Mac) or <code>Ctrl+Shift+P</code> (Windows)</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Type "Show Coverage" and press Enter</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Click reload button in Coverage tab</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Identify used CSS for above-the-fold content</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li>Copy used styles to <code>critical_css</code> parameter</li>
+<!-- /wp:list-item --></ol>
+<!-- /wp:list -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Automated Tools</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code># Using Critical package
+npm install critical --save-dev</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>const critical = require('critical');
+
+critical.generate({
+  inline: false,
+  base: 'dist/',
+  src: 'index.html',
+  target: 'css/critical.css',
+  width: 1300,
+  height: 900,
+  dimensions: [
+    { width: 375, height: 667 },
+    { width: 1920, height: 1080 }
+  ]
+});</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"><strong>11. Debugging</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Check Loaded Assets</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>// In browser console
+console.log(window.EWPDynamicAssetLoader.getLoadedAssets());
+console.log(window.EWPDynamicAssetLoader.getRegisteredAssets());</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">View Performance Metrics</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>// In browser console
+window.EWPDynamicAssetLoader.logPerformanceSummary();
+// Output:
+// EWP Dynamic Asset Loader - Performance Summary
+//   my-widget: 45.23ms
+//   gallery: 23.45ms</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Verify Critical CSS</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>View page source and look for:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>&lt;style id="ewp-critical-css" data-assets="hero-section,navigation"&gt;
+/* Critical CSS content */
+&lt;/style&gt;</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"><strong>12. Common Issues</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Issue: Asset not loading</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p><strong>Solution:</strong> Check selector specificity</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>// Test selector in console
+document.querySelector('.my-widget'); // Should return element</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Issue: Script errors with global functions</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p><strong>Solution:</strong> Don't use <code>module: true</code> for traditional scripts</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>// Wrong - isolates scope
+'module' => true
+
+// Correct - global scope
+'module' => false  // or omit</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Issue: Critical CSS too large</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p><strong>Solution:</strong> Only include truly critical styles</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>// Wrong - includes footer
+'critical_css' => '
+    .hero { ... }
+    .footer { ... }  // Remove this
+'
+
+// Correct - only above-fold
+'critical_css' => '
+    .hero { ... }
+'</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"><strong>13. Quick Reference</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Asset Parameters</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table {"hasFixedLayout":false} -->
+<figure class="wp-block-table"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>handle</code></td><td>string</td><td>Yes</td><td>Unique asset identifier</td></tr><tr><td><code>selector</code></td><td>string</td><td>Yes</td><td>CSS selector to check</td></tr><tr><td><code>type</code></td><td>string</td><td>Yes</td><td>'script' or 'style'</td></tr><tr><td><code>src</code></td><td>string</td><td>Yes</td><td>Asset URL</td></tr><tr><td><code>version</code></td><td>string</td><td>No</td><td>Cache busting version</td></tr><tr><td><code>dependencies</code></td><td>array</td><td>No</td><td>Asset handles to load first</td></tr><tr><td><code>module</code></td><td>bool</td><td>No</td><td>Load as ES6 module (scripts)</td></tr><tr><td><code>async</code></td><td>bool</td><td>No</td><td>Load asynchronously (scripts)</td></tr><tr><td><code>defer</code></td><td>bool</td><td>No</td><td>Defer execution (scripts)</td></tr><tr><td><code>in_footer</code></td><td>bool</td><td>No</td><td>Load in footer (scripts)</td></tr><tr><td><code>media</code></td><td>string</td><td>No</td><td>Media query (styles)</td></tr><tr><td><code>localize</code></td><td>array</td><td>No</td><td>Localization data (scripts)</td></tr><tr><td><code>critical</code></td><td>bool</td><td>No</td><td>Load immediately</td></tr><tr><td><code>critical_css</code></td><td>string</td><td>No</td><td>Inline CSS (styles)</td></tr><tr><td><code>lazy</code></td><td>bool</td><td>No</td><td>Use Intersection Observer</td></tr><tr><td><code>preload</code></td><td>bool</td><td>No</td><td>Add preload link</td></tr><tr><td><code>resource_hints</code></td><td>array</td><td>No</td><td>Preconnect/DNS-prefetch</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Public API Methods</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table {"hasFixedLayout":false} -->
+<figure class="wp-block-table"><table><thead><tr><th>Method</th><th>Description</th></tr></thead><tbody><tr><td><code>checkAssets()</code></td><td>Check all assets for new DOM elements</td></tr><tr><td><code>loadAssetByHandle(handle)</code></td><td>Load specific asset if selector exists</td></tr><tr><td><code>forceLoadAsset(handle)</code></td><td>Force load asset (bypasses DOM check)</td></tr><tr><td><code>isAssetLoaded(handle)</code></td><td>Check if asset is loaded</td></tr><tr><td><code>getLoadedAssets()</code></td><td>Get array of loaded handles</td></tr><tr><td><code>getRegisteredAssets()</code></td><td>Get array of registered assets</td></tr><tr><td><code>getPerformanceMetrics()</code></td><td>Get performance timing data</td></tr><tr><td><code>logPerformanceSummary()</code></td><td>Log performance to console</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Filter Hooks</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table {"hasFixedLayout":false} -->
+<figure class="wp-block-table"><table><thead><tr><th>Hook</th><th>Description</th></tr></thead><tbody><tr><td><code>ewp_register_dynamic_assets</code></td><td>Register assets</td></tr><tr><td><code>ewp_dynamic_assets_lazy_load</code></td><td>Enable/disable lazy loading</td></tr><tr><td><code>ewp_dynamic_assets_root_margin</code></td><td>Intersection Observer margin</td></tr><tr><td><code>ewp_dynamic_assets_intersection_threshold</code></td><td>Intersection threshold</td></tr><tr><td><code>ewp_dynamic_assets_resource_hints</code></td><td>Add global resource hints</td></tr><tr><td><code>ewp_dynamic_assets_preload</code></td><td>Filter preload assets</td></tr><tr><td><code>ewp_dynamic_assets_critical_css</code></td><td>Filter critical CSS output</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"><strong>14. Performance Validation</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Target Metrics</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>FCP (First Contentful Paint):</strong> &lt; 1.8s</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>LCP (Largest Contentful Paint):</strong> &lt; 2.5s</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>TTI (Time to Interactive):</strong> &lt; 3.8s</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Critical CSS Size:</strong> &lt; 14KB</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Unused CSS:</strong> &lt; 20%</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Testing Tools</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li><strong>Google Lighthouse</strong> - Overall performance score</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>WebPageTest</strong> - Detailed waterfall analysis</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>Chrome DevTools</strong> - Coverage and Performance tabs</li>
+<!-- /wp:list-item -->
+
+<!-- wp:list-item -->
+<li><strong>PageSpeed Insights</strong> - Real-world data</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"><strong>15. Migration from Traditional Loading</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Before (Traditional)</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>function my_plugin_enqueue_scripts() {
+    wp_enqueue_script('my-widget', plugin_dir_url(__FILE__) . 'js/widget.js');
+    wp_enqueue_style('my-widget', plugin_dir_url(__FILE__) . 'css/widget.css');
+}
+add_action('wp_enqueue_scripts', 'my_plugin_enqueue_scripts');</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">After (Dynamic)</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>add_filter('ewp_register_dynamic_assets', function($assets) {
+    $assets[] = array(
+        'handle' => 'my-widget',
+        'selector' => '.my-widget',
+        'type' => 'script',
+        'src' => plugin_dir_url(__FILE__) . 'js/widget.js'
+    );
+    $assets[] = array(
+        'handle' => 'my-widget-styles',
+        'selector' => '.my-widget',
+        'type' => 'style',
+        'src' => plugin_dir_url(__FILE__) . 'css/widget.css'
+    );
+    return $assets;
+});</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:paragraph -->
+<p><em>Document version 1.0 - Last updated: January 2026</em></p>
+<!-- /wp:paragraph -->
