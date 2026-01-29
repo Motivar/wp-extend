@@ -22,7 +22,8 @@ class EWPDynamicAssetLoader {
         this.checkInterval = null;
         this.performance = this.config.performance || {};
         this.lazyLoadEnabled = this.performance.lazyLoad !== false;
-        this.debug = this.config.debug === true;
+        // wp_localize_script converts true to "1", so check for both
+        this.debug = this.config.debug === true || this.config.debug === '1' || this.config.debug === 1;
 
         this.log('Initializing Dynamic Asset Loader', {
             assetsCount: this.assets.length,
