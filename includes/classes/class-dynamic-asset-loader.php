@@ -68,11 +68,14 @@ class Dynamic_Asset_Loader
     }
 
     /**
-     * Private constructor to prevent direct instantiation
+     * Private constructor for singleton
+     * 
+     * @return void
      */
     private function __construct()
     {
-        $this->init_hooks();
+        // Delay initialization until WordPress is fully loaded
+        add_action('init', array($this, 'init_hooks'), 1);
     }
 
     /**
@@ -80,7 +83,7 @@ class Dynamic_Asset_Loader
      * 
      * @return void
      */
-    private function init_hooks()
+    public function init_hooks()
     {
         $assets = $this->get_registered_assets();
 
