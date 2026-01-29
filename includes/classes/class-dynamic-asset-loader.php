@@ -144,7 +144,7 @@ class Dynamic_Asset_Loader
                 'performance' => array(
                     'lazyLoad' => apply_filters('ewp_dynamic_assets_lazy_load', true),
                     'intersectionThreshold' => apply_filters('ewp_dynamic_assets_intersection_threshold', 0.1),
-                    'rootMargin' => apply_filters('ewp_dynamic_assets_root_margin', '50px')
+                    'rootMargin' => apply_filters('ewp_dynamic_assets_root_margin', '0px')
                 )
             )
         );

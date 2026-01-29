@@ -364,6 +364,7 @@ class Extend_WP_Import_Export
    'type' => 'script',
    'src' => awm_url . '/assets/js/admin/import-export.js',
    'version' => $this->version,
+   'context' => 'admin',
    'dependencies' => array(),
    'in_footer' => true,
    'defer' => true,
