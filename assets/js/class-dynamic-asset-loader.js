@@ -549,6 +549,96 @@ class EWPDynamicAssetLoader {
         });
         console.groupEnd();
     }
+
+    /**
+     * Public API: Manually check and load assets
+     * Useful after AJAX calls or dynamic content insertion
+     * 
+     * @return {void}
+     */
+    checkAssets() {
+        this.checkDOMForAssets();
+    }
+
+    /**
+     * Public API: Check and load a specific asset by handle
+     * 
+     * @param {string} handle Asset handle to check and load
+     * @return {boolean} True if asset was loaded, false otherwise
+     */
+    loadAssetByHandle(handle) {
+        const asset = this.assets.find(a => a.handle === handle);
+
+        if (!asset) {
+            console.warn('EWP Dynamic Asset Loader: Asset not found', handle);
+            return false;
+        }
+
+        if (this.loadedAssets.has(handle)) {
+            console.log('EWP Dynamic Asset Loader: Asset already loaded', handle);
+            return false;
+        }
+
+        if (this.elementExists(asset.selector)) {
+            this.loadAsset(asset);
+            return true;
+        }
+
+        console.warn('EWP Dynamic Asset Loader: Selector not found for asset', handle, asset.selector);
+        return false;
+    }
+
+    /**
+     * Public API: Force load an asset regardless of selector presence
+     * Use with caution - bypasses DOM checking
+     * 
+     * @param {string} handle Asset handle to force load
+     * @return {boolean} True if asset was loaded, false otherwise
+     */
+    forceLoadAsset(handle) {
+        const asset = this.assets.find(a => a.handle === handle);
+
+        if (!asset) {
+            console.warn('EWP Dynamic Asset Loader: Asset not found', handle);
+            return false;
+        }
+
+        if (this.loadedAssets.has(handle)) {
+            console.log('EWP Dynamic Asset Loader: Asset already loaded', handle);
+            return false;
+        }
+
+        this.loadAsset(asset);
+        return true;
+    }
+
+    /**
+     * Public API: Get list of loaded assets
+     * 
+     * @return {Array} Array of loaded asset handles
+     */
+    getLoadedAssets() {
+        return Array.from(this.loadedAssets);
+    }
+
+    /**
+     * Public API: Get list of registered assets
+     * 
+     * @return {Array} Array of registered asset configurations
+     */
+    getRegisteredAssets() {
+        return this.assets;
+    }
+
+    /**
+     * Public API: Check if an asset is loaded
+     * 
+     * @param {string} handle Asset handle to check
+     * @return {boolean} True if loaded, false otherwise
+     */
+    isAssetLoaded(handle) {
+        return this.loadedAssets.has(handle);
+    }
 }
 
 if (typeof ewpDynamicAssets !== 'undefined') {

@@ -88,6 +88,7 @@ class Dynamic_Asset_Loader
         add_action('admin_enqueue_scripts', array($this, 'enqueue_loader'), 999);
         add_action('wp_head', array($this, 'add_resource_hints'), 1);
         add_action('wp_head', array($this, 'add_preload_links'), 2);
+        add_action('wp_head', array($this, 'add_critical_css'), 3);
     }
 
     /**
@@ -201,6 +202,7 @@ class Dynamic_Asset_Loader
          * - preload (bool, optional): Add preload link for faster loading
          * - lazy (bool, optional): Use Intersection Observer for lazy loading
          * - critical (bool, optional): Mark as critical (loads immediately)
+         * - critical_css (string, optional): Inline critical CSS content (styles only)
          * - resource_hints (array, optional): Array of resource hints (preconnect, dns-prefetch)
          */
         $assets = apply_filters('ewp_register_dynamic_assets', array());
@@ -298,6 +300,10 @@ class Dynamic_Asset_Loader
             $sanitized['dependencies'] = isset($asset['dependencies']) && is_array($asset['dependencies']) 
                 ? array_map('sanitize_key', $asset['dependencies']) 
                 : array();
+
+            if (isset($asset['critical_css']) && !empty($asset['critical_css'])) {
+                $sanitized['critical_css'] = wp_strip_all_tags($asset['critical_css']);
+            }
         }
 
         $sanitized['preload'] = isset($asset['preload']) ? (bool) $asset['preload'] : false;
@@ -455,6 +461,41 @@ class Dynamic_Asset_Loader
         }
         
         return $parsed_url['host'] !== $home_url['host'];
+    }
+
+    /**
+     * Add inline critical CSS for style assets
+     * Improves PageSpeed by inlining critical above-the-fold CSS
+     * 
+     * @return void
+     */
+    public function add_critical_css()
+    {
+        if (is_admin()) {
+            return;
+        }
+
+        $assets = $this->get_registered_assets();
+        $critical_css = array();
+
+        foreach ($assets as $asset) {
+            if ($asset['type'] === 'style' && isset($asset['critical_css']) && !empty($asset['critical_css'])) {
+                $critical_css[$asset['handle']] = $asset['critical_css'];
+            }
+        }
+
+        $critical_css = apply_filters('ewp_dynamic_assets_critical_css', $critical_css);
+
+        if (empty($critical_css)) {
+            return;
+        }
+
+        echo '<style id="ewp-critical-css" data-assets="' . esc_attr(implode(',', array_keys($critical_css))) . '">' . "\n";
+        foreach ($critical_css as $handle => $css) {
+            echo '/* ' . esc_attr($handle) . ' */' . "\n";
+            echo $css . "\n";
+        }
+        echo '</style>' . "\n";
     }
 }
 

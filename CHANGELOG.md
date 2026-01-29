@@ -37,8 +37,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Critical Assets**: Priority loading for above-the-fold content
     - **Performance API**: Built-in performance monitoring with `performance.mark()` and `performance.measure()`
     - **Core Web Vitals**: Optimized for LCP (Largest Contentful Paint), FID (First Input Delay), and CLS (Cumulative Layout Shift)
-    - **Filters**: Configurable via filters (`ewp_dynamic_assets_lazy_load`, `ewp_dynamic_assets_root_margin`, `ewp_dynamic_assets_intersection_threshold`, `ewp_dynamic_assets_resource_hints`, `ewp_dynamic_assets_preload`)
+    - **Filters**: Configurable via filters (`ewp_dynamic_assets_lazy_load`, `ewp_dynamic_assets_root_margin`, `ewp_dynamic_assets_intersection_threshold`, `ewp_dynamic_assets_resource_hints`, `ewp_dynamic_assets_preload`, `ewp_dynamic_assets_critical_css`)
   - **Documentation**: Added comprehensive PageSpeed optimization guide at `/docs/pagespeed-optimization.md` with real-world examples and Core Web Vitals strategies
+  - **Public API Methods**: Added JavaScript methods for manual asset control:
+    - `checkAssets()` - Manually check and load assets after AJAX calls
+    - `loadAssetByHandle(handle)` - Load specific asset by handle
+    - `forceLoadAsset(handle)` - Force load asset bypassing DOM check
+    - `isAssetLoaded(handle)` - Check if asset is loaded
+    - `getLoadedAssets()` - Get array of loaded asset handles
+    - `getRegisteredAssets()` - Get array of registered asset configurations
+  - **Critical CSS Support**: Added inline critical CSS for style assets
+    - `critical_css` parameter for inlining above-the-fold CSS
+    - Outputs in `<head>` before external stylesheets load
+    - Improves FCP (First Contentful Paint) and LCP scores
+    - Filterable via `ewp_dynamic_assets_critical_css` hook
 - **Default Value Support for Input Fields**: Added ability to set default values for all input field types using the `default` key in field definitions.
   - **Original Question**: "Is it possible for the simple inputs to set default value if value is not set?"
   - **Solution**: Enhanced `awm_show_content()` function to check for `default` key and apply it when field value is empty (preserves zero values)
