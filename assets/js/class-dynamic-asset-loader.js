@@ -17,18 +17,12 @@ class EWPDynamicAssetLoader {
         this.config = config || {};
         this.assets = this.config.assets || [];
         this.loadedAssets = new Set();
-        this.observer = null;
-        this.intersectionObserver = null;
-        this.checkInterval = null;
         this.performance = this.config.performance || {};
-        this.lazyLoadEnabled = this.performance.lazyLoad !== false;
         // wp_localize_script converts true to "1", so check for both
         this.debug = this.config.debug === true || this.config.debug === '1' || this.config.debug === 1;
 
         this.log('Initializing Dynamic Asset Loader', {
-            assetsCount: this.assets.length,
-            lazyLoadEnabled: this.lazyLoadEnabled,
-            performance: this.performance
+            assetsCount: this.assets.length
         });
         
         this.init();
@@ -65,8 +59,6 @@ class EWPDynamicAssetLoader {
 
         this.loadCriticalAssets();
         this.checkDOMForAssets();
-        this.setupIntersectionObserver();
-        this.setupPeriodicCheck();
     }
 
     /**
@@ -87,13 +79,8 @@ class EWPDynamicAssetLoader {
             }
 
             if (this.elementExists(asset.selector)) {
-                this.log(`Selector found: ${asset.selector}`, { handle: asset.handle, lazy: asset.lazy });
-
-                if (asset.lazy && this.lazyLoadEnabled) {
-                    this.observeElementForLazyLoad(asset);
-                } else {
-                    this.loadAsset(asset);
-                }
+                this.log(`Selector found: ${asset.selector}`, { handle: asset.handle });
+                this.loadAsset(asset);
             }
         });
     }
@@ -311,67 +298,6 @@ class EWPDynamicAssetLoader {
     }
 
     /**
-     * Setup Intersection Observer for lazy loading
-     * 
-     * @return {void}
-     */
-    setupIntersectionObserver() {
-        if (!this.lazyLoadEnabled || typeof IntersectionObserver === 'undefined') {
-            this.log('IntersectionObserver not available or lazy load disabled');
-            return;
-        }
-
-        this.log('Setting up IntersectionObserver', {
-            threshold: this.performance.intersectionThreshold || 0.1,
-            rootMargin: this.performance.rootMargin || '50px'
-        });
-
-        const options = {
-            root: null,
-            rootMargin: this.performance.rootMargin || '50px',
-            threshold: this.performance.intersectionThreshold || 0.1
-        };
-
-        this.intersectionObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const handle = entry.target.getAttribute('data-ewp-asset');
-                    const asset = this.assets.find(a => a.handle === handle);
-                    
-                    if (asset && !this.loadedAssets.has(handle)) {
-                        this.loadAsset(asset);
-                        this.intersectionObserver.unobserve(entry.target);
-                    }
-                }
-            });
-        }, options);
-    }
-
-    /**
-     * Observe element for lazy loading
-     * 
-     * @param {Object} asset Asset configuration
-     * @return {void}
-     */
-    observeElementForLazyLoad(asset) {
-        if (!this.intersectionObserver) {
-            this.loadAsset(asset);
-            return;
-        }
-
-        try {
-            const element = document.querySelector(asset.selector);
-            if (element) {
-                element.setAttribute('data-ewp-asset', asset.handle);
-                this.intersectionObserver.observe(element);
-            }
-        } catch (error) {
-            this.log('Failed to observe element', { selector: asset.selector, error });
-            this.loadAsset(asset);
-        }
-    }
-
-    /**
      * Load critical assets immediately
      * 
      * @return {void}
@@ -419,21 +345,6 @@ class EWPDynamicAssetLoader {
     }
 
     /**
-     * Setup periodic check as fallback
-     * 
-     * @return {void}
-     */
-    setupPeriodicCheck() {
-        this.checkInterval = setInterval(() => {
-            this.checkDOMForAssets();
-            
-            if (this.loadedAssets.size === this.assets.length) {
-                this.cleanup();
-            }
-        }, 1000);
-    }
-
-    /**
      * Dispatch custom event when asset is loaded
      * 
      * @param {Object} asset Asset configuration
@@ -477,20 +388,7 @@ class EWPDynamicAssetLoader {
      * @return {void}
      */
     cleanup() {
-        if (this.observer) {
-            this.observer.disconnect();
-            this.observer = null;
-        }
-
-        if (this.intersectionObserver) {
-            this.intersectionObserver.disconnect();
-            this.intersectionObserver = null;
-        }
-
-        if (this.checkInterval) {
-            clearInterval(this.checkInterval);
-            this.checkInterval = null;
-        }
+        // Cleanup method kept for compatibility
     }
 
     /**
