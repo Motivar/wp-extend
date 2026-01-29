@@ -470,7 +470,126 @@ document.addEventListener('ewp_dynamic_asset_loaded', function(e) {
 <!-- /wp:separator -->
 
 <!-- wp:heading -->
-<h2 class="wp-block-heading"><strong>9. Best Practices</strong></h2>
+<h2 class="wp-block-heading"><strong>9. Context-Specific Loading</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Control where assets load using the <code>context</code> parameter.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Frontend-Only Asset</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>$assets[] = array(
+    'handle' => 'public-slider',
+    'selector' => '.slider',
+    'type' => 'script',
+    'src' => plugin_dir_url(__FILE__) . 'js/slider.js',
+    'context' => 'frontend'  // Only loads on public pages
+);</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Admin-Only Asset</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>$assets[] = array(
+    'handle' => 'admin-dashboard-widget',
+    'selector' => '.admin-dashboard-widget',
+    'type' => 'script',
+    'src' => plugin_dir_url(__FILE__) . 'js/admin-widget.js',
+    'context' => 'admin',  // Only loads in WordPress admin
+    'localize' => array(
+        'objectName' => 'adminWidgetData',
+        'data' => array(
+            'restUrl' => rest_url('my-plugin/v1/'),
+            'nonce' => wp_create_nonce('wp_rest')
+        )
+    )
+);</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Both Contexts (Default)</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>$assets[] = array(
+    'handle' => 'universal-component',
+    'selector' => '.universal-component',
+    'type' => 'script',
+    'src' => plugin_dir_url(__FILE__) . 'js/universal.js',
+    'context' => 'both'  // Loads everywhere (default if omitted)
+);</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity" />
+<!-- /wp:separator -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"><strong>10. Debug Mode</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Debug logging is automatically enabled when <code>WP_DEBUG</code> is true.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Enable Debug Mode</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>// In wp-config.php
+define('WP_DEBUG', true);</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Console Output Example</h3>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>[EWP Dynamic Assets] Initializing Dynamic Asset Loader {assetsCount: 3, ...}
+[EWP Dynamic Assets] Loading critical assets {count: 1, handles: ['hero-section']}
+[EWP Dynamic Assets] Setting up MutationObserver
+[EWP Dynamic Assets] Checking DOM for assets
+[EWP Dynamic Assets] Selector found: .my-widget {handle: 'my-widget', lazy: false}
+[EWP Dynamic Assets] Loading asset: my-widget {type: 'script', src: '...'}
+[EWP Dynamic Assets] Script loaded: my-widget</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:paragraph -->
+<p><strong>Benefits:</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+    <li>Zero performance impact in production (no logging when <code>WP_DEBUG</code> is false)</li>
+    <!-- /wp:list-item -->
+
+    <!-- wp:list-item -->
+    <li>Track asset loading lifecycle in development</li>
+    <!-- /wp:list-item -->
+
+    <!-- wp:list-item -->
+    <li>Debug selector issues and timing problems</li>
+    <!-- /wp:list-item -->
+
+    <!-- wp:list-item -->
+    <li>Monitor MutationObserver and IntersectionObserver activity</li>
+    <!-- /wp:list-item -->
+</ul>
+<!-- /wp:list -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity" />
+<!-- /wp:separator -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"><strong>11. Best Practices</strong></h2>
 <!-- /wp:heading -->
 
 <!-- wp:heading {"level":3} -->
@@ -548,7 +667,7 @@ document.addEventListener('ewp_dynamic_asset_loaded', function(e) {
 <!-- /wp:separator -->
 
 <!-- wp:heading -->
-<h2 class="wp-block-heading"><strong>10. Extracting Critical CSS</strong></h2>
+<h2 class="wp-block-heading"><strong>12. Extracting Critical CSS</strong></h2>
 <!-- /wp:heading -->
 
 <!-- wp:heading {"level":3} -->
@@ -612,7 +731,7 @@ critical.generate({
 <!-- /wp:separator -->
 
 <!-- wp:heading -->
-<h2 class="wp-block-heading"><strong>11. Debugging</strong></h2>
+<h2 class="wp-block-heading"><strong>13. Debugging</strong></h2>
 <!-- /wp:heading -->
 
 <!-- wp:heading {"level":3} -->
@@ -657,7 +776,7 @@ window.EWPDynamicAssetLoader.logPerformanceSummary();
 <!-- /wp:separator -->
 
 <!-- wp:heading -->
-<h2 class="wp-block-heading"><strong>12. Common Issues</strong></h2>
+<h2 class="wp-block-heading"><strong>14. Common Issues</strong></h2>
 <!-- /wp:heading -->
 
 <!-- wp:heading {"level":3} -->
@@ -715,7 +834,7 @@ document.querySelector('.my-widget'); // Should return element</code></pre>
 <!-- /wp:separator -->
 
 <!-- wp:heading -->
-<h2 class="wp-block-heading"><strong>13. Quick Reference</strong></h2>
+<h2 class="wp-block-heading"><strong>15. Quick Reference</strong></h2>
 <!-- /wp:heading -->
 
 <!-- wp:heading {"level":3} -->
@@ -723,7 +842,128 @@ document.querySelector('.my-widget'); // Should return element</code></pre>
 <!-- /wp:heading -->
 
 <!-- wp:table {"hasFixedLayout":false} -->
-<figure class="wp-block-table"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>handle</code></td><td>string</td><td>Yes</td><td>Unique asset identifier</td></tr><tr><td><code>selector</code></td><td>string</td><td>Yes</td><td>CSS selector to check</td></tr><tr><td><code>type</code></td><td>string</td><td>Yes</td><td>'script' or 'style'</td></tr><tr><td><code>src</code></td><td>string</td><td>Yes</td><td>Asset URL</td></tr><tr><td><code>version</code></td><td>string</td><td>No</td><td>Cache busting version</td></tr><tr><td><code>dependencies</code></td><td>array</td><td>No</td><td>Asset handles to load first</td></tr><tr><td><code>module</code></td><td>bool</td><td>No</td><td>Load as ES6 module (scripts)</td></tr><tr><td><code>async</code></td><td>bool</td><td>No</td><td>Load asynchronously (scripts)</td></tr><tr><td><code>defer</code></td><td>bool</td><td>No</td><td>Defer execution (scripts)</td></tr><tr><td><code>in_footer</code></td><td>bool</td><td>No</td><td>Load in footer (scripts)</td></tr><tr><td><code>media</code></td><td>string</td><td>No</td><td>Media query (styles)</td></tr><tr><td><code>localize</code></td><td>array</td><td>No</td><td>Localization data (scripts)</td></tr><tr><td><code>critical</code></td><td>bool</td><td>No</td><td>Load immediately</td></tr><tr><td><code>critical_css</code></td><td>string</td><td>No</td><td>Inline CSS (styles)</td></tr><tr><td><code>lazy</code></td><td>bool</td><td>No</td><td>Use Intersection Observer</td></tr><tr><td><code>preload</code></td><td>bool</td><td>No</td><td>Add preload link</td></tr><tr><td><code>resource_hints</code></td><td>array</td><td>No</td><td>Preconnect/DNS-prefetch</td></tr></tbody></table></figure>
+<figure class="wp-block-table">
+    <table>
+        <thead>
+            <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>handle</code></td>
+                <td>string</td>
+                <td>Yes</td>
+                <td>Unique asset identifier</td>
+            </tr>
+            <tr>
+                <td><code>selector</code></td>
+                <td>string</td>
+                <td>Yes</td>
+                <td>CSS selector to check</td>
+            </tr>
+            <tr>
+                <td><code>type</code></td>
+                <td>string</td>
+                <td>Yes</td>
+                <td>'script' or 'style'</td>
+            </tr>
+            <tr>
+                <td><code>src</code></td>
+                <td>string</td>
+                <td>Yes</td>
+                <td>Asset URL</td>
+            </tr>
+            <tr>
+                <td><code>version</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>Cache busting version</td>
+            </tr>
+            <tr>
+                <td><code>context</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>'frontend', 'admin', or 'both' (default)</td>
+            </tr>
+            <tr>
+                <td><code>dependencies</code></td>
+                <td>array</td>
+                <td>No</td>
+                <td>Asset handles to load first</td>
+            </tr>
+            <tr>
+                <td><code>module</code></td>
+                <td>bool</td>
+                <td>No</td>
+                <td>Load as ES6 module (scripts)</td>
+            </tr>
+            <tr>
+                <td><code>async</code></td>
+                <td>bool</td>
+                <td>No</td>
+                <td>Load asynchronously (scripts)</td>
+            </tr>
+            <tr>
+                <td><code>defer</code></td>
+                <td>bool</td>
+                <td>No</td>
+                <td>Defer execution (scripts)</td>
+            </tr>
+            <tr>
+                <td><code>in_footer</code></td>
+                <td>bool</td>
+                <td>No</td>
+                <td>Load in footer (scripts)</td>
+            </tr>
+            <tr>
+                <td><code>media</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>Media query (styles)</td>
+            </tr>
+            <tr>
+                <td><code>localize</code></td>
+                <td>array</td>
+                <td>No</td>
+                <td>Localization data (scripts)</td>
+            </tr>
+            <tr>
+                <td><code>critical</code></td>
+                <td>bool</td>
+                <td>No</td>
+                <td>Load immediately</td>
+            </tr>
+            <tr>
+                <td><code>critical_css</code></td>
+                <td>string</td>
+                <td>No</td>
+                <td>Inline CSS (styles)</td>
+            </tr>
+            <tr>
+                <td><code>lazy</code></td>
+                <td>bool</td>
+                <td>No</td>
+                <td>Use Intersection Observer</td>
+            </tr>
+            <tr>
+                <td><code>preload</code></td>
+                <td>bool</td>
+                <td>No</td>
+                <td>Add preload link</td>
+            </tr>
+            <tr>
+                <td><code>resource_hints</code></td>
+                <td>array</td>
+                <td>No</td>
+                <td>Preconnect/DNS-prefetch</td>
+            </tr>
+        </tbody>
+    </table>
+</figure>
 <!-- /wp:table -->
 
 <!-- wp:heading {"level":3} -->
@@ -747,7 +987,7 @@ document.querySelector('.my-widget'); // Should return element</code></pre>
 <!-- /wp:separator -->
 
 <!-- wp:heading -->
-<h2 class="wp-block-heading"><strong>14. Performance Validation</strong></h2>
+<h2 class="wp-block-heading"><strong>16. Performance Validation</strong></h2>
 <!-- /wp:heading -->
 
 <!-- wp:heading {"level":3} -->
@@ -803,7 +1043,7 @@ document.querySelector('.my-widget'); // Should return element</code></pre>
 <!-- /wp:separator -->
 
 <!-- wp:heading -->
-<h2 class="wp-block-heading"><strong>15. Migration from Traditional Loading</strong></h2>
+<h2 class="wp-block-heading"><strong>17. Migration from Traditional Loading</strong></h2>
 <!-- /wp:heading -->
 
 <!-- wp:heading {"level":3} -->
