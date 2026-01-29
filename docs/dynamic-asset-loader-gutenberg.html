@@ -57,19 +57,15 @@ Dynamic Asset Loading is a performance optimization technique that loads JavaScr
 <!-- /wp:list-item -->
 
 <!-- wp:list-item -->
-<li>Checks DOM for registered selectors</li>
+<li>Checks DOM once for all registered selectors</li>
 <!-- /wp:list-item -->
 
 <!-- wp:list-item -->
-<li>Loads assets when selectors are found</li>
+<li>Loads assets immediately when selectors are found</li>
 <!-- /wp:list-item -->
 
 <!-- wp:list-item -->
-<li>Uses MutationObserver to detect dynamically added content</li>
-<!-- /wp:list-item -->
-
-<!-- wp:list-item -->
-<li>Supports Intersection Observer for lazy loading</li>
+<li>Developers manually trigger <code>checkAssets()</code> after AJAX/dynamic content</li>
 <!-- /wp:list-item --></ol>
 <!-- /wp:list -->
 
@@ -552,11 +548,10 @@ define('WP_DEBUG', true);</code></pre>
 <!-- /wp:heading -->
 
 <!-- wp:code -->
-<pre class="wp-block-code"><code>[EWP Dynamic Assets] Initializing Dynamic Asset Loader {assetsCount: 3, ...}
+<pre class="wp-block-code"><code>[EWP Dynamic Assets] Initializing Dynamic Asset Loader {assetsCount: 3}
 [EWP Dynamic Assets] Loading critical assets {count: 1, handles: ['hero-section']}
-[EWP Dynamic Assets] Setting up MutationObserver
 [EWP Dynamic Assets] Checking DOM for assets
-[EWP Dynamic Assets] Selector found: .my-widget {handle: 'my-widget', lazy: false}
+[EWP Dynamic Assets] Selector found: .my-widget {handle: 'my-widget'}
 [EWP Dynamic Assets] Loading asset: my-widget {type: 'script', src: '...'}
 [EWP Dynamic Assets] Script loaded: my-widget</code></pre>
 <!-- /wp:code -->
@@ -579,10 +574,62 @@ define('WP_DEBUG', true);</code></pre>
     <!-- /wp:list-item -->
 
     <!-- wp:list-item -->
-    <li>Monitor MutationObserver and IntersectionObserver activity</li>
+    <li>Available globally for developer scripts via <code>EWPDynamicAssetLoader.log()</code></li>
     <!-- /wp:list-item -->
 </ul>
 <!-- /wp:list -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Using Debug Logger in Your Scripts</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>The static log method is globally available for use in your dynamically loaded scripts:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>// Static method - available globally
+EWPDynamicAssetLoader.log('My script initialized');
+
+// With data
+EWPDynamicAssetLoader.log('Form submitted', { 
+    formId: 'contact-form',
+    fields: 5 
+});
+
+// In event handlers
+document.addEventListener('ewp_dynamic_asset_loaded', (e) => {
+    EWPDynamicAssetLoader.log('Asset loaded event', e.detail);
+});</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Using Instance Methods</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>For instance methods (like <code>checkAssets()</code>), use <code>window.EWPDynamicAssetLoader.instance</code>:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>// After AJAX content load
+const loader = window.EWPDynamicAssetLoader.instance;
+
+// Check for new assets
+loader.checkAssets();
+
+// Load specific asset
+loader.loadAssetByHandle('my-widget');
+
+// Check if loaded
+if (loader.isAssetLoaded('my-widget')) {
+    console.log('Widget is ready!');
+}</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:paragraph -->
+<p>The logger automatically respects <code>WP_DEBUG</code> - no output in production.</p>
+<!-- /wp:paragraph -->
 
 <!-- wp:separator -->
 <hr class="wp-block-separator has-alpha-channel-opacity" />
@@ -944,12 +991,6 @@ document.querySelector('.my-widget'); // Should return element</code></pre>
                 <td>Inline CSS (styles)</td>
             </tr>
             <tr>
-                <td><code>lazy</code></td>
-                <td>bool</td>
-                <td>No</td>
-                <td>Use Intersection Observer</td>
-            </tr>
-            <tr>
                 <td><code>preload</code></td>
                 <td>bool</td>
                 <td>No</td>
@@ -971,7 +1012,50 @@ document.querySelector('.my-widget'); // Should return element</code></pre>
 <!-- /wp:heading -->
 
 <!-- wp:table {"hasFixedLayout":false} -->
-<figure class="wp-block-table"><table><thead><tr><th>Method</th><th>Description</th></tr></thead><tbody><tr><td><code>checkAssets()</code></td><td>Check all assets for new DOM elements</td></tr><tr><td><code>loadAssetByHandle(handle)</code></td><td>Load specific asset if selector exists</td></tr><tr><td><code>forceLoadAsset(handle)</code></td><td>Force load asset (bypasses DOM check)</td></tr><tr><td><code>isAssetLoaded(handle)</code></td><td>Check if asset is loaded</td></tr><tr><td><code>getLoadedAssets()</code></td><td>Get array of loaded handles</td></tr><tr><td><code>getRegisteredAssets()</code></td><td>Get array of registered assets</td></tr><tr><td><code>getPerformanceMetrics()</code></td><td>Get performance timing data</td></tr><tr><td><code>logPerformanceSummary()</code></td><td>Log performance to console</td></tr></tbody></table></figure>
+<figure class="wp-block-table">
+    <table>
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>checkAssets()</code></td>
+                <td>Check all assets for new DOM elements</td>
+            </tr>
+            <tr>
+                <td><code>loadAssetByHandle(handle)</code></td>
+                <td>Load specific asset if selector exists</td>
+            </tr>
+            <tr>
+                <td><code>forceLoadAsset(handle)</code></td>
+                <td>Force load asset (bypasses DOM check)</td>
+            </tr>
+            <tr>
+                <td><code>isAssetLoaded(handle)</code></td>
+                <td>Check if asset is loaded</td>
+            </tr>
+            <tr>
+                <td><code>getLoadedAssets()</code></td>
+                <td>Get array of loaded handles</td>
+            </tr>
+            <tr>
+                <td><code>getRegisteredAssets()</code></td>
+                <td>Get array of registered assets</td>
+            </tr>
+            <tr>
+                <td><code>getPerformanceMetrics()</code></td>
+                <td>Get performance timing data</td>
+            </tr>
+            <tr>
+                <td><code>EWPDynamicAssetLoader.log(message, data)</code></td>
+                <td>Static debug logger (respects WP_DEBUG)</td>
+            </tr>
+        </tbody>
+    </table>
+</figure>
 <!-- /wp:table -->
 
 <!-- wp:heading {"level":3} -->
@@ -979,7 +1063,34 @@ document.querySelector('.my-widget'); // Should return element</code></pre>
 <!-- /wp:heading -->
 
 <!-- wp:table {"hasFixedLayout":false} -->
-<figure class="wp-block-table"><table><thead><tr><th>Hook</th><th>Description</th></tr></thead><tbody><tr><td><code>ewp_register_dynamic_assets</code></td><td>Register assets</td></tr><tr><td><code>ewp_dynamic_assets_lazy_load</code></td><td>Enable/disable lazy loading</td></tr><tr><td><code>ewp_dynamic_assets_root_margin</code></td><td>Intersection Observer margin</td></tr><tr><td><code>ewp_dynamic_assets_intersection_threshold</code></td><td>Intersection threshold</td></tr><tr><td><code>ewp_dynamic_assets_resource_hints</code></td><td>Add global resource hints</td></tr><tr><td><code>ewp_dynamic_assets_preload</code></td><td>Filter preload assets</td></tr><tr><td><code>ewp_dynamic_assets_critical_css</code></td><td>Filter critical CSS output</td></tr></tbody></table></figure>
+<figure class="wp-block-table">
+    <table>
+        <thead>
+            <tr>
+                <th>Hook</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>ewp_register_dynamic_assets</code></td>
+                <td>Register assets</td>
+            </tr>
+            <tr>
+                <td><code>ewp_dynamic_assets_resource_hints</code></td>
+                <td>Add global resource hints</td>
+            </tr>
+            <tr>
+                <td><code>ewp_dynamic_assets_preload</code></td>
+                <td>Filter preload assets</td>
+            </tr>
+            <tr>
+                <td><code>ewp_dynamic_assets_critical_css</code></td>
+                <td>Filter critical CSS output</td>
+            </tr>
+        </tbody>
+    </table>
+</figure>
 <!-- /wp:table -->
 
 <!-- wp:separator -->

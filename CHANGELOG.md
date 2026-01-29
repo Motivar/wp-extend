@@ -61,6 +61,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Comprehensive console logging for asset lifecycle
     - Zero performance impact in production
     - Logs initialization, DOM checks, asset loading, and errors
+    - **Static Log Method**: Added `EWPDynamicAssetLoader.log()` for global developer use
+      - Available in all dynamically loaded scripts
+      - Respects WP_DEBUG setting automatically
+      - Consistent logging format across all scripts
+  - **Simplified Architecture**: Removed MutationObserver, IntersectionObserver, and periodic checks
+    - Cleaner, more performant implementation
+    - Single DOM check on page load
+    - Developers manually trigger `checkAssets()` after AJAX/dynamic content
+    - Reduced ~120 lines of code
+    - No continuous DOM monitoring overhead
 - **Default Value Support for Input Fields**: Added ability to set default values for all input field types using the `default` key in field definitions.
   - **Original Question**: "Is it possible for the simple inputs to set default value if value is not set?"
   - **Solution**: Enhanced `awm_show_content()` function to check for `default` key and apply it when field value is empty (preserves zero values)

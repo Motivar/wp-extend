@@ -48,6 +48,31 @@ class EWPDynamicAssetLoader {
     }
 
     /**
+     * Static log method for global use by developers
+     * Checks if debug mode is enabled via global config
+     * 
+     * @param {string} message Log message
+     * @param {*} data Optional data to log
+     * @return {void}
+     */
+    static log(message, data) {
+        const debug = typeof ewpDynamicAssets !== 'undefined' &&
+            (ewpDynamicAssets.debug === true ||
+                ewpDynamicAssets.debug === '1' ||
+                ewpDynamicAssets.debug === 1);
+
+        if (!debug) {
+            return;
+        }
+
+        if (data !== undefined) {
+            console.log(`[EWP Dynamic Assets] ${message}`, data);
+        } else {
+            console.log(`[EWP Dynamic Assets] ${message}`);
+        }
+    }
+
+    /**
      * Initialize the loader
      * 
      * @return {void}
@@ -542,6 +567,10 @@ class EWPDynamicAssetLoader {
     }
 }
 
+// Expose the class to window for static method access
+window.EWPDynamicAssetLoader = EWPDynamicAssetLoader;
+
+// Initialize the loader instance
 if (typeof ewpDynamicAssets !== 'undefined') {
-    window.EWPDynamicAssetLoader = new EWPDynamicAssetLoader(ewpDynamicAssets);
+    window.EWPDynamicAssetLoader.instance = new EWPDynamicAssetLoader(ewpDynamicAssets);
 }

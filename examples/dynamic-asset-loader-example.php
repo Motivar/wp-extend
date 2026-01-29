@@ -232,8 +232,8 @@ function ewp_add_asset_load_listener()
 
         // Manually refresh after AJAX content load
         jQuery(document).on('ajaxComplete', function() {
-            if (window.EWPDynamicAssetLoader) {
-                window.EWPDynamicAssetLoader.refresh();
+            if (window.EWPDynamicAssetLoader && window.EWPDynamicAssetLoader.instance) {
+                window.EWPDynamicAssetLoader.instance.checkAssets();
             }
         });
     </script>
@@ -423,15 +423,16 @@ add_action('wp_footer', function () {
         window.addEventListener('load', function() {
             // Log performance summary after 2 seconds
             setTimeout(function() {
-                if (window.EWPDynamicAssetLoader) {
-                    window.EWPDynamicAssetLoader.logPerformanceSummary();
-
+                if (window.EWPDynamicAssetLoader && window.EWPDynamicAssetLoader.instance) {
                     // Get detailed metrics
-                    const metrics = window.EWPDynamicAssetLoader.getPerformanceMetrics();
-                    console.log('Total assets loaded:', window.EWPDynamicAssetLoader.getLoadedAssets().size);
-                    console.log('Average load time:',
-                        metrics.reduce((sum, m) => sum + m.duration, 0) / metrics.length + 'ms'
-                    );
+                    const metrics = window.EWPDynamicAssetLoader.instance.getPerformanceMetrics();
+                    const loaded = window.EWPDynamicAssetLoader.instance.getLoadedAssets();
+                    console.log('Total assets loaded:', loaded.length);
+                    if (metrics.length > 0) {
+                        console.log('Average load time:',
+                            metrics.reduce((sum, m) => sum + m.duration, 0) / metrics.length + 'ms'
+                        );
+                    }
                 }
             }, 2000);
         });
@@ -507,26 +508,28 @@ add_action('wp_footer', function () {
     <script>
         // After AJAX call that loads new content
         document.addEventListener('myAjaxComplete', function() {
+            const loader = window.EWPDynamicAssetLoader.instance;
+
             // Method 1: Check all assets for new DOM elements
-            window.EWPDynamicAssetLoader.checkAssets();
+            loader.checkAssets();
 
             // Method 2: Load specific asset by handle
-            window.EWPDynamicAssetLoader.loadAssetByHandle('my-widget-script');
+            loader.loadAssetByHandle('my-widget-script');
 
             // Method 3: Force load asset (bypasses DOM check)
-            window.EWPDynamicAssetLoader.forceLoadAsset('emergency-script');
+            loader.forceLoadAsset('emergency-script');
 
             // Check if asset is loaded
-            if (window.EWPDynamicAssetLoader.isAssetLoaded('my-widget-script')) {
+            if (loader.isAssetLoaded('my-widget-script')) {
                 console.log('Widget script is ready!');
             }
 
             // Get all loaded assets
-            const loaded = window.EWPDynamicAssetLoader.getLoadedAssets();
+            const loaded = loader.getLoadedAssets();
             console.log('Loaded assets:', loaded);
 
             // Get all registered assets
-            const registered = window.EWPDynamicAssetLoader.getRegisteredAssets();
+            const registered = loader.getRegisteredAssets();
             console.log('Registered assets:', registered);
         });
     </script>
