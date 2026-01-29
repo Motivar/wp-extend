@@ -362,7 +362,7 @@ class Extend_WP_Import_Export
    'handle' => 'extend-wp-import-export',
    'selector' => '.wrap[data-page="ewp-import-export"]',
    'type' => 'script',
-   'src' => awm_url . '/assets/js/admin/import-export.js',
+   'src' => awm_url . 'assets/js/admin/import-export.js',
    'version' => $this->version,
    'context' => 'admin',
    'dependencies' => array(),
