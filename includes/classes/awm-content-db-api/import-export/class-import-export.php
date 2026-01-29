@@ -13,7 +13,7 @@ class Extend_WP_Import_Export
  public function __construct()
  {
   add_filter('awm_add_options_boxes_filter', [$this, 'admin_menu']);
-  add_action('admin_enqueue_scripts', [$this, 'admin_scripts']);
+  add_filter('ewp_register_dynamic_assets', [$this, 'register_dynamic_assets']);
   add_action('rest_api_init', [$this, 'rest_endpoints'], 10);
   add_action('ewp_custom_content_save_action', [$this, 'auto_export_content'], 100);
   add_action('ewp_custom_content_delete_action', [$this, 'auto_export_content'], 100);
@@ -345,13 +345,44 @@ class Extend_WP_Import_Export
 
 
 
- public function admin_scripts()
+ /**
+  * Register import/export script with Dynamic Asset Loader
+  * 
+  * This method uses the Dynamic Asset Loader to load the import-export script
+  * only when the import/export admin page is active, improving performance.
+  * 
+  * @param array $assets Existing registered assets
+  * @return array Modified assets array with import/export script
+  * 
+  * @hook ewp_register_dynamic_assets
+  */
+ public function register_dynamic_assets($assets)
  {
-  /*check if we are in the correct options page*/
-  if (!isset($_GET['page']) || $_GET['page'] != 'ewp-import-export') {
-   return;
-  }
-  wp_enqueue_script('extend-wp-import-export', awm_url . '/assets/js/admin/import-export.js', array(), $this->version, true);
+  $assets[] = array(
+   'handle' => 'extend-wp-import-export',
+   'selector' => '.wrap[data-page="ewp-import-export"]',
+   'type' => 'script',
+   'src' => awm_url . '/assets/js/admin/import-export.js',
+   'version' => $this->version,
+   'dependencies' => array(),
+   'in_footer' => true,
+   'defer' => true,
+   'localize' => array(
+    'objectName' => 'ewpImportExport',
+    'data' => array(
+     'restUrl' => rest_url('ewp/v1/'),
+     'nonce' => wp_create_nonce('wp_rest'),
+     'strings' => array(
+      'importing' => __('Importing...', 'extend-wp'),
+      'exporting' => __('Exporting...', 'extend-wp'),
+      'success' => __('Operation completed successfully', 'extend-wp'),
+      'error' => __('An error occurred', 'extend-wp')
+     )
+    )
+   )
+  );
+
+  return $assets;
  }
 
  public function admin_menu($options)

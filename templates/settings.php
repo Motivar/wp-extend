@@ -39,17 +39,17 @@ if (!empty($page)) {
 
     // Check if the current admin page matches the criteria to display the settings form.
     if ($pagenow == 'admin.php' || $pagenow == 'options-general.php' || $custom_link == $awm_settings['parent']) { ?>
-<!-- Start of the settings form wrapper -->
-<div class="wrap awm-settings-form" id="<?php echo $awm_settings['id']; ?>">
- <h2><?php echo $awm_settings['title']; ?></h2> <!-- Display the page title -->
- <?php echo awm_show_explanation($awm_settings); ?>
- <!-- Display an explanation or description -->
- <?php settings_errors(); ?>
- <!-- Show any settings errors -->
+        <!-- Start of the settings form wrapper -->
+        <div class="wrap awm-settings-form" id="<?php echo $awm_settings['id']; ?>" data-page="<?php echo esc_attr($awm_settings['id']); ?>">
+            <h2><?php echo $awm_settings['title']; ?></h2> <!-- Display the page title -->
+            <?php echo awm_show_explanation($awm_settings); ?>
+            <!-- Display an explanation or description -->
+            <?php settings_errors(); ?>
+            <!-- Show any settings errors -->
 
- <!-- Start of the settings form -->
- <form method="post" action="options.php" id="<?php echo $form_id; ?>" class="awm-form">
-  <?php
+            <!-- Start of the settings form -->
+            <form method="post" action="options.php" id="<?php echo $form_id; ?>" class="awm-form">
+                <?php
                 // Check if there is a library associated with the current settings page.
                 if (isset($awm_settings['library']) && !empty($awm_settings['library'])) {
                     settings_fields($awm_settings['id']); // Output hidden form fields for settings API.
@@ -80,22 +80,22 @@ if (!empty($page)) {
                     echo '<input type="hidden" name="awm_metabox_case" value="option"/>';
                     do_action('amw_options_page_hidden_values', $awm_settings); // Hook for additional hidden values.
                 ?>
-  <?php
+                    <?php
                     // Check if the submit button should be displayed.
                     if (!isset($awm_settings['hide_submit']) || !$awm_settings['hide_submit']) {
                         $label = (isset($awm_settings['submit_label']) && !empty($awm_settings['submit_label'])) ? $awm_settings['submit_label'] : '';
                     ?>
-  <!-- Submit button for the settings form -->
-  <div class="awm-form-submit-area">
-   <?php submit_button($label); ?>
-  </div>
-  <?php
+                        <!-- Submit button for the settings form -->
+                        <div class="awm-form-submit-area">
+                            <?php submit_button($label); ?>
+                        </div>
+                <?php
                     }
                 }
                 ?>
- </form>
-</div>
-<?php
+            </form>
+        </div>
+        <?php
         // Check if REST API actions are defined for this settings page.
         if (isset($awm_settings['rest']) && isset($awm_settings['rest']['endpoint'])) {
             $method = (isset($awm_settings['rest']['method']) && !empty($awm_settings['rest']['method'])) ? $awm_settings['rest']['method'] : 'get';
@@ -103,16 +103,16 @@ if (!empty($page)) {
             $button = (isset($awm_settings['rest']['button']) && !empty($awm_settings['rest']['button'])) ? $awm_settings['rest']['button'] : __('Show results', 'filox');
             $namespace = isset($awm_settings['rest']['namespace']) ? $awm_settings['rest']['namespace'] : 'awm-dynamic-api/v1';
         ?>
-<!-- REST API actions wrapper -->
-<div class="awm-rest-actions-wrap wrap">
- <!-- Button to trigger the REST API call -->
- <div><button
-   onclick="awm_options_rest_call('<?php echo $form_id; ?>','<?php echo $namespace . $awm_settings['rest']['endpoint']; ?>','<?php echo $callback; ?>','<?php echo $method; ?>')"><?php echo $button; ?></button>
- </div>
- <!-- Placeholder for REST API results -->
- <div id="awm-rest-options-results"></div>
-</div>
-<?php
+            <!-- REST API actions wrapper -->
+            <div class="awm-rest-actions-wrap wrap">
+                <!-- Button to trigger the REST API call -->
+                <div><button
+                        onclick="awm_options_rest_call('<?php echo $form_id; ?>','<?php echo $namespace . $awm_settings['rest']['endpoint']; ?>','<?php echo $callback; ?>','<?php echo $method; ?>')"><?php echo $button; ?></button>
+                </div>
+                <!-- Placeholder for REST API results -->
+                <div id="awm-rest-options-results"></div>
+            </div>
+        <?php
         } ?>
 <?php
     }
