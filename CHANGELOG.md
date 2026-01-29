@@ -8,6 +8,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Dynamic Asset Loader System**: Created a performance optimization system that loads scripts and styles only when their corresponding DOM elements are present on the page.
+  - **Original Question**: "create a php class which will do the following: 1. register a global script 2. this script will have a localize-script function which will be an empty array with apply_filters 3. developers can register from the apply_filter above their scripts/styles to be dynamically imported based on if DOM element exists"
+  - **Solution**: Implemented `Dynamic_Asset_Loader` PHP class with `ewp_register_dynamic_assets` filter hook and JavaScript `EWPDynamicAssetLoader` class that monitors DOM using MutationObserver and dynamically injects assets as ES6 modules when their selectors are detected
+  - **Affected Files**: 
+    - `/includes/classes/class-dynamic-asset-loader.php` (PHP class with validation, sanitization, and filter hooks)
+    - `/assets/js/class-dynamic-asset-loader.js` (JavaScript module for DOM monitoring and dynamic loading)
+    - `/includes/classes/Setup.php` (integration)
+    - `/docs/dynamic-asset-loader.md` (comprehensive documentation)
+    - `/examples/dynamic-asset-loader-example.php` (usage examples)
+  - **Features**:
+    - Filter-based registration system for developers
+    - DOM-based conditional loading (only loads when selector exists)
+    - Automatic dependency handling
+    - Script localization support
+    - MutationObserver for dynamic content
+    - Custom events for tracking (`ewp_dynamic_asset_loading`, `ewp_dynamic_asset_loaded`)
+    - Support for both scripts and styles
+    - ES6 module loading
+    - Comprehensive validation and sanitization
+  - **Performance Benefits**: Reduces unnecessary HTTP requests, improves page load times, and optimizes Core Web Vitals by loading assets only when needed
+  - **Backwards Compatibility**: Fully backwards compatible - new opt-in system that doesn't affect existing asset loading
+  - **PageSpeed Optimizations**: Enhanced with Google PageSpeed Insights optimizations
+    - **Resource Hints**: Automatic `preconnect` and `dns-prefetch` for external domains to reduce DNS lookup time
+    - **Preload Links**: Support for `<link rel="preload">` to prioritize critical resources
+    - **Lazy Loading**: Intersection Observer-based lazy loading for below-the-fold assets
+    - **Async/Defer**: Script loading control with `async` and `defer` attributes
+    - **Critical Assets**: Priority loading for above-the-fold content
+    - **Performance API**: Built-in performance monitoring with `performance.mark()` and `performance.measure()`
+    - **Core Web Vitals**: Optimized for LCP (Largest Contentful Paint), FID (First Input Delay), and CLS (Cumulative Layout Shift)
+    - **Filters**: Configurable via filters (`ewp_dynamic_assets_lazy_load`, `ewp_dynamic_assets_root_margin`, `ewp_dynamic_assets_intersection_threshold`, `ewp_dynamic_assets_resource_hints`, `ewp_dynamic_assets_preload`)
+  - **Documentation**: Added comprehensive PageSpeed optimization guide at `/docs/pagespeed-optimization.md` with real-world examples and Core Web Vitals strategies
 - **Default Value Support for Input Fields**: Added ability to set default values for all input field types using the `default` key in field definitions.
   - **Original Question**: "Is it possible for the simple inputs to set default value if value is not set?"
   - **Solution**: Enhanced `awm_show_content()` function to check for `default` key and apply it when field value is empty (preserves zero values)
