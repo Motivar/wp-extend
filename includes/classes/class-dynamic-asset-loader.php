@@ -195,6 +195,7 @@ class Dynamic_Asset_Loader
          * - localize (array, optional): Localization data (scripts only)
          *   - objectName (string): JavaScript object name
          *   - data (array): Data to pass to JavaScript
+         * - module (bool, optional): Load as ES6 module (scripts only, default: false)
          * - async (bool, optional): Load script asynchronously (scripts only)
          * - defer (bool, optional): Defer script execution (scripts only)
          * - preload (bool, optional): Add preload link for faster loading
@@ -283,6 +284,7 @@ class Dynamic_Asset_Loader
                 : array();
             
             $sanitized['in_footer'] = isset($asset['in_footer']) ? (bool) $asset['in_footer'] : true;
+            $sanitized['module'] = isset($asset['module']) ? (bool) $asset['module'] : false;
             $sanitized['async'] = isset($asset['async']) ? (bool) $asset['async'] : false;
             $sanitized['defer'] = isset($asset['defer']) ? (bool) $asset['defer'] : false;
             

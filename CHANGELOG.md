@@ -47,6 +47,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Backwards Compatibility**: Fully backwards compatible - only applies when `default` key is explicitly set
 
 ### Fixed
+- **Dynamic Asset Loader Module Type**: Fixed issue where all scripts were being loaded as ES6 modules (`type="module"`), causing errors for traditional scripts that rely on global scope. Added `module` parameter (default: `false`) to allow developers to specify whether a script should be loaded as a module or regular script.
+  - **Original Issue**: Scripts like `ewp-search-script.js` that use global functions (e.g., `awm_ajax_call`) were failing because they were loaded as modules with isolated scope
+  - **Solution**: Made script type configurable via `'module' => true/false` parameter in asset registration
+  - **Affected Files**: 
+    - `/assets/js/class-dynamic-asset-loader.js` (conditional module type)
+    - `/includes/classes/class-dynamic-asset-loader.php` (parameter documentation and sanitization)
+  - **Backwards Compatibility**: Defaults to `false` (regular script), so existing registrations work without changes
 - **Gutenberg number attribute RangeControl min/max**: Fixed `RangeControl` not respecting `min`/`max` (and added `step`) for `number` attributes when values are `0` or provided under nested `attributes`.
   - **Original Question**: "when we have in the attribute table the column 'attributes' min/max is not getting into account by case 'number'"
   - **Solution**: Replaced falsy fallbacks (`||`) with nullish checks and introduced a safe numeric resolver that reads from both `data.min`/`data.max` and `data.attributes.min`/`data.attributes.max`.

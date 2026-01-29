@@ -116,7 +116,10 @@ class EWPDynamicAssetLoader {
             const script = document.createElement('script');
             script.id = asset.handle;
             script.src = asset.src;
-            script.type = 'module';
+
+            if (asset.module === true) {
+                script.type = 'module';
+            }
             
             if (asset.version) {
                 script.src += (asset.src.includes('?') ? '&' : '?') + 'ver=' + asset.version;

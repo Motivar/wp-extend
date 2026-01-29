@@ -14,8 +14,7 @@ class Extend_WP_Search_Filters
 
     add_filter('awm_register_content_db', [$this, 'register_defaults']);
     add_shortcode('ewp_search', [$this, 'ewp_display_search']);
-    add_action('init', array($this, 'registerScripts'), 0);
-    add_action('wp_enqueue_scripts', array($this, 'addScripts'), 10);
+    add_filter('ewp_register_dynamic_assets', [$this, 'register_dynamic_assets']);
     add_action('rest_api_init', [$this, 'rest_endpoints'], 10);
   }
 
@@ -215,22 +214,45 @@ class Extend_WP_Search_Filters
   }
 
   /**
+   * Register search filter script with Dynamic Asset Loader
    * 
-   * register styles and script for tippy
+   * This method uses the Dynamic Asset Loader to load the search script
+   * only when a search form is present on the page, improving performance.
+   * 
+   * @param array $assets Existing registered assets
+   * @return array Modified assets array with search script
+   * 
+   * @hook ewp_register_dynamic_assets
    */
-  public function registerScripts()
+  public function register_dynamic_assets($assets)
   {
     $version = 0.02;
-    //wp_register_style('filox-custom-inputs', flx_url . 'assets/public/css/custom-inputs/custom_inputs.min.css', false, $version);
-    wp_register_script('ewp-search', awm_url . 'assets/js/public/ewp-search-script.js', array(), $version, true);
-  }
-  /**
-   * add scripts to run for admin and frontened
-   */
-  public function addScripts()
-  {
 
-    wp_enqueue_script('ewp-search');
+    $assets[] = array(
+      'handle' => 'ewp-search',
+      'selector' => '.ewp-search-box',
+      'type' => 'script',
+      'src' => awm_url . 'assets/js/public/ewp-search-script.js',
+      'version' => $version,
+      'dependencies' => array(),
+      'in_footer' => true,
+      'defer' => true,
+      'localize' => array(
+        'objectName' => 'ewpSearch',
+        'data' => array(
+          'restUrl' => rest_url('ewp-filter/'),
+          'nonce' => wp_create_nonce('wp_rest'),
+          'ajaxUrl' => admin_url('admin-ajax.php'),
+          'strings' => array(
+            'loading' => __('Loading...', 'extend-wp'),
+            'noResults' => __('No results found', 'extend-wp'),
+            'error' => __('An error occurred', 'extend-wp')
+          )
+        )
+      )
+    );
+
+    return $assets;
   }
 
   private function prepare_form_fields($input_fields, $id, $hash)
