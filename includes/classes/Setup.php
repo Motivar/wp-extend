@@ -40,5 +40,8 @@ class Setup
   require_once 'wp-cli/class-cli-commands.php';
   require_once 'dev-tools/init.php';
   require_once 'class-dynamic-asset-loader.php';
+  
+  // Initialize template system
+  \EWP\TemplateSystem\AWM_Template_System::init();
  }
 }

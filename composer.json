@@ -20,7 +20,9 @@
     },
     "autoload": {
         "psr-4": {
-            "EWP\\": "includes/classes/"
+            "EWP\\": "includes/classes/",
+            "EWP\\TemplateSystem\\": "includes/classes/awm-template-system/",
+            "EWP\\TemplateSystem\\Interfaces\\": "includes/classes/awm-template-system/interfaces/"
         },
         "files": [
             "includes/functions/init.php"

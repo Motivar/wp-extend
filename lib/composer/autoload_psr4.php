@@ -6,5 +6,7 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
+    'EWP\\TemplateSystem\\Interfaces\\' => array($baseDir . '/includes/classes/awm-template-system/interfaces'),
+    'EWP\\TemplateSystem\\' => array($baseDir . '/includes/classes/awm-template-system'),
     'EWP\\' => array($baseDir . '/includes/classes'),
 );

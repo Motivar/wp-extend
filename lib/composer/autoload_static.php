@@ -13,11 +13,21 @@ class ComposerStaticInitfb3118450273b47d95f6da240d881eb0
     public static $prefixLengthsPsr4 = array (
         'E' => 
         array (
+            'EWP\\TemplateSystem\\Interfaces\\' => 30,
+            'EWP\\TemplateSystem\\' => 19,
             'EWP\\' => 4,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
+        'EWP\\TemplateSystem\\Interfaces\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/includes/classes/awm-template-system/interfaces',
+        ),
+        'EWP\\TemplateSystem\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/includes/classes/awm-template-system',
+        ),
         'EWP\\' => 
         array (
             0 => __DIR__ . '/../..' . '/includes/classes',
@@ -27,6 +37,19 @@ class ComposerStaticInitfb3118450273b47d95f6da240d881eb0
     public static $classMap = array (
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'EWP\\Setup' => __DIR__ . '/../..' . '/includes/classes/Setup.php',
+        'EWP\\TemplateSystem\\AWM_Template_Cache' => __DIR__ . '/../..' . '/includes/classes/awm-template-system/AWM_Template_Cache.php',
+        'EWP\\TemplateSystem\\AWM_Template_Error_Handler' => __DIR__ . '/../..' . '/includes/classes/awm-template-system/AWM_Template_Error_Handler.php',
+        'EWP\\TemplateSystem\\AWM_Template_Locator' => __DIR__ . '/../..' . '/includes/classes/awm-template-system/AWM_Template_Locator.php',
+        'EWP\\TemplateSystem\\AWM_Template_Parser' => __DIR__ . '/../..' . '/includes/classes/awm-template-system/AWM_Template_Parser.php',
+        'EWP\\TemplateSystem\\AWM_Template_Resolver' => __DIR__ . '/../..' . '/includes/classes/awm-template-system/AWM_Template_Resolver.php',
+        'EWP\\TemplateSystem\\AWM_Template_System' => __DIR__ . '/../..' . '/includes/classes/awm-template-system/AWM_Template_System.php',
+        'EWP\\TemplateSystem\\AWM_Template_Variable_Preparer' => __DIR__ . '/../..' . '/includes/classes/awm-template-system/AWM_Template_Variable_Preparer.php',
+        'EWP\\TemplateSystem\\AWM_Variable_Sanitizer' => __DIR__ . '/../..' . '/includes/classes/awm-template-system/AWM_Variable_Sanitizer.php',
+        'EWP\\TemplateSystem\\Interfaces\\Template_Cache_Interface' => __DIR__ . '/../..' . '/includes/classes/awm-template-system/interfaces/Template_Cache_Interface.php',
+        'EWP\\TemplateSystem\\Interfaces\\Template_Locator_Interface' => __DIR__ . '/../..' . '/includes/classes/awm-template-system/interfaces/Template_Locator_Interface.php',
+        'EWP\\TemplateSystem\\Interfaces\\Template_Parser_Interface' => __DIR__ . '/../..' . '/includes/classes/awm-template-system/interfaces/Template_Parser_Interface.php',
+        'EWP\\TemplateSystem\\Interfaces\\Template_Renderer_Interface' => __DIR__ . '/../..' . '/includes/classes/awm-template-system/interfaces/Template_Renderer_Interface.php',
+        'EWP\\TemplateSystem\\Interfaces\\Variable_Sanitizer_Interface' => __DIR__ . '/../..' . '/includes/classes/awm-template-system/interfaces/Variable_Sanitizer_Interface.php',
     );
 
     public static function getInitializer(ClassLoader $loader)

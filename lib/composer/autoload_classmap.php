@@ -8,4 +8,17 @@ $baseDir = dirname($vendorDir);
 return array(
     'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
     'EWP\\Setup' => $baseDir . '/includes/classes/Setup.php',
+    'EWP\\TemplateSystem\\AWM_Template_Cache' => $baseDir . '/includes/classes/awm-template-system/AWM_Template_Cache.php',
+    'EWP\\TemplateSystem\\AWM_Template_Error_Handler' => $baseDir . '/includes/classes/awm-template-system/AWM_Template_Error_Handler.php',
+    'EWP\\TemplateSystem\\AWM_Template_Locator' => $baseDir . '/includes/classes/awm-template-system/AWM_Template_Locator.php',
+    'EWP\\TemplateSystem\\AWM_Template_Parser' => $baseDir . '/includes/classes/awm-template-system/AWM_Template_Parser.php',
+    'EWP\\TemplateSystem\\AWM_Template_Resolver' => $baseDir . '/includes/classes/awm-template-system/AWM_Template_Resolver.php',
+    'EWP\\TemplateSystem\\AWM_Template_System' => $baseDir . '/includes/classes/awm-template-system/AWM_Template_System.php',
+    'EWP\\TemplateSystem\\AWM_Template_Variable_Preparer' => $baseDir . '/includes/classes/awm-template-system/AWM_Template_Variable_Preparer.php',
+    'EWP\\TemplateSystem\\AWM_Variable_Sanitizer' => $baseDir . '/includes/classes/awm-template-system/AWM_Variable_Sanitizer.php',
+    'EWP\\TemplateSystem\\Interfaces\\Template_Cache_Interface' => $baseDir . '/includes/classes/awm-template-system/interfaces/Template_Cache_Interface.php',
+    'EWP\\TemplateSystem\\Interfaces\\Template_Locator_Interface' => $baseDir . '/includes/classes/awm-template-system/interfaces/Template_Locator_Interface.php',
+    'EWP\\TemplateSystem\\Interfaces\\Template_Parser_Interface' => $baseDir . '/includes/classes/awm-template-system/interfaces/Template_Parser_Interface.php',
+    'EWP\\TemplateSystem\\Interfaces\\Template_Renderer_Interface' => $baseDir . '/includes/classes/awm-template-system/interfaces/Template_Renderer_Interface.php',
+    'EWP\\TemplateSystem\\Interfaces\\Variable_Sanitizer_Interface' => $baseDir . '/includes/classes/awm-template-system/interfaces/Variable_Sanitizer_Interface.php',
 );
