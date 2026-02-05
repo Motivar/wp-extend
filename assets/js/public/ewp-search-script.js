@@ -1,9 +1,26 @@
 /**check when dom is ready to initatate the forms */
 
-document.addEventListener('DOMContentLoaded', () => {
-    EWPDynamicAssetLoader.log('Search script: DOMContentLoaded fired');
-    ewp_search_forms();
-});
+/**
+ * Initialize search forms - works for both static and dynamic loading
+ */
+(function() {
+    EWPDynamicAssetLoader.log('Search script: Initialization started', { 
+        readyState: document.readyState 
+    });
+    
+    if (document.readyState === 'loading') {
+        // DOM not ready yet, wait for DOMContentLoaded
+        EWPDynamicAssetLoader.log('Search script: Waiting for DOMContentLoaded');
+        document.addEventListener('DOMContentLoaded', () => {
+            EWPDynamicAssetLoader.log('Search script: DOMContentLoaded fired');
+            ewp_search_forms();
+        });
+    } else {
+        // DOM already loaded (dynamically loaded script)
+        EWPDynamicAssetLoader.log('Search script: DOM already ready, initializing immediately');
+        ewp_search_forms();
+    }
+})();
 
 /**
  * 
