@@ -1,6 +1,7 @@
 /**check when dom is ready to initatate the forms */
 
 document.addEventListener('DOMContentLoaded', () => {
+    EWPDynamicAssetLoader.log('Search script: DOMContentLoaded fired');
     ewp_search_forms();
 });
 
@@ -69,25 +70,42 @@ function ewp_reset_search_form(id) {
  * 
  */
 function ewp_search_forms() {
+    EWPDynamicAssetLoader.log('Search script: ewp_search_forms() called');
     /*get the forms*/
     var form_boxes = document.querySelectorAll('.ewp-search-box');
+    EWPDynamicAssetLoader.log('Search script: Found form boxes', { count: form_boxes.length });
     if (form_boxes.length > 0) {
         /*check form box configuration and set the actions*/
-        Array.from(form_boxes).forEach(function (form_box) {
+        Array.from(form_boxes).forEach(function (form_box, index) {
+            EWPDynamicAssetLoader.log('Search script: Processing form box', { index: index, id: form_box.id });
             var form = form_box.querySelector('form');
+            EWPDynamicAssetLoader.log('Search script: Form found', { hasForm: !!form });
+
             var options = JSON.parse(form_box.getAttribute('options').replace(/\'/g, '\"'));
+            EWPDynamicAssetLoader.log('Search script: Options parsed', options);
 
             options.search_id = form_box.getAttribute('search-id');
             var show_results = document.querySelector(options.show_results);
+            EWPDynamicAssetLoader.log('Search script: Show results element', {
+                selector: options.show_results,
+                found: !!show_results
+            });
             if (show_results !== null) {
                 if (options.async == 'async') {
+                    EWPDynamicAssetLoader.log('Search script: Adding change event listener', { formId: form_box.id });
                     form.addEventListener('change', () => {
+                        EWPDynamicAssetLoader.log('Search script: Change event fired', { formId: form_box.id });
                         ewp_search_action(form, options, show_results, 1);
                     });
+                } else {
+                    EWPDynamicAssetLoader.log('Search script: Async not enabled', { async: options.async });
                 }
+            } else {
+                EWPDynamicAssetLoader.log('Search script: Show results element is null', { selector: options.show_results });
             }
             /*execute on load*/
             if (options.run_on_load) {
+                EWPDynamicAssetLoader.log('Search script: Run on load enabled');
                 let empty = true;
 
                 if (options.run_on_load_empty) {
@@ -100,11 +118,16 @@ function ewp_search_forms() {
                     });
                 }
                 if (!empty) {
+                    EWPDynamicAssetLoader.log('Search script: Executing search on load', { empty: empty });
                     ewp_search_action(form, options, show_results, 1);
+                } else {
+                    EWPDynamicAssetLoader.log('Search script: Form is empty, skipping run on load');
                 }
             }
 
         });
+    } else {
+        EWPDynamicAssetLoader.log('Search script: No form boxes found with selector .ewp-search-box');
     }
 }
 
@@ -112,6 +135,11 @@ function ewp_search_forms() {
  * handle the call to the server
  */
 function ewp_search_action(form, options, show_results, paged) {
+    EWPDynamicAssetLoader.log('Search script: ewp_search_action() called', {
+        paged: paged,
+        loadType: options.load_type,
+        searchId: options.search_id
+    });
     if (paged == 1 || options.load_type != 'button') {
         document.body.classList.add('ewp-search-loading');
     }
@@ -136,6 +164,10 @@ function ewp_search_action(form, options, show_results, paged) {
  * show the results from search query
  */
 function ewp_search_form_callback(response, options) {
+    EWPDynamicAssetLoader.log('Search script: Callback received', {
+        responseLength: response.length,
+        searchId: options.search_options.search_id
+    });
     /*remove the content and display the content*/
     document.body.classList.remove('ewp-search-loading');
     let display_div = options.element;
