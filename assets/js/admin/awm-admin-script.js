@@ -88,13 +88,17 @@ function awm_add_map() {
     var map = document.getElementsByClassName("awm_map");
     if (typeof (map) != 'undefined' && map != null && map.length > 0 && typeof (awmGlobals) != 'undefined' && awmGlobals != null && !awm_call_map) {
         awm_call_map = true;
-        awm_js_ajax_call(awmGlobals.url + '/wp-json/extend-wp/v1/awm-map-options/', 'awm_call_maps_api');
+        awm_ajax_call({
+            method: 'GET',
+            url: awmGlobals.url + '/wp-json/extend-wp/v1/awm-map-options/',
+            callback: 'awm_call_maps_api'
+        });
     }
 }
 
 
 function awm_call_maps_api(data) {
-    awm_map_options = JSON.parse(data);
+    awm_map_options = data;
     var src = "//maps.googleapis.com/maps/api/js?libraries=places&callback=awmInitMap";
     if (awm_map_options.key !== null) {
         src += '&key=' + awm_map_options.key;

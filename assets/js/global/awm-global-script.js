@@ -310,24 +310,20 @@ if (document.getElementsByClassName("awm_custom_image_image_uploader_field-show"
     clickables[0].click()
 }
 
-
-
+/**
+ * Legacy AJAX GET call - redirects to awm_ajax_call
+ * 
+ * @deprecated Use awm_ajax_call() directly with method: 'GET'
+ * @param {string} url Target URL for the GET request
+ * @param {string} js_callback Callback function name to execute on success
+ * @return {boolean} Returns true if request was initiated
+ */
 function awm_js_ajax_call(url, js_callback) {
-
-    var request = new XMLHttpRequest();
-    request.open('GET', url, true);
-
-    request.onload = function () {
-        if (request.status >= 200 && request.status < 400) {
-            var call_back = window[js_callback];
-            if (typeof call_back == 'function') {
-                call_back(request.responseText);
-            } else {
-                console.log(js_callback + ' function does not exist!');
-            }
-        }
-    };
-    request.send();
+    return awm_ajax_call({
+        method: 'GET',
+        url: url,
+        callback: js_callback
+    });
 }
 
 function awmCallbacks() {
