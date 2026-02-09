@@ -184,6 +184,7 @@ class EWPDynamicAssetLoader {
             // Localize BEFORE appending script so data is available when script executes
             if (asset.localize) {
                 this.localizeScript(asset.localize);
+                this.log('Script localized:', asset.localize);
             }
 
             script.onload = () => {
