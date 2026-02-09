@@ -418,11 +418,13 @@ class Dynamic_Asset_Loader
         }
 
         if (is_string($data)) {
-            // Preserve URLs and allow HTML entities
+            // Preserve URLs
             if (filter_var($data, FILTER_VALIDATE_URL)) {
                 return esc_url_raw($data);
             }
-            return sanitize_text_field($data);
+            // Use esc_js to properly escape quotes and special chars for JavaScript
+            // This handles: ' " \ and other special characters
+            return esc_js(sanitize_text_field($data));
         }
 
         if (is_numeric($data)) {
