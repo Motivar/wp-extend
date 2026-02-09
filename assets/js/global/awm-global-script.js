@@ -1231,87 +1231,290 @@ function awm_serialize_data(obj, prefix) {
 
 
 }
+/**
+ * AJAX Call Function
+ * 
+ * Performs AJAX requests with WordPress REST API integration.
+ * Supports both GET and POST methods with automatic nonce handling.
+ * 
+ * @param {Object} options Configuration options for the AJAX request
+ * @param {string} options.method HTTP method (GET or POST, default: POST)
+ * @param {Object|Array} options.data Data to send with request
+ * @param {string} options.url Target URL for the request
+ * @param {Array} options.headers Array of header objects {header: 'name', value: 'value'}
+ * @param {string|Function} options.callback Success callback function name or function reference
+ * @param {string|Function} options.errorCallback Error callback function name or function reference (called on 4xx errors)
+ * @param {boolean} options.log Enable console logging for debugging
+ * @param {HTMLElement|string} options.element Element to pass to callback
+ * @return {boolean} Returns true if request was initiated
+ * 
+ * @since 1.0.0
+ */
 function awm_ajax_call(options) {
-    var defaults = {
-        method: 'POST',
-        data: {},
-        url: '',
-        headers: [
-            { 'header': 'Content-Type', 'value': 'application/json' },
-            { 'header': 'X-WP-Nonce', 'value': awmGlobals.nonce }
-        ],
-        callback: false,
-        log: false,
-        element: false
-    };
-
-    const Options = { ...defaults, ...options };
-
-    if (Options.method.toLowerCase() === 'get' && Options.data.length > 0) {
-        Options.url += '?' + Options.data.join("&");
-        Options.data = null;
-    }
-
-    if (Options.log) {
-        console.log(Options);
-    }
-
-    var request = new XMLHttpRequest();
-    request.open(Options.method, Options.url, true);
-
-    Options.headers.forEach(function (header) {
-        request.setRequestHeader(header.header, header.value);
-    });
-
-    request.onreadystatechange = function () {
-        if (request.readyState === 4) {
-            try {
-                if (request.status >= 200 && request.status < 300) {
-                    var responseData = JSON.parse(request.responseText);
-
-                    if (Options.log) {
-                        console.log(responseData);
-                    }
-
-                    if (Options.element) {
-                        responseData.element = Options.element;
-                    }
-
-                    if (Options.callback) {
-                        var callbackFunction = typeof Options.callback === 'function'
-                            ? Options.callback
-                            : window[Options.callback];
-
-                        if (typeof callbackFunction === 'function') {
-                            callbackFunction(responseData, Options);
-                        } else {
-                            console.error(Options.callback + " function does not exist!");
-                        }
-                    }
-
-                    var data = { response: responseData, options: Options };
-                    const event = new CustomEvent("awm_ajax_call_callback", { detail: data });
-                    document.dispatchEvent(event);
-                } else {
-                    handleError(request.status);
-                }
-            } catch (e) {
-                console.error("Error processing the request: ", e);
-            }
+    /**
+     * Helper function for consistent logging
+     * Uses EWPDynamicAssetLoader pattern for debug logging
+     * 
+     * @param {string} message Log message
+     * @param {*} data Optional data to log
+     * @return {void}
+     */
+    function awmLog(message, data) {
+        // Check if debug mode is enabled via awmGlobals or options
+        var debug = (options && options.log) || 
+                    (typeof awmGlobals !== 'undefined' && awmGlobals.debug);
+        
+        if (!debug) {
+            return;
         }
-    };
 
-    function handleError(status) {
-        console.error("Request failed with status: " + status);
+        // Use EWPDynamicAssetLoader logging pattern
+        if (data !== undefined) {
+            console.log('[AWM AJAX] ' + message, data);
+        } else {
+            console.log('[AWM AJAX] ' + message);
+        }
     }
 
     try {
-        request.send(Options.data ? JSON.stringify(Options.data) : null);
-    } catch (e) {
-        console.error("Error sending the request: ", e);
-    }
+        // Default configuration options
+        var defaults = {
+            method: 'POST',
+            data: {},
+            url: '',
+            headers: [
+                { 'header': 'Content-Type', 'value': 'application/json' },
+                { 'header': 'X-WP-Nonce', 'value': awmGlobals.nonce }
+            ],
+            callback: false,
+            errorCallback: false,
+            log: false,
+            element: false
+        };
 
-    return true;
+        // Merge user options with defaults
+        const Options = { ...defaults, ...options };
+
+        awmLog('Initializing AJAX request', {
+            method: Options.method,
+            url: Options.url,
+            hasCallback: !!Options.callback,
+            hasErrorCallback: !!Options.errorCallback
+        });
+
+        // Handle GET request data serialization
+        // Convert data object/array to query string parameters
+        if (Options.method.toLowerCase() === 'get' && Options.data) {
+            try {
+                var queryParams = [];
+                
+                // Check if data is an array (already serialized)
+                if (Array.isArray(Options.data)) {
+                    awmLog('GET request: data is array', { length: Options.data.length });
+                    queryParams = Options.data;
+                } 
+                // Check if data is an object (needs serialization)
+                else if (typeof Options.data === 'object' && Object.keys(Options.data).length > 0) {
+                    awmLog('GET request: serializing object data', Options.data);
+                    // Convert object to query string array
+                    for (var key in Options.data) {
+                        if (Options.data.hasOwnProperty(key)) {
+                            queryParams.push(encodeURIComponent(key) + '=' + encodeURIComponent(Options.data[key]));
+                        }
+                    }
+                }
+                
+                // Append query parameters to URL if any exist
+                if (queryParams.length > 0) {
+                    var separator = Options.url.indexOf('?') === -1 ? '?' : '&';
+                    Options.url += separator + queryParams.join("&");
+                    awmLog('GET request: URL with parameters', Options.url);
+                }
+                
+                // Clear data for GET requests (data goes in URL)
+                Options.data = null;
+            } catch (e) {
+                console.error('[AWM AJAX] Error serializing GET request data:', e);
+                throw e;
+            }
+        }
+
+        // Create XMLHttpRequest instance
+        var request = new XMLHttpRequest();
+        
+        try {
+            request.open(Options.method, Options.url, true);
+            awmLog('Request opened', { method: Options.method, url: Options.url });
+        } catch (e) {
+            console.error('[AWM AJAX] Error opening request:', e);
+            throw e;
+        }
+
+        // Set request headers (Content-Type, Nonce, etc.)
+        try {
+            Options.headers.forEach(function (header) {
+                request.setRequestHeader(header.header, header.value);
+            });
+            awmLog('Headers set', { count: Options.headers.length });
+        } catch (e) {
+            console.error('[AWM AJAX] Error setting request headers:', e);
+            throw e;
+        }
+
+        // Handle response when request completes
+        request.onreadystatechange = function () {
+            // Check if request is complete (readyState 4 = DONE)
+            if (request.readyState === 4) {
+                awmLog('Request complete', { status: request.status });
+                
+                try {
+                    // Success: HTTP status 2xx
+                    if (request.status >= 200 && request.status < 300) {
+                        awmLog('Request successful', { status: request.status });
+                        
+                        try {
+                            // Parse JSON response
+                            var responseData = JSON.parse(request.responseText);
+                            awmLog('Response parsed', responseData);
+
+                            // Attach element reference to response if provided
+                            if (Options.element) {
+                                responseData.element = Options.element;
+                                awmLog('Element attached to response');
+                            }
+
+                            // Execute success callback if provided
+                            if (Options.callback) {
+                                try {
+                                    // Support both function reference and function name string
+                                    var callbackFunction = typeof Options.callback === 'function'
+                                        ? Options.callback
+                                        : window[Options.callback];
+
+                                    if (typeof callbackFunction === 'function') {
+                                        awmLog('Executing success callback', { callback: Options.callback });
+                                        callbackFunction(responseData, Options);
+                                    } else {
+                                        console.error('[AWM AJAX] ' + Options.callback + ' function does not exist!');
+                                    }
+                                } catch (e) {
+                                    console.error('[AWM AJAX] Error executing success callback:', e);
+                                }
+                            }
+
+                            // Dispatch custom event for global listeners
+                            try {
+                                var data = { response: responseData, options: Options };
+                                const event = new CustomEvent("awm_ajax_call_callback", { detail: data });
+                                document.dispatchEvent(event);
+                                awmLog('Success event dispatched');
+                            } catch (e) {
+                                console.error('[AWM AJAX] Error dispatching success event:', e);
+                            }
+                        } catch (e) {
+                            // Handle JSON parsing errors
+                            console.error('[AWM AJAX] Error parsing JSON response:', e);
+                            handleError(request.status, 'JSON parse error: ' + e.message);
+                        }
+                    } 
+                    // Error: HTTP status 4xx or 5xx
+                    else {
+                        awmLog('Request failed', { status: request.status });
+                        handleError(request.status, request.responseText);
+                    }
+                } catch (e) {
+                    // Handle any unexpected errors in response processing
+                    console.error('[AWM AJAX] Error processing response:', e);
+                    handleError(request.status, e.message);
+                }
+            }
+        };
+
+        /**
+         * Handle error responses
+         * 
+         * Processes failed requests and calls error callback if provided.
+         * Specifically handles 4xx client errors with callback support.
+         * 
+         * @param {number} status HTTP status code
+         * @param {string} responseText Response text or error message
+         * @return {void}
+         */
+        function handleError(status, responseText) {
+            try {
+                // Log error using consistent logging pattern
+                console.error('[AWM AJAX] Request failed with status: ' + status);
+                awmLog('Handling error', { status: status, message: responseText });
+                
+                // Check if this is a 4xx client error (400-499)
+                var isClientError = status >= 400 && status < 500;
+                
+                // Execute error callback if provided and it's a 4xx error
+                if (isClientError && Options.errorCallback) {
+                    try {
+                        // Support both function reference and function name string
+                        var errorCallbackFunction = typeof Options.errorCallback === 'function'
+                            ? Options.errorCallback
+                            : window[Options.errorCallback];
+
+                        if (typeof errorCallbackFunction === 'function') {
+                            // Prepare error data object
+                            var errorData = {
+                                status: status,
+                                message: responseText || 'Request failed',
+                                options: Options
+                            };
+                            
+                            awmLog('Executing error callback', { callback: Options.errorCallback, status: status });
+                            // Call error callback with error data
+                            errorCallbackFunction(errorData);
+                        } else {
+                            console.error('[AWM AJAX] ' + Options.errorCallback + ' error callback function does not exist!');
+                        }
+                    } catch (e) {
+                        console.error('[AWM AJAX] Error executing error callback:', e);
+                    }
+                }
+                
+                // Dispatch custom error event for global listeners
+                try {
+                    var errorEventData = {
+                        status: status,
+                        message: responseText || 'Request failed',
+                        options: Options
+                    };
+                    const errorEvent = new CustomEvent("awm_ajax_call_error", { detail: errorEventData });
+                    document.dispatchEvent(errorEvent);
+                    awmLog('Error event dispatched', { status: status });
+                } catch (e) {
+                    console.error('[AWM AJAX] Error dispatching error event:', e);
+                }
+            } catch (e) {
+                // Catch-all for any errors in error handling itself
+                console.error('[AWM AJAX] Critical error in handleError:', e);
+            }
+        }
+
+        // Send the request
+        try {
+            // For POST requests, send data as JSON string
+            // For GET requests, data is null (already in URL)
+            var requestData = Options.data ? JSON.stringify(Options.data) : null;
+            awmLog('Sending request', { hasData: !!requestData });
+            request.send(requestData);
+        } catch (e) {
+            // Handle network errors or send failures
+            console.error('[AWM AJAX] Error sending the request:', e);
+            handleError(0, e.message);
+        }
+
+        return true;
+        
+    } catch (e) {
+        // Catch-all for any initialization errors
+        console.error('[AWM AJAX] Critical error initializing AJAX call:', e);
+        return false;
+    }
 }
 
 function awmMultipleCheckBox() {
