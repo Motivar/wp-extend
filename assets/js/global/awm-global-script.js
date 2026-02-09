@@ -1251,31 +1251,6 @@ function awm_serialize_data(obj, prefix) {
  * @since 1.0.0
  */
 function awm_ajax_call(options) {
-    /**
-     * Helper function for consistent logging
-     * Uses EWPDynamicAssetLoader pattern for debug logging
-     * 
-     * @param {string} message Log message
-     * @param {*} data Optional data to log
-     * @return {void}
-     */
-    function awmLog(message, data) {
-        // Check if debug mode is enabled via awmGlobals or options
-        var debug = (options && options.log) || 
-                    (typeof awmGlobals !== 'undefined' && awmGlobals.debug);
-        
-        if (!debug) {
-            return;
-        }
-
-        // Use EWPDynamicAssetLoader logging pattern
-        if (data !== undefined) {
-            console.log('[AWM AJAX] ' + message, data);
-        } else {
-            console.log('[AWM AJAX] ' + message);
-        }
-    }
-
     try {
         // Default configuration options
         var defaults = {
@@ -1295,7 +1270,7 @@ function awm_ajax_call(options) {
         // Merge user options with defaults
         const Options = { ...defaults, ...options };
 
-        awmLog('Initializing AJAX request', {
+        EWPDynamicAssetLoader.log('Initializing AJAX request', {
             method: Options.method,
             url: Options.url,
             hasCallback: !!Options.callback,
@@ -1310,12 +1285,12 @@ function awm_ajax_call(options) {
                 
                 // Check if data is an array (already serialized)
                 if (Array.isArray(Options.data)) {
-                    awmLog('GET request: data is array', { length: Options.data.length });
+                    EWPDynamicAssetLoader.log('GET request: data is array', { length: Options.data.length });
                     queryParams = Options.data;
                 } 
                 // Check if data is an object (needs serialization)
                 else if (typeof Options.data === 'object' && Object.keys(Options.data).length > 0) {
-                    awmLog('GET request: serializing object data', Options.data);
+                    EWPDynamicAssetLoader.log('GET request: serializing object data', Options.data);
                     // Convert object to query string array
                     for (var key in Options.data) {
                         if (Options.data.hasOwnProperty(key)) {
@@ -1328,7 +1303,7 @@ function awm_ajax_call(options) {
                 if (queryParams.length > 0) {
                     var separator = Options.url.indexOf('?') === -1 ? '?' : '&';
                     Options.url += separator + queryParams.join("&");
-                    awmLog('GET request: URL with parameters', Options.url);
+                    EWPDynamicAssetLoader.log('GET request: URL with parameters', Options.url);
                 }
                 
                 // Clear data for GET requests (data goes in URL)
@@ -1344,7 +1319,7 @@ function awm_ajax_call(options) {
         
         try {
             request.open(Options.method, Options.url, true);
-            awmLog('Request opened', { method: Options.method, url: Options.url });
+            EWPDynamicAssetLoader.log('Request opened', { method: Options.method, url: Options.url });
         } catch (e) {
             console.error('[AWM AJAX] Error opening request:', e);
             throw e;
@@ -1355,7 +1330,7 @@ function awm_ajax_call(options) {
             Options.headers.forEach(function (header) {
                 request.setRequestHeader(header.header, header.value);
             });
-            awmLog('Headers set', { count: Options.headers.length });
+            EWPDynamicAssetLoader.log('Headers set', { count: Options.headers.length });
         } catch (e) {
             console.error('[AWM AJAX] Error setting request headers:', e);
             throw e;
@@ -1365,22 +1340,22 @@ function awm_ajax_call(options) {
         request.onreadystatechange = function () {
             // Check if request is complete (readyState 4 = DONE)
             if (request.readyState === 4) {
-                awmLog('Request complete', { status: request.status });
+                EWPDynamicAssetLoader.log('Request complete', { status: request.status });
                 
                 try {
                     // Success: HTTP status 2xx
                     if (request.status >= 200 && request.status < 300) {
-                        awmLog('Request successful', { status: request.status });
+                        EWPDynamicAssetLoader.log('Request successful', { status: request.status });
                         
                         try {
                             // Parse JSON response
                             var responseData = JSON.parse(request.responseText);
-                            awmLog('Response parsed', responseData);
+                            EWPDynamicAssetLoader.log('Response parsed', responseData);
 
                             // Attach element reference to response if provided
                             if (Options.element) {
                                 responseData.element = Options.element;
-                                awmLog('Element attached to response');
+                                EWPDynamicAssetLoader.log('Element attached to response');
                             }
 
                             // Execute success callback if provided
@@ -1392,7 +1367,7 @@ function awm_ajax_call(options) {
                                         : window[Options.callback];
 
                                     if (typeof callbackFunction === 'function') {
-                                        awmLog('Executing success callback', { callback: Options.callback });
+                                        EWPDynamicAssetLoader.log('Executing success callback', { callback: Options.callback });
                                         callbackFunction(responseData, Options);
                                     } else {
                                         console.error('[AWM AJAX] ' + Options.callback + ' function does not exist!');
@@ -1407,7 +1382,7 @@ function awm_ajax_call(options) {
                                 var data = { response: responseData, options: Options };
                                 const event = new CustomEvent("awm_ajax_call_callback", { detail: data });
                                 document.dispatchEvent(event);
-                                awmLog('Success event dispatched');
+                                EWPDynamicAssetLoader.log('Success event dispatched');
                             } catch (e) {
                                 console.error('[AWM AJAX] Error dispatching success event:', e);
                             }
@@ -1419,7 +1394,7 @@ function awm_ajax_call(options) {
                     } 
                     // Error: HTTP status 4xx or 5xx
                     else {
-                        awmLog('Request failed', { status: request.status });
+                        EWPDynamicAssetLoader.log('Request failed', { status: request.status });
                         handleError(request.status, request.responseText);
                     }
                 } catch (e) {
@@ -1444,7 +1419,7 @@ function awm_ajax_call(options) {
             try {
                 // Log error using consistent logging pattern
                 console.error('[AWM AJAX] Request failed with status: ' + status);
-                awmLog('Handling error', { status: status, message: responseText });
+                EWPDynamicAssetLoader.log('Handling error', { status: status, message: responseText });
                 
                 // Check if this is a 4xx client error (400-499)
                 var isClientError = status >= 400 && status < 500;
@@ -1465,7 +1440,7 @@ function awm_ajax_call(options) {
                                 options: Options
                             };
                             
-                            awmLog('Executing error callback', { callback: Options.errorCallback, status: status });
+                            EWPDynamicAssetLoader.log('Executing error callback', { callback: Options.errorCallback, status: status });
                             // Call error callback with error data
                             errorCallbackFunction(errorData);
                         } else {
@@ -1485,7 +1460,7 @@ function awm_ajax_call(options) {
                     };
                     const errorEvent = new CustomEvent("awm_ajax_call_error", { detail: errorEventData });
                     document.dispatchEvent(errorEvent);
-                    awmLog('Error event dispatched', { status: status });
+                    EWPDynamicAssetLoader.log('Error event dispatched', { status: status });
                 } catch (e) {
                     console.error('[AWM AJAX] Error dispatching error event:', e);
                 }
@@ -1500,7 +1475,7 @@ function awm_ajax_call(options) {
             // For POST requests, send data as JSON string
             // For GET requests, data is null (already in URL)
             var requestData = Options.data ? JSON.stringify(Options.data) : null;
-            awmLog('Sending request', { hasData: !!requestData });
+            EWPDynamicAssetLoader.log('Sending request', { hasData: !!requestData });
             request.send(requestData);
         } catch (e) {
             // Handle network errors or send failures

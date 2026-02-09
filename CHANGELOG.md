@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **`awm_ajax_call` Refactored**: Improved AJAX utility function with bug fixes, error callback support, and logging.
+  - **Original Request**: "Review awm_ajax_call, add error callback for 4xx, fix GET bug, add comments, use EWPDynamicAssetLoader.log"
+  - **Changes**:
+    - Fixed GET request data serialization bug — now handles both object and array data types correctly
+    - Added `errorCallback` option for 4xx client error handling with structured error data
+    - Added `awm_ajax_call_error` custom event dispatched on all errors for global listeners
+    - Replaced custom logging with `EWPDynamicAssetLoader.log()` for consistency across codebase
+    - Added comprehensive try/catch blocks at every critical point
+    - Added full JSDoc documentation and inline comments
+  - **Affected Files**: `/assets/js/global/awm-global-script.js`
+  - **Backwards-compatibility**: Fully backwards-compatible; `errorCallback` is optional, existing callers unaffected
+
 ### Added
 - **Dynamic Asset Loader System**: Created a performance optimization system that loads scripts and styles only when their corresponding DOM elements are present on the page.
   - **Original Question**: "create a php class which will do the following: 1. register a global script 2. this script will have a localize-script function which will be an empty array with apply_filters 3. developers can register from the apply_filter above their scripts/styles to be dynamically imported based on if DOM element exists"
