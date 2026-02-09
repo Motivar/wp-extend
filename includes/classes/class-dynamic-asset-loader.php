@@ -397,8 +397,44 @@ class Dynamic_Asset_Loader
         // Use sanitize_text_field instead of sanitize_key to preserve camelCase
         return array(
             'objectName' => sanitize_text_field($localize['objectName']),
-            'data' => $localize['data']
+            'data' => $this->sanitize_localize_data_recursive($localize['data'])
         );
+    }
+
+    /**
+     * Recursively sanitize localization data
+     * 
+     * @param mixed $data Data to sanitize
+     * @return mixed Sanitized data
+     */
+    private function sanitize_localize_data_recursive($data)
+    {
+        if (is_array($data)) {
+            $sanitized = array();
+            foreach ($data as $key => $value) {
+                $sanitized[sanitize_text_field($key)] = $this->sanitize_localize_data_recursive($value);
+            }
+            return $sanitized;
+        }
+
+        if (is_string($data)) {
+            // Preserve URLs and allow HTML entities
+            if (filter_var($data, FILTER_VALIDATE_URL)) {
+                return esc_url_raw($data);
+            }
+            return sanitize_text_field($data);
+        }
+
+        if (is_numeric($data)) {
+            return $data;
+        }
+
+        if (is_bool($data)) {
+            return $data;
+        }
+
+        // For null or other types, return as-is
+        return $data;
     }
 
     /**
