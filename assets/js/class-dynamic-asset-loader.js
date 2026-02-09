@@ -181,13 +181,13 @@ class EWPDynamicAssetLoader {
                 script.setAttribute('data-critical', 'true');
             }
 
+            // Localize BEFORE appending script so data is available when script executes
+            if (asset.localize) {
+                this.localizeScript(asset.localize);
+            }
+
             script.onload = () => {
                 this.log(`Script loaded: ${asset.handle}`);
-
-                if (asset.localize) {
-                    this.localizeScript(asset.localize);
-                }
-                
                 this.markPerformance(asset.handle, 'loaded');
                 this.dispatchAssetLoadedEvent(asset, true);
             };
