@@ -313,11 +313,13 @@ class EWPDynamicAssetLoader {
      */
     localizeScript(localize) {
         if (!localize || !localize.objectName || !localize.data) {
+            this.log('Localize skipped - missing data', { localize });
             return;
         }
 
         try {
             window[localize.objectName] = localize.data;
+            this.log(`Localized script data set: ${localize.objectName}`, { data: localize.data });
         } catch (error) {
             this.log('Failed to localize script', { objectName: localize.objectName, error });
         }

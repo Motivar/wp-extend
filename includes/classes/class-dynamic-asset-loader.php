@@ -394,8 +394,9 @@ class Dynamic_Asset_Loader
             return null;
         }
 
+        // Use sanitize_text_field instead of sanitize_key to preserve camelCase
         return array(
-            'objectName' => sanitize_key($localize['objectName']),
+            'objectName' => sanitize_text_field($localize['objectName']),
             'data' => $localize['data']
         );
     }
