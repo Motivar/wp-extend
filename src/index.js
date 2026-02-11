@@ -315,7 +315,7 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                             {imageIds.length > 0 && (
                               <div style={{ 
                                 display: 'grid', 
-                                gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', 
+                                gridTemplateColumns: 'repeat(2, 1fr)', 
                                 gap: '8px',
                                 marginBottom: '15px'
                               }}>
@@ -324,8 +324,8 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                                   return (
                                     <div key={imageId} style={{ 
                                       position: 'relative',
-                                      width: '80px',
-                                      height: '80px'
+                                      width: '100%',
+                                      aspectRatio: '1 / 1'
                                     }}>
                                       {imgData?.url ? (
                                         <img 
