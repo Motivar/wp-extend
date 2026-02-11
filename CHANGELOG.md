@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Added `api_version: 3` to PHP `register_block_type()` and `apiVersion: 3` to JS `registerBlockType()`
     - Build scripts updated to use `wp-scripts build` / `wp-scripts start`
     - Replaced `console.log`/`console.warn` in `src/index.js` with `EWPDynamicAssetLoader.log` dev debugging (behind feature flag)
+    - Fixed first preview loading without input values: added mount `useEffect` that flushes all initial/default attribute values through `setAttributes`, ensuring the first preview request includes all field data
   - **Affected Files**:
     - `package.json` (updated dependencies and scripts)
     - `.babelrc` (deleted)

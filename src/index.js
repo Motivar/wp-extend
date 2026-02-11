@@ -85,6 +85,21 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
           }
         };
 
+        // On mount: flush all initial/default values through setAttributes
+        // so the block's persisted state matches the UI and the first preview
+        // request includes all field values.
+        useEffect(() => {
+          const mountValues = {};
+          Object.keys(block.attributes).forEach((attrKey) => {
+            const attribute = block.attributes[attrKey];
+            const value = attributes[attrKey] || attribute.default || '';
+            mountValues[attrKey] = value;
+          });
+          setAttributes(mountValues);
+          setInputValues(mountValues);
+          ewpLog('Mount: flushed initial attribute values', mountValues);
+        }, []);
+
         // Helper function to fetch image data for gallery fields
         const fetchImageData = async (imageIds) => {
           const newImageData = {};
