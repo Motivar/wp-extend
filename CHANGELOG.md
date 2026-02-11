@@ -8,6 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **npm dependencies & Block API v3 upgrade**: Resolved 49 npm audit vulnerabilities and WordPress 6.9 Block API deprecation warnings.
+  - **Original Request**: "npm audit fix --force causes errors — update packages to be up to date and fix block API deprecation warnings"
+  - **Summary**:
+    - Upgraded `@wordpress/scripts` from `^19.2.4` to `^30.7.0` (resolves all high/critical vulnerabilities)
+    - Removed redundant devDependencies (`@babel/core`, `@babel/preset-env`, `@babel/preset-react`, `babel-loader`, `webpack`, `webpack-cli`)
+    - Removed unnecessary bundled `react`/`react-dom` dependencies (WordPress provides React via `wp-element`)
+    - Deleted standalone `.babelrc` (handled internally by `@wordpress/scripts`)
+    - Simplified `webpack.config.js` to use `@wordpress/scripts` defaults
+    - Added `api_version: 3` to PHP `register_block_type()` and `apiVersion: 3` to JS `registerBlockType()`
+    - Build scripts updated to use `wp-scripts build` / `wp-scripts start`
+    - Replaced `console.log`/`console.warn` in `src/index.js` with `EWPDynamicAssetLoader.log` dev debugging (behind feature flag)
+  - **Affected Files**:
+    - `package.json` (updated dependencies and scripts)
+    - `.babelrc` (deleted)
+    - `webpack.config.js` (simplified)
+    - `includes/classes/ewp-gutenburg/class-register.php` (added `api_version: 3`)
+    - `src/index.js` (added `apiVersion: 3`, replaced console.log with ewpLog helper)
+  - **Backwards-compatibility**:
+    - Requires WordPress 6.5+ (for `react-jsx-runtime` script handle and `apiVersion: 3`)
+    - Requires Node 18+ for development builds
+    - No PHP API changes — only added `api_version` key to block registration
+    - 2 remaining moderate `webpack-dev-server` vulnerabilities are dev-only (not in production)
+
+### Changed
 - **Gallery & Image Field Unification Refactor**: Unified `image` and `awm_gallery` field cases into a single reusable `awm_media_field_html()` function.
   - **Original Request**: "Refactor gallery-meta-box: remove old class, recreate awm_gallery at awm_show_content with select/remove/reorder/pre-select, make image case use same function with limit 1, Gutenberg compatible"
   - **Summary**:

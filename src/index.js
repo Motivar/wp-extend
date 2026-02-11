@@ -6,13 +6,26 @@ const { apiFetch } = wp;
 const { RichText } = wp.blockEditor;
 const { MediaUpload, MediaUploadCheck } = wp.blockEditor;
 
+/**
+ * Dev logging helper — delegates to EWPDynamicAssetLoader.log when available.
+ * Output is suppressed in production (controlled by the ewpDynamicAssets.debug flag).
+ *
+ * @param {string} message  Log message.
+ * @param {*}      [data]   Optional data payload.
+ * @return {void}
+ */
+const ewpLog = (message, data) => {
+  if (typeof EWPDynamicAssetLoader !== 'undefined' && typeof EWPDynamicAssetLoader.log === 'function') {
+    EWPDynamicAssetLoader.log('[EWP Blocks] ' + message, data);
+  }
+};
 
 if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components && wp.element && typeof ewp_blocks !== 'undefined') {
   Object.keys(ewp_blocks).forEach((key) => {
     const block = ewp_blocks[key];
     const namespace = `${block.namespace}/${block.name}`;
-    console.log('Registering block:', namespace);
-    console.log('Block attributes:', block.attributes);
+    ewpLog('Registering block: ' + namespace);
+    ewpLog('Block attributes', block.attributes);
 
     registerBlockType(namespace, {
       apiVersion: 3,
@@ -87,7 +100,7 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                   alt: response.alt_text || `Image ${imageId}`
                 };
               } catch (error) {
-                console.warn(`Failed to fetch image data for ID ${imageId}:`, error);
+                ewpLog('Failed to fetch image data for ID ' + imageId, error);
                 newImageData[imageId] = {
                   url: '',
                   alt: `Image ${imageId}`
@@ -105,10 +118,12 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
           // Fetch and set content logic
           const queryParams = new URLSearchParams(inputValues).toString();
           apiFetch({ path: `${block.namespace}/${block.name}/preview?${queryParams}` }).then((html) => {
+            ewpLog('Preview loaded for ' + block.namespace + '/' + block.name, { htmlLength: html ? html.length : 0 });
             setContent(html);
             var data = { response: html, block: block };
             const event = new CustomEvent("ewp_dynamic_block_on_change", { detail: data });
             document.dispatchEvent(event);
+            ewpLog('ewp_dynamic_block_on_change dispatched', { namespace: block.namespace, name: block.name });
           });
         }, [JSON.stringify(inputValues)]);
 
