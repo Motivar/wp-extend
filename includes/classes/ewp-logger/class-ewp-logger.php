@@ -74,7 +74,7 @@ class EWP_Logger
      *
      * @var bool
      */
-    private static $enabled = true;
+    private static $enabled = false;
 
     /**
      * Unique identifier for the current PHP request.

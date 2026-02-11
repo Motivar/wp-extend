@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Original Request**: "Why cache was flushed 6 times?"
   - **Affected Files**: `includes/classes/awm-content-db-api/custom-content/class-content-setup.php`
 
+- **Logger enabled by default when no options saved**: Static `$enabled` property defaulted to `true`, so `is_enabled()` returned `true` before `init()` ran. Changed default to `false`; logger now stays disabled until explicitly enabled in settings.
+  - **Original Request**: "By default the log should be disabled if no options appear."
+  - **Affected Files**: `class-ewp-logger.php`
+
 ### Changed
 - **Log viewer level filter supports multiple selection**: Routed the `level` REST param through `parse_multi_param()` and updated both DB and file storage backends to handle array values via `IN()` / `in_array()`.
   - **Original Request**: "ewp_log_filter_level support also multiple choices"
