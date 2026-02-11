@@ -164,25 +164,161 @@ class AWMMediaField {
     }
 
     /**
-     * Frame open — pre-select already chosen images.
+     * Frame open handler.
+     *
+     * - Single mode: pre-selects the current image.
+     * - Gallery mode: injects CSS and marks already-chosen images
+     *   as disabled (greyed out, no checkbox, not clickable) so the
+     *   user can see what is already in the gallery without risk of
+     *   accidental deselection.
      */
     _onFrameOpen() {
         var selection = this._frame.state().get('selection');
-        var existingIds = this._getExistingIds();
 
-        /* Clear current selection */
+        /* Always start with a clean selection */
         selection.reset([]);
+
+        /* Single image — pre-select current */
+        if (this.isSingle) {
+            var existingIds = this._getExistingIds();
+
+            if (existingIds.length > 0) {
+                var attachment = wp.media.attachment(existingIds[0]);
+                attachment.fetch();
+                selection.add(attachment);
+            }
+            return;
+        }
+
+        /* Gallery — mark existing images as disabled inside the frame */
+        this._markExistingInFrame();
+    }
+
+    /**
+     * Inject CSS into the media frame and add a disabled class to
+     * attachment items that are already in the gallery.
+     *
+     * Uses a MutationObserver to catch lazy-loaded thumbnails that
+     * appear when the user scrolls inside the media library grid.
+     */
+    _markExistingInFrame() {
+        var self = this;
+        var existingIds = this._getExistingIds();
 
         if (existingIds.length === 0) {
             return;
         }
 
-        /* Fetch and add each existing attachment to the selection */
-        existingIds.forEach(function (id) {
-            var attachment = wp.media.attachment(id);
-            attachment.fetch();
-            selection.add(attachment);
-        });
+        /* Inject the disabled-state CSS once per frame */
+        this._injectFrameStyles();
+
+        /**
+         * Apply the disabled class to matching attachment elements.
+         * Called on initial open and again via MutationObserver when
+         * the browser lazily renders more thumbnails on scroll.
+         *
+         * @param {Element} root Element to search within.
+         */
+        var applyDisabled = function (root) {
+            var items = root.querySelectorAll('.attachment');
+
+            items.forEach(function (item) {
+                var id = parseInt(item.getAttribute('data-id'), 10);
+
+                if (existingIds.indexOf(id) !== -1) {
+                    item.classList.add('awm-already-selected');
+                }
+            });
+        };
+
+        /* Wait for the frame DOM to render, then apply + observe */
+        setTimeout(function () {
+            var browser = self._frame.$el ? self._frame.$el[0] : null;
+
+            if (!browser) {
+                return;
+            }
+
+            /* Initial pass */
+            applyDisabled(browser);
+
+            /* Observe new attachment nodes loaded on scroll */
+            if (self._frameObserver) {
+                self._frameObserver.disconnect();
+            }
+
+            self._frameObserver = new MutationObserver(function (mutations) {
+                mutations.forEach(function (m) {
+                    m.addedNodes.forEach(function (node) {
+                        if (node.nodeType !== 1) {
+                            return;
+                        }
+
+                        /* The node itself or its children may be attachments */
+                        if (node.classList && node.classList.contains('attachment')) {
+                            var id = parseInt(node.getAttribute('data-id'), 10);
+
+                            if (existingIds.indexOf(id) !== -1) {
+                                node.classList.add('awm-already-selected');
+                            }
+                        }
+
+                        applyDisabled(node);
+                    });
+                });
+            });
+
+            var list = browser.querySelector('.attachments');
+
+            if (list) {
+                self._frameObserver.observe(list, { childList: true, subtree: true });
+            }
+        }, 100);
+    }
+
+    /**
+     * Inject a <style> block into the media frame for the
+     * .awm-already-selected disabled state. Idempotent — only
+     * injects once per frame element.
+     */
+    _injectFrameStyles() {
+        var frameEl = this._frame.$el ? this._frame.$el[0] : null;
+
+        if (!frameEl || frameEl.querySelector('#awm-frame-disabled-css')) {
+            return;
+        }
+
+        var style = document.createElement('style');
+        style.id = 'awm-frame-disabled-css';
+        style.textContent =
+            '.awm-already-selected {' +
+            '  pointer-events: none !important;' +
+            '  opacity: 0.4 !important;' +
+            '  position: relative;' +
+            '}' +
+            '.awm-already-selected .thumbnail {' +
+            '  filter: grayscale(60%);' +
+            '}' +
+            /* Hide the checkbox */
+            '.awm-already-selected .check {' +
+            '  display: none !important;' +
+            '}' +
+            /* "Already added" badge */
+            '.awm-already-selected::after {' +
+            '  content: "\\2713";' +
+            '  position: absolute;' +
+            '  top: 4px; right: 4px;' +
+            '  background: rgba(0,0,0,0.55);' +
+            '  color: #fff;' +
+            '  font-size: 14px;' +
+            '  line-height: 22px;' +
+            '  width: 22px;' +
+            '  text-align: center;' +
+            '  border-radius: 50%;' +
+            '  z-index: 10;' +
+            '}';
+
+        frameEl.appendChild(style);
     }
 
     /**
@@ -226,18 +362,25 @@ class AWMMediaField {
 
     /**
      * Handle selection in gallery mode (max = 0, unlimited).
-     * Replaces the entire list with the current selection to preserve order.
+     *
+     * Keeps existing images already in the DOM and only appends
+     * truly new selections. This prevents loss of pre-selected
+     * images when the user scrolls inside the media frame (which
+     * causes wp.media to drop them from the selection collection).
      *
      * @param {object} selection Backbone selection collection.
      */
     _handleGallerySelect(selection) {
         var self = this;
+        var existingIds = this._getExistingIds();
 
-        /* Clear and re-render to match selection order */
-        this.list.innerHTML = '';
-
+        /* Append only images that are not already in the list */
         selection.each(function (attachment) {
-            self._appendImage(attachment.id, self._getThumbnailUrl(attachment));
+            var id = parseInt(attachment.id, 10);
+
+            if (existingIds.indexOf(id) === -1) {
+                self._appendImage(id, self._getThumbnailUrl(attachment));
+            }
         });
 
         this._updateButtonLabel();
