@@ -345,18 +345,21 @@ class EWPLogViewer {
         const statusLabel = behaviourInfo.label;
         const statusClass = behaviourInfo.cssClass;
         const message = this.escapeHtml(entry.message || '');
+        const ownerLabel = entry.owner_label || entry.owner || '';
         const actionLabel = entry.action_type_label || entry.action_type || '';
+        const objectLabel = entry.object_type_label || entry.object_type || '';
+        const userLabel = entry.user_display_name || entry.user_id || '-';
         const style = hidden ? ' style="display:none;"' : '';
         const groupAttr = groupId ? ` data-group-member="${this.escapeHtml(groupId)}"` : '';
 
         return `<tr class="${rowClass}" data-log-id="${entry.log_id || ''}" data-expandable="true"${groupAttr}${style}>
             <td class="ewp-col-date">${this.escapeHtml(entry.created_at || '')}</td>
-            <td class="ewp-col-owner">${this.escapeHtml(entry.owner || '')}</td>
+            <td class="ewp-col-owner">${this.escapeHtml(ownerLabel)}</td>
             <td class="ewp-col-action">${this.escapeHtml(actionLabel)}</td>
-            <td class="ewp-col-object">${this.escapeHtml(entry.object_type || '')}</td>
+            <td class="ewp-col-object">${this.escapeHtml(objectLabel)}</td>
             <td class="ewp-col-level"><span class="ewp-level-badge ewp-level-${entry.level || 'editor'}">${this.escapeHtml(entry.level || '')}</span></td>
             <td class="ewp-col-behaviour"><span class="${statusClass}">${statusLabel}</span></td>
-            <td class="ewp-col-user">${entry.user_id || '-'}</td>
+            <td class="ewp-col-user">${this.escapeHtml(String(userLabel))}</td>
             <td class="ewp-col-message">${message}</td>
         </tr>`;
     }

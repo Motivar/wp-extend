@@ -174,7 +174,7 @@ class EWP_Logger_Viewer
         $options = [];
 
         foreach (EWP_Logger::get_registered_owners() as $owner) {
-            $options[$owner] = ['label' => $owner];
+            $options[$owner] = ['label' => EWP_Logger::resolve_owner_label($owner)];
         }
 
         /**
@@ -236,15 +236,12 @@ class EWP_Logger_Viewer
      */
     private function build_object_type_options()
     {
-        $options = [
-            'post_type'      => ['label' => __('Post Type', 'extend-wp')],
-            'taxonomy'       => ['label' => __('Taxonomy', 'extend-wp')],
-            'user'           => ['label' => __('User', 'extend-wp')],
-            'option'         => ['label' => __('Option', 'extend-wp')],
-            'custom_content' => ['label' => __('Custom Content', 'extend-wp')],
-            'database'       => ['label' => __('Database', 'extend-wp')],
-            'system'         => ['label' => __('System', 'extend-wp')],
-        ];
+        $keys = ['post_type', 'taxonomy', 'user', 'option', 'custom_content', 'database', 'system'];
+        $options = [];
+
+        foreach ($keys as $key) {
+            $options[$key] = ['label' => EWP_Logger::resolve_object_type_label($key)];
+        }
 
         /**
          * Filter the object type options for the log viewer.

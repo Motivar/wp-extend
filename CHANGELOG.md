@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Original Request**: "ewp_log_filter_level support also multiple choices"
   - **Affected Files**: `class-ewp-logger-api.php`, `class-ewp-logger-db.php`, `class-ewp-logger-file.php`, `class-ewp-logger-viewer.php`
 
+- **Logger: Human-Readable Labels in Table & Filters**: Log viewer table rows and filter dropdowns now show human-readable labels for owner, action type, object type, and user instead of raw keys/IDs. New `EWP_Logger::register_owner($slug, $label)` lets plugins register a display name; `resolve_owner_label()` formats content-type owners as "Fields - Extend WP" by looking up the content type's `parent` field in `$ewp_data_configuration` to find the registered owner label. `resolve_action_type_label()` searches all registered owners (fixes broken owner-scoped lookup). `resolve_object_type_label()` uses built-in map + humanize. REST API enriches each entry with `owner_label`, `action_type_label`, `object_type_label`, `user_display_name`. New developer hooks: `ewp_logger_owner_label`, `ewp_logger_action_type_label`, `ewp_logger_object_type_label`, `ewp_logger_prepare_entry_for_output`, `ewp_logger_rest_response_data`.
+  - **Original Request**: "The owners should be like Fields - Extend WP. The logger class will automatically add to each owner the plugin name. Developers can hook into the filters' library and into the results of the log library."
+  - **Affected Files**: `class-ewp-logger.php`, `class-ewp-logger-api.php`, `class-ewp-logger-viewer.php`, `class-ewp-log-viewer.js`
+
 ### Added
 - **Abstract Global Logger System**: Created a comprehensive, plugin-agnostic logging system for extend-wp.
   - **Original Request**: "Create an abstract global logger for the plugin — admins configure retention/storage/level, libraries register action types, queue-based for performance, editor/developer levels."

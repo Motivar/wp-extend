@@ -150,6 +150,21 @@ class AWM_DB_Creator
         } catch (Exception $e) {
             error_log('Error in dbUpdate: ' . $e->getMessage());
             $databasesNotUpdated[] = sprintf(__('Error in table "%s": %s', 'filox'), $table, $e->getMessage());
+
+            // Log the DB error via EWP Logger
+            ewp_log(
+                'extend-wp',
+                'db_error',
+                sprintf('DB update failed for table "%s": %s', $table, $e->getMessage()),
+                [
+                    'table'     => $table,
+                    'exception' => $e->getMessage(),
+                    'trace'     => $e->getTraceAsString(),
+                ],
+                'developer',
+                'database',
+                0
+            );
         }
 
         // Display messages for updated tables

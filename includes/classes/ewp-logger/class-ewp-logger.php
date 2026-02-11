@@ -63,6 +63,15 @@ class EWP_Logger
     private static $registered_types = [];
 
     /**
+     * Registered owner labels.
+     *
+     * Structure: [ 'owner_slug' => 'Human Label' ]
+     *
+     * @var array
+     */
+    private static $registered_owner_labels = [];
+
+    /**
      * Whether the logger has been initialized.
      *
      * @var bool
@@ -438,6 +447,9 @@ class EWP_Logger
     {
         $owner = 'extend-wp';
 
+        // Register owner with whitelabel-compatible label
+        self::register_owner($owner, apply_filters('ewp_whitelabel_filter', __('Extend WP', 'extend-wp')));
+
         // Editor-level types
         self::register_action_type($owner, 'content_save', 'Content Save', 'A custom content item was saved.');
         self::register_action_type($owner, 'content_delete', 'Content Delete', 'A custom content item was deleted.');
@@ -627,6 +639,171 @@ class EWP_Logger
          * @since 1.0.0
          */
         return (bool) apply_filters("ewp_logger_auto_log_{$action_type}_enabled", true, $action_type);
+    }
+
+    /**
+     * Register an owner with a human-readable label.
+     *
+     * Call this alongside register_action_type() so the logger
+     * can display "Fields - Extend WP" instead of raw slugs.
+     *
+     * @param string $slug  Owner slug (e.g. 'extend-wp').
+     * @param string $label Human-readable label (e.g. 'Extend WP').
+     *
+     * @return void
+     *
+     * @since 1.2.0
+     */
+    public static function register_owner($slug, $label)
+    {
+        self::$registered_owner_labels[sanitize_text_field($slug)] = $label;
+    }
+
+    /**
+     * Get all registered owner labels.
+     *
+     * @return array [ 'slug' => 'label' ]
+     *
+     * @since 1.2.0
+     */
+    public static function get_registered_owner_labels()
+    {
+        return self::$registered_owner_labels;
+    }
+
+    /**
+     * Resolve a human-readable label for an owner slug.
+     *
+     * For content-type owners (found in AWM registry) the label is
+     * formatted as "ContentType - PluginName" using the parent field
+     * to look up the registered owner label.
+     * For registered owners, uses the registered label directly.
+     * Falls back to humanized slug.
+     *
+     * @param string $owner Owner slug (e.g. 'ewp_fields', 'extend-wp').
+     *
+     * @return string Resolved label.
+     *
+     * @since 1.2.0
+     */
+    public static function resolve_owner_label($owner)
+    {
+        $label = '';
+
+        // Check if this owner is a content type in the AWM registry
+        if (class_exists('AWM_Add_Content_DB_Setup') && !empty(\AWM_Add_Content_DB_Setup::$ewp_data_configuration[$owner])) {
+            $config = \AWM_Add_Content_DB_Setup::$ewp_data_configuration[$owner];
+            $content_label = !empty($config['list_name']) ? $config['list_name'] : ucwords(str_replace(['_', '-'], ' ', $owner));
+
+            // Resolve the parent plugin label via registered owners
+            $parent = !empty($config['parent']) ? $config['parent'] : '';
+            $plugin_label = '';
+
+            if (!empty($parent) && isset(self::$registered_owner_labels[$parent])) {
+                $plugin_label = self::$registered_owner_labels[$parent];
+            }
+
+            $label = !empty($plugin_label) ? $content_label . ' - ' . $plugin_label : $content_label;
+        }
+
+        // Check if this owner is a directly registered owner
+        if (empty($label) && isset(self::$registered_owner_labels[$owner])) {
+            $label = self::$registered_owner_labels[$owner];
+        }
+
+        // Fallback: humanize the slug
+        if (empty($label)) {
+            $label = ucwords(str_replace(['_', '-'], ' ', $owner));
+        }
+
+        /**
+         * Filter the resolved owner display label.
+         *
+         * @param string $label Resolved label.
+         * @param string $owner Raw owner slug.
+         *
+         * @since 1.2.0
+         */
+        return apply_filters('ewp_logger_owner_label', $label, $owner);
+    }
+
+    /**
+     * Resolve a human-readable label for an action type key.
+     *
+     * Searches all registered owners for the type key.
+     *
+     * @param string $type_key Action type key (e.g. 'content_save').
+     *
+     * @return string Resolved label.
+     *
+     * @since 1.2.0
+     */
+    public static function resolve_action_type_label($type_key)
+    {
+        $label = '';
+        $types = self::get_registered_types();
+
+        foreach ($types as $owner_types) {
+            if (isset($owner_types[$type_key]['label'])) {
+                $label = __($owner_types[$type_key]['label'], 'extend-wp');
+                break;
+            }
+        }
+
+        // Fallback: humanize the slug
+        if (empty($label)) {
+            $label = ucwords(str_replace(['_', '-'], ' ', $type_key));
+        }
+
+        /**
+         * Filter the resolved action type display label.
+         *
+         * @param string $label    Resolved label.
+         * @param string $type_key Raw action type key.
+         *
+         * @since 1.2.0
+         */
+        return apply_filters('ewp_logger_action_type_label', $label, $type_key);
+    }
+
+    /**
+     * Resolve a human-readable label for an object type key.
+     *
+     * Uses a built-in map for known EWP object types, falls back to humanized slug.
+     *
+     * @param string $object_type Object type key (e.g. 'custom_content').
+     *
+     * @return string Resolved label.
+     *
+     * @since 1.2.0
+     */
+    public static function resolve_object_type_label($object_type)
+    {
+        static $map = null;
+
+        if ($map === null) {
+            $map = [
+                'post_type'      => __('Post Type', 'extend-wp'),
+                'taxonomy'       => __('Taxonomy', 'extend-wp'),
+                'user'           => __('User', 'extend-wp'),
+                'option'         => __('Option', 'extend-wp'),
+                'custom_content' => __('Custom Content', 'extend-wp'),
+                'database'       => __('Database', 'extend-wp'),
+                'system'         => __('System', 'extend-wp'),
+            ];
+        }
+
+        $label = isset($map[$object_type]) ? $map[$object_type] : ucwords(str_replace(['_', '-'], ' ', $object_type));
+
+        /**
+         * Filter the resolved object type display label.
+         *
+         * @param string $label       Resolved label.
+         * @param string $object_type Raw object type key.
+         *
+         * @since 1.2.0
+         */
+        return apply_filters('ewp_logger_object_type_label', $label, $object_type);
     }
 
     /**

@@ -157,11 +157,23 @@ class EWP_Logger_API
         $per_page = max(1, absint($args['limit']));
         $page     = (int) floor($args['offset'] / $per_page) + 1;
 
-        // Unserialize data field for each entry and translate labels on output
-        $types = EWP_Logger::get_registered_types();
-        $data  = array_map(function ($entry) use ($types) {
-            return $this->prepare_entry_for_output($entry, $types);
+        // Enrich each entry with human-readable labels
+        $data = array_map(function ($entry) {
+            return $this->prepare_entry_for_output($entry);
         }, $data);
+
+        /**
+         * Filter the full prepared log data before building the REST response.
+         *
+         * Allows developers to modify, extend, or decorate the entire result set.
+         *
+         * @param array $data  Prepared log entries.
+         * @param int   $total Total matching entries (unfiltered count).
+         * @param array $args  Query arguments used.
+         *
+         * @since 1.2.0
+         */
+        $data = apply_filters('ewp_logger_rest_response_data', $data, $total, $args);
 
         return new \WP_REST_Response([
             'data'     => $data,
@@ -218,29 +230,37 @@ class EWP_Logger_API
     /**
      * Prepare a log entry for REST output.
      *
-     * Unserializes the data field and translates the action_type label.
+     * Unserializes data, resolves human-readable labels for owner,
+     * action_type, object_type, and user via EWP_Logger resolvers.
      *
      * @param array $entry Raw log entry.
-     * @param array $types Registered action types.
      *
-     * @return array Prepared entry.
+     * @return array Prepared entry with *_label fields added.
      *
      * @since 1.0.0
      */
-    private function prepare_entry_for_output(array $entry, array $types)
+    private function prepare_entry_for_output(array $entry)
     {
         // Unserialize data payload
         if (!empty($entry['data'])) {
             $entry['data'] = maybe_unserialize($entry['data']);
         }
 
-        // Add translated action_type label
-        $owner = $entry['owner'] ?? '';
-        $type  = $entry['action_type'] ?? '';
-        $entry['action_type_label'] = '';
+        // Owner label
+        $entry['owner_label'] = EWP_Logger::resolve_owner_label($entry['owner'] ?? '');
 
-        if (isset($types[$owner][$type]['label'])) {
-            $entry['action_type_label'] = __($types[$owner][$type]['label'], 'extend-wp');
+        // Action type label (searches all registered owners)
+        $entry['action_type_label'] = EWP_Logger::resolve_action_type_label($entry['action_type'] ?? '');
+
+        // Object type label
+        $entry['object_type_label'] = EWP_Logger::resolve_object_type_label($entry['object_type'] ?? '');
+
+        // User display name
+        $user_id = absint($entry['user_id'] ?? 0);
+        $entry['user_display_name'] = '';
+        if ($user_id > 0) {
+            $user = get_userdata($user_id);
+            $entry['user_display_name'] = $user ? $user->display_name : sprintf('User #%d', $user_id);
         }
 
         // Cast behaviour to int and add label for JSON output
@@ -253,7 +273,16 @@ class EWP_Logger_API
         ];
         $entry['behaviour_label'] = isset($behaviour_labels[$behaviour_int]) ? $behaviour_labels[$behaviour_int] : 'success';
 
-        return $entry;
+        /**
+         * Filter a single prepared log entry before REST output.
+         *
+         * Allows developers to add or modify fields on each entry.
+         *
+         * @param array $entry Prepared entry with label fields.
+         *
+         * @since 1.2.0
+         */
+        return apply_filters('ewp_logger_prepare_entry_for_output', $entry);
     }
 
     /**

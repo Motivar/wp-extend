@@ -45,6 +45,10 @@ if (!function_exists('ewp_log')) {
      */
     function ewp_log($owner, $action_type, $message, $data = [], $level = 'editor', $object_type = '', $behaviour = 1)
     {
+        if (!class_exists('EWP\Logger\EWP_Logger')) {
+            return false;
+        }
+
         return \EWP\Logger\EWP_Logger::log($owner, $action_type, $message, $data, $level, $object_type, $behaviour);
     }
 }
@@ -72,6 +76,39 @@ if (!function_exists('ewp_register_log_type')) {
      */
     function ewp_register_log_type($owner, $type_key, $label, $description = '')
     {
+        if (!class_exists('EWP\Logger\EWP_Logger')) {
+            return;
+        }
+
         \EWP\Logger\EWP_Logger::register_action_type($owner, $type_key, $label, $description);
+    }
+}
+
+if (!function_exists('ewp_register_log_owner')) {
+    /**
+     * Register an owner with a human-readable label.
+     *
+     * Safe to call even if the logger is not loaded.
+     * The label is used in the log viewer table ("Fields - Extend WP")
+     * and in the filter dropdowns.
+     *
+     * @param string $slug  Owner slug (e.g. 'my-plugin').
+     * @param string $label Human-readable label (e.g. 'My Plugin').
+     *
+     * @return void
+     *
+     * @since 1.2.0
+     *
+     * @example
+     * ewp_register_log_owner('filox', 'Filox');
+     * ewp_register_log_type('filox', 'booking_created', 'Booking Created');
+     */
+    function ewp_register_log_owner($slug, $label)
+    {
+        if (!class_exists('EWP\Logger\EWP_Logger')) {
+            return;
+        }
+
+        \EWP\Logger\EWP_Logger::register_owner($slug, $label);
     }
 }
