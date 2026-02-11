@@ -36,9 +36,6 @@ class EWPLogViewer {
         /** @type {string} REST API base URL */
         this.restUrl = container.dataset.restUrl || '';
 
-        /** @type {string} WP REST nonce */
-        this.nonce = container.dataset.nonce || '';
-
         /** @type {number} Current page */
         this.currentPage = EWPLogViewer.DEFAULTS.page;
 
@@ -56,11 +53,10 @@ class EWPLogViewer {
             || container.closest('form')
             || document;
 
-        /** @type {Object<string, string>} Snapshot of initial filter values for reset */
-        this.initialValues = {};
+        /** @type {HTMLFormElement|null} Parent form for serialization and reset */
+        this.form = container.closest('form') || null;
 
         this.initElements();
-        this.snapshotDefaults();
         this.bindEvents();
         this.updateActionTypeOptions();
         this.applyFilters();
@@ -83,17 +79,19 @@ class EWPLogViewer {
         this.resetBtn = this.container.querySelector('#ewp-log-filter-reset');
         this.ownerSelect = this.pageWrap.querySelector('[data-filter="owner"]');
         this.actionTypeSelect = this.pageWrap.querySelector('[data-filter="action_type"]');
-    }
 
-    /**
-     * Store the initial (server-rendered default) value of every filter
-     * so resetFilters() can restore them.
-     *
-     * @returns {void}
-     */
-    snapshotDefaults() {
+        /**
+         * Build a field-name → REST-param mapping from [data-filter] elements.
+         * E.g. 'ewp_log_filter_owner[]' → 'owner'.
+         * Used by getFilters() to translate serialized form keys.
+         *
+         * @type {Object<string, string>}
+         */
+        this.nameMap = {};
         this.pageWrap.querySelectorAll('[data-filter]').forEach((el) => {
-            this.initialValues[el.dataset.filter] = el.value;
+            if (el.name) {
+                this.nameMap[el.name.replace('[]', '')] = el.dataset.filter;
+            }
         });
     }
 
@@ -131,86 +129,95 @@ class EWPLogViewer {
     }
 
     /**
-     * Collect current filter values from awm-rendered fields.
+     * Collect all filter values by serializing the parent form.
      *
-     * Queries the pageWrap for all elements with [data-filter]
-     * and returns non-empty values keyed by the filter name.
+     * Uses ewp_jsVanillaSerialize to capture every field at once,
+     * so developer-added fields are automatically included.
+     * Field names are translated to REST param names via this.nameMap.
+     * Multi-value arrays are joined with comma for the REST API.
      *
-     * @returns {Object} Filter key-value pairs.
+     * @returns {Object} Filter key-value pairs keyed by REST param name.
      */
     getFilters() {
+        if (!this.form) {
+            return {};
+        }
+
+        const formData = ewp_jsVanillaSerialize(this.form, true);
         const filters = {};
 
-        this.pageWrap.querySelectorAll('[data-filter]').forEach((el) => {
-            const key = el.dataset.filter;
-            const val = el.value;
-            if (key && val !== '') {
-                filters[key] = val;
+        for (const key in formData) {
+            if (!formData.hasOwnProperty(key)) {
+                continue;
             }
-        });
+
+            const cleanKey = key.replace('[]', '');
+            const paramName = this.nameMap[cleanKey] || cleanKey;
+            const value = formData[key];
+
+            // Skip empty values
+            if (value === '' || value === undefined || value === null) {
+                continue;
+            }
+
+            // Join arrays (multi-select) with comma
+            if (Array.isArray(value)) {
+                const nonEmpty = value.filter((v) => v !== '');
+                if (nonEmpty.length) {
+                    filters[paramName] = nonEmpty.join(',');
+                }
+                continue;
+            }
+
+            filters[paramName] = value;
+        }
 
         return filters;
     }
 
     /**
-     * Fetch logs from the REST API with current filters and render results.
+     * Fetch logs from the REST API via awm_ajax_call and render results.
      *
      * @returns {void}
      */
     applyFilters() {
         const filters = this.getFilters();
-        const params = new URLSearchParams({
-            ...filters,
-            page: this.currentPage,
-            per_page: this.perPage,
-        });
 
         this.setLoading(true);
 
-        fetch(`${this.restUrl}/logs?${params.toString()}`, {
-            method: 'GET',
-            headers: {
-                'X-WP-Nonce': this.nonce,
-                'Content-Type': 'application/json',
-            },
-        })
-            .then((res) => {
-                if (!res.ok) {
-                    throw new Error(`HTTP ${res.status}`);
-                }
-                return res.json();
-            })
-            .then((json) => {
+        awm_ajax_call({
+            method: 'get',
+            url: this.restUrl + '/logs',
+            data: Object.assign({}, filters, {
+                page: this.currentPage,
+                per_page: this.perPage,
+            }),
+            callback: (json) => {
                 this.renderRows(json.data || []);
                 this.renderPagination(json.total || 0, json.page || 1, json.per_page || this.perPage);
                 this.updateTotal(json.total || 0);
-            })
-            .catch((err) => {
-                this.renderError(err.message);
-            })
-            .finally(() => {
                 this.setLoading(false);
-            });
+            },
+            errorCallback: (errorData) => {
+                this.renderError(errorData.message || 'Request failed');
+                this.setLoading(false);
+            },
+        });
     }
 
     /**
-     * Reset all filters to their server-rendered defaults and reload.
+     * Reset all form fields to their server-rendered defaults and reload.
+     *
+     * Uses the native form.reset() which restores every field to its
+     * initial HTML state — including defaults set by awm_show_content.
+     * Developer-added fields are reset automatically.
      *
      * @returns {void}
      */
     resetFilters() {
-        this.pageWrap.querySelectorAll('[data-filter]').forEach((el) => {
-            const key = el.dataset.filter;
-            const initial = this.initialValues[key];
-
-            if (typeof initial !== 'undefined') {
-                el.value = initial;
-            } else if (el.tagName === 'SELECT') {
-                el.selectedIndex = 0;
-            } else {
-                el.value = '';
-            }
-        });
+        if (this.form) {
+            this.form.reset();
+        }
 
         this.updateActionTypeOptions();
         this.currentPage = 1;
@@ -500,19 +507,30 @@ class EWPLogViewer {
             return;
         }
 
-        const selectedOwner = this.ownerSelect ? this.ownerSelect.value : '';
+        // Collect selected owners (supports multi-select)
+        let selectedOwners = [];
+        if (this.ownerSelect) {
+            if (this.ownerSelect.multiple) {
+                selectedOwners = Array.from(this.ownerSelect.selectedOptions)
+                    .map((o) => o.value)
+                    .filter((v) => v !== '');
+            } else if (this.ownerSelect.value) {
+                selectedOwners = [this.ownerSelect.value];
+            }
+        }
+
         const options = this.actionTypeSelect.querySelectorAll('option[data-owner]');
 
         options.forEach((opt) => {
             const owner = opt.getAttribute('data-owner');
-            const visible = !selectedOwner || owner === selectedOwner;
+            const visible = !selectedOwners.length || selectedOwners.includes(owner);
 
             opt.hidden = !visible;
             opt.disabled = !visible;
 
-            // Reset selection when the current value becomes hidden
+            // Deselect hidden options
             if (!visible && opt.selected) {
-                this.actionTypeSelect.selectedIndex = 0;
+                opt.selected = false;
             }
         });
     }

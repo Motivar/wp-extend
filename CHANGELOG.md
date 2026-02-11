@@ -58,6 +58,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Original Request**: "The filters should also be registered with awm_show_content and auto populated based on the action types, owners, object types etc, registered by the users."
   - **Affected Files**: `class-ewp-logger-viewer.php`, `class-ewp-log-viewer.js`
 
+- **Logger: Multi-Select Filters + awm_ajax_call**: Owner, Action Type, Object Type, and Behaviour filters now support `multiple` selection. REST API accepts comma-separated values for these params and builds `IN (...)` SQL clauses. JS uses `awm_ajax_call` instead of raw `fetch` for all REST requests (nonce handled automatically via `awmGlobals`). `getFilters()` serializes the entire form via `ewp_jsVanillaSerialize` and translates field names to REST params via a `nameMap` built from `data-filter` attributes — developer-added fields are automatically included. `resetFilters()` uses native `form.reset()` to restore all fields to their server-rendered defaults generically.
+  - **Original Request**: "We added multiple attribute in some options of get_viewer_fields. Please make the changes in REST and JS. Use awm_ajax_call for fetch. Get all data from the form, not one by one."
+  - **Affected Files**: `class-ewp-logger-api.php`, `class-ewp-logger-storage.php`, `class-ewp-logger-db.php`, `class-ewp-logger-file.php`, `class-ewp-log-viewer.js`
+
 ### Changed
 - **Logger: Settings on Main EWP Page**: Logger settings now appear as a "Logger Settings" section on the main Extend WP admin page (via `ewp_admin_fields_filter`) instead of a separate options page. Follows the same section + include pattern as `ewp_dev_settings` / `ewp_auto_export_settings`. All fields stored as a single serialised array in `wp_options` under key `ewp_logger_settings` with short keys (`enabled`, `storage`, `retention_months`). Removed separate `ewp-logger-settings` options page.
   - **Affected Files**: `class-ewp-logger-settings.php`, `class-ewp-logger.php`, `class-ewp-logger-cleanup.php`, `class-ewp-logger-viewer.php`
