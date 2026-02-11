@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Multiple Select Support in Gutenberg Blocks**: Select fields with `'attributes' => array('multiple' => true)` now render as multi-select in the block editor.
+  - **Original Request**: "For the select property if we have attribute multiple = 1 can we enable multiple select box in UI?"
+  - **Summary**:
+    - PHP: Detect `multiple` attribute in `prepare_attributes()` and propagate flag + set type to `array`
+    - JS: Pass `multiple` prop to `SelectControl`, handle array values for multi-select
+    - Fixed default value for array-type attributes (empty array instead of empty string)
+    - Fixed nullish value checks so empty arrays are not discarded during initialization
+  - **Affected Files**:
+    - `includes/classes/ewp-gutenburg/class-register.php`
+    - `src/index.js`
+  - **Backwards-compatibility**: No breaking changes. Single select fields remain unchanged.
+
 ### Changed
 - **npm dependencies & Block API v3 upgrade**: Resolved 49 npm audit vulnerabilities and WordPress 6.9 Block API deprecation warnings.
   - **Original Request**: "npm audit fix --force causes errors — update packages to be up to date and fix block API deprecation warnings"

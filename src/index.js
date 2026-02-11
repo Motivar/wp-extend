@@ -42,7 +42,8 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
         // Initialize inputValues with default or initial values from block.attributes
         const initialValues = Object.keys(block.attributes).reduce((acc, attrKey) => {
           const attribute = block.attributes[attrKey];
-          acc[attrKey] = attributes[attrKey] || attribute.default || '';
+          // Use nullish check so empty arrays (e.g. multiple select) are not discarded
+          acc[attrKey] = (attributes[attrKey] != null && attributes[attrKey] !== '') ? attributes[attrKey] : (attribute.default != null ? attribute.default : '');
           return acc;
         }, {});
 
@@ -92,7 +93,8 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
           const mountValues = {};
           Object.keys(block.attributes).forEach((attrKey) => {
             const attribute = block.attributes[attrKey];
-            const value = attributes[attrKey] || attribute.default || '';
+            // Use nullish check so empty arrays (e.g. multiple select) are preserved
+            const value = (attributes[attrKey] != null && attributes[attrKey] !== '') ? attributes[attrKey] : (attribute.default != null ? attribute.default : '');
             mountValues[attrKey] = value;
           });
           setAttributes(mountValues);

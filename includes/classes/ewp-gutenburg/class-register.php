@@ -322,6 +322,12 @@ class EWP_Dynamic_Blocks
             $options[] = array('option' => $option_key, 'label' => $option['label']);
           }
           $attribute['options'] = $options;
+          // Detect multiple attribute and propagate to JS
+          $is_multiple = isset($attribute['attributes']['multiple']) && $attribute['attributes']['multiple'];
+          if ($is_multiple) {
+            $type = 'array';
+            $attribute['multiple'] = true;
+          }
           break;
         case 'input':
           $attribute_type = (isset($attribute['type']) && !empty($attribute['type'])) ? $attribute['type'] : 'text'; // Default to 'text' if not set
@@ -356,7 +362,7 @@ class EWP_Dynamic_Blocks
       $prepared_attributes[$key] = $attribute;
       $prepared_attributes[$key]['type'] = $type;
       $prepared_attributes[$key]['render_type'] = $render_type;
-      $prepared_attributes[$key]['default'] = isset($attribute['default']) ? $attribute['default'] : '';
+      $prepared_attributes[$key]['default'] = isset($attribute['default']) ? $attribute['default'] : ($type === 'array' ? array() : '');
     }
 
     return $prepared_attributes;
