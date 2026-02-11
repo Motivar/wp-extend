@@ -46,12 +46,12 @@ class EWP_Logger_Viewer
     public function register_viewer_page($options)
     {
         $options['ewp-log-viewer'] = [
-            'title'       => __('Log Viewer', 'extend-wp'),
+            'title'       => apply_filters('ewp_whitelabel_logger_filter', __('EWP Logger', 'extend-wp')),
             'callback'    => [$this, 'get_viewer_fields'],
-            'parent'      => 'extend-wp',
             'order'       => 1000000000000,
             'cap'         => 'manage_options',
             'hide_submit' => true,
+            'parent' => false,
         ];
 
         return $options;
