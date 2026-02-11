@@ -307,23 +307,19 @@ class EWP_Logger_DB extends EWP_Logger_Storage
         $values     = [];
 
         if (!empty($args['owner'])) {
-            $conditions[] = 'owner = %s';
-            $values[]     = $args['owner'];
+            $this->add_in_condition($conditions, $values, 'owner', $args['owner'], '%s');
         }
 
         if (!empty($args['action_type'])) {
-            $conditions[] = 'action_type = %s';
-            $values[]     = $args['action_type'];
+            $this->add_in_condition($conditions, $values, 'action_type', $args['action_type'], '%s');
         }
 
         if (!empty($args['object_type'])) {
-            $conditions[] = 'object_type = %s';
-            $values[]     = $args['object_type'];
+            $this->add_in_condition($conditions, $values, 'object_type', $args['object_type'], '%s');
         }
 
         if ($args['behaviour'] !== null && $args['behaviour'] !== '') {
-            $conditions[] = 'behaviour = %d';
-            $values[]     = (int) $args['behaviour'];
+            $this->add_in_condition($conditions, $values, 'behaviour', $args['behaviour'], '%d');
         }
 
         if (!empty($args['level'])) {
@@ -355,6 +351,35 @@ class EWP_Logger_DB extends EWP_Logger_Storage
             'clause' => implode(' AND ', $conditions),
             'values' => $values,
         ];
+    }
+
+    /**
+     * Append an equality or IN condition to the WHERE clause.
+     *
+     * Supports both scalar and array values. Arrays produce
+     * column IN (%s, %s, ...) clauses.
+     *
+     * @param array  &$conditions Reference to conditions array.
+     * @param array  &$values     Reference to values array.
+     * @param string $column      Column name.
+     * @param mixed  $value       Scalar or array of values.
+     * @param string $placeholder wpdb placeholder (%s or %d).
+     *
+     * @return void
+     *
+     * @since 1.2.0
+     */
+    private function add_in_condition(array &$conditions, array &$values, $column, $value, $placeholder)
+    {
+        if (is_array($value)) {
+            $placeholders   = implode(', ', array_fill(0, count($value), $placeholder));
+            $conditions[]   = "{$column} IN ({$placeholders})";
+            $values         = array_merge($values, array_values($value));
+            return;
+        }
+
+        $conditions[] = "{$column} = {$placeholder}";
+        $values[]     = $value;
     }
 
     /**

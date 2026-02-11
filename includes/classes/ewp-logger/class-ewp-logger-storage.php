@@ -126,10 +126,10 @@ abstract class EWP_Logger_Storage
 
         $args = wp_parse_args($args, $defaults);
 
-        // Sanitize values
-        $args['owner']       = sanitize_text_field($args['owner']);
-        $args['action_type'] = sanitize_text_field($args['action_type']);
-        $args['object_type'] = sanitize_text_field($args['object_type']);
+        // Sanitize values — arrays are supported for multi-value filters
+        $args['owner']       = $this->sanitize_multi_text($args['owner']);
+        $args['action_type'] = $this->sanitize_multi_text($args['action_type']);
+        $args['object_type'] = $this->sanitize_multi_text($args['object_type']);
         $args['level']       = in_array($args['level'], ['editor', 'developer'], true) ? $args['level'] : '';
         $args['user_id']     = absint($args['user_id']);
         $args['request_id']  = sanitize_text_field($args['request_id']);
@@ -137,11 +137,33 @@ abstract class EWP_Logger_Storage
         $args['offset']      = max(0, absint($args['offset']));
         $args['order']       = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC';
 
-        // Behaviour: null means no filter, otherwise cast to valid int (0, 1, 2)
+        // Behaviour: null/empty means no filter; array or scalar cast to valid int(s)
         if ($args['behaviour'] !== null && $args['behaviour'] !== '') {
-            $args['behaviour'] = EWP_Logger::normalize_behaviour($args['behaviour']);
+            if (is_array($args['behaviour'])) {
+                $args['behaviour'] = array_map([EWP_Logger::class, 'normalize_behaviour'], $args['behaviour']);
+            } else {
+                $args['behaviour'] = EWP_Logger::normalize_behaviour($args['behaviour']);
+            }
         }
 
         return $args;
+    }
+
+    /**
+     * Sanitize a text field value that may be a string or an array of strings.
+     *
+     * @param string|array $value Value to sanitize.
+     *
+     * @return string|array Sanitized value.
+     *
+     * @since 1.2.0
+     */
+    protected function sanitize_multi_text($value)
+    {
+        if (is_array($value)) {
+            return array_map('sanitize_text_field', $value);
+        }
+
+        return sanitize_text_field($value);
     }
 }

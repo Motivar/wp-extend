@@ -58,111 +58,231 @@ class EWP_Logger_Viewer
     }
 
     /**
-     * Return the viewer page fields (filter bar + results container).
+     * Return the viewer page fields.
      *
-     * Uses awm_show_content field format for the filter form.
-     * The results are rendered client-side by the JS class.
+     * Filter selects are registered as awm_show_content fields
+     * and auto-populated from registered owners, types, etc.
+     * Results table is rendered as an HTML field.
      *
      * @return array Fields array for awm_show_content.
      *
-     * @since 1.0.0
+     * @since 1.2.0
      */
     public function get_viewer_fields()
     {
-        $settings = EWP_Logger_Settings::get_settings();
+        $fields = [];
 
-        return [
-            'ewp_log_viewer_wrap' => [
-                'case'  => 'html',
-                'value' => $this->render_viewer_html($settings),
-                'exclude_meta' => true,
-            ],
+        // Owner filter
+        $fields['ewp_log_filter_owner'] = [
+            'case'         => 'select',
+            'label'        => __('Owner', 'extend-wp'),
+            'options'      => $this->build_owner_options(),
+            'attributes'   => ['data-filter' => 'owner', 'multiple' => true],
+            'exclude_meta' => true,
         ];
+
+        // Action Type filter
+        $fields['ewp_log_filter_action_type'] = [
+            'case'         => 'select',
+            'label'        => __('Action Type', 'extend-wp'),
+            'options'      => $this->build_action_type_options(),
+            'attributes'   => ['data-filter' => 'action_type', 'multiple' => true],
+            'exclude_meta' => true,
+        ];
+
+        // Object Type filter
+        $fields['ewp_log_filter_object_type'] = [
+            'case'         => 'select',
+            'label'        => __('Object Type', 'extend-wp'),
+            'options'      => $this->build_object_type_options(),
+            'attributes'   => ['data-filter' => 'object_type', 'multiple' => true],
+            'exclude_meta' => true,
+        ];
+
+        // Behaviour filter (success / warning / error)
+        $fields['ewp_log_filter_behaviour'] = [
+            'case'         => 'select',
+            'label'        => __('Behaviour', 'extend-wp'),
+            'options'      => [
+                '1' => ['label' => __('Success', 'extend-wp')],
+                '2' => ['label' => __('Warning', 'extend-wp')],
+                '0' => ['label' => __('Error', 'extend-wp')],
+            ],
+            'attributes'   => ['data-filter' => 'behaviour', 'multiple' => true],
+            'exclude_meta' => true,
+        ];
+
+        // Level filter
+        $fields['ewp_log_filter_level'] = [
+            'case'         => 'select',
+            'label'        => __('Level', 'extend-wp'),
+            'default'      => 'editor',
+            'options'      => [
+                'editor'    => ['label' => __('Editor', 'extend-wp')],
+                'developer' => ['label' => __('Developer', 'extend-wp')],
+            ],
+            'attributes'   => ['data-filter' => 'level'],
+            'exclude_meta' => true,
+        ];
+
+        // Date From filter
+        $fields['ewp_log_filter_date_from'] = [
+            'case'         => 'input',
+            'type'         => 'date',
+            'label'        => __('From', 'extend-wp'),
+            'attributes'   => ['data-filter' => 'date_from'],
+            'exclude_meta' => true,
+        ];
+
+        // Date To filter
+        $fields['ewp_log_filter_date_to'] = [
+            'case'         => 'input',
+            'type'         => 'date',
+            'label'        => __('To', 'extend-wp'),
+            'attributes'   => ['data-filter' => 'date_to'],
+            'exclude_meta' => true,
+        ];
+
+        // Filter / Reset buttons + results table + pagination (HTML block)
+        $fields['ewp_log_viewer_results'] = [
+            'case'         => 'html',
+            'value'        => $this->render_results_html(),
+            'exclude_meta' => true,
+        ];
+
+        /**
+         * Filter the viewer fields before rendering.
+         *
+         * Allows external plugins to add/remove/modify filter fields.
+         *
+         * @param array $fields awm_show_content field definitions.
+         *
+         * @since 1.2.0
+         */
+        return apply_filters('ewp_logger_viewer_fields', $fields);
     }
 
     /**
-     * Render the log viewer HTML.
+     * Build select options from registered owners.
      *
-     * Outputs the filter bar, results table container, and pagination.
-     * The .ewp-log-viewer-wrap class triggers Dynamic Asset Loader.
+     * @return array Options in awm format: ['value' => ['label' => '...']].
      *
-     * @param array $settings Logger settings.
+     * @since 1.2.0
+     */
+    private function build_owner_options()
+    {
+        $options = [];
+
+        foreach (EWP_Logger::get_registered_owners() as $owner) {
+            $options[$owner] = ['label' => $owner];
+        }
+
+        /**
+         * Filter the owner options for the log viewer.
+         *
+         * @param array $options Owner options in awm format.
+         *
+         * @since 1.2.0
+         */
+        return apply_filters('ewp_logger_viewer_owner_options', $options);
+    }
+
+    /**
+     * Build select options from registered action types (flattened across owners).
+     *
+     * Each option includes a data-owner extra attribute so JS can
+     * filter action types by owner client-side.
+     *
+     * @return array Options in awm format.
+     *
+     * @since 1.2.0
+     */
+    private function build_action_type_options()
+    {
+        $options = [];
+        $seen    = [];
+
+        foreach (EWP_Logger::get_registered_types() as $owner => $types) {
+            foreach ($types as $type_key => $type_data) {
+                // Avoid duplicate keys across owners
+                if (isset($seen[$type_key])) {
+                    continue;
+                }
+                $seen[$type_key] = true;
+
+                $options[$type_key] = [
+                    'label' => $type_data['label'],
+                    'extra' => ['data-owner' => $owner],
+                ];
+            }
+        }
+
+        /**
+         * Filter the action type options for the log viewer.
+         *
+         * @param array $options Action type options in awm format.
+         *
+         * @since 1.2.0
+         */
+        return apply_filters('ewp_logger_viewer_action_type_options', $options);
+    }
+
+    /**
+     * Build select options for object types.
+     *
+     * @return array Options in awm format.
+     *
+     * @since 1.2.0
+     */
+    private function build_object_type_options()
+    {
+        $options = [
+            'post_type'      => ['label' => __('Post Type', 'extend-wp')],
+            'taxonomy'       => ['label' => __('Taxonomy', 'extend-wp')],
+            'user'           => ['label' => __('User', 'extend-wp')],
+            'option'         => ['label' => __('Option', 'extend-wp')],
+            'custom_content' => ['label' => __('Custom Content', 'extend-wp')],
+            'database'       => ['label' => __('Database', 'extend-wp')],
+            'system'         => ['label' => __('System', 'extend-wp')],
+        ];
+
+        /**
+         * Filter the object type options for the log viewer.
+         *
+         * @param array $options Object type options in awm format.
+         *
+         * @since 1.2.0
+         */
+        return apply_filters('ewp_logger_viewer_object_type_options', $options);
+    }
+
+    /**
+     * Render the results HTML (buttons, table, pagination).
+     *
+     * The .ewp-log-viewer-wrap class triggers the Dynamic Asset Loader.
      *
      * @return string HTML output.
      *
-     * @since 1.0.0
+     * @since 1.2.0
      */
-    private function render_viewer_html($settings)
+    private function render_results_html()
     {
-        $default_level = esc_attr($settings['default_level'] ?? '');
-        $nonce         = wp_create_nonce('wp_rest');
-        $rest_url      = esc_url(rest_url('extend-wp/v1'));
+        $nonce    = wp_create_nonce('wp_rest');
+        $rest_url = esc_url(rest_url('extend-wp/v1'));
 
         ob_start();
 ?>
-        <div class="ewp-log-viewer-wrap" data-rest-url="<?php echo $rest_url; ?>" data-nonce="<?php echo $nonce; ?>"
-            data-default-level="<?php echo $default_level; ?>" data-default-owner="extend-wp">
+        <div class="ewp-log-viewer-wrap" data-rest-url="<?php echo $rest_url; ?>" data-nonce="<?php echo $nonce; ?>">
 
-            <!-- Filter Bar -->
-            <div class="ewp-log-filters">
-                <div class="ewp-log-filter-row">
-                    <label for="ewp-log-filter-owner"><?php esc_html_e('Owner', 'extend-wp'); ?></label>
-                    <select id="ewp-log-filter-owner" class="ewp-log-filter" data-filter="owner">
-                        <option value=""><?php esc_html_e('All', 'extend-wp'); ?></option>
-                    </select>
-
-                    <label for="ewp-log-filter-action-type"><?php esc_html_e('Action Type', 'extend-wp'); ?></label>
-                    <select id="ewp-log-filter-action-type" class="ewp-log-filter" data-filter="action_type">
-                        <option value=""><?php esc_html_e('All', 'extend-wp'); ?></option>
-                    </select>
-
-                    <label for="ewp-log-filter-object-type"><?php esc_html_e('Object Type', 'extend-wp'); ?></label>
-                    <select id="ewp-log-filter-object-type" class="ewp-log-filter" data-filter="object_type">
-                        <option value=""><?php esc_html_e('All', 'extend-wp'); ?></option>
-                        <option value="post_type"><?php esc_html_e('Post Type', 'extend-wp'); ?></option>
-                        <option value="taxonomy"><?php esc_html_e('Taxonomy', 'extend-wp'); ?></option>
-                        <option value="user"><?php esc_html_e('User', 'extend-wp'); ?></option>
-                        <option value="option"><?php esc_html_e('Option', 'extend-wp'); ?></option>
-                        <option value="custom_content"><?php esc_html_e('Custom Content', 'extend-wp'); ?></option>
-                        <option value="database"><?php esc_html_e('Database', 'extend-wp'); ?></option>
-                        <option value="system"><?php esc_html_e('System', 'extend-wp'); ?></option>
-                    </select>
-                </div>
-
-                <div class="ewp-log-filter-row">
-                    <label for="ewp-log-filter-behaviour"><?php esc_html_e('Behaviour', 'extend-wp'); ?></label>
-                    <select id="ewp-log-filter-behaviour" class="ewp-log-filter" data-filter="behaviour">
-                        <option value=""><?php esc_html_e('All', 'extend-wp'); ?></option>
-                        <option value="1"><?php esc_html_e('Success', 'extend-wp'); ?></option>
-                        <option value="2"><?php esc_html_e('Warning', 'extend-wp'); ?></option>
-                        <option value="0"><?php esc_html_e('Error', 'extend-wp'); ?></option>
-                    </select>
-
-                    <label for="ewp-log-filter-level"><?php esc_html_e('Level', 'extend-wp'); ?></label>
-                    <select id="ewp-log-filter-level" class="ewp-log-filter" data-filter="level">
-                        <option value=""><?php esc_html_e('All', 'extend-wp'); ?></option>
-                        <option value="editor" <?php selected($default_level, 'editor'); ?>><?php esc_html_e('Editor', 'extend-wp'); ?>
-                        </option>
-                        <option value="developer" <?php selected($default_level, 'developer'); ?>>
-                            <?php esc_html_e('Developer', 'extend-wp'); ?></option>
-                    </select>
-
-                    <label for="ewp-log-filter-date-from"><?php esc_html_e('From', 'extend-wp'); ?></label>
-                    <input type="date" id="ewp-log-filter-date-from" class="ewp-log-filter" data-filter="date_from" />
-
-                    <label for="ewp-log-filter-date-to"><?php esc_html_e('To', 'extend-wp'); ?></label>
-                    <input type="date" id="ewp-log-filter-date-to" class="ewp-log-filter" data-filter="date_to" />
-                </div>
-
-                <div class="ewp-log-filter-row ewp-log-filter-actions">
-                    <button type="button" id="ewp-log-filter-apply" class="button button-primary">
-                        <?php esc_html_e('Filter', 'extend-wp'); ?>
-                    </button>
-                    <button type="button" id="ewp-log-filter-reset" class="button">
-                        <?php esc_html_e('Reset', 'extend-wp'); ?>
-                    </button>
-                    <span id="ewp-log-total" class="ewp-log-total"></span>
-                </div>
+            <!-- Filter Actions -->
+            <div class="ewp-log-filter-actions">
+                <button type="button" id="ewp-log-filter-apply" class="button button-primary">
+                    <?php esc_html_e('Filter', 'extend-wp'); ?>
+                </button>
+                <button type="button" id="ewp-log-filter-reset" class="button">
+                    <?php esc_html_e('Reset', 'extend-wp'); ?>
+                </button>
+                <span id="ewp-log-total" class="ewp-log-total"></span>
             </div>
 
             <!-- Results Table -->

@@ -394,20 +394,25 @@ class EWP_Logger_File extends EWP_Logger_Storage
      */
     private function entry_matches_filters(array $entry, array $args)
     {
-        if (!empty($args['owner']) && ($entry['owner'] ?? '') !== $args['owner']) {
+        if (!empty($args['owner']) && !$this->value_matches($entry['owner'] ?? '', $args['owner'])) {
             return false;
         }
 
-        if (!empty($args['action_type']) && ($entry['action_type'] ?? '') !== $args['action_type']) {
+        if (!empty($args['action_type']) && !$this->value_matches($entry['action_type'] ?? '', $args['action_type'])) {
             return false;
         }
 
-        if (!empty($args['object_type']) && ($entry['object_type'] ?? '') !== $args['object_type']) {
+        if (!empty($args['object_type']) && !$this->value_matches($entry['object_type'] ?? '', $args['object_type'])) {
             return false;
         }
 
         if ($args['behaviour'] !== null && $args['behaviour'] !== '') {
-            if ((int) ($entry['behaviour'] ?? 1) !== (int) $args['behaviour']) {
+            $entry_val = (int) ($entry['behaviour'] ?? 1);
+            if (is_array($args['behaviour'])) {
+                if (!in_array($entry_val, array_map('intval', $args['behaviour']), true)) {
+                    return false;
+                }
+            } elseif ($entry_val !== (int) $args['behaviour']) {
                 return false;
             }
         }
@@ -433,5 +438,24 @@ class EWP_Logger_File extends EWP_Logger_Storage
         }
 
         return true;
+    }
+
+    /**
+     * Check if an entry value matches a scalar or array filter.
+     *
+     * @param string       $entry_value Value from the log entry.
+     * @param string|array $filter      Scalar or array of allowed values.
+     *
+     * @return bool True if matched.
+     *
+     * @since 1.2.0
+     */
+    private function value_matches($entry_value, $filter)
+    {
+        if (is_array($filter)) {
+            return in_array($entry_value, $filter, true);
+        }
+
+        return $entry_value === $filter;
     }
 }

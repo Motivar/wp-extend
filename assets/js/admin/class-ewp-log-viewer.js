@@ -4,10 +4,13 @@
  * Fetches log entries from the REST API endpoint and renders them
  * in a filterable, paginated table with expandable row details.
  *
+ * Filter fields are rendered server-side via awm_show_content and
+ * identified by [data-filter] attributes on their input/select elements.
+ *
  * Loaded via Dynamic Asset Loader when .ewp-log-viewer-wrap is in the DOM.
  *
  * @class EWPLogViewer
- * @version 1.0.0
+ * @version 1.1.0
  * @since 1.0.0
  */
 class EWPLogViewer {
@@ -36,30 +39,39 @@ class EWPLogViewer {
         /** @type {string} WP REST nonce */
         this.nonce = container.dataset.nonce || '';
 
-        /** @type {string} Default log level filter */
-        this.defaultLevel = container.dataset.defaultLevel || '';
-
-        /** @type {string} Default owner filter */
-        this.defaultOwner = container.dataset.defaultOwner || '';
-
         /** @type {number} Current page */
         this.currentPage = EWPLogViewer.DEFAULTS.page;
 
         /** @type {number} Results per page */
         this.perPage = EWPLogViewer.DEFAULTS.perPage;
 
-        /** @type {Object} Cached action types by owner */
-        this.actionTypes = {};
+        /**
+         * The page-level wrapper that contains both awm filter fields
+         * and the results container. Defaults to the closest
+         * .awm-show-content ancestor or falls back to the form.
+         *
+         * @type {HTMLElement}
+         */
+        this.pageWrap = container.closest('.awm-show-content')
+            || container.closest('form')
+            || document;
+
+        /** @type {Object<string, string>} Snapshot of initial filter values for reset */
+        this.initialValues = {};
 
         this.initElements();
+        this.snapshotDefaults();
         this.bindEvents();
-        this.loadOwners();
-        this.loadTypes();
+        this.updateActionTypeOptions();
         this.applyFilters();
     }
 
     /**
      * Cache DOM element references.
+     *
+     * Filter selects/inputs live outside .ewp-log-viewer-wrap,
+     * rendered by awm_show_content as siblings. We query the
+     * broader pageWrap to locate them via [data-filter].
      *
      * @returns {void}
      */
@@ -69,9 +81,20 @@ class EWPLogViewer {
         this.totalEl = this.container.querySelector('#ewp-log-total');
         this.filterBtn = this.container.querySelector('#ewp-log-filter-apply');
         this.resetBtn = this.container.querySelector('#ewp-log-filter-reset');
-        this.ownerSelect = this.container.querySelector('[data-filter="owner"]');
-        this.actionTypeSelect = this.container.querySelector('[data-filter="action_type"]');
-        this.levelSelect = this.container.querySelector('[data-filter="level"]');
+        this.ownerSelect = this.pageWrap.querySelector('[data-filter="owner"]');
+        this.actionTypeSelect = this.pageWrap.querySelector('[data-filter="action_type"]');
+    }
+
+    /**
+     * Store the initial (server-rendered default) value of every filter
+     * so resetFilters() can restore them.
+     *
+     * @returns {void}
+     */
+    snapshotDefaults() {
+        this.pageWrap.querySelectorAll('[data-filter]').forEach((el) => {
+            this.initialValues[el.dataset.filter] = el.value;
+        });
     }
 
     /**
@@ -89,10 +112,12 @@ class EWPLogViewer {
             this.resetFilters();
         });
 
-        // Owner change → update action type options
-        this.ownerSelect.addEventListener('change', () => {
-            this.updateActionTypeOptions();
-        });
+        // Owner change → show/hide action type options by data-owner
+        if (this.ownerSelect) {
+            this.ownerSelect.addEventListener('change', () => {
+                this.updateActionTypeOptions();
+            });
+        }
 
         // Row click → toggle detail expansion
         this.tbody.addEventListener('click', (e) => {
@@ -103,28 +128,20 @@ class EWPLogViewer {
         this.pagination.addEventListener('click', (e) => {
             this.handlePaginationClick(e);
         });
-
-        // Set default level
-        if (this.defaultLevel && this.levelSelect) {
-            this.levelSelect.value = this.defaultLevel;
-        }
-
-        // Set default owner
-        if (this.defaultOwner && this.ownerSelect) {
-            this.ownerSelect.value = this.defaultOwner;
-        }
     }
 
     /**
-     * Collect current filter values from the form.
+     * Collect current filter values from awm-rendered fields.
+     *
+     * Queries the pageWrap for all elements with [data-filter]
+     * and returns non-empty values keyed by the filter name.
      *
      * @returns {Object} Filter key-value pairs.
      */
     getFilters() {
         const filters = {};
-        const filterEls = this.container.querySelectorAll('.ewp-log-filter');
 
-        filterEls.forEach((el) => {
+        this.pageWrap.querySelectorAll('[data-filter]').forEach((el) => {
             const key = el.dataset.filter;
             const val = el.value;
             if (key && val !== '') {
@@ -177,30 +194,25 @@ class EWPLogViewer {
     }
 
     /**
-     * Reset all filters to their defaults and reload.
+     * Reset all filters to their server-rendered defaults and reload.
      *
      * @returns {void}
      */
     resetFilters() {
-        const filterEls = this.container.querySelectorAll('.ewp-log-filter');
-        filterEls.forEach((el) => {
-            if (el.tagName === 'SELECT') {
+        this.pageWrap.querySelectorAll('[data-filter]').forEach((el) => {
+            const key = el.dataset.filter;
+            const initial = this.initialValues[key];
+
+            if (typeof initial !== 'undefined') {
+                el.value = initial;
+            } else if (el.tagName === 'SELECT') {
                 el.selectedIndex = 0;
             } else {
                 el.value = '';
             }
         });
 
-        // Restore default level
-        if (this.defaultLevel && this.levelSelect) {
-            this.levelSelect.value = this.defaultLevel;
-        }
-
-        // Restore default owner
-        if (this.defaultOwner && this.ownerSelect) {
-            this.ownerSelect.value = this.defaultOwner;
-        }
-
+        this.updateActionTypeOptions();
         this.currentPage = 1;
         this.applyFilters();
     }
@@ -475,99 +487,33 @@ class EWPLogViewer {
     }
 
     /**
-     * Load available owners from the REST API and populate the owner select.
+     * Show/hide action type options based on the selected owner.
      *
-     * @returns {void}
-     */
-    loadOwners() {
-        fetch(`${this.restUrl}/logs/owners`, {
-            headers: { 'X-WP-Nonce': this.nonce },
-        })
-            .then((res) => res.json())
-            .then((json) => {
-                const owners = json.data || [];
-                owners.forEach((owner) => {
-                    const opt = document.createElement('option');
-                    opt.value = owner;
-                    opt.textContent = owner;
-                    this.ownerSelect.appendChild(opt);
-                });
-
-                // Apply default owner after options are loaded
-                if (this.defaultOwner && this.ownerSelect) {
-                    this.ownerSelect.value = this.defaultOwner;
-                    this.updateActionTypeOptions();
-                }
-            })
-            .catch(() => {
-                // Silently fail — filter still works without pre-populated options
-            });
-    }
-
-    /**
-     * Load all registered action types and cache them by owner.
-     *
-     * @returns {void}
-     */
-    loadTypes() {
-        fetch(`${this.restUrl}/logs/types`, {
-            headers: { 'X-WP-Nonce': this.nonce },
-        })
-            .then((res) => res.json())
-            .then((json) => {
-                const types = json.data || [];
-                this.actionTypes = {};
-
-                types.forEach((t) => {
-                    if (!this.actionTypes[t.owner]) {
-                        this.actionTypes[t.owner] = [];
-                    }
-                    this.actionTypes[t.owner].push(t);
-                });
-
-                this.updateActionTypeOptions();
-            })
-            .catch(() => {
-                // Silently fail
-            });
-    }
-
-    /**
-     * Update the action type select options based on the selected owner.
+     * Each <option> carries a data-owner attribute set server-side.
+     * When an owner is selected only matching options are visible;
+     * when no owner is selected all options are shown.
      *
      * @returns {void}
      */
     updateActionTypeOptions() {
-        const selectedOwner = this.ownerSelect.value;
-
-        // Clear existing options except "All"
-        while (this.actionTypeSelect.options.length > 1) {
-            this.actionTypeSelect.remove(1);
+        if (!this.actionTypeSelect) {
+            return;
         }
 
-        // Gather types for selected owner (or all owners)
-        let typesToShow = [];
-        if (selectedOwner && this.actionTypes[selectedOwner]) {
-            typesToShow = this.actionTypes[selectedOwner];
-        } else {
-            // Show all types from all owners
-            Object.values(this.actionTypes).forEach((ownerTypes) => {
-                typesToShow = typesToShow.concat(ownerTypes);
-            });
-        }
+        const selectedOwner = this.ownerSelect ? this.ownerSelect.value : '';
+        const options = this.actionTypeSelect.querySelectorAll('option[data-owner]');
 
-        // Deduplicate by type_key
-        const seen = new Set();
-        typesToShow.forEach((t) => {
-            if (seen.has(t.type_key)) {
-                return;
+        options.forEach((opt) => {
+            const owner = opt.getAttribute('data-owner');
+            const visible = !selectedOwner || owner === selectedOwner;
+
+            opt.hidden = !visible;
+            opt.disabled = !visible;
+
+            // Reset selection when the current value becomes hidden
+            if (!visible && opt.selected) {
+                this.actionTypeSelect.selectedIndex = 0;
             }
-            seen.add(t.type_key);
-
-            const opt = document.createElement('option');
-            opt.value = t.type_key;
-            opt.textContent = t.label || t.type_key;
-            this.actionTypeSelect.appendChild(opt);
         });
     }
 

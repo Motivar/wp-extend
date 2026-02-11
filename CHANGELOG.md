@@ -54,6 +54,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Logger: Default Owner Filter**: Log viewer now defaults to `extend-wp` owner filter via `data-default-owner` attribute. Restored on reset.
   - **Affected Files**: `class-ewp-logger-viewer.php`, `class-ewp-log-viewer.js`
 
+- **Logger: awm_show_content Filters**: Log viewer filter bar now uses `awm_show_content` field definitions instead of hardcoded HTML selects. Owner, Action Type, and Object Type options are auto-populated from registered data server-side (no more REST calls to `/logs/owners` and `/logs/types` on page load). Action type options carry `data-owner` attributes for client-side owner→type filtering. New filter hooks: `ewp_logger_viewer_fields`, `ewp_logger_viewer_owner_options`, `ewp_logger_viewer_action_type_options`, `ewp_logger_viewer_object_type_options`. `render_viewer_html()` replaced by `render_results_html()` (buttons + table + pagination only).
+  - **Original Request**: "The filters should also be registered with awm_show_content and auto populated based on the action types, owners, object types etc, registered by the users."
+  - **Affected Files**: `class-ewp-logger-viewer.php`, `class-ewp-log-viewer.js`
+
 ### Changed
 - **Logger: Settings on Main EWP Page**: Logger settings now appear as a "Logger Settings" section on the main Extend WP admin page (via `ewp_admin_fields_filter`) instead of a separate options page. Follows the same section + include pattern as `ewp_dev_settings` / `ewp_auto_export_settings`. All fields stored as a single serialised array in `wp_options` under key `ewp_logger_settings` with short keys (`enabled`, `storage`, `retention_months`). Removed separate `ewp-logger-settings` options page.
   - **Affected Files**: `class-ewp-logger-settings.php`, `class-ewp-logger.php`, `class-ewp-logger-cleanup.php`, `class-ewp-logger-viewer.php`

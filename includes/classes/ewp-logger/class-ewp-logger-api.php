@@ -127,10 +127,10 @@ class EWP_Logger_API
     public function get_logs(\WP_REST_Request $request)
     {
         $args = [
-            'owner'       => $request->get_param('owner') ?? '',
-            'action_type' => $request->get_param('action_type') ?? '',
-            'object_type' => $request->get_param('object_type') ?? '',
-            'behaviour'   => $request->get_param('behaviour'),
+            'owner'       => $this->parse_multi_param($request->get_param('owner')),
+            'action_type' => $this->parse_multi_param($request->get_param('action_type')),
+            'object_type' => $this->parse_multi_param($request->get_param('object_type')),
+            'behaviour'   => $this->parse_multi_param($request->get_param('behaviour')),
             'level'       => $request->get_param('level') ?? '',
             'user_id'     => $request->get_param('user_id') ?? 0,
             'date_from'   => $request->get_param('date_from') ?? '',
@@ -257,7 +257,39 @@ class EWP_Logger_API
     }
 
     /**
+     * Parse a REST param that may contain comma-separated multi-values.
+     *
+     * Returns a single string for single values, an array for multiple,
+     * or empty string for null/empty.
+     *
+     * @param mixed $value Raw parameter value.
+     *
+     * @return string|array Parsed value.
+     *
+     * @since 1.2.0
+     */
+    private function parse_multi_param($value)
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        $value = (string) $value;
+
+        if (strpos($value, ',') === false) {
+            return $value;
+        }
+
+        return array_values(array_filter(array_map('trim', explode(',', $value)), function ($v) {
+            return $v !== '';
+        }));
+    }
+
+    /**
      * Define endpoint argument schemas for validation.
+     *
+     * Multi-value filters (owner, action_type, object_type, behaviour)
+     * accept comma-separated strings that are parsed by parse_multi_param().
      *
      * @return array Argument definitions.
      *
@@ -282,8 +314,7 @@ class EWP_Logger_API
                 'default'           => '',
             ],
             'behaviour' => [
-                'type'    => ['integer', 'null'],
-                'enum'    => [null, 0, 1, 2],
+                'type'    => ['string', 'integer', 'null'],
                 'default' => null,
             ],
             'level' => [
