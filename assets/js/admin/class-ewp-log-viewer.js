@@ -37,7 +37,10 @@ class EWPLogViewer {
         this.nonce = container.dataset.nonce || '';
 
         /** @type {string} Default log level filter */
-        this.defaultLevel = container.dataset.defaultLevel || 'editor';
+        this.defaultLevel = container.dataset.defaultLevel || '';
+
+        /** @type {string} Default owner filter */
+        this.defaultOwner = container.dataset.defaultOwner || '';
 
         /** @type {number} Current page */
         this.currentPage = EWPLogViewer.DEFAULTS.page;
@@ -104,6 +107,11 @@ class EWPLogViewer {
         // Set default level
         if (this.defaultLevel && this.levelSelect) {
             this.levelSelect.value = this.defaultLevel;
+        }
+
+        // Set default owner
+        if (this.defaultOwner && this.ownerSelect) {
+            this.ownerSelect.value = this.defaultOwner;
         }
     }
 
@@ -186,6 +194,11 @@ class EWPLogViewer {
         // Restore default level
         if (this.defaultLevel && this.levelSelect) {
             this.levelSelect.value = this.defaultLevel;
+        }
+
+        // Restore default owner
+        if (this.defaultOwner && this.ownerSelect) {
+            this.ownerSelect.value = this.defaultOwner;
         }
 
         this.currentPage = 1;
@@ -479,6 +492,12 @@ class EWPLogViewer {
                     opt.textContent = owner;
                     this.ownerSelect.appendChild(opt);
                 });
+
+                // Apply default owner after options are loaded
+                if (this.defaultOwner && this.ownerSelect) {
+                    this.ownerSelect.value = this.defaultOwner;
+                    this.updateActionTypeOptions();
+                }
             })
             .catch(() => {
                 // Silently fail — filter still works without pre-populated options

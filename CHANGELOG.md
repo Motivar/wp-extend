@@ -44,7 +44,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - All storage backends (DB + File) updated
   - **Affected Files**: `class-ewp-logger.php`, `class-ewp-logger-db.php`, `class-ewp-logger-file.php`, `class-ewp-logger-storage.php`, `class-ewp-logger-api.php`, `class-ewp-log-viewer.js`, `ewp-log-viewer.css`
 
+### Added
+- **Logger: SCSS Source**: Created `_ewp-log-viewer.scss` with proper SCSS nesting. CSS is now compiled to `ewp-log-viewer.min.css`.
+  - **Affected Files**: `assets/css/admin/sass/_ewp-log-viewer.scss`, `assets/css/admin/ewp-log-viewer.min.css`, `class-ewp-logger-viewer.php`
+
+- **Logger: Options Save Auto-Hook**: EWP options page saves are now logged at `developer` level with action type `options_save`. Uses `updated_option` hook with static flag to log once per page save. Detects EWP pages via `awm_metabox_case` POST field.
+  - **Affected Files**: `class-ewp-logger.php`
+
+- **Logger: Default Owner Filter**: Log viewer now defaults to `extend-wp` owner filter via `data-default-owner` attribute. Restored on reset.
+  - **Affected Files**: `class-ewp-logger-viewer.php`, `class-ewp-log-viewer.js`
+
 ### Changed
+- **Logger: Settings on Main EWP Page**: Logger settings now appear as a "Logger Settings" section on the main Extend WP admin page (via `ewp_admin_fields_filter`) instead of a separate options page. Follows the same section + include pattern as `ewp_dev_settings` / `ewp_auto_export_settings`. All fields stored as a single serialised array in `wp_options` under key `ewp_logger_settings` with short keys (`enabled`, `storage`, `retention_months`). Removed separate `ewp-logger-settings` options page.
+  - **Affected Files**: `class-ewp-logger-settings.php`, `class-ewp-logger.php`, `class-ewp-logger-cleanup.php`, `class-ewp-logger-viewer.php`
+
 - **Logger: 3-State Behaviour**: The `behaviour` field now supports 3 values: `0` = error, `1` = success, `2` = warning (was previously boolean 0/1). Constants `EWP_Logger::BEHAVIOUR_ERROR`, `BEHAVIOUR_SUCCESS`, `BEHAVIOUR_WARNING` added. `normalize_behaviour()` handles backwards-compatible bool→int conversion. Viewer filter dropdown, JS rendering, CSS styles, and REST API all updated for the warning state.
   - **Original Request**: "Add to behaviour the type warning so the values should be 0 → error, 1 → success, 2 → warning."
   - **Affected Files**: `class-ewp-logger.php`, `class-ewp-logger-storage.php`, `class-ewp-logger-api.php`, `class-ewp-logger-viewer.php`, `class-ewp-log-viewer.js`, `ewp-log-viewer.css`, `logger-functions.php`
@@ -61,6 +74,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - **Logger: CPT/Taxonomy Registration Auto-Logs**: Removed `cpt_registered` and `taxonomy_registered` auto-hooks and built-in type registrations. These fired on every PHP request (including REST, AJAX, `.map` files), flooding the log with developer noise. Plugins can still manually call `ewp_log()` for these events if needed.
+
+- **Logger: Gallery Save Auto-Log**: Removed `gallery_save` auto-hook and built-in type registration. Developer-level noise that added little value.
+  - **Affected Files**: `class-ewp-logger.php`
 
 ### Fixed
 - **Logger: CPT Registration Warning**: Fixed "Array to string conversion" warning in the `cpt_registered` auto-hook — `ewp_register_post_type_action` passes `$type` as an array, now correctly extracts `$type['post']` as the slug.

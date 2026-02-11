@@ -100,7 +100,7 @@ class EWP_Logger_Cleanup
          *
          * @since 1.0.0
          */
-        $months = (int) apply_filters('ewp_logger_retention_months', $settings['ewp_logger_retention_months'] ?? 6);
+        $months = (int) apply_filters('ewp_logger_retention_months', $settings['retention_months'] ?? 6);
         $months = max(1, $months);
 
         $deleted     = $this->storage->delete_older_than($months);

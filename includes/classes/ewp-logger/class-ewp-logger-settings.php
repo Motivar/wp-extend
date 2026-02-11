@@ -7,29 +7,20 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Admin settings page for the EWP Logger.
+ * Logger settings for the EWP Logger.
  *
- * Registers an options page via the awm_add_options_boxes_filter hook,
- * allowing administrators to configure storage backend, retention period,
- * default log level, and enable/disable logging.
- *
- * Settings are stored as a single WP option: ewp_logger_settings.
+ * Registers a "Logger Settings" section on the main Extend WP admin page
+ * via the ewp_admin_fields_filter hook. Each field is stored as an
+ * individual wp_option (ewp_logger_enabled, ewp_logger_storage, etc.).
  *
  * @package    EWP\Logger
  * @author     Motivar
- * @version    1.0.0
+ * @version    1.2.0
  *
  * @since 1.0.0
  */
 class EWP_Logger_Settings
 {
-    /**
-     * Option name in wp_options.
-     *
-     * @var string
-     */
-    private static $option_key = 'ewp_logger_settings';
-
     /**
      * Cached settings array.
      *
@@ -40,35 +31,40 @@ class EWP_Logger_Settings
     /**
      * Initialize the settings hooks.
      *
+     * Registers logger fields as a section on the main EWP admin page
+     * via the ewp_admin_fields_filter hook.
+     *
      * @return void
      *
      * @since 1.0.0
      */
     public function init()
     {
-        add_filter('awm_add_options_boxes_filter', [$this, 'register_options_page'], 100);
+        add_filter('ewp_admin_fields_filter', [$this, 'register_admin_fields'], 100);
     }
 
     /**
-     * Register the logger settings as an EWP options page.
+     * Add logger settings as a section on the main EWP admin page.
      *
-     * @param array $options Existing options pages.
+     * Follows the same section + include pattern as ewp_dev_settings.
+     * Each field key inside include is registered individually via
+     * register_setting('extend-wp', $key) and stored as a separate wp_option.
      *
-     * @return array Modified options pages array.
+     * @param array $fields Existing admin fields from ewp_admin_fields_filter.
      *
-     * @since 1.0.0
+     * @return array Modified fields array with logger section appended.
+     *
+     * @since 1.2.0
      */
-    public function register_options_page($options)
+    public function register_admin_fields($fields)
     {
-        $options['ewp-logger-settings'] = [
-            'title'    => __('Logger Settings', 'extend-wp'),
-            'callback' => [$this, 'get_settings_fields'],
-            'parent'   => 'extend-wp',
-            'order'    => 9000000000000000000,
-            'cap'      => 'manage_options',
+        $fields['ewp_logger_settings'] = [
+            'case'    => 'section',
+            'label'   => __('Logger Settings', 'extend-wp'),
+            'include' => $this->get_settings_fields(),
         ];
 
-        return $options;
+        return $fields;
     }
 
     /**
@@ -92,24 +88,24 @@ class EWP_Logger_Settings
          * @since 1.0.0
          */
         return apply_filters('ewp_logger_settings_fields', [
-     
-            'ewp_logger_enabled' => [
+
+            'enabled' => [
                 'label'       => __('Enable Logging', 'extend-wp'),
                 'case'        => 'input',
                 'type'        => 'checkbox',
                 'explanation' => __('Enable or disable the EWP logging system globally.', 'extend-wp'),
             ],
-            'ewp_logger_storage' => [
+            'storage' => [
                 'label'   => __('Storage Backend', 'extend-wp'),
                 'case'    => 'select',
-                'default'=>'file',
+                'default' => 'file',
                 'options' => [
                     'db'   => ['label' => __('Database', 'extend-wp')],
                     'file' => ['label' => __('Log File', 'extend-wp')],
                 ],
                 'explanation' => __('Choose where log entries are stored. Database is recommended for most sites.', 'extend-wp'),
             ],
-            'ewp_logger_retention_months' => [
+            'retention_months' => [
                 'label'       => __('Retention Period (months)', 'extend-wp'),
                 'case'        => 'input',
                 'type'        => 'number',
@@ -121,34 +117,18 @@ class EWP_Logger_Settings
     }
 
     /**
-     * Modify how option values are returned for the logger settings page.
+     * Option key in wp_options (section stores fields as one serialised array).
      *
-     * When the current options page is ewp-logger-settings, values come from
-     * the nested ewp_logger_settings option array instead of individual options.
-     *
-     * @param mixed $value   The value from get_option.
-     * @param array $data    The field data.
-     * @param array $options All options for this options page.
-     *
-     * @return mixed Modified value.
-     *
-     * @since 1.0.0
+     * @var string
      */
-    public function change_option_value($value, $data, $options)
-    {
-        if ($options['id'] !== 'ewp-logger-settings') {
-            return $value;
-        }
-
-        return isset($data['attributes']['value']) ? $data['attributes']['value'] : '';
-    }
+    private static $option_key = 'ewp_logger_settings';
 
     /**
      * Get the current logger settings with defaults.
      *
-     * Dynamically reads all field keys and defaults from get_settings_fields().
-     * Each field key is read from wp_options via get_option().
-     * No hardcoded keys — the single source of truth is get_settings_fields().
+     * Reads a single array option (ewp_logger_settings) and merges
+     * with defaults derived from get_settings_fields().
+     * Same pattern as ewp_auto_export_settings / ewp_auto_import_settings.
      *
      * @return array Associative array of setting key => value.
      *
@@ -160,20 +140,27 @@ class EWP_Logger_Settings
             return self::$settings_cache;
         }
 
-        // Single source of truth: derive keys + defaults from field definitions
+        // Stored option (single array)
+        $stored = get_option(self::$option_key, []);
+
+        if (!is_array($stored)) {
+            $stored = [];
+        }
+
+        // Derive defaults from field definitions (single source of truth)
         $instance = new self();
         $fields   = $instance->get_settings_fields();
         $settings = [];
 
-        foreach ($fields as $option_key => $field) {
-            $default            = isset($field['default']) ? $field['default'] : '';
-            $settings[$option_key] = get_option($option_key, $default);
+        foreach ($fields as $key => $field) {
+            $default        = isset($field['default']) ? $field['default'] : '';
+            $settings[$key] = isset($stored[$key]) ? $stored[$key] : $default;
         }
 
         /**
          * Filter the resolved logger settings before caching.
          *
-         * @param array $settings Resolved settings keyed by option name.
+         * @param array $settings Resolved settings keyed by short field name.
          * @param array $fields   Raw field definitions from get_settings_fields().
          *
          * @since 1.2.0

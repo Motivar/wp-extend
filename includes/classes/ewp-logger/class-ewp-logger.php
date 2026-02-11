@@ -159,17 +159,22 @@ class EWP_Logger
 
         // Load settings and determine if logging is enabled
         $settings     = EWP_Logger_Settings::get_settings();
-        self::$enabled = !empty($settings['ewp_logger_enabled']);
+        self::$enabled = !empty($settings['enabled']);
+
+        // Settings page always loads (so user can re-enable logging)
+        $settings_page = new EWP_Logger_Settings();
+        $settings_page->init();
+
+        // Everything else only when logging is enabled
+        if (!self::$enabled) {
+            return;
+        }
 
         // Initialize storage backend
-        $this->storage = $this->resolve_storage_backend($settings['ewp_logger_storage'] ?? 'file');
+        $this->storage = $this->resolve_storage_backend($settings['storage'] ?? 'file');
 
         // Initialize the queue with our storage
         EWP_Logger_Queue::init($this->storage);
-
-        // Initialize settings admin page
-        $settings_page = new EWP_Logger_Settings();
-        $settings_page->init();
 
         // Initialize cleanup cron
         $cleanup = new EWP_Logger_Cleanup($this->storage);
@@ -446,7 +451,6 @@ class EWP_Logger
         self::register_action_type($owner, 'db_update', 'DB Update', 'A database table was created or updated.');
         self::register_action_type($owner, 'db_error', 'DB Error', 'A database operation failed.');
         self::register_action_type($owner, 'cache_flush', 'Cache Flush', 'The EWP cache was flushed.');
-        self::register_action_type($owner, 'gallery_save', 'Gallery Save', 'Gallery images were saved for a post.');
     }
 
     /**
@@ -561,19 +565,42 @@ class EWP_Logger
             }, 999);
         }
 
-        // H. Gallery Save
-        if ($this->is_auto_log_enabled('gallery_save')) {
-            add_action('gallery_meta_box_save', function ($post_id, $post, $update) {
+        // G. EWP Options Page Save (developer level, logged once per page save)
+        if ($this->is_auto_log_enabled('options_save')) {
+            add_action('updated_option', function ($option, $old_value, $value) {
+                static $logged = false;
+
+                // Only log once per request, only for EWP options pages
+                if ($logged) {
+                    return;
+                }
+
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                $is_ewp_options = isset($_POST['awm_metabox_case']) && $_POST['awm_metabox_case'] === 'option';
+
+                if (!$is_ewp_options) {
+                    return;
+                }
+
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                $page_id = isset($_POST['awm_metabox'][0]) ? sanitize_text_field($_POST['awm_metabox'][0]) : '';
+
+                if (empty($page_id)) {
+                    return;
+                }
+
+                $logged = true;
+
                 self::log(
                     'extend-wp',
-                    'gallery_save',
-                    sprintf('Gallery updated for post #%d', $post_id),
+                    'options_save',
+                    sprintf('Options page "%s" saved by user #%d', $page_id, get_current_user_id()),
                     [
-                        'post_id' => $post_id,
-                        'update'  => $update,
+                        'page_id'  => $page_id,
+                        'user_id'  => get_current_user_id(),
                     ],
                     'developer',
-                    'post_type',
+                    'option',
                     true
                 );
             }, 999, 3);

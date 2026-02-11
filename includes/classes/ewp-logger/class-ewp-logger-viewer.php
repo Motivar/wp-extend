@@ -94,103 +94,103 @@ class EWP_Logger_Viewer
      */
     private function render_viewer_html($settings)
     {
-        $default_level = esc_attr($settings['ewp_logger_default_level'] ?? '');
+        $default_level = esc_attr($settings['default_level'] ?? '');
         $nonce         = wp_create_nonce('wp_rest');
         $rest_url      = esc_url(rest_url('extend-wp/v1'));
 
         ob_start();
-        ?>
-<div class="ewp-log-viewer-wrap" data-rest-url="<?php echo $rest_url; ?>" data-nonce="<?php echo $nonce; ?>"
- data-default-level="<?php echo $default_level; ?>">
+?>
+        <div class="ewp-log-viewer-wrap" data-rest-url="<?php echo $rest_url; ?>" data-nonce="<?php echo $nonce; ?>"
+            data-default-level="<?php echo $default_level; ?>" data-default-owner="extend-wp">
 
- <!-- Filter Bar -->
- <div class="ewp-log-filters">
-  <div class="ewp-log-filter-row">
-   <label for="ewp-log-filter-owner"><?php esc_html_e('Owner', 'extend-wp'); ?></label>
-   <select id="ewp-log-filter-owner" class="ewp-log-filter" data-filter="owner">
-    <option value=""><?php esc_html_e('All', 'extend-wp'); ?></option>
-   </select>
+            <!-- Filter Bar -->
+            <div class="ewp-log-filters">
+                <div class="ewp-log-filter-row">
+                    <label for="ewp-log-filter-owner"><?php esc_html_e('Owner', 'extend-wp'); ?></label>
+                    <select id="ewp-log-filter-owner" class="ewp-log-filter" data-filter="owner">
+                        <option value=""><?php esc_html_e('All', 'extend-wp'); ?></option>
+                    </select>
 
-   <label for="ewp-log-filter-action-type"><?php esc_html_e('Action Type', 'extend-wp'); ?></label>
-   <select id="ewp-log-filter-action-type" class="ewp-log-filter" data-filter="action_type">
-    <option value=""><?php esc_html_e('All', 'extend-wp'); ?></option>
-   </select>
+                    <label for="ewp-log-filter-action-type"><?php esc_html_e('Action Type', 'extend-wp'); ?></label>
+                    <select id="ewp-log-filter-action-type" class="ewp-log-filter" data-filter="action_type">
+                        <option value=""><?php esc_html_e('All', 'extend-wp'); ?></option>
+                    </select>
 
-   <label for="ewp-log-filter-object-type"><?php esc_html_e('Object Type', 'extend-wp'); ?></label>
-   <select id="ewp-log-filter-object-type" class="ewp-log-filter" data-filter="object_type">
-    <option value=""><?php esc_html_e('All', 'extend-wp'); ?></option>
-    <option value="post_type"><?php esc_html_e('Post Type', 'extend-wp'); ?></option>
-    <option value="taxonomy"><?php esc_html_e('Taxonomy', 'extend-wp'); ?></option>
-    <option value="user"><?php esc_html_e('User', 'extend-wp'); ?></option>
-    <option value="option"><?php esc_html_e('Option', 'extend-wp'); ?></option>
-    <option value="custom_content"><?php esc_html_e('Custom Content', 'extend-wp'); ?></option>
-    <option value="database"><?php esc_html_e('Database', 'extend-wp'); ?></option>
-    <option value="system"><?php esc_html_e('System', 'extend-wp'); ?></option>
-   </select>
-  </div>
+                    <label for="ewp-log-filter-object-type"><?php esc_html_e('Object Type', 'extend-wp'); ?></label>
+                    <select id="ewp-log-filter-object-type" class="ewp-log-filter" data-filter="object_type">
+                        <option value=""><?php esc_html_e('All', 'extend-wp'); ?></option>
+                        <option value="post_type"><?php esc_html_e('Post Type', 'extend-wp'); ?></option>
+                        <option value="taxonomy"><?php esc_html_e('Taxonomy', 'extend-wp'); ?></option>
+                        <option value="user"><?php esc_html_e('User', 'extend-wp'); ?></option>
+                        <option value="option"><?php esc_html_e('Option', 'extend-wp'); ?></option>
+                        <option value="custom_content"><?php esc_html_e('Custom Content', 'extend-wp'); ?></option>
+                        <option value="database"><?php esc_html_e('Database', 'extend-wp'); ?></option>
+                        <option value="system"><?php esc_html_e('System', 'extend-wp'); ?></option>
+                    </select>
+                </div>
 
-  <div class="ewp-log-filter-row">
-   <label for="ewp-log-filter-behaviour"><?php esc_html_e('Behaviour', 'extend-wp'); ?></label>
-   <select id="ewp-log-filter-behaviour" class="ewp-log-filter" data-filter="behaviour">
-    <option value=""><?php esc_html_e('All', 'extend-wp'); ?></option>
-    <option value="1"><?php esc_html_e('Success', 'extend-wp'); ?></option>
-    <option value="2"><?php esc_html_e('Warning', 'extend-wp'); ?></option>
-    <option value="0"><?php esc_html_e('Error', 'extend-wp'); ?></option>
-   </select>
+                <div class="ewp-log-filter-row">
+                    <label for="ewp-log-filter-behaviour"><?php esc_html_e('Behaviour', 'extend-wp'); ?></label>
+                    <select id="ewp-log-filter-behaviour" class="ewp-log-filter" data-filter="behaviour">
+                        <option value=""><?php esc_html_e('All', 'extend-wp'); ?></option>
+                        <option value="1"><?php esc_html_e('Success', 'extend-wp'); ?></option>
+                        <option value="2"><?php esc_html_e('Warning', 'extend-wp'); ?></option>
+                        <option value="0"><?php esc_html_e('Error', 'extend-wp'); ?></option>
+                    </select>
 
-   <label for="ewp-log-filter-level"><?php esc_html_e('Level', 'extend-wp'); ?></label>
-   <select id="ewp-log-filter-level" class="ewp-log-filter" data-filter="level">
-    <option value=""><?php esc_html_e('All', 'extend-wp'); ?></option>
-    <option value="editor" <?php selected($default_level, 'editor'); ?>><?php esc_html_e('Editor', 'extend-wp'); ?>
-    </option>
-    <option value="developer" <?php selected($default_level, 'developer'); ?>>
-     <?php esc_html_e('Developer', 'extend-wp'); ?></option>
-   </select>
+                    <label for="ewp-log-filter-level"><?php esc_html_e('Level', 'extend-wp'); ?></label>
+                    <select id="ewp-log-filter-level" class="ewp-log-filter" data-filter="level">
+                        <option value=""><?php esc_html_e('All', 'extend-wp'); ?></option>
+                        <option value="editor" <?php selected($default_level, 'editor'); ?>><?php esc_html_e('Editor', 'extend-wp'); ?>
+                        </option>
+                        <option value="developer" <?php selected($default_level, 'developer'); ?>>
+                            <?php esc_html_e('Developer', 'extend-wp'); ?></option>
+                    </select>
 
-   <label for="ewp-log-filter-date-from"><?php esc_html_e('From', 'extend-wp'); ?></label>
-   <input type="date" id="ewp-log-filter-date-from" class="ewp-log-filter" data-filter="date_from" />
+                    <label for="ewp-log-filter-date-from"><?php esc_html_e('From', 'extend-wp'); ?></label>
+                    <input type="date" id="ewp-log-filter-date-from" class="ewp-log-filter" data-filter="date_from" />
 
-   <label for="ewp-log-filter-date-to"><?php esc_html_e('To', 'extend-wp'); ?></label>
-   <input type="date" id="ewp-log-filter-date-to" class="ewp-log-filter" data-filter="date_to" />
-  </div>
+                    <label for="ewp-log-filter-date-to"><?php esc_html_e('To', 'extend-wp'); ?></label>
+                    <input type="date" id="ewp-log-filter-date-to" class="ewp-log-filter" data-filter="date_to" />
+                </div>
 
-  <div class="ewp-log-filter-row ewp-log-filter-actions">
-   <button type="button" id="ewp-log-filter-apply" class="button button-primary">
-    <?php esc_html_e('Filter', 'extend-wp'); ?>
-   </button>
-   <button type="button" id="ewp-log-filter-reset" class="button">
-    <?php esc_html_e('Reset', 'extend-wp'); ?>
-   </button>
-   <span id="ewp-log-total" class="ewp-log-total"></span>
-  </div>
- </div>
+                <div class="ewp-log-filter-row ewp-log-filter-actions">
+                    <button type="button" id="ewp-log-filter-apply" class="button button-primary">
+                        <?php esc_html_e('Filter', 'extend-wp'); ?>
+                    </button>
+                    <button type="button" id="ewp-log-filter-reset" class="button">
+                        <?php esc_html_e('Reset', 'extend-wp'); ?>
+                    </button>
+                    <span id="ewp-log-total" class="ewp-log-total"></span>
+                </div>
+            </div>
 
- <!-- Results Table -->
- <div class="ewp-log-results">
-  <table class="wp-list-table widefat fixed striped ewp-log-table">
-   <thead>
-    <tr>
-     <th class="ewp-col-date"><?php esc_html_e('Date', 'extend-wp'); ?></th>
-     <th class="ewp-col-owner"><?php esc_html_e('Owner', 'extend-wp'); ?></th>
-     <th class="ewp-col-action"><?php esc_html_e('Action', 'extend-wp'); ?></th>
-     <th class="ewp-col-object"><?php esc_html_e('Object Type', 'extend-wp'); ?></th>
-     <th class="ewp-col-level"><?php esc_html_e('Level', 'extend-wp'); ?></th>
-     <th class="ewp-col-behaviour"><?php esc_html_e('Status', 'extend-wp'); ?></th>
-     <th class="ewp-col-user"><?php esc_html_e('User', 'extend-wp'); ?></th>
-     <th class="ewp-col-message"><?php esc_html_e('Message', 'extend-wp'); ?></th>
-    </tr>
-   </thead>
-   <tbody id="ewp-log-tbody">
-    <tr class="ewp-log-loading">
-     <td colspan="8"><?php esc_html_e('Loading...', 'extend-wp'); ?></td>
-    </tr>
-   </tbody>
-  </table>
- </div>
+            <!-- Results Table -->
+            <div class="ewp-log-results">
+                <table class="wp-list-table widefat fixed striped ewp-log-table">
+                    <thead>
+                        <tr>
+                            <th class="ewp-col-date"><?php esc_html_e('Date', 'extend-wp'); ?></th>
+                            <th class="ewp-col-owner"><?php esc_html_e('Owner', 'extend-wp'); ?></th>
+                            <th class="ewp-col-action"><?php esc_html_e('Action', 'extend-wp'); ?></th>
+                            <th class="ewp-col-object"><?php esc_html_e('Object Type', 'extend-wp'); ?></th>
+                            <th class="ewp-col-level"><?php esc_html_e('Level', 'extend-wp'); ?></th>
+                            <th class="ewp-col-behaviour"><?php esc_html_e('Status', 'extend-wp'); ?></th>
+                            <th class="ewp-col-user"><?php esc_html_e('User', 'extend-wp'); ?></th>
+                            <th class="ewp-col-message"><?php esc_html_e('Message', 'extend-wp'); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody id="ewp-log-tbody">
+                        <tr class="ewp-log-loading">
+                            <td colspan="8"><?php esc_html_e('Loading...', 'extend-wp'); ?></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
- <!-- Pagination -->
- <div class="ewp-log-pagination" id="ewp-log-pagination"></div>
-</div>
+            <!-- Pagination -->
+            <div class="ewp-log-pagination" id="ewp-log-pagination"></div>
+        </div>
 <?php
         return ob_get_clean();
     }
@@ -212,7 +212,7 @@ class EWP_Logger_Viewer
             'handle'       => 'ewp-log-viewer-style',
             'selector'     => '.ewp-log-viewer-wrap',
             'type'         => 'style',
-            'src'          => awm_url . 'assets/css/admin/ewp-log-viewer.css',
+            'src'          => awm_url . 'assets/css/admin/ewp-log-viewer.min.css',
             'version'      => '1.0.0',
             'context'      => 'admin',
         ];
