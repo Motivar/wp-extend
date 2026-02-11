@@ -24,7 +24,7 @@ class Extend_WP_Default_Content
    */
   public function __construct()
   {
-    add_filter('awm_add_options_boxes_filter', [$this, 'admin_menu']);
+    add_filter('awm_add_options_boxes_filter', [$this, 'admin_menu'], 1);
     add_action('wp_dashboard_setup', [$this, 'remove_dashboard_widgets']);
   }
   
@@ -107,7 +107,8 @@ class Extend_WP_Default_Content
       'parent' => false,
       'cap' => 'manage_options',
       'icon' => 'dashicons-admin-generic',
-      'library' => $this->admin_fields()
+      'library' => $this->admin_fields(),
+      'order' => 1
     );
     
     return $options;

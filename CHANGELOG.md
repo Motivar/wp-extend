@@ -8,6 +8,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Abstract Global Logger System**: Created a comprehensive, plugin-agnostic logging system for extend-wp.
+  - **Original Request**: "Create an abstract global logger for the plugin — admins configure retention/storage/level, libraries register action types, queue-based for performance, editor/developer levels."
+  - **Summary**:
+    - Core singleton `EWP_Logger` with static API: `::log()`, `::register_action_type()`, `::get_logs()`
+    - Global helpers: `ewp_log()` and `ewp_register_log_type()` for easy external plugin use
+    - Two storage backends: Database (custom table via `AWM_DB_Creator`) and File (JSON-lines in `wp-content/ewp-logs/`)
+    - In-memory queue (`EWP_Logger_Queue`) with batch flush on shutdown — zero runtime performance impact
+    - Log entry structure: `owner`, `action_type`, `object_type`, `behaviour` (bool), `level` (editor/developer), `user_id`, `object_id`, `message`, `data`, `created_at`
+    - Admin settings page (storage backend, retention period 1–24 months, default view level, enable/disable)
+    - Cron-based data retention cleanup (`ewp_logger_cleanup_hook`)
+    - Auto-logging on 8 existing EWP hooks: content save/delete, meta update, DB update, CPT/taxonomy registration, cache flush, gallery save
+    - Each auto-log individually disableable via `ewp_logger_auto_log_{$action_type}_enabled` filter
+    - REST API endpoint `GET /extend-wp/v1/logs` (administrator-only) with full filtering and pagination
+    - Additional endpoints: `/logs/types`, `/logs/owners`
+    - WP-CLI commands: `wp ewp log list`, `wp ewp log cleanup`, `wp ewp log stats`, `wp ewp log types`
+    - Lightweight AJAX-powered log viewer admin page with filters, expandable detail rows, pagination
+    - JS/CSS loaded via Dynamic Asset Loader (selector: `.ewp-log-viewer-wrap`, admin context only)
+    - Core data stored raw (language-neutral); labels translated via `__()` on output only
+    - Comprehensive filter hooks for all operations (`ewp_logger_before_log`, `ewp_logger_storage_backend`, `ewp_logger_registered_types`, etc.)
+  - **Affected Files**:
+    - `includes/classes/ewp-logger/` (11 new PHP files)
+    - `assets/js/admin/class-ewp-log-viewer.js` (new)
+    - `assets/css/admin/ewp-log-viewer.css` (new)
+    - `includes/classes/Setup.php` (updated — added logger require and init)
+  - **Backwards-compatibility**: Fully backwards compatible — new opt-in system. No changes to existing functionality.
+
+- **Logger: Request ID Grouping**: Log entries from the same HTTP request are now grouped together.
+  - **Original Request**: "Can we somehow wrap the logs based on the action that triggered them — like if we click a refresh and a lot of different post types have been registered then give the runtime an ID?"
+  - **Summary**:
+    - Added `request_id` (unique 16-char hex per PHP request) and `request_context` (HTTP method + URI, or CLI command) to every log entry
+    - DB schema bumped to v1.1.0 with new indexed columns
+    - Log viewer groups consecutive entries with the same `request_id` under a collapsible header showing context, count, and timestamp
+    - REST API supports `request_id` filter parameter
+    - All storage backends (DB + File) updated
+  - **Affected Files**: `class-ewp-logger.php`, `class-ewp-logger-db.php`, `class-ewp-logger-file.php`, `class-ewp-logger-storage.php`, `class-ewp-logger-api.php`, `class-ewp-log-viewer.js`, `ewp-log-viewer.css`
+
+### Changed
+- **Logger: 3-State Behaviour**: The `behaviour` field now supports 3 values: `0` = error, `1` = success, `2` = warning (was previously boolean 0/1). Constants `EWP_Logger::BEHAVIOUR_ERROR`, `BEHAVIOUR_SUCCESS`, `BEHAVIOUR_WARNING` added. `normalize_behaviour()` handles backwards-compatible bool→int conversion. Viewer filter dropdown, JS rendering, CSS styles, and REST API all updated for the warning state.
+  - **Original Request**: "Add to behaviour the type warning so the values should be 0 → error, 1 → success, 2 → warning."
+  - **Affected Files**: `class-ewp-logger.php`, `class-ewp-logger-storage.php`, `class-ewp-logger-api.php`, `class-ewp-logger-viewer.php`, `class-ewp-log-viewer.js`, `ewp-log-viewer.css`, `logger-functions.php`
+  - **Backwards-compatibility**: Existing `true`/`false` values are auto-cast via `normalize_behaviour()`. DB TINYINT column already supports 0–2.
+
+- **Logger: Log Directory to Uploads**: File storage now defaults to `{uploads}/ewp-logs` instead of `wp-content/ewp-logs`. Works correctly in standard WP and Bedrock environments. Improved `.htaccess` with Apache 2.2/2.4 compat rules, added `index.html` fallback. Still customizable via `ewp_logger_file_directory` filter.
+  - **Affected Files**: `class-ewp-logger-file.php`
+
+- **Logger: Dynamic Settings**: `get_settings()` now derives all keys and defaults dynamically from `get_settings_fields()` — no hardcoded keys. Single source of truth is the field definitions. Removed `default_level` setting. All consumers updated to use full option keys (`ewp_logger_enabled`, `ewp_logger_storage`, `ewp_logger_retention_months`). Added `ewp_logger_resolved_settings` filter.
+  - **Original Request**: "Never hardcode the keys — get all variables from get_settings_fields, check which have defaults, and save settings based on that."
+  - **Affected Files**: `class-ewp-logger-settings.php`, `class-ewp-logger.php`, `class-ewp-logger-cleanup.php`, `class-ewp-logger-viewer.php`
+
+- **Logger: Content Save Data**: The `content_save` auto-hook now stores actual filtered field values instead of only field names (`array_keys`). WordPress boilerplate fields (nonces, referers, meta-box internals) are automatically stripped via `EWP_Logger::filter_wp_noise()`. Customizable via `ewp_logger_wp_noise_keys` filter.
+
+### Removed
+- **Logger: CPT/Taxonomy Registration Auto-Logs**: Removed `cpt_registered` and `taxonomy_registered` auto-hooks and built-in type registrations. These fired on every PHP request (including REST, AJAX, `.map` files), flooding the log with developer noise. Plugins can still manually call `ewp_log()` for these events if needed.
+
+### Fixed
+- **Logger: CPT Registration Warning**: Fixed "Array to string conversion" warning in the `cpt_registered` auto-hook — `ewp_register_post_type_action` passes `$type` as an array, now correctly extracts `$type['post']` as the slug.
+
 - **Multiple Select Support in Gutenberg Blocks**: Select fields with `'attributes' => array('multiple' => true)` now render as multi-select in the block editor.
   - **Original Request**: "For the select property if we have attribute multiple = 1 can we enable multiple select box in UI?"
   - **Summary**:
