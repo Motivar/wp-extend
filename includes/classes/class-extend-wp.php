@@ -273,7 +273,7 @@ class AWM_Meta
      */
     private function register_script_styles()
     {
-        $version = 0.293;
+        $version = 0.25;
         wp_register_style('awm-slim-lib-style', awm_url . 'assets/css/global/slimselect.min.css', false, $version);
         wp_register_style('awm-global-style', awm_url . 'assets/css/global/awm-global-style.min.css', false, $version);
         wp_register_style('awm-admin-style', awm_url . 'assets/css/admin/awm-admin-style.min.css', false, $version);
