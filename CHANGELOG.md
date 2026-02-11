@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`awm_ajax_call` GET callbacks crash**: Fixed `TypeError: null is not an object (evaluating 'options.data.name')` in AJAX success callbacks for GET requests. The GET serialization logic was nullifying `Options.data` after appending params to the URL, breaking callbacks (`awm_show_query_details`, `awm_show_field_details`, `awm_show_position_settings`) that relied on `options.data`. Replaced `Options.data = null` with a `_dataSerialized` flag so the original data remains accessible to callbacks.
+  - **Affected Files**: `/assets/js/global/awm-global-script.js`
+  - **Backwards-compatibility**: Fully backwards-compatible; no changes to public API
+
 ### Changed
 - **`awm_ajax_call` Refactored**: Improved AJAX utility function with bug fixes, error callback support, and logging.
   - **Original Request**: "Review awm_ajax_call, add error callback for 4xx, fix GET bug, add comments, use EWPDynamicAssetLoader.log"

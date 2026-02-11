@@ -1302,8 +1302,8 @@ function awm_ajax_call(options) {
                     EWPDynamicAssetLoader.log('GET request: URL with parameters', Options.url);
                 }
                 
-                // Clear data for GET requests (data goes in URL)
-                Options.data = null;
+                // Mark GET data as serialized into URL (send body will be null)
+                Options._dataSerialized = true;
             } catch (e) {
                 console.error('[AWM AJAX] Error serializing GET request data:', e);
                 throw e;
@@ -1469,8 +1469,8 @@ function awm_ajax_call(options) {
         // Send the request
         try {
             // For POST requests, send data as JSON string
-            // For GET requests, data is null (already in URL)
-            var requestData = Options.data ? JSON.stringify(Options.data) : null;
+            // For GET requests, data was serialized into URL — send null body
+            var requestData = (Options.data && !Options._dataSerialized) ? JSON.stringify(Options.data) : null;
             EWPDynamicAssetLoader.log('Sending request', { hasData: !!requestData });
             request.send(requestData);
         } catch (e) {

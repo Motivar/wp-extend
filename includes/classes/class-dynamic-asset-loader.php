@@ -91,43 +91,15 @@ class Dynamic_Asset_Loader
             return;
         }
 
-        // Check if we have frontend assets
-        $has_frontend = $this->has_context_assets($assets, 'frontend');
-
-        // Check if we have admin assets
-        $has_admin = $this->has_context_assets($assets, 'admin');
-
-        // Register and enqueue only where needed
-        if ($has_frontend) {
-            add_action('wp_enqueue_scripts', array($this, 'register_loader_script'), 5);
-            add_action('wp_enqueue_scripts', array($this, 'enqueue_loader'), 999);
-            add_action('wp_head', array($this, 'add_resource_hints'), 1);
-            add_action('wp_head', array($this, 'add_preload_links'), 2);
-            add_action('wp_head', array($this, 'add_critical_css'), 3);
-        }
-
-        if ($has_admin) {
-            add_action('admin_enqueue_scripts', array($this, 'register_loader_script'), 5);
-            add_action('admin_enqueue_scripts', array($this, 'enqueue_loader'), 999);
-        }
+        add_action('wp_enqueue_scripts', array($this, 'register_loader_script'), 5);
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_loader'), 999);
+        add_action('wp_head', array($this, 'add_resource_hints'), 1);
+        add_action('wp_head', array($this, 'add_preload_links'), 2);
+        add_action('wp_head', array($this, 'add_critical_css'), 3);
+        add_action('admin_enqueue_scripts', array($this, 'register_loader_script'), 1);
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_loader'), 1);
     }
 
-    /**
-     * Check if assets exist for a specific context
-     * 
-     * @param array $assets All registered assets
-     * @param string $context Context to check ('frontend' or 'admin')
-     * @return bool True if assets exist for this context
-     */
-    private function has_context_assets($assets, $context)
-    {
-        foreach ($assets as $asset) {
-            if ($asset['context'] === 'both' || $asset['context'] === $context) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     /**
      * Register the main loader script
@@ -152,6 +124,7 @@ class Dynamic_Asset_Loader
      */
     public function enqueue_loader()
     {
+        wp_enqueue_script(self::LOADER_HANDLE);
         $assets = $this->get_registered_assets();
         
         if (empty($assets)) {
@@ -168,8 +141,8 @@ class Dynamic_Asset_Loader
             return;
         }
 
-        wp_enqueue_script(self::LOADER_HANDLE);
-        
+
+
         wp_localize_script(
             self::LOADER_HANDLE,
             'ewpDynamicAssets',
