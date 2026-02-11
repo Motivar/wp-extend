@@ -323,8 +323,7 @@ class EWP_Logger_DB extends EWP_Logger_Storage
         }
 
         if (!empty($args['level'])) {
-            $conditions[] = 'level = %s';
-            $values[]     = $args['level'];
+            $this->add_in_condition($conditions, $values, 'level', $args['level'], '%s');
         }
 
         if (!empty($args['user_id'])) {

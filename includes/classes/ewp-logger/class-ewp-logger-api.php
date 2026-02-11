@@ -131,7 +131,7 @@ class EWP_Logger_API
             'action_type' => $this->parse_multi_param($request->get_param('action_type')),
             'object_type' => $this->parse_multi_param($request->get_param('object_type')),
             'behaviour'   => $this->parse_multi_param($request->get_param('behaviour')),
-            'level'       => $request->get_param('level') ?? '',
+            'level'       => $this->parse_multi_param($request->get_param('level')),
             'user_id'     => $request->get_param('user_id') ?? 0,
             'date_from'   => $request->get_param('date_from') ?? '',
             'date_to'     => $request->get_param('date_to') ?? '',

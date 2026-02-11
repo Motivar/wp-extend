@@ -116,12 +116,12 @@ class EWP_Logger_Viewer
         $fields['ewp_log_filter_level'] = [
             'case'         => 'select',
             'label'        => __('Level', 'extend-wp'),
-            'default'      => 'editor',
+            'default' => 'editor',
             'options'      => [
                 'editor'    => ['label' => __('Editor', 'extend-wp')],
                 'developer' => ['label' => __('Developer', 'extend-wp')],
             ],
-            'attributes'   => ['data-filter' => 'level'],
+            'attributes'   => ['data-filter' => 'level', 'multiple' => true],
             'exclude_meta' => true,
         ];
 
@@ -272,45 +272,45 @@ class EWP_Logger_Viewer
 
         ob_start();
 ?>
-        <div class="ewp-log-viewer-wrap" data-rest-url="<?php echo $rest_url; ?>" data-nonce="<?php echo $nonce; ?>">
+<div class="ewp-log-viewer-wrap" data-rest-url="<?php echo $rest_url; ?>" data-nonce="<?php echo $nonce; ?>">
 
-            <!-- Filter Actions -->
-            <div class="ewp-log-filter-actions">
-                <button type="button" id="ewp-log-filter-apply" class="button button-primary">
-                    <?php esc_html_e('Filter', 'extend-wp'); ?>
-                </button>
-                <button type="button" id="ewp-log-filter-reset" class="button">
-                    <?php esc_html_e('Reset', 'extend-wp'); ?>
-                </button>
-                <span id="ewp-log-total" class="ewp-log-total"></span>
-            </div>
+ <!-- Filter Actions -->
+ <div class="ewp-log-filter-actions">
+  <button type="button" id="ewp-log-filter-apply" class="button button-primary">
+   <?php esc_html_e('Filter', 'extend-wp'); ?>
+  </button>
+  <button type="button" id="ewp-log-filter-reset" class="button">
+   <?php esc_html_e('Reset', 'extend-wp'); ?>
+  </button>
+  <span id="ewp-log-total" class="ewp-log-total"></span>
+ </div>
 
-            <!-- Results Table -->
-            <div class="ewp-log-results">
-                <table class="wp-list-table widefat fixed striped ewp-log-table">
-                    <thead>
-                        <tr>
-                            <th class="ewp-col-date"><?php esc_html_e('Date', 'extend-wp'); ?></th>
-                            <th class="ewp-col-owner"><?php esc_html_e('Owner', 'extend-wp'); ?></th>
-                            <th class="ewp-col-action"><?php esc_html_e('Action', 'extend-wp'); ?></th>
-                            <th class="ewp-col-object"><?php esc_html_e('Object Type', 'extend-wp'); ?></th>
-                            <th class="ewp-col-level"><?php esc_html_e('Level', 'extend-wp'); ?></th>
-                            <th class="ewp-col-behaviour"><?php esc_html_e('Status', 'extend-wp'); ?></th>
-                            <th class="ewp-col-user"><?php esc_html_e('User', 'extend-wp'); ?></th>
-                            <th class="ewp-col-message"><?php esc_html_e('Message', 'extend-wp'); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody id="ewp-log-tbody">
-                        <tr class="ewp-log-loading">
-                            <td colspan="8"><?php esc_html_e('Loading...', 'extend-wp'); ?></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+ <!-- Results Table -->
+ <div class="ewp-log-results">
+  <table class="wp-list-table widefat fixed striped ewp-log-table">
+   <thead>
+    <tr>
+     <th class="ewp-col-date"><?php esc_html_e('Date', 'extend-wp'); ?></th>
+     <th class="ewp-col-owner"><?php esc_html_e('Owner', 'extend-wp'); ?></th>
+     <th class="ewp-col-action"><?php esc_html_e('Action', 'extend-wp'); ?></th>
+     <th class="ewp-col-object"><?php esc_html_e('Object Type', 'extend-wp'); ?></th>
+     <th class="ewp-col-level"><?php esc_html_e('Level', 'extend-wp'); ?></th>
+     <th class="ewp-col-behaviour"><?php esc_html_e('Status', 'extend-wp'); ?></th>
+     <th class="ewp-col-user"><?php esc_html_e('User', 'extend-wp'); ?></th>
+     <th class="ewp-col-message"><?php esc_html_e('Message', 'extend-wp'); ?></th>
+    </tr>
+   </thead>
+   <tbody id="ewp-log-tbody">
+    <tr class="ewp-log-loading">
+     <td colspan="8"><?php esc_html_e('Loading...', 'extend-wp'); ?></td>
+    </tr>
+   </tbody>
+  </table>
+ </div>
 
-            <!-- Pagination -->
-            <div class="ewp-log-pagination" id="ewp-log-pagination"></div>
-        </div>
+ <!-- Pagination -->
+ <div class="ewp-log-pagination" id="ewp-log-pagination"></div>
+</div>
 <?php
         return ob_get_clean();
     }

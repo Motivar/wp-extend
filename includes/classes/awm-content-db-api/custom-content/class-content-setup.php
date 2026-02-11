@@ -42,8 +42,20 @@ class AWM_Add_Content_DB_Setup
   }
 
 
+  /**
+   * Clear transients once per request.
+   * Uses a static flag to prevent multiple ewp_flush_cache() calls
+   * when several AWM_Add_Content_DB_Setup instances are registered.
+   *
+   * @return void
+   */
   public function clear_transients()
   {
+    static $flushed = false;
+    if ($flushed) {
+      return;
+    }
+    $flushed = true;
     ewp_flush_cache();
   }
 

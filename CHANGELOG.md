@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Cache flushed multiple times per request**: `clear_transients()` in `AWM_Add_Content_DB_Setup` was called once per registered content type on every save/delete because all instances hooked into the same global action. Added a `static $flushed` guard so `ewp_flush_cache()` runs only once per request.
+  - **Original Request**: "Why cache was flushed 6 times?"
+  - **Affected Files**: `includes/classes/awm-content-db-api/custom-content/class-content-setup.php`
+
+### Changed
+- **Log viewer level filter supports multiple selection**: Routed the `level` REST param through `parse_multi_param()` and updated both DB and file storage backends to handle array values via `IN()` / `in_array()`.
+  - **Original Request**: "ewp_log_filter_level support also multiple choices"
+  - **Affected Files**: `class-ewp-logger-api.php`, `class-ewp-logger-db.php`, `class-ewp-logger-file.php`, `class-ewp-logger-viewer.php`
+
 ### Added
 - **Abstract Global Logger System**: Created a comprehensive, plugin-agnostic logging system for extend-wp.
   - **Original Request**: "Create an abstract global logger for the plugin — admins configure retention/storage/level, libraries register action types, queue-based for performance, editor/developer levels."

@@ -417,8 +417,15 @@ class EWP_Logger_File extends EWP_Logger_Storage
             }
         }
 
-        if (!empty($args['level']) && ($entry['level'] ?? '') !== $args['level']) {
-            return false;
+        if (!empty($args['level'])) {
+            $entry_level = $entry['level'] ?? '';
+            if (is_array($args['level'])) {
+                if (!in_array($entry_level, $args['level'], true)) {
+                    return false;
+                }
+            } elseif ($entry_level !== $args['level']) {
+                return false;
+            }
         }
 
         if (!empty($args['user_id']) && absint($entry['user_id'] ?? 0) !== $args['user_id']) {
