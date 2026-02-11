@@ -403,7 +403,8 @@ if (!function_exists('awm_show_content')) {
                                 wp_enqueue_media();
                                 wp_enqueue_script('jquery-ui-sortable');
                             }
-                            $ins = '<div class="awm-meta-message" id="' . $original_meta_id . '"><div class="awm-meta-message-label">' . $a['label'] . $explanation . '</div>' . awm_gallery_meta_box_html($original_meta_id, $val) . '</div>';
+                            $gallery_val = !empty($val) ? (is_array($val) ? $val : array($val)) : array();
+                            $ins = '<div class="awm-meta-message" id="' . $original_meta_id . '"><div class="awm-meta-message-label">' . $a['label'] . $explanation . '</div>' . awm_media_field_html($original_meta, $gallery_val, 0) . '</div>';
                             break;
                         case 'message':
                             if (isset($a['value']) && !empty($a['value'])) {
@@ -563,9 +564,8 @@ if (!function_exists('awm_show_content')) {
                                 wp_enqueue_media();
                                 wp_enqueue_script('jquery-ui-sortable');
                             }
-                            $multiple = isset($a['multiple']) ? $a['multiple'] : false;
                             $ins .= '<label for="' . $original_meta_id . '" class="awm-input-label">' . $a['label'] . '</label>' . $explanation;
-                            $ins .= awm_custom_image_image_uploader_field($original_meta, $original_meta_id, $val, $multiple, $required);
+                            $ins .= awm_media_field_html($original_meta, $val, 1);
                             $label_class[] = 'awm-custom-image-meta';
                             break;
                         case 'textarea':
@@ -1004,41 +1004,22 @@ function awm_custom_meta_update_vars($meta, $metaa, $id, $view)
 }
 
 
+/**
+ * Legacy single-image uploader field.
+ *
+ * @deprecated 2.0.0 Use awm_media_field_html() instead.
+ *
+ * @param string $name     Input name attribute.
+ * @param string $id       Input id attribute.
+ * @param string $value    Current attachment ID.
+ * @param bool   $multiple Whether multiple selection is allowed (ignored — use awm_gallery for multi).
+ * @param string $required Required attribute string.
+ * @return string HTML output.
+ */
 function awm_custom_image_image_uploader_field($name, $id, $value = '', $multiple = false, $required = '')
 {
-    $image = ' button">' .  __('Insert media', 'extend-wp');
-
-    $display = 'none'; // display state ot the "Remove image" button
-    if ($value && !empty($value) && get_attached_file($value)) {
-        /* check file type*/
-        $file_type = wp_check_filetype($value);
-        $show_image = false;
-        $after = '';
-        $default_image = site_url() . '/wp-includes/images/media/document.png';
-        switch ($file_type['type']) {
-            case 'zip':
-                $show_image = site_url() . '/wp-includes/images/media/archive.svg';
-                break;
-            default:
-                $show_image = wp_get_attachment_thumb_url($value);
-                break;
-        }
-        if (!$show_image) {
-            $show_image = $default_image;
-            $after = '<br><small>' . get_attached_file($value) . '</small>';
-        }
-        $image = '" data-image="' . $value . '"><img src="' . $show_image . '"/>' . $after;
-        $display = 'block';
-    }
-    $content = '<div class="awm-image-upload" id="awm_image' . $id . '"data-multiple="' . $multiple . '" data-add_label="' . __('Insert media', 'extend-wp') . '" data-remove_label="' . __('Remove media', 'extend-wp') . '">';
-
-    $inner_content = '<a href="#" class="awm_custom_image_upload_image_button' . $image . '</a>
-		<input type="hidden" name="' . $name . '" id="' . $id . '" value="' . $value . '" ' . $required . '/>
-		<a href="#" class="awm_custom_image_remove_image_button" style="display:inline-block;display:' . $display . '">' . __('Remove media', 'extend-wp') . '</a>';
-
-    $content .= apply_filters('awm_custom_image_image_uploader_field_filter', $inner_content, $name, $id, $value, $multiple, $required);
-    $content .= '</div>';
-    return $content;
+    _deprecated_function(__FUNCTION__, '2.0.0', 'awm_media_field_html');
+    return awm_media_field_html($name, $value, 1);
 }
 
 
@@ -1311,35 +1292,118 @@ if (!function_exists('awm_callback_library_options')) {
 }
 
 
+/**
+ * Unified media field HTML for single image and gallery modes.
+ *
+ * Renders a container with image previews, remove buttons, hidden inputs,
+ * and an add/select button. The JavaScript class AWMMediaField handles
+ * the wp.media frame, pre-selection, sorting, and removal.
+ *
+ * @param string    $meta          The meta key / field name used for input names.
+ * @param mixed     $val           Current value — single attachment ID or array of IDs.
+ * @param int       $max_images    Maximum number of images (0 = unlimited gallery, 1 = single image).
+ * @param string    $allowed_types Comma-separated MIME types for the media library filter.
+ *                                 Use 'image' for images only (gallery default),
+ *                                 or empty string '' for all file types (image default).
+ * @return string   HTML output.
+ *
+ * @example
+ * // Gallery (unlimited, images only)
+ * echo awm_media_field_html('ewp_gallery', $gallery_ids, 0, 'image');
+ *
+ * // Single file (any type)
+ * echo awm_media_field_html('my_file', $file_id, 1, '');
+ *
+ * // Single image only
+ * echo awm_media_field_html('my_image', $image_id, 1, 'image');
+ */
+function awm_media_field_html($meta, $val, $max_images = 0, $allowed_types = '')
+{
+    /* Normalise value to an array of IDs */
+    $images = array();
+    if (!empty($val)) {
+        $images = is_array($val) ? array_filter(array_map('absint', $val)) : array(absint($val));
+    }
+
+    $is_single   = ($max_images === 1);
+    $input_name  = $is_single ? esc_attr($meta) : esc_attr($meta) . '[]';
+    $default_img = home_url() . '/wp-includes/images/media/document.png';
+
+    /* Resolve allowed types: gallery defaults to 'image', single defaults to all */
+    if ($allowed_types === '' && $max_images !== 1) {
+        $allowed_types = 'image';
+    }
+
+    /* Container */
+    $content  = '<div class="awm-media-field' . ($is_single ? ' awm-media-field--single' : '') . '"';
+    $content .= ' id="' . esc_attr($meta) . '-field"';
+    $content .= ' data-id="' . esc_attr($meta) . '"';
+    $content .= ' data-max="' . esc_attr($max_images) . '"';
+    $content .= ' data-library="' . esc_attr($allowed_types) . '">';
+
+    /* Image list */
+    $content .= '<ul class="awm-gallery-images-list">';
+    foreach ($images as $image_id) {
+        if (!$image_id || !get_attached_file($image_id)) {
+            continue;
+        }
+
+        /* Try image thumbnail first, then WP mime-type icon for non-images */
+        $thumb = wp_get_attachment_thumb_url($image_id);
+        if (!$thumb) {
+            $icon = wp_mime_type_icon(get_post_mime_type($image_id));
+            $thumb = $icon ? $icon : $default_img;
+        }
+
+        $content .= '<li class="awm-gallery-image" data-image-id="' . esc_attr($image_id) . '">';
+        $content .= '<div class="awm-img-wrapper"><img src="' . esc_url($thumb) . '" alt=""></div>';
+        $content .= '<a href="#" class="awm-remove-image">' . esc_html__('Remove', 'extend-wp') . '</a>';
+        $content .= '<input type="hidden" name="' . $input_name . '" value="' . esc_attr($image_id) . '">';
+        $content .= '</li>';
+    }
+    $content .= '</ul>';
+
+    /* Add / Select button */
+    if ($is_single) {
+        $button_label = empty($images) ? __('Select Image', 'extend-wp') : __('Change Image', 'extend-wp');
+    } else {
+        $button_label = empty($images) ? __('Select Images', 'extend-wp') : __('Add Images', 'extend-wp');
+    }
+
+    $content .= '<button type="button" class="button awm-media-field-button"';
+    $content .= ' data-id="' . esc_attr($meta) . '"';
+    $content .= ' data-max="' . esc_attr($max_images) . '">';
+    $content .= esc_html($button_label);
+    $content .= '</button>';
+
+    $content .= '</div>';
+
+    /**
+     * Filter the unified media field HTML output.
+     *
+     * @param string $content    Generated HTML.
+     * @param string $meta       Meta key / field name.
+     * @param array  $images     Array of attachment IDs.
+     * @param int    $max_images    Maximum number of images.
+     * @param string $allowed_types  Allowed MIME types.
+     */
+    return apply_filters('awm_media_field_html_filter', $content, $meta, $images, $max_images, $allowed_types);
+}
+
+
+/**
+ * Legacy gallery meta box HTML wrapper.
+ *
+ * @deprecated 2.0.0 Use awm_media_field_html() instead.
+ *
+ * @param string $meta Meta key.
+ * @param mixed  $val  Array of image IDs.
+ * @return string HTML output.
+ */
 function awm_gallery_meta_box_html($meta, $val)
 {
-    // HTML for the gallery meta box
-    $content = '<div class="awm-gallery-container" id="' . $meta . '-gallery" data-id="' . $meta . '">';
-    $content .= '<ul class="awm-gallery-images-list">';
-    if (!empty($val)) {
-        foreach ($val as $image_id) {
-            if ($image_id && !empty($image_id) && get_attached_file($image_id)) {
-                $image = wp_get_attachment_thumb_url($image_id);
-
-                if (!$image) {
-                    $image = home_url() . '/wp-includes/images/media/document.png';
-                }
-
-
-                $content .= '<li class="awm-gallery-image" data-image-id="' . $image_id . '"><div class="awm-img-wrapper">';
-                $content .= '<img src="' . esc_url($image) . '"></div>';
-                $content .= '<a href="#" class="awm-remove-image">Remove</a>';
-                $content .= '<input type="hidden" name="' . $meta . '[]" value="' . $image_id . '">';
-                $content .= '</li>';
-            }
-        }
-    }
-    // If there are images, list them here
-    $content .= '</ul>';
-    $content .= '<button id="' . $meta . '-button"class="button awm-upload-button" data-id="' . $meta . '">' . __('Add', 'extend-wp') . '</button>';
-    // Hidden field to store the IDs of the gallery images
-    $content .= '</div>';
-    return $content;
+    _deprecated_function(__FUNCTION__, '2.0.0', 'awm_media_field_html');
+    return awm_media_field_html($meta, $val, 0);
 }
 
 

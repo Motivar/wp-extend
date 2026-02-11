@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Gallery & Image Field Unification Refactor**: Unified `image` and `awm_gallery` field cases into a single reusable `awm_media_field_html()` function.
+  - **Original Request**: "Refactor gallery-meta-box: remove old class, recreate awm_gallery at awm_show_content with select/remove/reorder/pre-select, make image case use same function with limit 1, Gutenberg compatible"
+  - **Summary**:
+    - Removed legacy `Truongwp_Gallery_Meta_Box` class (`includes/classes/gallery-meta-box/`)
+    - Created `EWP_Gallery_Meta_Box` class in `includes/classes/ewp-gallery/` — preserves all filter hooks (`gallery_meta_box_post_types`, `gallery_meta_box_meta_key`, `gallery_meta_box_save` action), auto-registers meta boxes, handles save + featured image, thumbnail admin column
+    - Created `awm_media_field_html()` — unified PHP function for both gallery (multi) and image (single) modes
+    - Created `AWMMediaField` vanilla JS class (`assets/js/admin/class-awm-media-field.js`) — per-field wp.media frame, pre-selects existing images, drag-to-reorder sortable, remove
+    - Assets loaded via Dynamic Asset Loader (`ewp_register_dynamic_assets` filter, selector: `.awm-media-field`)
+    - Added `image` render_type to Gutenberg blocks (`class-register.php` + `src/index.js`) — single image picker using `MediaUpload` with `multiple={false}`
+    - Deprecated `awm_custom_image_image_uploader_field()` and `awm_gallery_meta_box_html()` (kept as wrappers)
+    - Removed old jQuery gallery/image code from `awm-admin-script.js`
+  - **Affected Files**:
+    - `includes/classes/gallery-meta-box/` (deleted)
+    - `includes/classes/ewp-gallery/class-ewp-gallery.php` (new)
+    - `includes/classes/Setup.php` (updated require)
+    - `includes/functions/library.php` (new function + updated cases + deprecated old functions)
+    - `includes/classes/ewp-gutenburg/class-register.php` (added `image` case)
+    - `src/index.js` (added `image` render_type)
+    - `assets/js/admin/class-awm-media-field.js` (new)
+    - `assets/css/admin/awm-media-field.css` (new)
+    - `assets/js/admin/awm-admin-script.js` (removed old gallery/image code)
+  - **Backwards-compatibility**:
+    - Filter hooks `gallery_meta_box_post_types`, `gallery_meta_box_post_types_filter`, `gallery_meta_box_meta_key` preserved
+    - `EWP_WP_Content_Installer::gallery()` works unchanged
+    - Old functions kept as deprecated wrappers
+    - CSS classes `.awm-gallery-images-list`, `.awm-gallery-image`, `.awm-remove-image` preserved
+    - Data format unchanged (single ID for image, array for gallery)
+
 ### Fixed
 - **`awm_ajax_call` GET callbacks crash**: Fixed `TypeError: null is not an object (evaluating 'options.data.name')` in AJAX success callbacks for GET requests. The GET serialization logic was nullifying `Options.data` after appending params to the URL, breaking callbacks (`awm_show_query_details`, `awm_show_field_details`, `awm_show_position_settings`) that relied on `options.data`. Replaced `Options.data = null` with a `_dataSerialized` flag so the original data remains accessible to callbacks.
   - **Affected Files**: `/assets/js/global/awm-global-script.js`

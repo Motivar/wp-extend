@@ -29,7 +29,7 @@ class EWP_Wmpl
   {
     switch ($case) {
       case 'post':
-        $gallery_box = new Truongwp_Gallery_Meta_Box();
+        $gallery_box = EWP_Gallery_Meta_Box::get_instance();
         $data[] = $gallery_box->meta_key();
         break;
     }
@@ -47,7 +47,7 @@ class EWP_Wmpl
       /*the gallery*/
       $post_types = apply_filters('gallery_meta_box_post_types', array());
       foreach ($post_types as $post_type) {
-        remove_meta_box('truongwp-gallery', $post_type, 'side');
+        remove_meta_box('ewp-gallery', $post_type, 'side');
       }
       /*check the auto translate*/
       $metaBoxes = apply_filters('awm_add_meta_boxes_filter', array());

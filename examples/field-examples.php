@@ -257,29 +257,21 @@ class AWM_Field_Examples {
                 'order' => 100,
                 'wp_editor' => true
             ),
-            
-            // Image upload
+
+            // Single image upload (uses awm_media_field_html with max=1)
             'image_field' => array(
                 'case' => 'image',
                 'label' => 'Image Upload',
-                'explanation' => 'Upload an image',
+                'explanation' => 'Upload a single image',
                 'order' => 110
             ),
-            
-            // Multiple images
-            'multiple_images' => array(
-                'case' => 'image',
-                'label' => 'Multiple Images',
-                'explanation' => 'Upload multiple images',
-                'order' => 120,
-                'multiple' => true
-            ),
-            
-            // Gallery
+
+            // Gallery — multiple images with reorder, pre-select, remove
+            // (uses awm_media_field_html with max=0, unlimited)
             'gallery_field' => array(
                 'case' => 'awm_gallery',
                 'label' => 'Gallery Field',
-                'explanation' => 'Create a gallery',
+                'explanation' => 'Select multiple images, reorder them by drag & drop',
                 'order' => 130
             ),
             

@@ -1,0 +1,134 @@
+/**
+ * AWM Media Field Styles
+ *
+ * Unified styles for the .awm-media-field container,
+ * covering both single-image and gallery (multi-image) modes.
+ *
+ * @package ExtendWP
+ * @since   2.0.0
+ */
+
+/* ----------------------------------------------------------
+ * Container
+ * ---------------------------------------------------------- */
+.awm-media-field {
+    position: relative;
+    width: 100%;
+}
+
+/* ----------------------------------------------------------
+ * Image list
+ * ---------------------------------------------------------- */
+.awm-media-field .awm-gallery-images-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    list-style: none;
+    margin: 0 0 10px;
+    padding: 0;
+    width: 100%;
+}
+
+/* ----------------------------------------------------------
+ * Individual image item
+ * ---------------------------------------------------------- */
+.awm-media-field .awm-gallery-image {
+    position: relative;
+    display: inline-block;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #f0f0f0;
+    cursor: move;
+    transition: box-shadow 0.15s ease;
+}
+
+.awm-media-field .awm-gallery-image:hover {
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Gallery mode — grid items */
+.awm-media-field .awm-gallery-image {
+    width: 100px;
+    height: auto;
+}
+
+/* Single image mode — larger preview */
+.awm-media-field--single .awm-gallery-image {
+    width: 150px;
+    cursor: default;
+}
+
+/* ----------------------------------------------------------
+ * Image wrapper & thumbnail
+ * ---------------------------------------------------------- */
+.awm-media-field .awm-img-wrapper {
+    width: 100%;
+    height: 100px;
+    display: block;
+    overflow: hidden;
+    position: relative;
+}
+
+.awm-media-field--single .awm-img-wrapper {
+    height: 150px;
+}
+
+.awm-media-field .awm-img-wrapper img {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    object-fit: cover;
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+}
+
+/* ----------------------------------------------------------
+ * Remove link
+ * ---------------------------------------------------------- */
+.awm-media-field .awm-remove-image {
+    display: block;
+    text-align: center;
+    padding: 4px 0;
+    font-size: 11px;
+    line-height: 1.4;
+    color: #b32d2e;
+    text-decoration: none;
+    background: #f7f7f7;
+    border-top: 1px solid #ccd0d4;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.awm-media-field .awm-remove-image:hover {
+    background: #b32d2e;
+    color: #fff;
+}
+
+/* ----------------------------------------------------------
+ * Sortable placeholder (gallery mode)
+ * ---------------------------------------------------------- */
+.awm-media-field .awm-gallery-placeholder {
+    width: 100px;
+    height: 120px;
+    display: inline-block;
+    border: 2px dashed #b4b9be;
+    border-radius: 4px;
+    background: #f9f9f9;
+}
+
+/* ----------------------------------------------------------
+ * jQuery UI sortable helper opacity
+ * ---------------------------------------------------------- */
+.awm-media-field .ui-sortable-helper {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ----------------------------------------------------------
+ * Add / Select button
+ * ---------------------------------------------------------- */
+.awm-media-field .awm-media-field-button {
+    margin-top: 5px;
+}

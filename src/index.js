@@ -391,6 +391,122 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                     </MediaUploadCheck>
                   </div>
                 );
+              case 'image':
+                const singleImageId = props.attributes[key] || '';
+
+                // Fetch image data for single image
+                useEffect(() => {
+                  if (singleImageId) {
+                    fetchImageData([parseInt(singleImageId, 10)]);
+                  }
+                }, [singleImageId]);
+
+                const singleImgData = singleImageId ? imageDataCache[parseInt(singleImageId, 10)] : null;
+
+                return (
+                  <div key={key}>
+                    <label style={{ display: 'block', marginBottom: '4px' }}>{label}</label>
+                    {explanation}
+
+                    <MediaUploadCheck>
+                      <MediaUpload
+                        onSelect={(media) => {
+                          handleInputChange(key, String(media.id));
+                        }}
+                        allowedTypes={['image']}
+                        multiple={false}
+                        gallery={false}
+                        value={singleImageId ? parseInt(singleImageId, 10) : undefined}
+                        render={({ open }) => (
+                          <div>
+                            {singleImageId && (
+                              <div style={{
+                                position: 'relative',
+                                width: '120px',
+                                height: '120px',
+                                marginBottom: '10px'
+                              }}>
+                                {singleImgData?.url ? (
+                                  <img
+                                    src={singleImgData.url}
+                                    alt={singleImgData.alt}
+                                    style={{
+                                      width: '100%',
+                                      height: '100%',
+                                      objectFit: 'cover',
+                                      borderRadius: '4px',
+                                      border: '1px solid #ddd'
+                                    }}
+                                  />
+                                ) : (
+                                  <div style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    backgroundColor: '#f0f0f0',
+                                    borderRadius: '4px',
+                                    border: '1px solid #ddd',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '12px',
+                                    color: '#666'
+                                  }}>
+                                    Loading...
+                                  </div>
+                                )}
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleInputChange(key, '');
+                                  }}
+                                  type="button"
+                                  style={{
+                                    position: 'absolute',
+                                    top: '2px',
+                                    right: '2px',
+                                    width: '18px',
+                                    height: '18px',
+                                    padding: '0',
+                                    margin: '0',
+                                    border: '1px solid white',
+                                    borderRadius: '50%',
+                                    backgroundColor: '#dc3545',
+                                    color: 'white',
+                                    fontSize: '12px',
+                                    fontWeight: 'bold',
+                                    lineHeight: '16px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                                    zIndex: '10'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#c82333';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = '#dc3545';
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            )}
+
+                            <Button
+                              onClick={open}
+                              variant="secondary"
+                            >
+                              {singleImageId ? 'Change Image' : 'Select Image'}
+                            </Button>
+                          </div>
+                        )}
+                      />
+                    </MediaUploadCheck>
+                  </div>
+                );
               default:
                 return null;
             }

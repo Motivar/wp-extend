@@ -170,4 +170,19 @@ class AWM_Gallery_Block_Example
  * - 'explanation' => 'Help text for users'
  * - 'required' => true/false
  * - 'default' => [] (always use empty array as default)
+ * 
+ * Field Configuration Options for image (single image picker):
+ * - 'case' => 'image' (required)
+ * - 'label' => 'Your Field Label'
+ * - 'explanation' => 'Help text for users'
+ * - 'required' => true/false
+ * - 'default' => '' (empty string as default)
+ * 
+ * Example single image attribute in a block:
+ * 'featured_image' => [
+ *     'label'       => __('Featured Image', 'extend-wp'),
+ *     'case'        => 'image',
+ *     'explanation'  => __('Select a single featured image', 'extend-wp'),
+ *     'default'     => ''
+ * ]
  */

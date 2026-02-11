@@ -347,6 +347,10 @@ class EWP_Dynamic_Blocks
           $render_type = 'gallery';
           $type = 'array';
           break;
+        case 'image':
+          $render_type = 'image';
+          $type = 'string';
+          break;
       }
       $prepared_attributes[$key] = $attribute;
       $prepared_attributes[$key]['type'] = $type;

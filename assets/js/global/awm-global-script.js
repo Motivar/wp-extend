@@ -959,15 +959,17 @@ function updateInputAttributes(elem, repeater, oldCounter, newCounter) {
         }
     });
     
-    // Update image upload containers
-    var imageContainers = elem.querySelectorAll('.awm-image-upload');
-    imageContainers.forEach(function(container) {
+    // Update media field containers (unified image/gallery)
+    var mediaContainers = elem.querySelectorAll('.awm-media-field');
+    mediaContainers.forEach(function (container) {
         if (container.id) {
             container.id = container.id.replace(
                 new RegExp(repeater + '_' + oldCounter + '_', 'g'), 
                 repeater + '_' + newCounter + '_'
             );
         }
+        /* Reset data-awm-init so AWMMediaField re-initialises the cloned field */
+        container.removeAttribute('data-awm-init');
     });
 
 
@@ -1178,25 +1180,35 @@ function awm_repeater_clone(cloned, new_counter, repeater) {
                     // Update data-input attribute
                     imageContainer.setAttribute('data-input', id);
                     
-                    // Update image upload container
-                    var imageUpload = imageContainer.querySelector('.awm-image-upload');
-                    if (imageUpload) {
-                        imageUpload.setAttribute('id', 'awm_image' + id);
+                    // Update media field container (unified image/gallery)
+                    var mediaField = imageContainer.querySelector('.awm-media-field');
+                    if (mediaField) {
+                        mediaField.setAttribute('id', id + '-field');
+                        mediaField.setAttribute('data-id', id);
+                        /* Reset init flag so AWMMediaField re-initialises */
+                        mediaField.removeAttribute('data-awm-init');
                         
-                        // Find and update the hidden input field
-                        var hiddenInput = imageUpload.querySelector('input[type="hidden"]');
-                        if (hiddenInput) {
+                        // Find and update hidden input fields
+                        var hiddenInputs = mediaField.querySelectorAll('input[type="hidden"]');
+                        hiddenInputs.forEach(function (hiddenInput) {
                             // If input-key is missing or empty, use the label text
                             if (!hiddenInput.getAttribute('input-key') || hiddenInput.getAttribute('input-key') === '') {
                                 hiddenInput.setAttribute('input-key', labelText);
                             }
-                            // Update name and id attributes only (do NOT initialize TinyMCE on hidden inputs)
+                            // Update name and id attributes
                             var inputName = hiddenInput.getAttribute('input-name') || repeater;
                             var inputKey = hiddenInput.getAttribute('input-key') || labelText;
-                            var newName = inputName + '[' + new_counter + '][' + inputKey + ']';
+                            var isSingle = mediaField.getAttribute('data-max') === '1';
+                            var newName = inputName + '[' + new_counter + '][' + inputKey + ']' + (isSingle ? '' : '[]');
                             var newId = newName.replace(/\[/g, '_').replace(/\]/g, '_');
                             hiddenInput.setAttribute('name', newName);
                             hiddenInput.setAttribute('id', newId);
+                        });
+
+                        // Update the button data-id
+                        var mediaBtn = mediaField.querySelector('.awm-media-field-button');
+                        if (mediaBtn) {
+                            mediaBtn.setAttribute('data-id', id);
                         }
                     }
                 }

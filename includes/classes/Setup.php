@@ -23,7 +23,7 @@ class Setup
    load_plugin_textdomain('extend-wp', false, awm_relative_path . '/languages');
   });
   require_once 'adminMessages/class-adminMessages.php';
-  require_once 'gallery-meta-box/gallery-meta-box.php';
+  require_once 'ewp-gallery/class-ewp-gallery.php';
   require_once 'ewp-fields/class-field.php';
   require_once 'ewp-wp-content/class-wp-content.php';
   require_once 'ewp-wp-content/class-wp-content-installer.php';
