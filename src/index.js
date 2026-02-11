@@ -15,6 +15,7 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
     console.log('Block attributes:', block.attributes);
 
     registerBlockType(namespace, {
+      apiVersion: 3,
       title: block.title,
       icon: block.icon,
       category: block.category,

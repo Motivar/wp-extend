@@ -199,6 +199,7 @@ class EWP_Dynamic_Blocks
       }
 
       register_block_type($block_name, array(
+        'api_version' => 3,
         'attributes' => (isset($block['attributes']) && !empty($block['attributes'])) ? $block['attributes'] : array(),
         'editor_style' => isset($block['style']) ? $block['style'] : '',
         'style' => isset($block['style']) ? $block['style'] : '',
