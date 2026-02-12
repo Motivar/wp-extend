@@ -102,7 +102,7 @@ class EWP_Logger_API
      */
     public function check_permission()
     {
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(EWP_Logger::get_viewer_capability())) {
             return new \WP_Error(
                 'ewp_logger_forbidden',
                 __('You do not have permission to view logs.', 'extend-wp'),

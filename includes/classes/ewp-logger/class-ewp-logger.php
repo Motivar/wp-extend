@@ -166,8 +166,20 @@ class EWP_Logger
         self::$initialized = true;
 
         // Load settings and determine if logging is enabled
-        $settings     = EWP_Logger_Settings::get_settings();
-        self::$enabled = !empty($settings['enabled']);
+        $settings      = EWP_Logger_Settings::get_settings();
+        $from_settings = !empty($settings['enabled']);
+
+        /**
+         * Filter whether the EWP Logger is enabled.
+         *
+         * Allows developers to programmatically enable or disable
+         * logging regardless of the admin setting.
+         *
+         * @param bool $enabled True if logging is enabled (from settings).
+         *
+         * @since 1.2.0
+         */
+        self::$enabled = (bool) apply_filters('ewp_logger_enabled', $from_settings);
 
         // Settings page always loads (so user can re-enable logging)
         $settings_page = new EWP_Logger_Settings();
@@ -400,6 +412,28 @@ class EWP_Logger
     public static function is_enabled()
     {
         return self::$enabled;
+    }
+
+    /**
+     * Get the capability required to view logs.
+     *
+     * Single source of truth used by the viewer page and REST API.
+     * Defaults to 'manage_options' (administrators only).
+     *
+     * @return string WordPress capability slug.
+     *
+     * @since 1.2.0
+     */
+    public static function get_viewer_capability()
+    {
+        /**
+         * Filter the capability required to access the log viewer and REST API.
+         *
+         * @param string $capability Default 'manage_options'.
+         *
+         * @since 1.2.0
+         */
+        return apply_filters('ewp_logger_viewer_capability', 'manage_options');
     }
 
     /**

@@ -49,7 +49,7 @@ class EWP_Logger_Viewer
             'title'       => apply_filters('ewp_whitelabel_logger_filter', __('EWP Logger', 'extend-wp')),
             'callback'    => [$this, 'get_viewer_fields'],
             'order'       => 1000000000000,
-            'cap'         => 'manage_options',
+            'cap'         => EWP_Logger::get_viewer_capability(),
             'hide_submit' => true,
             'parent' => false,
         ];

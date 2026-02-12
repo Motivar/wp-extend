@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Logger: `ewp_logger_enabled` filter**: New filter allows developers to programmatically enable or disable logging regardless of the admin setting. Receives the boolean value from settings as input.
+  - **Original Request**: "Can you set a filter for default status of class-ewp-logger?"
+  - **Affected Files**: `class-ewp-logger.php`
+
+- **Logger: `ewp_logger_viewer_capability` filter**: New filter controls which capability is required to access the log viewer page and REST API. Defaults to `manage_options`. Single source of truth via `EWP_Logger::get_viewer_capability()`, used by both the viewer and API.
+  - **Original Request**: "We need a filter to check which users will have access to the log view."
+  - **Affected Files**: `class-ewp-logger.php`, `class-ewp-logger-viewer.php`, `class-ewp-logger-api.php`
+
 ### Removed
 - **Logger: Database storage backend removed**: Removed `class-ewp-logger-db.php` entirely. Logger now uses file-only storage (`EWP_Logger_File`), reducing code to maintain. The "Storage Backend" setting has been removed from the settings page. A one-time migration (`maybe_drop_legacy_db_table()`) automatically drops the `ewp_logs` DB table and cleans up stale options for existing installs. Custom backends are still supported via the `ewp_logger_storage_backend` filter.
   - **Original Request**: "Can we totally remove db logging? Just file."
