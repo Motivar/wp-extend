@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **Logger: Database storage backend removed**: Removed `class-ewp-logger-db.php` entirely. Logger now uses file-only storage (`EWP_Logger_File`), reducing code to maintain. The "Storage Backend" setting has been removed from the settings page. A one-time migration (`maybe_drop_legacy_db_table()`) automatically drops the `ewp_logs` DB table and cleans up stale options for existing installs. Custom backends are still supported via the `ewp_logger_storage_backend` filter.
+  - **Original Request**: "Can we totally remove db logging? Just file."
+  - **Affected Files**: `class-ewp-logger.php`, `class-ewp-logger-settings.php`, `class-ewp-logger-db.php` (deleted)
+
 ### Fixed
 - **Cache flushed multiple times per request**: `clear_transients()` in `AWM_Add_Content_DB_Setup` was called once per registered content type on every save/delete because all instances hooked into the same global action. Added a `static $flushed` guard so `ewp_flush_cache()` runs only once per request.
   - **Original Request**: "Why cache was flushed 6 times?"
@@ -15,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Logger enabled by default when no options saved**: Static `$enabled` property defaulted to `true`, so `is_enabled()` returned `true` before `init()` ran. Changed default to `false`; logger now stays disabled until explicitly enabled in settings.
   - **Original Request**: "By default the log should be disabled if no options appear."
   - **Affected Files**: `class-ewp-logger.php`
+
+- **Logger: Syntax error in auto-hook registration**: Fixed a broken method call `$this->\n('options_save')` split across two lines, causing a PHP parse error. Restored to `$this->is_auto_log_enabled('options_save')`.
+  - **Affected Files**: `class-ewp-logger.php`
+
+- **Logger helper functions safety**: Added `class_exists('EWP\Logger\EWP_Logger')` guards to `ewp_log()` and `ewp_register_log_type()` so they safely return without errors if the logger isn't loaded. Added new `ewp_register_log_owner()` helper.
+  - **Affected Files**: `logger-functions.php`
+
+- **DB Creator: Log errors via EWP Logger**: Added `ewp_log()` call in `dbUpdate()` catch block to log DB update failures at developer level.
+  - **Affected Files**: `class-db-creator.php`
 
 ### Changed
 - **Log viewer level filter supports multiple selection**: Routed the `level` REST param through `parse_multi_param()` and updated both DB and file storage backends to handle array values via `IN()` / `in_array()`.

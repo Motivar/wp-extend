@@ -7,7 +7,6 @@ if (!defined('ABSPATH')) {
 }
 
 require_once __DIR__ . '/class-ewp-logger-storage.php';
-require_once __DIR__ . '/class-ewp-logger-db.php';
 require_once __DIR__ . '/class-ewp-logger-file.php';
 require_once __DIR__ . '/class-ewp-logger-queue.php';
 require_once __DIR__ . '/class-ewp-logger-settings.php';
@@ -179,8 +178,8 @@ class EWP_Logger
             return;
         }
 
-        // Initialize storage backend
-        $this->storage = $this->resolve_storage_backend($settings['storage'] ?? 'file');
+        // Initialize storage backend (file-only; custom backends via filter)
+        $this->storage = $this->resolve_storage_backend();
 
         // Initialize the queue with our storage
         EWP_Logger_Queue::init($this->storage);
@@ -199,6 +198,9 @@ class EWP_Logger
 
         // Initialize WP-CLI commands
         EWP_Logger_CLI::init();
+
+        // One-time migration: drop legacy ewp_logs DB table if it exists
+        $this->maybe_drop_legacy_db_table();
 
         // Register built-in action types
         $this->register_builtin_types();
@@ -401,39 +403,75 @@ class EWP_Logger
     }
 
     /**
-     * Resolve the storage backend from the settings value.
+     * Resolve the storage backend.
      *
-     * @param string $backend_key 'db' or 'file'.
+     * Uses file storage by default. Developers can override via the
+     * 'ewp_logger_storage_backend' filter to provide a custom backend.
      *
      * @return EWP_Logger_Storage
      *
      * @since 1.0.0
      */
-    private function resolve_storage_backend($backend_key)
+    private function resolve_storage_backend()
     {
         /**
          * Filter the storage backend instance.
          *
-         * Allows plugins to provide a custom storage backend.
+         * Allows plugins to provide a custom storage backend
+         * extending EWP_Logger_Storage.
          *
-         * @param EWP_Logger_Storage|null $storage  Null by default, set to override.
-         * @param string                  $backend_key The configured backend key.
+         * @param EWP_Logger_Storage|null $storage Null by default, set to override.
          *
          * @since 1.0.0
          */
-        $custom = apply_filters('ewp_logger_storage_backend', null, $backend_key);
+        $custom = apply_filters('ewp_logger_storage_backend', null);
 
         if ($custom instanceof EWP_Logger_Storage) {
             return $custom;
         }
 
-        switch ($backend_key) {
-            case 'file':
-                return new EWP_Logger_File();
-            case 'db':
-            default:
-                return new EWP_Logger_DB();
+        return new EWP_Logger_File();
+    }
+
+    /**
+     * One-time migration: drop the legacy ewp_logs DB table.
+     *
+     * Runs once after switching from DB to file-only storage.
+     * Sets an option flag so it never executes again.
+     *
+     * @return void
+     *
+     * @since 1.2.0
+     */
+    private function maybe_drop_legacy_db_table()
+    {
+        if (get_option('ewp_logger_db_table_dropped')) {
+            return;
         }
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'ewp_logs';
+
+        // Only drop if the table actually exists
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
+
+        if ($exists === $table) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
+            $wpdb->query("DROP TABLE IF EXISTS `{$table}`");
+        }
+
+        // Also clean up the version option used by AWM_DB_Creator
+        delete_option('ewp_version_' . 'ewp_logs');
+
+        // Also clean up stale storage setting
+        $stored = get_option('ewp_logger_settings', []);
+        if (is_array($stored) && isset($stored['storage'])) {
+            unset($stored['storage']);
+            update_option('ewp_logger_settings', $stored);
+        }
+
+        update_option('ewp_logger_db_table_dropped', true, false);
     }
 
     /**

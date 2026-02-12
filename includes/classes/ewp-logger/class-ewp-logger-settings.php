@@ -95,16 +95,6 @@ class EWP_Logger_Settings
                 'type'        => 'checkbox',
                 'explanation' => __('Enable or disable the EWP logging system globally.', 'extend-wp'),
             ],
-            'storage' => [
-                'label'   => __('Storage Backend', 'extend-wp'),
-                'case'    => 'select',
-                'default' => 'file',
-                'options' => [
-                    'db'   => ['label' => __('Database', 'extend-wp')],
-                    'file' => ['label' => __('Log File', 'extend-wp')],
-                ],
-                'explanation' => __('Choose where log entries are stored. Database is recommended for most sites.', 'extend-wp'),
-            ],
             'retention_months' => [
                 'label'       => __('Retention Period (months)', 'extend-wp'),
                 'case'        => 'input',
