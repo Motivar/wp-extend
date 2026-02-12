@@ -77,8 +77,15 @@ class EWPLogViewer {
         this.totalEl = this.container.querySelector('#ewp-log-total');
         this.filterBtn = this.container.querySelector('#ewp-log-filter-apply');
         this.resetBtn = this.container.querySelector('#ewp-log-filter-reset');
+        this.perPageSelect = this.container.querySelector('#ewp-log-per-page');
+        this.exportBtn = this.container.querySelector('#ewp-log-export-csv');
+        this.deleteBtn = this.container.querySelector('#ewp-log-delete-filtered');
         this.ownerSelect = this.pageWrap.querySelector('[data-filter="owner"]');
         this.actionTypeSelect = this.pageWrap.querySelector('[data-filter="action_type"]');
+
+        /** @type {Array} Last fetched entries for CSV export */
+        this.lastEntries = [];
+        this.lastTotal = 0;
 
         /**
          * Build a field-name → REST-param mapping from [data-filter] elements.
@@ -109,6 +116,29 @@ class EWPLogViewer {
         this.resetBtn.addEventListener('click', () => {
             this.resetFilters();
         });
+
+        // Per-page change → reload
+        if (this.perPageSelect) {
+            this.perPageSelect.addEventListener('change', () => {
+                this.perPage = parseInt(this.perPageSelect.value, 10) || EWPLogViewer.DEFAULTS.perPage;
+                this.currentPage = 1;
+                this.applyFilters();
+            });
+        }
+
+        // Export CSV
+        if (this.exportBtn) {
+            this.exportBtn.addEventListener('click', () => {
+                this.exportCsv();
+            });
+        }
+
+        // Delete filtered entries
+        if (this.deleteBtn) {
+            this.deleteBtn.addEventListener('click', () => {
+                this.deleteFiltered();
+            });
+        }
 
         // Owner change → show/hide action type options by data-owner
         if (this.ownerSelect) {
@@ -193,9 +223,11 @@ class EWPLogViewer {
                 per_page: this.perPage,
             }),
             callback: (json) => {
-                this.renderRows(json.data || []);
-                this.renderPagination(json.total || 0, json.page || 1, json.per_page || this.perPage);
-                this.updateTotal(json.total || 0);
+                this.lastEntries = json.data || [];
+                this.lastTotal = json.total || 0;
+                this.renderRows(this.lastEntries);
+                this.renderPagination(this.lastTotal, json.page || 1, json.per_page || this.perPage);
+                this.updateTotal(this.lastTotal);
                 this.setLoading(false);
             },
             errorCallback: (errorData) => {
@@ -217,6 +249,26 @@ class EWPLogViewer {
     resetFilters() {
         if (this.form) {
             this.form.reset();
+        }
+
+        // Explicitly deselect all multi-select options
+        this.pageWrap.querySelectorAll('select[multiple]').forEach((select) => {
+            Array.from(select.options).forEach((opt) => {
+                opt.selected = false;
+            });
+            // Trigger change for any UI library listening
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        // Clear date inputs
+        this.pageWrap.querySelectorAll('input[type="date"]').forEach((input) => {
+            input.value = '';
+        });
+
+        // Reset per-page to default
+        if (this.perPageSelect) {
+            this.perPageSelect.value = String(EWPLogViewer.DEFAULTS.perPage);
+            this.perPage = EWPLogViewer.DEFAULTS.perPage;
         }
 
         this.updateActionTypeOptions();
@@ -610,6 +662,141 @@ class EWPLogViewer {
         } catch (e) {
             return this.escapeHtml(String(data));
         }
+    }
+
+    /**
+     * Export all filtered entries as a CSV file.
+     *
+     * Fetches all matching entries (up to 10000) using the current filters,
+     * generates a CSV string, and triggers a browser download.
+     *
+     * @returns {void}
+     */
+    exportCsv() {
+        const filters = this.getFilters();
+
+        this.exportBtn.disabled = true;
+        this.exportBtn.textContent = 'Exporting...';
+
+        awm_ajax_call({
+            method: 'get',
+            url: this.restUrl + '/logs',
+            data: Object.assign({}, filters, {
+                page: 1,
+                per_page: 10000,
+            }),
+            callback: (json) => {
+                const entries = json.data || [];
+                this.downloadCsv(entries);
+                this.exportBtn.disabled = false;
+                this.exportBtn.textContent = 'Export CSV';
+            },
+            errorCallback: () => {
+                alert('Failed to export CSV.');
+                this.exportBtn.disabled = false;
+                this.exportBtn.textContent = 'Export CSV';
+            },
+        });
+    }
+
+    /**
+     * Generate CSV content from entries and trigger browser download.
+     *
+     * @param {Array} entries - Array of log entry objects.
+     * @returns {void}
+     */
+    downloadCsv(entries) {
+        if (!entries.length) {
+            alert('No entries to export.');
+            return;
+        }
+
+        const columns = [
+            { key: 'created_at', header: 'Date' },
+            { key: 'owner_label', header: 'Owner' },
+            { key: 'action_type_label', header: 'Action' },
+            { key: 'object_type_label', header: 'Object Type' },
+            { key: 'level', header: 'Level' },
+            { key: 'behaviour_label', header: 'Status' },
+            { key: 'user_display_name', header: 'User' },
+            { key: 'message', header: 'Message' },
+            { key: 'object_id', header: 'Object ID' },
+            { key: 'request_id', header: 'Request ID' },
+            { key: 'request_context', header: 'Request Context' },
+        ];
+
+        const rows = [columns.map((c) => c.header)];
+
+        entries.forEach((entry) => {
+            rows.push(columns.map((c) => {
+                const val = entry[c.key] !== undefined && entry[c.key] !== null
+                    ? String(entry[c.key])
+                    : '';
+                // Escape double quotes and wrap in quotes
+                return '"' + val.replace(/"/g, '""') + '"';
+            }));
+        });
+
+        const csv = rows.map((r) => r.join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        link.href = url;
+        link.download = 'ewp-logs-' + new Date().toISOString().slice(0, 10) + '.csv';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+
+    /**
+     * Delete all log entries matching the current filters.
+     *
+     * Shows a confirmation dialog with the total count before proceeding.
+     * Sends a DELETE request to the REST API.
+     *
+     * @returns {void}
+     */
+    deleteFiltered() {
+        const total = this.lastTotal;
+
+        if (total === 0) {
+            alert('No entries to delete.');
+            return;
+        }
+
+        const confirmed = confirm(
+            'Are you sure you want to delete ' + total + ' log entries matching the current filters?\n\nThis action cannot be undone.'
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        const filters = this.getFilters();
+
+        this.deleteBtn.disabled = true;
+        this.deleteBtn.textContent = 'Deleting...';
+
+        awm_ajax_call({
+            method: 'DELETE',
+            url: this.restUrl + '/logs',
+            data: filters,
+            callback: (json) => {
+                this.deleteBtn.disabled = false;
+                this.deleteBtn.textContent = 'Delete Filtered';
+                alert(json.message || 'Entries deleted.');
+                this.currentPage = 1;
+                this.applyFilters();
+            },
+            errorCallback: () => {
+                this.deleteBtn.disabled = false;
+                this.deleteBtn.textContent = 'Delete Filtered';
+                alert('Failed to delete entries.');
+            },
+        });
     }
 
     /**

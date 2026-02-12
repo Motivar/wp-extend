@@ -74,6 +74,12 @@ class EWP_Logger_API
                 'permission_callback' => [$this, 'check_permission'],
                 'args'                => $this->get_endpoint_args(),
             ],
+            [
+                'methods'             => \WP_REST_Server::DELETABLE,
+                'callback'            => [$this, 'delete_logs'],
+                'permission_callback' => [$this, 'check_permission'],
+                'args'                => $this->get_endpoint_args(),
+            ],
         ]);
 
         register_rest_route(self::$namespace, '/logs/types', [
@@ -180,6 +186,59 @@ class EWP_Logger_API
             'total'    => $total,
             'page'     => $page,
             'per_page' => $per_page,
+        ], 200);
+    }
+
+    /**
+     * DELETE /logs callback.
+     *
+     * Deletes log entries matching the current filters.
+     *
+     * @param \WP_REST_Request $request The REST request.
+     *
+     * @return \WP_REST_Response
+     *
+     * @since 1.2.0
+     */
+    public function delete_logs(\WP_REST_Request $request)
+    {
+        $args = [
+            'owner'       => $this->parse_multi_param($request->get_param('owner')),
+            'action_type' => $this->parse_multi_param($request->get_param('action_type')),
+            'object_type' => $this->parse_multi_param($request->get_param('object_type')),
+            'behaviour'   => $this->parse_multi_param($request->get_param('behaviour')),
+            'level'       => $this->parse_multi_param($request->get_param('level')),
+            'user_id'     => $request->get_param('user_id') ?? 0,
+            'date_from'   => $request->get_param('date_from') ?? '',
+            'date_to'     => $request->get_param('date_to') ?? '',
+            'request_id'  => $request->get_param('request_id') ?? '',
+        ];
+
+        /**
+         * Filter the delete args before execution.
+         *
+         * @param array            $args    Filter arguments.
+         * @param \WP_REST_Request $request The REST request.
+         *
+         * @since 1.2.0
+         */
+        $args = apply_filters('ewp_logger_rest_delete_args', $args, $request);
+
+        $deleted = $this->storage->delete_by_filters($args);
+
+        if ($deleted === -1) {
+            return new \WP_REST_Response([
+                'message' => __('Failed to delete log entries.', 'extend-wp'),
+            ], 500);
+        }
+
+        return new \WP_REST_Response([
+            'deleted' => $deleted,
+            'message' => sprintf(
+                /* translators: %d: number of deleted entries */
+                __('%d log entries deleted.', 'extend-wp'),
+                $deleted
+            ),
         ], 200);
     }
 

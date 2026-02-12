@@ -92,6 +92,19 @@ abstract class EWP_Logger_Storage
     abstract public function delete_older_than($months);
 
     /**
+     * Delete log entries matching the given filter arguments.
+     *
+     * Uses the same filter args as query() (without limit/offset/order).
+     *
+     * @param array $args Filter arguments.
+     *
+     * @return int Number of entries deleted, or -1 on failure.
+     *
+     * @since 1.2.0
+     */
+    abstract public function delete_by_filters(array $args = []);
+
+    /**
      * Sanitize and normalize query arguments with defaults.
      *
      * @param array $args Raw query arguments.
@@ -133,9 +146,19 @@ abstract class EWP_Logger_Storage
         $args['level']       = in_array($args['level'], ['editor', 'developer'], true) ? $args['level'] : '';
         $args['user_id']     = absint($args['user_id']);
         $args['request_id']  = sanitize_text_field($args['request_id']);
-        $args['limit']       = max(1, min(500, absint($args['limit'])));
+        $args['limit']       = max(1, min(10000, absint($args['limit'])));
         $args['offset']      = max(0, absint($args['offset']));
         $args['order']       = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC';
+
+        // Normalize dates: append time component for correct string comparison
+        // date_from "2026-02-11" → "2026-02-11 00:00:00" (start of day)
+        // date_to   "2026-02-11" → "2026-02-11 23:59:59" (end of day)
+        if (!empty($args['date_from']) && strlen($args['date_from']) === 10) {
+            $args['date_from'] .= ' 00:00:00';
+        }
+        if (!empty($args['date_to']) && strlen($args['date_to']) === 10) {
+            $args['date_to'] .= ' 23:59:59';
+        }
 
         // Behaviour: null/empty means no filter; array or scalar cast to valid int(s)
         if ($args['behaviour'] !== null && $args['behaviour'] !== '') {

@@ -288,6 +288,76 @@ class EWP_Logger_File extends EWP_Logger_Storage
     }
 
     /**
+     * Delete log entries matching the given filter arguments.
+     *
+     * Reads each file in the date range, rewrites it keeping only
+     * entries that do NOT match the filters. Deletes empty files.
+     *
+     * @param array $args Filter arguments (same as query, without limit/offset/order).
+     *
+     * @return int Number of entries deleted, or -1 on failure.
+     *
+     * @since 1.2.0
+     */
+    public function delete_by_filters(array $args = [])
+    {
+        if (!$this->init_directory()) {
+            return -1;
+        }
+
+        $args  = $this->normalize_query_args($args);
+        $files = $this->get_files_in_range($args['date_from'], $args['date_to']);
+
+        if (empty($files)) {
+            return 0;
+        }
+
+        $deleted = 0;
+
+        foreach ($files as $file) {
+            $handle = fopen($file, 'r');
+            if (!$handle) {
+                continue;
+            }
+
+            $keep_lines = [];
+
+            while (($line = fgets($handle)) !== false) {
+                $trimmed = trim($line);
+                if (empty($trimmed)) {
+                    continue;
+                }
+
+                $entry = json_decode($trimmed, true);
+                if (!is_array($entry)) {
+                    $keep_lines[] = $trimmed;
+                    continue;
+                }
+
+                // Entry matches filters → delete it (don't keep)
+                if ($this->entry_matches_filters($entry, $args)) {
+                    $deleted++;
+                    continue;
+                }
+
+                $keep_lines[] = $trimmed;
+            }
+
+            fclose($handle);
+
+            // Rewrite or remove the file
+            if (empty($keep_lines)) {
+                unlink($file);
+                continue;
+            }
+
+            file_put_contents($file, implode("\n", $keep_lines) . "\n", LOCK_EX);
+        }
+
+        return $deleted;
+    }
+
+    /**
      * Read log files and filter entries based on query args.
      *
      * @param array $args Normalized query arguments.

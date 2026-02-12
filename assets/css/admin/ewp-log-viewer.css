@@ -312,6 +312,41 @@
     color: #646970;
 }
 
+/* --- Toolbar --- */
+.ewp-log-toolbar {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    float: right;
+}
+
+.ewp-log-toolbar-label {
+    font-size: 13px;
+    color: #646970;
+    margin-right: 2px;
+}
+
+.ewp-log-per-page {
+    min-width: 70px;
+    max-width: 90px;
+}
+
+.ewp-log-btn-danger {
+    color: #d63638 !important;
+    border-color: #d63638 !important;
+}
+
+.ewp-log-btn-danger:hover {
+    background: #d63638 !important;
+    color: #fff !important;
+}
+
+.ewp-log-btn-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 /* --- Pagination --- */
 .ewp-log-pagination {
     margin-top: 12px;

@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Original Request**: "We need a filter to check which users will have access to the log view."
   - **Affected Files**: `class-ewp-logger.php`, `class-ewp-logger-viewer.php`, `class-ewp-logger-api.php`
 
+- **Logger: Toolbar — per-page, export CSV, delete filtered**: Added a toolbar to the log viewer with three features: (1) per-page select (25/50/100/200/500) to control entries per page, (2) "Export CSV" button that fetches all filtered entries and downloads a CSV file client-side, (3) "Delete Filtered" button that deletes all entries matching the current filters via a new DELETE `/logs` REST endpoint with confirmation dialog. Added `delete_by_filters()` abstract method to `EWP_Logger_Storage` and implemented in `EWP_Logger_File`. Bumped per_page max to 10000 for export. New filter: `ewp_logger_rest_delete_args`.
+  - **Original Request**: "Add a button at logger UI where we can cleanup the current selection, set the number of entries we see simultaneously, export as CSV."
+  - **Affected Files**: `class-ewp-logger-storage.php`, `class-ewp-logger-file.php`, `class-ewp-logger-api.php`, `class-ewp-logger-viewer.php`, `class-ewp-log-viewer.js`, `ewp-log-viewer.css`
+
 ### Removed
 - **Logger: Database storage backend removed**: Removed `class-ewp-logger-db.php` entirely. Logger now uses file-only storage (`EWP_Logger_File`), reducing code to maintain. The "Storage Backend" setting has been removed from the settings page. A one-time migration (`maybe_drop_legacy_db_table()`) automatically drops the `ewp_logs` DB table and cleans up stale options for existing installs. Custom backends are still supported via the `ewp_logger_storage_backend` filter.
   - **Original Request**: "Can we totally remove db logging? Just file."
