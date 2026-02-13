@@ -78,7 +78,7 @@ class EWP_Logger_Viewer
         $today = date('d-m-Y');
         $maxDate = date('d-m-Y', strtotime('now'));
         $minDate = date('d-m-Y', strtotime('-' .  $retentions_months . ' months'));
-
+        /* add date restricitons*/
         // Date From filter
         $fields['date_from'] = [
             'case' => 'date',
