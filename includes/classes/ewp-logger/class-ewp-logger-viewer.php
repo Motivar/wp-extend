@@ -70,7 +70,7 @@ class EWP_Logger_Viewer
      */
     public function get_viewer_fields()
     {
-        $retentions_months = isset(EWP_Logger_Settings::get_settings()['retentions_months']) ? EWP_Logger_Settings::get_settings()['retentions_months'] : 6;
+        $retentions_months = isset(EWP_Logger_Settings::get_settings()['retention_months']) ? EWP_Logger_Settings::get_settings()['retention_months'] : 6;
 
 
         $fields = [];
