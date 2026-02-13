@@ -132,20 +132,15 @@ class EWP_Logger_API
      */
     public function get_logs(\WP_REST_Request $request)
     {
-        $args = [
-            'owner'       => $this->parse_multi_param($request->get_param('owner')),
-            'action_type' => $this->parse_multi_param($request->get_param('action_type')),
-            'object_type' => $this->parse_multi_param($request->get_param('object_type')),
-            'behaviour'   => $this->parse_multi_param($request->get_param('behaviour')),
-            'level'       => $this->parse_multi_param($request->get_param('level')),
-            'user_id'     => $request->get_param('user_id') ?? 0,
-            'date_from'   => $request->get_param('date_from') ?? '',
-            'date_to'     => $request->get_param('date_to') ?? '',
-            'request_id'  => $request->get_param('request_id') ?? '',
-            'limit'       => $request->get_param('per_page') ?? 50,
-            'offset'      => (($request->get_param('page') ?? 1) - 1) * ($request->get_param('per_page') ?? 50),
-            'order'       => $request->get_param('order') ?? 'DESC',
-        ];
+        $args = $this->extract_filter_args($request);
+
+        // Pagination
+        $per_page = $request->get_param('per_page') ?? 50;
+        $page     = $request->get_param('page') ?? 1;
+
+        $args['limit']  = $per_page;
+        $args['offset'] = ($page - 1) * $per_page;
+        $args['order']  = $request->get_param('order') ?? 'DESC';
 
         /**
          * Filter the REST API query args before execution.
@@ -202,17 +197,7 @@ class EWP_Logger_API
      */
     public function delete_logs(\WP_REST_Request $request)
     {
-        $args = [
-            'owner'       => $this->parse_multi_param($request->get_param('owner')),
-            'action_type' => $this->parse_multi_param($request->get_param('action_type')),
-            'object_type' => $this->parse_multi_param($request->get_param('object_type')),
-            'behaviour'   => $this->parse_multi_param($request->get_param('behaviour')),
-            'level'       => $this->parse_multi_param($request->get_param('level')),
-            'user_id'     => $request->get_param('user_id') ?? 0,
-            'date_from'   => $request->get_param('date_from') ?? '',
-            'date_to'     => $request->get_param('date_to') ?? '',
-            'request_id'  => $request->get_param('request_id') ?? '',
-        ];
+        $args = $this->extract_filter_args($request);
 
         /**
          * Filter the delete args before execution.
@@ -345,7 +330,82 @@ class EWP_Logger_API
     }
 
     /**
-     * Parse a REST param that may contain comma-separated multi-values.
+     * Return the recognized filter parameter names.
+     *
+     * Form field names match query arg names directly (e.g. 'owner', 'date_from').
+     * Developers can add custom filter fields and register them here.
+     *
+     * @return array List of recognized filter parameter names.
+     *
+     * @since 1.2.0
+     */
+    private function get_filter_params()
+    {
+        $params = [
+            'owner',
+            'action_type',
+            'object_type',
+            'behaviour',
+            'level',
+            'user_id',
+            'date_from',
+            'date_to',
+            'request_id',
+        ];
+
+        /**
+         * Filter the list of recognized filter parameter names.
+         *
+         * Allows developers who add custom viewer filter fields
+         * to register them so the REST API processes them.
+         *
+         * @param array $params List of parameter names.
+         *
+         * @since 1.2.0
+         */
+        return apply_filters('ewp_logger_filter_params', $params);
+    }
+
+    /**
+     * Extract filter arguments from a REST request.
+     *
+     * Reads recognized filter params from the request and handles
+     * date format conversion (d-m-Y → Y-m-d).
+     *
+     * @param \WP_REST_Request $request The REST request.
+     *
+     * @return array Query arguments keyed by storage arg names.
+     *
+     * @since 1.2.0
+     */
+    private function extract_filter_args(\WP_REST_Request $request)
+    {
+        $params     = $this->get_filter_params();
+        $all_params = $request->get_params();
+        $args       = [];
+
+        foreach ($params as $param) {
+            $value = isset($all_params[$param]) ? $all_params[$param] : null;
+
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            $value = $this->parse_multi_param($value);
+
+            // Convert date formats (d-m-Y → Y-m-d) for date fields
+            if (in_array($param, ['date_from', 'date_to'], true)) {
+                $value = $this->convert_date_format($value);
+            }
+
+            $args[$param] = $value;
+        }
+
+        return $args;
+    }
+
+    /**
+     * Parse a value that may contain comma-separated multi-values.
      *
      * Returns a single string for single values, an array for multiple,
      * or empty string for null/empty.
@@ -374,10 +434,42 @@ class EWP_Logger_API
     }
 
     /**
-     * Define endpoint argument schemas for validation.
+     * Convert a date string from d-m-Y to Y-m-d format.
      *
-     * Multi-value filters (owner, action_type, object_type, behaviour)
-     * accept comma-separated strings that are parsed by parse_multi_param().
+     * Supports both d-m-Y and Y-m-d input. Returns the original
+     * value if parsing fails.
+     *
+     * @param string $date Date string.
+     *
+     * @return string Date in Y-m-d format.
+     *
+     * @since 1.2.0
+     */
+    private function convert_date_format($date)
+    {
+        if (empty($date)) {
+            return '';
+        }
+
+        // Already in Y-m-d format
+        if (preg_match('/^\d{4}-\d{2}-\d{2}/', $date)) {
+            return $date;
+        }
+
+        // Convert d-m-Y → Y-m-d
+        $parsed = \DateTime::createFromFormat('d-m-Y', $date);
+        if ($parsed !== false) {
+            return $parsed->format('Y-m-d');
+        }
+
+        return sanitize_text_field($date);
+    }
+
+    /**
+     * Define endpoint argument schemas for pagination only.
+     *
+     * Filter fields arrive as raw form field names and are mapped
+     * by extract_filter_args() via the filterable field-param map.
      *
      * @return array Argument definitions.
      *
@@ -386,45 +478,6 @@ class EWP_Logger_API
     private function get_endpoint_args()
     {
         return [
-            'owner' => [
-                'type'              => 'string',
-                'sanitize_callback' => 'sanitize_text_field',
-                'default'           => '',
-            ],
-            'action_type' => [
-                'type'              => 'string',
-                'sanitize_callback' => 'sanitize_text_field',
-                'default'           => '',
-            ],
-            'object_type' => [
-                'type'              => 'string',
-                'sanitize_callback' => 'sanitize_text_field',
-                'default'           => '',
-            ],
-            'behaviour' => [
-                'type'    => ['string', 'integer', 'null'],
-                'default' => null,
-            ],
-            'level' => [
-                'type'              => 'string',
-                'sanitize_callback' => 'sanitize_text_field',
-                'default'           => '',
-            ],
-            'user_id' => [
-                'type'              => 'integer',
-                'sanitize_callback' => 'absint',
-                'default'           => 0,
-            ],
-            'date_from' => [
-                'type'              => 'string',
-                'sanitize_callback' => 'sanitize_text_field',
-                'default'           => '',
-            ],
-            'date_to' => [
-                'type'              => 'string',
-                'sanitize_callback' => 'sanitize_text_field',
-                'default'           => '',
-            ],
             'page' => [
                 'type'              => 'integer',
                 'sanitize_callback' => 'absint',
@@ -439,11 +492,6 @@ class EWP_Logger_API
                 'type'              => 'string',
                 'enum'              => ['ASC', 'DESC'],
                 'default'           => 'DESC',
-            ],
-            'request_id' => [
-                'type'              => 'string',
-                'sanitize_callback' => 'sanitize_text_field',
-                'default'           => '',
             ],
         ];
     }

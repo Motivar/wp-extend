@@ -20,6 +20,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Original Request**: "Add a button at logger UI where we can cleanup the current selection, set the number of entries we see simultaneously, export as CSV."
   - **Affected Files**: `class-ewp-logger-storage.php`, `class-ewp-logger-file.php`, `class-ewp-logger-api.php`, `class-ewp-logger-viewer.php`, `class-ewp-log-viewer.js`, `ewp-log-viewer.css`
 
+- **Logger: Simplified filter architecture**: Form field names now match query arg names directly (`owner`, `date_from`, etc.) — no mapping layer needed. Removed JS `nameMap`, removed `data-filter` attributes, removed `get_field_param_map()`. JS is fully abstract: serializes form and sends as-is. PHP `get_filter_params()` returns a flat list of recognized param names (filterable via `ewp_logger_filter_params`). Endpoint args simplified to pagination-only. Date format conversion (d-m-Y → Y-m-d) handled in `extract_filter_args()`.
+  - **Original Request**: "Simplify inputs, use date_from instead of ewp_log_filter_date_from."
+  - **Affected Files**: `class-ewp-logger-api.php`, `class-ewp-logger-viewer.php`, `class-ewp-log-viewer.js`
+
+### Fixed
+- **Logger: Date filtering same-day bug**: Filtering with From=To on the same day returned 0 results because `created_at` (`2026-02-11 14:30:00`) was string-compared against bare date (`2026-02-11`). Fixed by appending `00:00:00`/`23:59:59` to date-only values in `normalize_query_args()`.
+  - **Affected Files**: `class-ewp-logger-storage.php`
+
+- **Logger: d-m-Y date format support**: Added `convert_date_format()` in the REST API to convert `d-m-Y` dates from the AWM date picker to `Y-m-d` before storage queries.
+  - **Affected Files**: `class-ewp-logger-api.php`
+
+- **Logger: Multi-select reset**: Fixed Reset button not clearing multi-select filters. Now explicitly deselects all options and dispatches change events.
+  - **Affected Files**: `class-ewp-log-viewer.js`
+
 ### Removed
 - **Logger: Database storage backend removed**: Removed `class-ewp-logger-db.php` entirely. Logger now uses file-only storage (`EWP_Logger_File`), reducing code to maintain. The "Storage Backend" setting has been removed from the settings page. A one-time migration (`maybe_drop_legacy_db_table()`) automatically drops the `ewp_logs` DB table and cleans up stale options for existing installs. Custom backends are still supported via the `ewp_logger_storage_backend` filter.
   - **Original Request**: "Can we totally remove db logging? Just file."

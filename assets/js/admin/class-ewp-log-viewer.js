@@ -80,26 +80,12 @@ class EWPLogViewer {
         this.perPageSelect = this.container.querySelector('#ewp-log-per-page');
         this.exportBtn = this.container.querySelector('#ewp-log-export-csv');
         this.deleteBtn = this.container.querySelector('#ewp-log-delete-filtered');
-        this.ownerSelect = this.pageWrap.querySelector('[data-filter="owner"]');
-        this.actionTypeSelect = this.pageWrap.querySelector('[data-filter="action_type"]');
+        this.ownerSelect = this.pageWrap.querySelector('[name="owner[]"]');
+        this.actionTypeSelect = this.pageWrap.querySelector('[name="action_type[]"]');
 
         /** @type {Array} Last fetched entries for CSV export */
         this.lastEntries = [];
         this.lastTotal = 0;
-
-        /**
-         * Build a field-name → REST-param mapping from [data-filter] elements.
-         * E.g. 'ewp_log_filter_owner[]' → 'owner'.
-         * Used by getFilters() to translate serialized form keys.
-         *
-         * @type {Object<string, string>}
-         */
-        this.nameMap = {};
-        this.pageWrap.querySelectorAll('[data-filter]').forEach((el) => {
-            if (el.name) {
-                this.nameMap[el.name.replace('[]', '')] = el.dataset.filter;
-            }
-        });
     }
 
     /**
@@ -161,12 +147,11 @@ class EWPLogViewer {
     /**
      * Collect all filter values by serializing the parent form.
      *
-     * Uses ewp_jsVanillaSerialize to capture every field at once,
-     * so developer-added fields are automatically included.
-     * Field names are translated to REST param names via this.nameMap.
-     * Multi-value arrays are joined with comma for the REST API.
+     * Sends raw form field names as-is to the REST API.
+     * PHP handles all field-name-to-query-arg mapping via a
+     * filterable map, keeping JS fully abstract.
      *
-     * @returns {Object} Filter key-value pairs keyed by REST param name.
+     * @returns {Object} Filter key-value pairs keyed by form field name.
      */
     getFilters() {
         if (!this.form) {
@@ -182,7 +167,6 @@ class EWPLogViewer {
             }
 
             const cleanKey = key.replace('[]', '');
-            const paramName = this.nameMap[cleanKey] || cleanKey;
             const value = formData[key];
 
             // Skip empty values
@@ -194,12 +178,12 @@ class EWPLogViewer {
             if (Array.isArray(value)) {
                 const nonEmpty = value.filter((v) => v !== '');
                 if (nonEmpty.length) {
-                    filters[paramName] = nonEmpty.join(',');
+                    filters[cleanKey] = nonEmpty.join(',');
                 }
                 continue;
             }
 
-            filters[paramName] = value;
+            filters[cleanKey] = value;
         }
 
         return filters;
@@ -258,11 +242,6 @@ class EWPLogViewer {
             });
             // Trigger change for any UI library listening
             select.dispatchEvent(new Event('change', { bubbles: true }));
-        });
-
-        // Clear date inputs
-        this.pageWrap.querySelectorAll('input[type="date"]').forEach((input) => {
-            input.value = '';
         });
 
         // Reset per-page to default

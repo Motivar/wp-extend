@@ -70,37 +70,61 @@ class EWP_Logger_Viewer
      */
     public function get_viewer_fields()
     {
+        $retentions_months = isset(EWP_Logger_Settings::get_settings()['retentions_months']) ? EWP_Logger_Settings::get_settings()['retentions_months'] : 6;
+
+
         $fields = [];
+        $week = date('d-m-Y', strtotime('-1 week'));
+        $today = date('d-m-Y');
+        $maxDate = date('d-m-Y', strtotime('now'));
+        $minDate = date('d-m-Y', strtotime('-' .  $retentions_months . ' months'));
+
+        // Date From filter
+        $fields['date_from'] = [
+            'case' => 'date',
+            'attributes' => array('data-change' => 'date_to', 'value' => $week),
+            'label'        => __('From', 'extend-wp'),
+            'exclude_meta' => true,
+            'date-params' => array('maxDate' => $maxDate, 'minDate' => $minDate),
+        ];
+        // Date To filter
+        $fields['date_to'] = [
+            'case' => 'date',
+            'label'        => __('To', 'extend-wp'),
+            'attributes'   => ['value' => $today],
+            'exclude_meta' => true,
+            'date-params' => array('maxDate' => $maxDate, 'minDate' => $minDate),
+        ];
 
         // Owner filter
-        $fields['ewp_log_filter_owner'] = [
+        $fields['owner'] = [
             'case'         => 'select',
             'label'        => __('Owner', 'extend-wp'),
             'options'      => $this->build_owner_options(),
-            'attributes'   => ['data-filter' => 'owner', 'multiple' => true],
+            'attributes'   => ['multiple' => true],
             'exclude_meta' => true,
         ];
 
         // Action Type filter
-        $fields['ewp_log_filter_action_type'] = [
+        $fields['action_type'] = [
             'case'         => 'select',
             'label'        => __('Action Type', 'extend-wp'),
             'options'      => $this->build_action_type_options(),
-            'attributes'   => ['data-filter' => 'action_type', 'multiple' => true],
+            'attributes'   => ['multiple' => true],
             'exclude_meta' => true,
         ];
 
         // Object Type filter
-        $fields['ewp_log_filter_object_type'] = [
+        $fields['object_type'] = [
             'case'         => 'select',
             'label'        => __('Object Type', 'extend-wp'),
             'options'      => $this->build_object_type_options(),
-            'attributes'   => ['data-filter' => 'object_type', 'multiple' => true],
+            'attributes'   => ['multiple' => true],
             'exclude_meta' => true,
         ];
 
         // Behaviour filter (success / warning / error)
-        $fields['ewp_log_filter_behaviour'] = [
+        $fields['behaviour'] = [
             'case'         => 'select',
             'label'        => __('Behaviour', 'extend-wp'),
             'options'      => [
@@ -108,39 +132,23 @@ class EWP_Logger_Viewer
                 '2' => ['label' => __('Warning', 'extend-wp')],
                 '0' => ['label' => __('Error', 'extend-wp')],
             ],
-            'attributes'   => ['data-filter' => 'behaviour', 'multiple' => true],
+            'attributes'   => ['multiple' => true],
             'exclude_meta' => true,
         ];
 
         // Level filter
-        $fields['ewp_log_filter_level'] = [
+        $fields['level'] = [
             'case'         => 'select',
             'label'        => __('Level', 'extend-wp'),
             'options'      => [
                 'editor'    => ['label' => __('Editor', 'extend-wp')],
                 'developer' => ['label' => __('Developer', 'extend-wp')],
             ],
-            'attributes'   => ['data-filter' => 'level', 'multiple' => true],
+            'attributes'   => ['multiple' => true],
             'exclude_meta' => true,
         ];
 
-        // Date From filter
-        $fields['ewp_log_filter_date_from'] = [
-            'case'         => 'input',
-            'type'         => 'date',
-            'label'        => __('From', 'extend-wp'),
-            'attributes'   => ['data-filter' => 'date_from'],
-            'exclude_meta' => true,
-        ];
 
-        // Date To filter
-        $fields['ewp_log_filter_date_to'] = [
-            'case'         => 'input',
-            'type'         => 'date',
-            'label'        => __('To', 'extend-wp'),
-            'attributes'   => ['data-filter' => 'date_to'],
-            'exclude_meta' => true,
-        ];
 
         // Filter / Reset buttons + results table + pagination (HTML block)
         $fields['ewp_log_viewer_results'] = [
