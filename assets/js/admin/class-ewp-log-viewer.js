@@ -375,7 +375,7 @@ class EWPLogViewer {
         }
         const statusLabel = behaviourInfo.label;
         const statusClass = behaviourInfo.cssClass;
-        const message = this.escapeHtml(entry.message || '');
+        const message = entry.message || '';
         const ownerLabel = entry.owner_label || entry.owner || '';
         const actionLabel = entry.action_type_label || entry.action_type || '';
         const objectLabel = entry.object_type_label || entry.object_type || '';
