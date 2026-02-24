@@ -555,6 +555,11 @@ class AWMMediaField {
                 return;
             }
 
+            /* Skip containers inside repeater template rows */
+            if (container.closest('.temp-source')) {
+                return;
+            }
+
             container.dataset.awmInit = '1';
             new AWMMediaField(container);
         });

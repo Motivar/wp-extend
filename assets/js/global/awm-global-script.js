@@ -1087,6 +1087,18 @@ function repeater(elem, prePopulated = []) {
                 });
             }
             awm_init_inputs();
+
+            /* Re-initialise AWMMediaField instances inside the cloned row */
+            var mediaFields = cloned.querySelectorAll('.awm-media-field');
+            if (mediaFields.length > 0) {
+                mediaFields.forEach(function (mf) {
+                    mf.removeAttribute('data-awm-init');
+                });
+                if (typeof AWMMediaField !== 'undefined') {
+                    AWMMediaField.init();
+                }
+            }
+
             var inputs = cloned.querySelectorAll('input,select,textarea');
 
             if (inputs) {
