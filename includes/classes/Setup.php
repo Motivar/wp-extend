@@ -41,6 +41,7 @@ class Setup
   require_once 'dev-tools/init.php';
   require_once 'class-dynamic-asset-loader.php';
   require_once 'ewp-logger/class-ewp-logger.php';
+  require_once 'ewp-options-portability/class-options-portability.php';
 
   // Initialize the EWP Logger system
   $logger = \EWP\Logger\EWP_Logger::instance();

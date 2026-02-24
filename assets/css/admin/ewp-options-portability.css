@@ -1,0 +1,96 @@
+/**
+ * EWP Options Portability — Admin styles.
+ *
+ * Minimal styling for status messages and portability-specific UI.
+ * Reuses existing .awm-* admin classes where possible.
+ *
+ * @package    EWP\OptionsPortability
+ * @version    1.0.0
+ * @since      1.0.0
+ */
+
+/* =========================================================
+ * Status Messages
+ * ========================================================= */
+
+.ewp-op-message {
+	padding: 10px 14px;
+	margin: 8px 0;
+	border-left: 4px solid #ccc;
+	border-radius: 2px;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.ewp-op-success {
+	background-color: #ecf7ed;
+	border-left-color: #00a32a;
+	color: #1e4620;
+}
+
+.ewp-op-error {
+	background-color: #fcf0f1;
+	border-left-color: #d63638;
+	color: #8a1f1f;
+}
+
+.ewp-op-warning {
+	background-color: #fff8e5;
+	border-left-color: #dba617;
+	color: #6e4e00;
+}
+
+.ewp-op-info {
+	background-color: #f0f6fc;
+	border-left-color: #72aee6;
+	color: #1d4875;
+}
+
+/* =========================================================
+ * Stats & Details
+ * ========================================================= */
+
+.ewp-op-stats {
+	margin: 12px 0;
+	padding: 10px 14px;
+	background: #f6f7f7;
+	border-radius: 3px;
+}
+
+.ewp-op-stats p {
+	margin: 4px 0;
+	font-size: 13px;
+}
+
+.ewp-op-skipped {
+	margin: 12px 0;
+}
+
+.ewp-op-skipped ul {
+	margin: 6px 0 0 20px;
+	list-style: disc;
+}
+
+.ewp-op-skipped li {
+	font-size: 13px;
+	margin-bottom: 4px;
+}
+
+.ewp-op-skipped code {
+	background: #f0f0f1;
+	padding: 2px 5px;
+	border-radius: 2px;
+	font-size: 12px;
+}
+
+/* =========================================================
+ * Warnings List
+ * ========================================================= */
+
+.ewp-op-warnings {
+	margin: 8px 0;
+}
+
+.ewp-op-warnings .ewp-op-message {
+	margin: 4px 0;
+}

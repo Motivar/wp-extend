@@ -137,6 +137,25 @@ if (!function_exists('awm_prepare_field')) {
                 $db_content = AWM_Content_DB::get_instance();
                 $a['options'] = $db_content->get_content_types();
                 break;
+            case 'ewp_option_pages':
+                /**
+                 * Custom field case that resolves option page choices at render time,
+                 * avoiding recursion during field definition (options_boxes() cycle).
+                 *
+                 * @since 1.1.3
+                 */
+                $a['case'] = isset($a['view']) ? $a['view'] : 'select';
+                $portability = \EWP_Options_Portability::instance();
+                $pages = $portability->get_exportable_pages();
+                $opts = array();
+                foreach ($pages as $pk => $pd) {
+                    $cnt = isset($pd['field_count']) ? $pd['field_count'] : count($pd['fields']);
+                    $opts[$pk] = array(
+                        'label' => sprintf('%s (%d %s)', $pd['title'], $cnt, _n('field', 'fields', $cnt, 'extend-wp')),
+                    );
+                }
+                $a['options'] = $opts;
+                break;
             case 'ewp_content':
                 $a['case'] = isset($a['view']) ? $a['view'] : 'select';
                 $args = isset($a['args']) ? $a['args'] : array();

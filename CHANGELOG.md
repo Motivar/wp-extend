@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Options Portability: Export/Import for EWP option pages**: New module that extends the existing Import/Export admin page with option-page export/import functionality. Features include: transaction-safe imports with automatic rollback on failure, recursive URL replacement (home_url, site_url, content_url, upload_url with scheme-safe serialized data handling), versioning metadata in export payload (plugin_version, wp_version, php_version), dry-run mode, enriched logging via ewp_log() with actor/counts/diff context. Accessible via admin UI, REST API (3 endpoints under `extend-wp/v1/options-portability/`), and WP-CLI (`wp ewp options export|import|list`). Includes 7 developer filters/hooks for extensibility.
+  - **Original Request**: "I need an export/import logic for all option pages created with EWP with page-view, select box, multiple selection, import validation, and ewp_log logging."
+  - **Affected Files**: `class-options-portability.php`, `class-options-portability-cli.php`, `class-ewp-options-portability.js`, `ewp-options-portability.css`, `Readme.md`, `class-import-export.php` (1-line filter), `Setup.php`
+  - **Backwards Compatibility**: Fully backwards-compatible. Adds `ewp_import_export_fields_filter` to existing `import_export_fields()` method (non-breaking).
+
 - **Logger: `ewp_logger_enabled` filter**: New filter allows developers to programmatically enable or disable logging regardless of the admin setting. Receives the boolean value from settings as input.
   - **Original Request**: "Can you set a filter for default status of class-ewp-logger?"
   - **Affected Files**: `class-ewp-logger.php`

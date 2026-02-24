@@ -400,14 +400,16 @@ class Extend_WP_Import_Export
 
  public function import_export_fields()
  {
-  return array(
+  $fields = array(
    'case' => array(
     'label_class' => array('awm-needed'),
     'label' => __('Action', 'extend-wp'),
     'case' => 'select',
     'options' => array(
      'export' => array('label' => __('Export', 'extend-wp')),
-     'import' => array('label' => __('Import', 'extend-wp'))
+     'import' => array('label' => __('Import', 'extend-wp')),
+     'export_options' => array('label' => __('Export Options', 'extend-wp')),
+     'import_options' => array('label' => __('Import Options', 'extend-wp'))
     )
    ),
    'content_types' => array(
@@ -441,8 +443,41 @@ class Extend_WP_Import_Export
     'show-when' => array('case' => array('values' => array('import' => true))),
     'value' => '<div id="import-message"></div>',
     'exclude_meta' => true,
+   ),
+   /* Options Portability fields */
+   'option_pages' => array(
+    'label_class' => array('awm-needed'),
+    'label' => __('Option Pages', 'extend-wp'),
+    'case' => 'ewp_option_pages',
+    'attributes' => array('multiple' => true),
+    'show-when' => array('case' => array('values' => array('export_options' => true))),
+   ),
+   'options_file' => array(
+    'label_class' => array('awm-needed'),
+    'label' => __('Options Import File', 'extend-wp'),
+    'case' => 'input',
+    'type' => 'file',
+    'attributes' => array('accept' => '.json'),
+    'show-when' => array('case' => array('values' => array('import_options' => true))),
+    'explanation' => __('Upload a JSON file exported from EWP Options Portability', 'extend-wp'),
+   ),
+   'options_import_message' => array(
+    'case' => 'html',
+    'show-when' => array('case' => array('values' => array('import_options' => true))),
+    'value' => '<div class="ewp-options-portability-wrap"><div id="options-import-message"></div></div>',
+    'exclude_meta' => true,
    )
   );
+
+  /**
+   * Filter the import/export fields to allow other modules to extend them.
+   *
+   * @param array $fields The current import/export field definitions.
+   * @return array Modified fields array.
+   *
+   * @since 1.1.3
+   */
+  return apply_filters('ewp_import_export_fields_filter', $fields);
  }
 }
 
