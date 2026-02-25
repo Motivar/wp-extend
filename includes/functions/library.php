@@ -538,7 +538,7 @@ if (!function_exists('awm_show_content')) {
                             $select_options = array();
                             if (!empty($a['options'])) {
                                 if (!(isset($a['removeEmpty']) && $a['removeEmpty'])) {
-                                    $select_options[] = '<option value="" data-html="' . esc_attr(wp_json_encode($a['label'])) . '" data-placeholder="true">' . $a['label'] . '</option>';
+                                    $select_options[] = '<option value="" data-html="' . str_replace('"', "'", json_encode(htmlspecialchars($a['label']))) . '" data-placeholder="true">' . $a['label'] . '</option>';
                                 }
 
                                 foreach ($a['options'] as $vv => $vvv) {
@@ -554,7 +554,7 @@ if (!function_exists('awm_show_content')) {
                                         }
                                     }
                                     $option_label = isset($vvv['label']) ? $vvv['label'] : $vv;
-                                    $data_html = !isset($a['no_style']) ? 'data-html="' . esc_attr(wp_json_encode($option_label)) . '"' : '';
+                                    $data_html = !isset($a['no_style']) ? 'data-html="' . str_replace('"', "'", json_encode(htmlspecialchars($option_label))) . '"' : '';
                                     $select_options[$vv] = '<option value="' . $vv . '" ' . $selected . ' ' . implode(' ', $attrs) . ' ' . $data_html . ' >' . $option_label . '</option>';
                                     if (!empty($optgroups) && isset($vvv['optgroup'])) {
                                         $optgroups[$vvv['optgroup']]['options'][] = $vv;
@@ -566,7 +566,7 @@ if (!function_exists('awm_show_content')) {
                                 $optgroup_options = array();
                                 foreach ($optgroups as $opt_id => $opt_option) {
                                     if (isset($opt_option['options']) && !empty($opt_option['options']))
-                                        $optgroup_options['opt_' . $opt_id . '_start'] = '<optgroup id="' . $opt_id . '" label="' . $opt_option['label'] . '" data-html="' . esc_attr(wp_json_encode($opt_option['label'])) . '" options="' . implode(',', $opt_option['options']) . '">';
+                                        $optgroup_options['opt_' . $opt_id . '_start'] = '<optgroup id="' . $opt_id . '" label="' . $opt_option['label'] . '" data-html="' . str_replace('"', "'", json_encode(htmlspecialchars($opt_option['label']))) . '" options="' . implode(',', $opt_option['options']) . '">';
                                     foreach ($opt_option['options'] as $opt_option_id) {
                                         $optgroup_options[$opt_option_id] = $select_options[$opt_option_id];
                                         unset($select_options[$opt_option_id]);

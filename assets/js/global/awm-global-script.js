@@ -180,7 +180,7 @@ function awm_selectr_box(elem) {
     var optgroups = elem.getElementsByTagName('optgroup');
     if (optgroups.length > 0) {
         for (var o = 0; o < optgroups.length; o++) {
-            var html_value = optgroups[o].getAttribute('data-html') ? JSON.parse(optgroups[o].getAttribute('data-html')) : '';
+            var html_value = optgroups[o].getAttribute('data-html') ? JSON.parse(optgroups[o].getAttribute('data-html').replace(/\'/g, '\"')) : '';
             var obj = {
                 label: html_value,
                 options: [],
@@ -235,7 +235,7 @@ function awm_selectr_box(elem) {
 
 function awm_select_box_values(option, selected_options) {
 
-    var html_value = option.getAttribute('data-html') ? JSON.parse(option.getAttribute('data-html')) : '';
+    var html_value = option.getAttribute('data-html') ? JSON.parse(option.getAttribute('data-html').replace(/(^'|'$)/g, '\"')) : '';
 
     var selected = selected_options.includes(option.value) ? true : false;
     var placeholder = option.getAttribute('data-placeholder') ? (option.getAttribute('data-placeholder') === 'true' ? true : false) : false;
