@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **WP Rocket: Auto-exclude Dynamic Asset Loader from all JS optimizations**: New `EWP_WP_Rocket` class automatically excludes `class-dynamic-asset-loader.js` from WP Rocket's Delay JS, Minify/Combine, and Defer when WP Rocket is active. Uses filename-based matching so it works regardless of install path (standalone or embedded in other plugins). Extensible via `ewp_wp_rocket_js_exclusions` filter.
+  - **Original Request**: "Make sure class-dynamic-asset-loader.js is always excluded by default in WP Rocket if WP Rocket exists."
+  - **Affected Files**: `ewp-third-party/class-wp-rocket.php` (new), `Setup.php`
+  - **Backwards Compatibility**: Fully backwards-compatible. No-op when WP Rocket is not installed.
+
 - **Options Portability: Export/Import for EWP option pages**: New module that extends the existing Import/Export admin page with option-page export/import functionality. Features include: transaction-safe imports with automatic rollback on failure, recursive URL replacement (home_url, site_url, content_url, upload_url with scheme-safe serialized data handling), versioning metadata in export payload (plugin_version, wp_version, php_version), dry-run mode, enriched logging via ewp_log() with actor/counts/diff context. Accessible via admin UI, REST API (3 endpoints under `extend-wp/v1/options-portability/`), and WP-CLI (`wp ewp options export|import|list`). Includes 7 developer filters/hooks for extensibility.
   - **Original Request**: "I need an export/import logic for all option pages created with EWP with page-view, select box, multiple selection, import validation, and ewp_log logging."
   - **Affected Files**: `class-options-portability.php`, `class-options-portability-cli.php`, `class-ewp-options-portability.js`, `ewp-options-portability.css`, `Readme.md`, `class-import-export.php` (1-line filter), `Setup.php`
