@@ -650,6 +650,21 @@ JS;
 		$encrypted        = $saved[ $field ] ?? '';
 		$plain_key        = EWP_AI_Encryption::decrypt( $encrypted );
 
+		// Debug: Log what we're working with
+		ewp_log(
+			'extend-wp',
+			'ai_content_health_check',
+			'Health check decryption debug',
+			[
+				'encrypted_starts_with' => substr($encrypted, 0, 20),
+				'plain_key_length'      => strlen($plain_key),
+				'plain_key_starts_with' => substr($plain_key, 0, 7),
+			],
+			'developer',
+			'',
+			1
+		);
+
 		if ( '' === $plain_key ) {
 			return; // Nothing to check.
 		}
@@ -677,11 +692,21 @@ JS;
 			HOUR_IN_SECONDS
 		);
 
+		$log_data = [
+			'provider' => $default_provider,
+			'success'  => $success,
+		];
+
+		if (! $success) {
+			$log_data['error'] = $result->get_error_message();
+			$log_data['error_code'] = $result->get_error_code();
+		}
+
 		ewp_log(
 			'extend-wp',
 			'ai_content_health_check',
 			sprintf( 'Auto health check on save — provider "%s": %s', $default_provider, $success ? 'ok' : 'failed' ),
-			[ 'provider' => $default_provider, 'success' => $success ],
+			$log_data,
 			'editor',
 			'',
 			$success ? 1 : 0
@@ -1058,14 +1083,24 @@ JS;
 
 		$success = ! is_wp_error( $result );
 
+		$log_data = [
+			'provider' => $provider_id,
+			'success'  => $success,
+		];
+
+		if (! $success) {
+			$log_data['error'] = $result->get_error_message();
+			$log_data['error_code'] = $result->get_error_code();
+		}
+
 		ewp_log(
 			'extend-wp',
 			'ai_content_health_check',
 			sprintf( 'Health check for provider "%s": %s', $provider_id, $success ? 'ok' : 'failed' ),
-			[ 'provider' => $provider_id, 'success' => $success ],
+			$log_data,
 			'editor',
 			'',
-			0
+			$success ? 1 : 0
 		);
 
 		// Cache the result so the admin bar indicator can read it without making a live API call.

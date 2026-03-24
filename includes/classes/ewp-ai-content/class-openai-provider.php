@@ -80,9 +80,13 @@ class EWP_AI_OpenAI_Provider implements EWP_AI_Provider_Interface {
 		);
 
 		if ( is_wp_error( $response ) ) {
+			$error_msg = sprintf(
+				__('Could not connect to OpenAI: %s', 'extend-wp'),
+				$response->get_error_message()
+			);
 			return new \WP_Error(
 				'openai_connection_failed',
-				__( 'Could not connect to OpenAI. Check your internet connection.', 'extend-wp' )
+				$error_msg
 			);
 		}
 
@@ -99,7 +103,13 @@ class EWP_AI_OpenAI_Provider implements EWP_AI_Provider_Interface {
 
 		$error_code = 401 === $code ? 'openai_invalid_key' : 'openai_api_error';
 
-		return new \WP_Error( $error_code, $message );
+		$detailed_message = sprintf(
+			'HTTP %d: %s',
+			$code,
+			$message
+		);
+
+		return new \WP_Error($error_code, $detailed_message);
 	}
 
 	// -------------------------------------------------------------------------
