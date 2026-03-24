@@ -21,6 +21,10 @@ class Setup
  {
   add_action('init', function () {
    load_plugin_textdomain('extend-wp', false, awm_relative_path . '/languages');
+
+   // Initialize the EWP Logger system after translations are loaded
+   $logger = \EWP\Logger\EWP_Logger::instance();
+   $logger->init();
   });
   require_once 'adminMessages/class-adminMessages.php';
   require_once 'ewp-gallery/class-ewp-gallery.php';
@@ -43,9 +47,5 @@ class Setup
   require_once 'class-dynamic-asset-loader.php';
   require_once 'ewp-logger/class-ewp-logger.php';
   require_once 'ewp-options-portability/class-options-portability.php';
-
-  // Initialize the EWP Logger system
-  $logger = \EWP\Logger\EWP_Logger::instance();
-  $logger->init();
  }
 }

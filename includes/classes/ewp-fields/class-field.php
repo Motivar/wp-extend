@@ -84,6 +84,11 @@ class Extend_WP_Fields
 
  public function register_defaults($data)
  {
+  // Prevent translation loading before init action
+  if (!did_action('init')) {
+   return $data;
+  }
+
   /*register fields*/
   $data['fields'] = array(
    'parent' => 'extend-wp',

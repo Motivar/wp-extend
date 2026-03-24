@@ -24,25 +24,14 @@ class AWM_Content_DB
   */
  private function __construct()
  {
-  // Hook to initialize content early.
-  add_action('plugins_loaded', [$this, 'register_content'], 100);
-
-  // Hook to reinitialize after theme setup.
-  add_action('after_setup_theme', [$this, 'register_content_after_theme']);
+  // Register content on init (priority 20) to ensure translations are loaded first (priority 10).
+  add_action('init', [$this, 'register_content'], 20);
  }
 
  /**
-  * Initialize content during plugins_loaded.
+  * Initialize content during init hook.
   */
  public function register_content()
- {
-  $this->initialize_content();
- }
-
- /**
-  * Initialize content after theme setup.
-  */
- public function register_content_after_theme()
  {
   $this->initialize_content();
  }

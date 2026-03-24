@@ -23,7 +23,7 @@ if (!empty($page)) {
     $custom_link = '';
 
     // Check if the current page matches the parent setting.
-    if (isset($awm_settings['parent']) && strpos($awm_settings['parent'], $pagenow) !== false) {
+    if (isset($awm_settings['parent']) && !empty($awm_settings['parent']) && strpos($awm_settings['parent'], $pagenow) !== false) {
         $custom_link = $pagenow;
         // Append the 'post_type' parameter if it exists in the request.
         if (isset($_REQUEST['post_type'])) {

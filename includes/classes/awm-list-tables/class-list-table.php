@@ -78,7 +78,7 @@ class AWM_List_Table extends WP_List_Table
     {
         // assign variables
         $this->page_id = $args['id'];
-        if (strpos($args['parent'], '?') === false) {
+        if (!empty($args['parent']) && strpos($args['parent'], '?') === false) {
             $args['parent'] = false;
         }
         $this->page_link = $args['parent'] ? $args['parent'] . '&page=' . $args['id'] : 'admin.php?page=' . $args['id'];

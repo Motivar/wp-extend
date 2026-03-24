@@ -91,13 +91,13 @@ function flx_table_list_page_handler($args)
         // Handle $_REQUEST['id'] properly whether it's an array or string
         $ids = isset($_REQUEST['id']) ? $_REQUEST['id'] : '';
         $count = 0;
-        
+
         if (is_array($ids)) {
             $count = count($ids);
         } elseif (is_string($ids) && !empty($ids)) {
             $count = count(explode(',', $ids));
         }
-        
+
         $message = '<div class="updated below-h2" id="message"><p>' . sprintf(__('Items deleted: %d', 'custom_table_example'), $count) . '</p></div>';
     }
 ?>
@@ -118,7 +118,7 @@ function flx_table_list_page_handler($args)
 
         <form id="<?php echo $args['id']; ?>-table" method="GET">
             <input type="hidden" name="page" value="<?php echo $_REQUEST['page'] ?>" />
-            <?php if (isset($args['parent']) && strpos($args['parent'], 'post_type')) {
+            <?php if (isset($args['parent']) && !empty($args['parent']) && strpos($args['parent'], 'post_type') !== false) {
                 $post_type = explode('post_type=', $args['parent'])[1]; ?>
                 <input type="hidden" name="post_type" value="<?php echo $post_type; ?>" />
             <?php } ?>
@@ -133,7 +133,7 @@ function flx_table_list_page_handler($args)
 
 function awm_edit_screen_link($args)
 {
-    if (strpos($args['parent'], '?') === false) {
+    if (!empty($args['parent']) && strpos($args['parent'], '?') === false) {
         $args['parent'] = false;
     }
 

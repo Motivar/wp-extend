@@ -40,7 +40,9 @@ class EWP_Logger_Settings
      */
     public function init()
     {
-        add_filter('ewp_admin_fields_filter', [$this, 'register_admin_fields'], 100);
+        add_action('init', function () {
+            add_filter('ewp_admin_fields_filter', [$this, 'register_admin_fields'], 100);
+        });
     }
 
     /**
@@ -68,9 +70,25 @@ class EWP_Logger_Settings
     }
 
     /**
+     * Return field defaults without translations (safe to call before init).
+     *
+     * @return array Field defaults keyed by field name.
+     *
+     * @since 1.2.1
+     */
+    private static function get_field_defaults()
+    {
+        return [
+            'enabled' => '',
+            'retention_months' => 6,
+        ];
+    }
+
+    /**
      * Return the settings fields definition for the options page.
      *
      * Uses the same structure as other EWP options pages (awm_show_content format).
+     * Contains translated strings - only call after init action.
      *
      * @return array Settings fields array.
      *
@@ -137,13 +155,11 @@ class EWP_Logger_Settings
             $stored = [];
         }
 
-        // Derive defaults from field definitions (single source of truth)
-        $instance = new self();
-        $fields   = $instance->get_settings_fields();
+        // Use field defaults (no translations needed)
+        $defaults = self::get_field_defaults();
         $settings = [];
 
-        foreach ($fields as $key => $field) {
-            $default        = isset($field['default']) ? $field['default'] : '';
+        foreach ($defaults as $key => $default) {
             $settings[$key] = isset($stored[$key]) ? $stored[$key] : $default;
         }
 
@@ -151,11 +167,11 @@ class EWP_Logger_Settings
          * Filter the resolved logger settings before caching.
          *
          * @param array $settings Resolved settings keyed by short field name.
-         * @param array $fields   Raw field definitions from get_settings_fields().
+         * @param array $defaults Field defaults used for initialization.
          *
          * @since 1.2.0
          */
-        $settings = apply_filters('ewp_logger_resolved_settings', $settings, $fields);
+        $settings = apply_filters('ewp_logger_resolved_settings', $settings, $defaults);
 
         self::$settings_cache = $settings;
 

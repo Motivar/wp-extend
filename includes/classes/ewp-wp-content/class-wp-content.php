@@ -103,6 +103,11 @@ class Extend_WP_WP_Content
 
  public function register_defaults($data)
  {
+  // Prevent translation loading before init action
+  if (!did_action('init')) {
+   return $data;
+  }
+
   /*register fields*/
   $data['post_types'] = array(
    'parent' => 'extend-wp',

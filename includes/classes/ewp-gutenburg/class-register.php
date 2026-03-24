@@ -35,8 +35,10 @@ class EWP_Dynamic_Blocks
 
     // Register REST API endpoints for the blocks.
     add_action('rest_api_init', [$this, 'rest_endpoints']);
-    // Register for field UI usage
-    add_filter('awm_position_options_filter', [$this, 'awm_position_options_filter']);
+    // Register for field UI usage - delayed to init to prevent early translation loading
+    add_action('init', function () {
+      add_filter('awm_position_options_filter', [$this, 'awm_position_options_filter']);
+    });
   }
 
   /*
@@ -44,6 +46,10 @@ class EWP_Dynamic_Blocks
   */
   public function awm_position_options_filter($options)
   {
+    // Prevent translation loading before init action
+    if (!did_action('init')) {
+      return $options;
+    }
 
     $options['ewp_block'] = array('label' => __('Block creation', 'extend-wp'), 'field-choices' =>
     array(

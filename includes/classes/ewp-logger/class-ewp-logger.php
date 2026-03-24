@@ -214,8 +214,11 @@ class EWP_Logger
         // One-time migration: drop legacy ewp_logs DB table if it exists
         $this->maybe_drop_legacy_db_table();
 
-        // Register built-in action types
-        $this->register_builtin_types();
+        // Register built-in action types after init to prevent early translation loading
+        // Priority 20 ensures this runs after load_plugin_textdomain (priority 10)
+        add_action('init', function () {
+            $this->register_builtin_types();
+        }, 20);
 
         // Hook into existing EWP actions for auto-logging
         $this->register_auto_hooks();

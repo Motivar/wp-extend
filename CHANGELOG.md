@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Translation loading too early**: Fixed "Function _load_textdomain_just_in_time was called incorrectly" notice by preventing filter callbacks from executing translation functions before `init` action fires. Translation functions (`__()`, `_e()`, etc.) were being called before `load_plugin_textdomain()` executed, triggering WordPress 6.7.0+ warnings.
+  - **Original Issue**: Notice appeared in DDEV logs: "Translation loading for the extend-wp domain was triggered too early."
+  - **Root Cause**: Filters were being applied during early initialization (before `init`), causing callbacks with translation functions to execute too early.
+  - **Affected Files**: 
+    - `class-ewp-logger-settings.php`: Added `did_action('init')` check in `register_admin_fields()` + added `get_field_defaults()` method to return untranslated defaults for early initialization + fixed undefined `$fields` variable
+    - `class-ewp-logger.php`: Delayed `register_builtin_types()` call to `init` action with priority 20 (runs after `load_plugin_textdomain` at priority 10)
+    - `class-register.php`: Added `did_action('init')` check in `awm_position_options_filter()`
+    - `class-field.php`: Added `did_action('init')` check in `register_defaults()`
+    - `class-wp-content.php`: Added `did_action('init')` check in `register_defaults()`
+  - **Backwards Compatibility**: Fully backwards-compatible. Filter callbacks return early (unchanged $options/$fields/$data) when called before `init`, then execute normally after `init`. Settings retrieval now uses untranslated defaults.
+    - `class-content-proxy.php`: Moved `AWM_Content_DB` content registration from `plugins_loaded` (priority 100) and `after_setup_theme` to `init` (priority 20), ensuring all `awm_register_content_db` filter callbacks run after translations are loaded
+    - `class-extend-wp.php`: Removed duplicate `load_textdomain()` call on `plugins_loaded` hook — textdomain is already loaded in `Setup.php` on `init`
+
+- **PHP 8.1+ deprecation warnings**: Fixed multiple "Passing null to parameter of type string is deprecated" warnings for `strpos()` calls by adding null checks before string operations.
+  - **Original Issue**: PHP 8.1+ strict typing caused deprecation warnings when null values were passed to `strpos()`.
+  - **Affected Files**: `class-list-form.php` (conditionally call `add_submenu_page()` only when parent is not null), `class-list-table.php` (added null check before `strpos()`), `functions.php` (added null checks in two locations), `settings.php` (added null check before `strpos()`)
+  - **Backwards Compatibility**: Fully backwards-compatible. Logic remains identical, just with proper null handling.
+
 ### Added
 - **WP Rocket: Auto-exclude Dynamic Asset Loader from all JS optimizations**: New `EWP_WP_Rocket` class automatically excludes `class-dynamic-asset-loader.js` from WP Rocket's Delay JS, Minify/Combine, and Defer when WP Rocket is active. Uses filename-based matching so it works regardless of install path (standalone or embedded in other plugins). Extensible via `ewp_wp_rocket_js_exclusions` filter.
   - **Original Request**: "Make sure class-dynamic-asset-loader.js is always excluded by default in WP Rocket if WP Rocket exists."
