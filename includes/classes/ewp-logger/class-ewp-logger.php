@@ -185,13 +185,21 @@ class EWP_Logger
         $settings_page = new EWP_Logger_Settings();
         $settings_page->init();
 
+        // Initialize storage backend (always needed for viewer/API to read logs)
+        $this->storage = $this->resolve_storage_backend();
+
+        // Initialize REST API (always needed for viewer to fetch logs)
+        $api = new EWP_Logger_API($this->storage);
+        $api->init();
+
+        // Initialize log viewer admin page (always available to view existing logs)
+        $viewer = new EWP_Logger_Viewer();
+        $viewer->init();
+
         // Everything else only when logging is enabled
         if (!self::$enabled) {
             return;
         }
-
-        // Initialize storage backend (file-only; custom backends via filter)
-        $this->storage = $this->resolve_storage_backend();
 
         // Initialize the queue with our storage
         EWP_Logger_Queue::init($this->storage);
@@ -199,14 +207,6 @@ class EWP_Logger
         // Initialize cleanup cron
         $cleanup = new EWP_Logger_Cleanup($this->storage);
         $cleanup->init();
-
-        // Initialize REST API
-        $api = new EWP_Logger_API($this->storage);
-        $api->init();
-
-        // Initialize log viewer admin page
-        $viewer = new EWP_Logger_Viewer();
-        $viewer->init();
 
         // Initialize WP-CLI commands
         EWP_Logger_CLI::init();

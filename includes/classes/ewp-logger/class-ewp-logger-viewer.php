@@ -373,7 +373,6 @@ class EWP_Logger_Viewer
             'version'      => '1.0.0',
             'context'      => 'admin',
             'in_footer'    => true,
-            'dependencies' => [],
             'module'       => false,
         ];
 
