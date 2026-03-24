@@ -8,6 +8,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **AI Content Generator — REST 404 on `health-status`**: `rest_api_init` was registered inside `is_admin()` guard; WordPress REST API requests are not admin requests so routes were never registered. Moved `add_action('rest_api_init', ...)` before the guard so REST routes register on every request type.
+- **AI Content Generator — grey admin bar dot / providers always empty**: `get_settings()` read from `ewp_ai_content_settings` option but EWP stores settings by **section key** (`provider_config`, `content_settings`, `general_instructions`). Fixed by merging the three section options in `get_settings()`. Also fixed `pre_update_option_` to hook `provider_config` where API keys actually live, and added `$section_keys` map for documentation.
+- **AI Content Generator — no EWP Logger entries for AI actions**: `ewp_logger_initialized` hook was behind `is_admin()` guard; REST handlers calling `ewp_log()` hadn't registered the log types. Moved `add_action('ewp_logger_initialized', ...)` before the guard.
+
+- **EWP Logger stuck on "Loading..."**: Fixed issue where the log viewer page remained stuck on "Loading..." when clicking Filter or Reset buttons. The `class-ewp-log-viewer.js` script depends on `awm_ajax_call()` and `ewp_jsVanillaSerialize()` functions from `awm-global-script.js`, but had an empty dependencies array. Added `'awm-global-script'` to the dependencies array in `class-ewp-logger-viewer.php` to ensure proper script load order.
+  - **Original Issue**: Log viewer stuck on "Loading..." with no console errors; AJAX calls failing silently due to undefined functions.
+  - **Root Cause**: Script registration in `register_assets()` method had empty dependencies array, causing logger script to load before required global functions.
+  - **Affected Files**: `includes/classes/ewp-logger/class-ewp-logger-viewer.php` (line 376)
+  - **Backwards Compatibility**: Fully backwards-compatible. Only affects script load order, no API or functionality changes.
+
+### Added
+- **AI Content Generator module** (`ewp-ai-content`): New admin-only module for generating post titles, excerpts, and full content via AI providers directly from the post editor.
+  - **Providers**: OpenAI (GPT-4o, GPT-4.1 family), Claude/Anthropic (Sonnet 4, Haiku 4), Google Gemini (2.5 Flash, 2.5 Pro).
+  - **Settings page**: Standalone options page under Extend WP menu with Provider Configuration, Content Settings, and General Instructions (brand voice, target audience, business context, custom instructions) sections.
+  - **API key security**: Keys encrypted at rest using AES-256-CBC with WordPress salt constants (`AUTH_KEY` + `SECURE_AUTH_SALT`). Admin UI shows masked value (last 4 chars). Constant overrides supported (`EWP_OPENAI_API_KEY`, `EWP_CLAUDE_API_KEY`, `EWP_GEMINI_API_KEY`).
+  - **Health check**: API key validated on settings save via a lightweight REST call to each provider.
+  - **Post meta box**: Appears on all public post types. Supports task selection (title / excerpt / full content), provider/model selection, per-post custom instructions, and WPML translation mode (Translate vs Recreate).
+  - **Accept flow**: Generated content populates editor fields (Classic TinyMCE or Gutenberg) without auto-saving — user must click Update/Publish.
+  - **Screenshot context**: Optional html2canvas screenshot of the post frontend captured client-side and sent to vision-capable models for visual context.
+  - **WPML integration**: Language auto-detected via `wpml_current_language` filter; translation mode radio shown when WPML is active.
+  - **EWP Logger integration**: `ai_content_generate`, `ai_content_error`, `ai_content_health_check` log types registered.
+  - **Admin bar health indicator**: Colored dot in the WP admin bar showing the default provider connection status (green = ok, red = error, yellow = not verified, grey = not configured). Status is polled asynchronously every 5 minutes via `awm_ajax_call` → `GET extend-wp/v1/ai-content/health-status` (reads transient, no live API call). Dot updates in place without page reload. Resets to "not verified" when API keys are saved.
+  - **Dynamic Asset Loader**: JS and CSS loaded conditionally via `.ewp-ai-content-metabox` selector; html2canvas loaded only when screenshot feature is enabled.
+  - **Developer filters**: `ewp_ai_content_context`, `ewp_ai_content_prompt`, `ewp_ai_content_result`, `ewp_ai_exclude_meta_keys`.
+  - **Admin-only**: `is_admin()` guard in constructor — no code executes on the frontend under any circumstances.
+  - **Files added**: `includes/classes/ewp-ai-content/` (8 PHP classes), `assets/js/admin/class-ewp-ai-content.js`, `assets/css/admin/ewp-ai-content.css`.
+
+### Fixed
 - **Translation loading too early**: Fixed "Function _load_textdomain_just_in_time was called incorrectly" notice by preventing filter callbacks from executing translation functions before `init` action fires. Translation functions (`__()`, `_e()`, etc.) were being called before `load_plugin_textdomain()` executed, triggering WordPress 6.7.0+ warnings.
   - **Original Issue**: Notice appeared in DDEV logs: "Translation loading for the extend-wp domain was triggered too early."
   - **Root Cause**: Filters were being applied during early initialization (before `init`), causing callbacks with translation functions to execute too early.

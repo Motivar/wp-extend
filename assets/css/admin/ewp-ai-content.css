@@ -1,0 +1,135 @@
+/**
+ * EWP AI Content Generator — Meta Box Styles
+ *
+ * Scoped to .ewp-ai-content-metabox so these styles never affect
+ * other parts of the admin UI.
+ *
+ * @package EWP\AIContent
+ * @since   1.0.0
+ */
+
+/* ── Wrapper ─────────────────────────────────────────────────── */
+
+.ewp-ai-content-metabox {
+	font-size: 13px;
+}
+
+.ewp-ai-content-metabox p {
+	margin: 0 0 10px;
+}
+
+.ewp-ai-content-metabox label {
+	display: block;
+	margin-bottom: 4px;
+}
+
+/* ── Selects & Textarea ──────────────────────────────────────── */
+
+.ewp-ai-content-metabox .ewp-ai-select,
+.ewp-ai-content-metabox textarea {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.ewp-ai-content-metabox textarea {
+	resize: vertical;
+	min-height: 60px;
+}
+
+/* ── Translation mode radios ─────────────────────────────────── */
+
+.ewp-ai-translation-mode label {
+	display: inline;
+	margin-right: 6px;
+}
+
+/* ── Progress indicator ──────────────────────────────────────── */
+
+.ewp-ai-progress {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 0;
+	color: #555;
+	font-style: italic;
+}
+
+.ewp-ai-progress .spinner {
+	float: none;
+	margin: 0;
+}
+
+/* ── Result preview ──────────────────────────────────────────── */
+
+.ewp-ai-result {
+	margin-top: 8px;
+	border: 1px solid #dcdcde;
+	border-radius: 3px;
+	background: #f9f9f9;
+	padding: 10px;
+}
+
+.ewp-ai-result-content {
+	max-height: 200px;
+	overflow-y: auto;
+	font-size: 12px;
+	line-height: 1.6;
+	color: #333;
+	margin-bottom: 10px;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+/* Rendered HTML preview (full_content task) */
+.ewp-ai-result-content p,
+.ewp-ai-result-content h2,
+.ewp-ai-result-content h3,
+.ewp-ai-result-content ul,
+.ewp-ai-result-content ol {
+	margin: 0 0 8px;
+}
+
+/* ── Action buttons ──────────────────────────────────────────── */
+
+.ewp-ai-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.ewp-ai-actions .button {
+	flex: 1 1 auto;
+	text-align: center;
+}
+
+/* ── Error notice ────────────────────────────────────────────── */
+
+.ewp-ai-error {
+	margin: 8px 0 0;
+	padding: 8px 12px;
+}
+
+.ewp-ai-error p {
+	margin: 0;
+}
+
+/* ── Notice (no provider configured) ────────────────────────── */
+
+.ewp-ai-notice {
+	padding: 8px 10px;
+	border-left: 4px solid #f0b849;
+	background: #fff8e5;
+	margin: 0;
+}
+
+.ewp-ai-notice a {
+	color: #2271b1;
+	text-decoration: underline;
+}
+
+/* ── Loading state on generate button ───────────────────────── */
+
+.ewp-ai-content-metabox .button.ewp-ai--loading {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
