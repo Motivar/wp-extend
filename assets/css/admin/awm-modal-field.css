@@ -1,0 +1,125 @@
+/**
+ * AWM Modal Field — Styles
+ * 
+ * Minimal styles for modal field trigger button and wrapper.
+ * Reuses ewp-ai-modal-overlay classes for consistent modal UI.
+ * 
+ * @package ExtendWP
+ * @since   1.2.0
+ */
+
+/* ── Modal field wrapper ───────────────────────────────────────── */
+.awm-modal-field-wrap {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+/* ── Trigger button ────────────────────────────────────────────── */
+.awm-modal-trigger {
+	cursor: pointer;
+}
+
+.awm-modal-trigger:focus {
+	outline: 2px solid #2271b1;
+	outline-offset: 2px;
+}
+
+/* ── Modal overlay specific adjustments ────────────────────────── */
+.awm-modal-overlay {
+	z-index: 100001;
+}
+
+.awm-modal {
+	max-width: 720px;
+}
+
+/* ── Modal body ────────────────────────────────────────────────── */
+.awm-modal-body {
+	min-height: 120px;
+}
+
+.awm-modal-body .awm-show-content {
+	margin: 0;
+}
+
+.awm-modal-body .awm-meta-field {
+	margin-bottom: 16px;
+}
+
+.awm-modal-body .awm-meta-field:last-child {
+	margin-bottom: 0;
+}
+
+/* ── Loading state ─────────────────────────────────────────────── */
+.awm-modal-loading {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 20px;
+	color: #555;
+	font-style: italic;
+}
+
+.awm-modal-loading .spinner {
+	float: none;
+	margin: 0;
+}
+
+/* ── Field label adjustments inside modal ──────────────────────── */
+.awm-modal-body .awm-input-label {
+	display: block;
+	font-weight: 600;
+	font-size: 13px;
+	margin-bottom: 6px;
+	color: #1d2327;
+}
+
+.awm-modal-body .awm-explanation {
+	display: block;
+	font-size: 12px;
+	color: #646970;
+	margin-top: 4px;
+}
+
+/* ── Input styling inside modal ────────────────────────────────── */
+.awm-modal-body input[type="text"],
+.awm-modal-body input[type="number"],
+.awm-modal-body input[type="email"],
+.awm-modal-body input[type="url"],
+.awm-modal-body textarea,
+.awm-modal-body select {
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+/* ── Repeater inside modal ─────────────────────────────────────── */
+.awm-modal-body .awm-repeater {
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	padding: 12px;
+	background: #f9f9f9;
+}
+
+.awm-modal-body .awm-repeater-title {
+	font-weight: 600;
+	margin-bottom: 12px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid #dcdcde;
+}
+
+/* ── Section inside modal ──────────────────────────────────────── */
+.awm-modal-body .awm-inner-section {
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	padding: 12px;
+	background: #f9f9f9;
+}
+
+.awm-modal-body .section-header {
+	font-weight: 600;
+	margin-bottom: 12px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid #dcdcde;
+}

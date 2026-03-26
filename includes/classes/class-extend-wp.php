@@ -14,6 +14,10 @@ class AWM_Meta
     public function init()
     {
         define('AWM_JQUERY_LOAD', apply_filters('awm_jquery_load_filter', true));
+
+        // Register modal field assets early (before Dynamic Asset Loader collects at init priority 1)
+        add_filter('ewp_register_dynamic_assets', array($this, 'register_modal_field_assets'));
+
         add_action('init', array($this, 'awm_init'), 10);
         add_action('wp_enqueue_scripts', array($this, 'enqueue_styles_script'), 10);
         add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_styles_scripts'), 10);
@@ -298,6 +302,59 @@ class AWM_Meta
             $version,
             true // Load in footer
         );
+    }
+
+    /**
+     * Register AWM Modal Field assets for Dynamic Asset Loader
+     * 
+     * Loads JS/CSS only when .awm-modal-trigger exists on the page.
+     * 
+     * @param array $assets Registered assets array
+     * @return array Modified assets array
+     * @since 1.2.0
+     */
+    public function register_modal_field_assets($assets)
+    {
+        $version = '1.0.0';
+
+        // AWM Modal Field — JavaScript
+        $assets[] = array(
+            'handle'       => 'awm-modal-field',
+            'selector'     => '.awm-modal-trigger',
+            'type'         => 'script',
+            'src'          => awm_url . 'assets/js/admin/class-awm-modal-field.js',
+            'version'      => $version,
+            'context'      => 'admin',
+            'dependencies' => array(),
+            'in_footer'    => true,
+            'localize'     => array(
+                'objectName' => 'awmModalField',
+                'data'       => array(
+                    'restUrl' => rest_url('extend-wp/v1/'),
+                    'nonce'   => wp_create_nonce('wp_rest'),
+                    'strings' => array(
+                        'save'    => __('Save', 'extend-wp'),
+                        'cancel'  => __('Cancel', 'extend-wp'),
+                        'saving'  => __('Saving…', 'extend-wp'),
+                        'loading' => __('Loading…', 'extend-wp'),
+                        'error'   => __('Error saving data', 'extend-wp'),
+                        'edit'    => __('Edit', 'extend-wp'),
+                    ),
+                ),
+            ),
+        );
+
+        // AWM Modal Field — CSS
+        $assets[] = array(
+            'handle'   => 'awm-modal-field-style',
+            'selector' => '.awm-modal-trigger',
+            'type'     => 'style',
+            'src'      => awm_url . 'assets/css/admin/awm-modal-field.css',
+            'version'  => $version,
+            'context'  => 'admin',
+        );
+
+        return $assets;
     }
 
 

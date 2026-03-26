@@ -356,6 +356,9 @@ if (!function_exists('awm_fields_usages')) {
           'section' => array(
             'label' => __('Section', 'extend-wp')
           ),
+          'awm_modal' => array(
+            'label' => __('Modal', 'extend-wp')
+          ),
         ),
       ),
       'section_key' => array(
@@ -423,6 +426,33 @@ if (!function_exists('awm_fields_usages')) {
         'label' => __('Repeater Order', 'extend-wp'),
         'case' => 'input',
         'type' => 'number',
+      ),
+      'modal_key' => array(
+        'show-when' => array('awm_type' => array('values' => array('awm_modal' => true))),
+        'label' => __('Modal Meta key', 'extend-wp'),
+        'case' => 'input',
+        'type' => 'text',
+        'label_class' => array('awm-needed'),
+      ),
+      'modal_label' => array(
+        'show-when' => array('awm_type' => array('values' => array('awm_modal' => true))),
+        'label' => __('Modal Button label', 'extend-wp'),
+        'case' => 'input',
+        'type' => 'text',
+        'label_class' => array('awm-needed'),
+      ),
+      'modal_title' => array(
+        'show-when' => array('awm_type' => array('values' => array('awm_modal' => true))),
+        'label' => __('Modal Title', 'extend-wp'),
+        'case' => 'input',
+        'type' => 'text',
+      ),
+      'modal_class' => array(
+        'show-when' => array('awm_type' => array('values' => array('awm_modal' => true))),
+        'label' => __('Modal Button Class', 'extend-wp'),
+        'case' => 'input',
+        'type' => 'text',
+        'attributes' => array('placeholder' => __('e.g. button button-primary', 'extend-wp')),
       ),
       'awm_explanation' => array(
         'case' => 'textarea',

@@ -93,6 +93,30 @@ class AWM_API extends WP_REST_Controller
         }
       )
     ));
+
+    /**
+     * Modal Fields Endpoints
+     * 
+     * GET /modal-fields/ — Render modal fields HTML with current values
+     * POST /modal-save/ — Save modal field values to meta/option
+     * 
+     * @since 1.2.0
+     */
+    register_rest_route($this->namespace, "/modal-fields/", array(
+      array(
+        "methods" => WP_REST_Server::READABLE,
+        "callback" => array($this, 'get_modal_fields'),
+        "permission_callback" => array($this, 'modal_permission_check')
+      )
+    ));
+
+    register_rest_route($this->namespace, "/modal-save/", array(
+      array(
+        "methods" => WP_REST_Server::CREATABLE,
+        "callback" => array($this, 'save_modal_fields'),
+        "permission_callback" => array($this, 'modal_permission_check')
+      )
+    ));
   }
 
   public function awm_map_options_func($request)
@@ -276,5 +300,287 @@ class AWM_API extends WP_REST_Controller
       $content = awm_show_content($metas, $postId);
     }
     return $content;
+  }
+
+  /**
+   * Permission check for modal endpoints
+   * 
+   * Requires user to have edit_posts capability.
+   * 
+   * @return bool True if user has permission
+   * @since 1.2.0
+   */
+  public function modal_permission_check()
+  {
+    return current_user_can('edit_posts');
+  }
+
+  /**
+   * Get modal fields HTML with current values
+   * 
+   * Renders the modal field definitions with pre-populated values
+   * based on the view type (post/term/user/option/content_meta).
+   * Uses PHP template file for modal HTML structure.
+   * 
+   * @param WP_REST_Request $request REST request object
+   * @return WP_REST_Response Rendered HTML or error
+   * @since 1.2.0
+   */
+  public function get_modal_fields($request)
+  {
+    $params = $request->get_params();
+
+    $meta_key = isset($params['meta_key']) ? sanitize_key($params['meta_key']) : '';
+    $view = isset($params['view']) ? sanitize_key($params['view']) : 'post';
+    $object_id = isset($params['object_id']) ? absint($params['object_id']) : 0;
+    $include = isset($params['include']) ? $params['include'] : '';
+    $modal_title = isset($params['modal_title']) ? sanitize_text_field($params['modal_title']) : '';
+    $modal_id = isset($params['modal_id']) ? sanitize_key($params['modal_id']) : $meta_key;
+
+    if (empty($meta_key) || empty($include)) {
+      return new WP_REST_Response(
+        array('message' => __('Missing required parameters', 'extend-wp')),
+        400
+      );
+    }
+
+    $fields = is_string($include) ? json_decode(stripslashes($include), true) : $include;
+
+    if (!is_array($fields) || empty($fields)) {
+      return new WP_REST_Response(
+        array('message' => __('Invalid field definitions', 'extend-wp')),
+        400
+      );
+    }
+
+    $current_value = $this->get_modal_value($view, $object_id, $meta_key);
+    $current_value = maybe_unserialize($current_value);
+    $current_value = is_array($current_value) ? $current_value : array();
+
+    $metas = array();
+    foreach ($fields as $key => $data) {
+      $inputname = $meta_key . '[' . $key . ']';
+      $data['attributes'] = isset($data['attributes']) ? $data['attributes'] : array();
+      $data['attributes']['id'] = $meta_key . '_' . $key;
+      $data['attributes']['exclude_meta'] = true;
+
+      if (isset($current_value[$key])) {
+        $data['attributes']['value'] = $current_value[$key];
+      }
+
+      $metas[$inputname] = $data;
+    }
+
+    /**
+     * Filter modal fields before rendering
+     * 
+     * @param array  $metas      Field definitions with values
+     * @param string $meta_key   The modal meta key
+     * @param string $view       View type (post/term/user/option)
+     * @param int    $object_id  Object ID
+     * @param array  $current_value Current stored values
+     * @since 1.2.0
+     */
+    $metas = apply_filters('awm_modal_fields_rendered', $metas, $meta_key, $view, $object_id, $current_value);
+
+    $fields_html = awm_show_content($metas, $object_id, 'none');
+
+    $args = array(
+      'meta_key'   => $meta_key,
+      'view'       => $view,
+      'object_id'  => $object_id,
+      'include'    => $fields,
+    );
+
+    $modal_html = $this->render_modal_template($modal_id, $modal_title, $fields_html, $args);
+
+    return new WP_REST_Response(array(
+      'modal_html' => $modal_html,
+      'fields_html' => $fields_html,
+      'modal_title' => $modal_title,
+      'current_value' => $current_value,
+    ), 200);
+  }
+
+  /**
+   * Render modal template using PHP template file
+   * 
+   * @param string $modal_id    Unique modal identifier
+   * @param string $modal_title Modal header title
+   * @param string $fields_html Rendered fields HTML
+   * @param array  $args        Original field arguments
+   * @return string Rendered modal HTML
+   * @since 1.2.0
+   */
+  private function render_modal_template($modal_id, $modal_title, $fields_html, $args)
+  {
+    /**
+     * Filter modal template path
+     * 
+     * Allows developers to use a custom template file for the modal.
+     * 
+     * @param string $template_path Default template path
+     * @param string $modal_id      Modal identifier
+     * @param array  $args          Field arguments
+     * @since 1.2.0
+     */
+    $template_path = apply_filters(
+      'awm_modal_template_path',
+      awm_path . 'templates/admin-view/modal-field.php',
+      $modal_id,
+      $args
+    );
+
+    if (!file_exists($template_path)) {
+      return '<div class="notice notice-error"><p>' . esc_html__('Modal template not found', 'extend-wp') . '</p></div>';
+    }
+
+    ob_start();
+    include $template_path;
+    return ob_get_clean();
+  }
+
+  /**
+   * Save modal field values
+   * 
+   * Saves the serialized modal values to the appropriate storage
+   * based on view type (post_meta/term_meta/user_meta/option/content_meta).
+   * 
+   * @param WP_REST_Request $request REST request object
+   * @return WP_REST_Response Success or error response
+   * @since 1.2.0
+   */
+  public function save_modal_fields($request)
+  {
+    $params = $request->get_params();
+
+    $meta_key = isset($params['meta_key']) ? sanitize_key($params['meta_key']) : '';
+    $view = isset($params['view']) ? sanitize_key($params['view']) : 'post';
+    $object_id = isset($params['object_id']) ? absint($params['object_id']) : 0;
+    $values = isset($params['values']) ? $params['values'] : array();
+
+    if (empty($meta_key)) {
+      return new WP_REST_Response(
+        array('message' => __('Missing meta key', 'extend-wp')),
+        400
+      );
+    }
+
+    /**
+     * Action before saving modal values
+     * 
+     * @param string $meta_key  The modal meta key
+     * @param string $view      View type (post/term/user/option)
+     * @param int    $object_id Object ID
+     * @param array  $values    Values to save
+     * @since 1.2.0
+     */
+    do_action('awm_modal_before_save', $meta_key, $view, $object_id, $values);
+
+    $sanitized_values = $this->sanitize_modal_values($values);
+    $result = $this->save_modal_value($view, $object_id, $meta_key, $sanitized_values);
+
+    if (!$result) {
+      return new WP_REST_Response(
+        array('message' => __('Failed to save data', 'extend-wp')),
+        500
+      );
+    }
+
+    /**
+     * Action after saving modal values
+     * 
+     * @param string $meta_key  The modal meta key
+     * @param string $view      View type (post/term/user/option)
+     * @param int    $object_id Object ID
+     * @param array  $sanitized_values Saved values
+     * @since 1.2.0
+     */
+    do_action('awm_modal_after_save', $meta_key, $view, $object_id, $sanitized_values);
+
+    return new WP_REST_Response(array(
+      'success' => true,
+      'message' => __('Data saved successfully', 'extend-wp'),
+      'values' => $sanitized_values,
+    ), 200);
+  }
+
+  /**
+   * Get modal value from storage
+   * 
+   * @param string $view      View type (post/term/user/option/content_meta)
+   * @param int    $object_id Object ID
+   * @param string $meta_key  Meta key
+   * @return mixed Stored value or empty array
+   * @since 1.2.0
+   */
+  private function get_modal_value($view, $object_id, $meta_key)
+  {
+    switch ($view) {
+      case 'post':
+        return get_post_meta($object_id, $meta_key, true);
+      case 'term':
+        return get_term_meta($object_id, $meta_key, true);
+      case 'user':
+        return get_user_meta($object_id, $meta_key, true);
+      case 'option':
+        return get_option($meta_key, array());
+      case 'content_meta':
+        return awm_get_db_content_meta_value($object_id, $meta_key);
+      default:
+        return array();
+    }
+  }
+
+  /**
+   * Save modal value to storage
+   * 
+   * @param string $view      View type (post/term/user/option/content_meta)
+   * @param int    $object_id Object ID
+   * @param string $meta_key  Meta key
+   * @param array  $values    Values to save
+   * @return bool True on success
+   * @since 1.2.0
+   */
+  private function save_modal_value($view, $object_id, $meta_key, $values)
+  {
+    switch ($view) {
+      case 'post':
+        return update_post_meta($object_id, $meta_key, $values) !== false;
+      case 'term':
+        return update_term_meta($object_id, $meta_key, $values) !== false;
+      case 'user':
+        return update_user_meta($object_id, $meta_key, $values) !== false;
+      case 'option':
+        return update_option($meta_key, $values);
+      case 'content_meta':
+        return awm_update_db_content_meta($object_id, $meta_key, $values);
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Sanitize modal field values recursively
+   * 
+   * @param mixed $values Values to sanitize
+   * @return mixed Sanitized values
+   * @since 1.2.0
+   */
+  private function sanitize_modal_values($values)
+  {
+    if (!is_array($values)) {
+      return sanitize_text_field($values);
+    }
+
+    $sanitized = array();
+    foreach ($values as $key => $value) {
+      $sanitized_key = sanitize_key($key);
+      $sanitized[$sanitized_key] = is_array($value)
+        ? $this->sanitize_modal_values($value)
+        : sanitize_text_field($value);
+    }
+
+    return $sanitized;
   }
 }

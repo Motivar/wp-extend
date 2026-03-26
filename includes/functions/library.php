@@ -751,10 +751,57 @@ if (!function_exists('awm_show_content')) {
                                 $ins .= '</div>';
                             }
                             break;
+                        case 'awm_modal':
+                            /**
+                             * Modal field case — renders a trigger button that opens a modal overlay
+                             * with nested fields loaded via REST API.
+                             * 
+                             * Values are saved directly to DB via REST API on modal save.
+                             * No hidden input — just the trigger button.
+                             * 
+                             * @since 1.2.0
+                             */
+                            if (!empty($a['include'])) {
+                                $modal_title = isset($a['modal_title']) ? $a['modal_title'] : $a['label'];
+                                $button_label = isset($a['button_label']) ? $a['button_label'] : $a['label'];
+                                $button_class = isset($a['button_class']) ? $a['button_class'] : 'button button-secondary';
+
+                                $modal_view = $view;
+                                if ($modal_view === 'none') {
+                                    $modal_view = isset($a['modal_view']) ? $a['modal_view'] : 'post';
+                                }
+
+                                $include_json = esc_attr(wp_json_encode($a['include']));
+
+                                /**
+                                 * Filter modal field arguments before rendering
+                                 * 
+                                 * @param array  $a             Field configuration
+                                 * @param string $original_meta Meta key
+                                 * @param string $view          View type
+                                 * @param int    $id            Object ID
+                                 * @since 1.2.0
+                                 */
+                                $a = apply_filters('awm_modal_field_args', $a, $original_meta, $view, $id);
+
+                                $ins .= '<div class="awm-modal-field-wrap" id="awm-modal-wrap-' . $original_meta_id . '">';
+                                $ins .= '<button type="button" class="awm-modal-trigger ' . esc_attr($button_class) . '"';
+                                $ins .= ' data-modal-id="' . esc_attr($original_meta_id) . '"';
+                                $ins .= ' data-meta-key="' . esc_attr($original_meta) . '"';
+                                $ins .= ' data-view="' . esc_attr($modal_view) . '"';
+                                $ins .= ' data-object-id="' . esc_attr($id) . '"';
+                                $ins .= ' data-modal-title="' . esc_attr($modal_title) . '"';
+                                $ins .= ' data-include="' . $include_json . '"';
+                                $ins .= '>' . esc_html($button_label) . '</button>';
+                                $ins .= '</div>';
+                            }
+                            break;
                         default:
                             break;
                     }
-                    if ($label && !(isset($a['attributes']['exclude_meta'])) && $view != 'none' && !isset($a['attributes']['disabled']) && !isset($a['exclude_meta'])) {
+                    // Exclude awm_modal from awm_custom_meta[] — modal saves directly via REST API
+                    $is_modal_field = ($a['case'] === 'awm_modal');
+                    if ($label && !(isset($a['attributes']['exclude_meta'])) && $view != 'none' && !isset($a['attributes']['disabled']) && !isset($a['exclude_meta']) && !$is_modal_field) {
                         $ins .= '<input type="hidden" name="awm_custom_meta[]" value="' . $original_meta . '"/>';
                     }
 
