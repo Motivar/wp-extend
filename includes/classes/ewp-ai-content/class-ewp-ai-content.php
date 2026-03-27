@@ -4,7 +4,6 @@ if (! defined('ABSPATH')) {
 	exit;
 }
 
-require_once __DIR__ . '/class-encryption.php';
 require_once __DIR__ . '/class-ai-provider-interface.php';
 require_once __DIR__ . '/class-openai-provider.php';
 require_once __DIR__ . '/class-claude-provider.php';
@@ -1167,13 +1166,10 @@ JS;
 	public function rest_health_check(\WP_REST_Request $request): \WP_REST_Response|\WP_Error
 	{
 		$provider_id = sanitize_key($request->get_param('provider'));
-		$api_key_raw = trim($request->get_param('api_key'));
-
-		// The frontend sends the encrypted value from the database, so decrypt it first.
-		$api_key = EWP_AI_Encryption::decrypt($api_key_raw);
+		$api_key = trim($request->get_param('api_key'));
 
 		if ('' === $api_key) {
-			return new \WP_Error('invalid_api_key', __('API key is empty or could not be decrypted.', 'extend-wp'), ['status' => 400]);
+			return new \WP_Error('invalid_api_key', __('API key is empty.', 'extend-wp'), ['status' => 400]);
 		}
 
 		$provider = $this->generator->get_provider($provider_id);
