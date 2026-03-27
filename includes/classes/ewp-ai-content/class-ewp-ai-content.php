@@ -116,6 +116,9 @@ class EWP_AI_Content
 
 		// Bust settings cache whenever EWP's modal save persists business_data.
 		add_action('awm_modal_after_save', [$this, 'on_business_data_saved'], 10, 4);
+
+		// Invalidate health check transient when settings are saved.
+		add_filter('pre_update_option_ewp_ai_content_settings', [$this, 'invalidate_health_check_on_save'], 10, 2);
 	}
 
 	/* =========================================================
@@ -770,6 +773,24 @@ JS;
 		if ('business_data' === $meta_key) {
 			self::bust_cache();
 		}
+	}
+
+	/**
+	 * Invalidate health check transient when settings are saved.
+	 *
+	 * Deletes the cached health status so the next health-status request
+	 * will trigger a fresh check. Works even if no settings values changed.
+	 *
+	 * @param mixed $new_value The new option value.
+	 * @param mixed $old_value The old option value.
+	 * @return mixed The new value (unchanged).
+	 *
+	 * @since 1.0.2
+	 */
+	public function invalidate_health_check_on_save($new_value, $old_value)
+	{
+		delete_transient(self::$health_transient);
+		return $new_value;
 	}
 
 	/**

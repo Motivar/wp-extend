@@ -116,12 +116,12 @@ class EWP_Encryption {
 	/**
 	 * Return a masked representation for display in the admin UI.
 	 *
-	 * Shows four asterisks to indicate the field is encrypted without
-	 * revealing any information about the stored value.
+	 * Shows first 2 characters + *** + last 3 characters of the decrypted value
+	 * so users can identify which key is stored without revealing the full secret.
 	 *
 	 * @param string $encrypted Encrypted string from the database.
 	 * @param string $algorithm Optional cipher algorithm. Defaults to aes-256-cbc.
-	 * @return string Masked string, e.g. "****", or '' if empty.
+	 * @return string Masked string, e.g. "sk***key", or '' if empty.
 	 *
 	 * @since 1.3.0
 	 */
@@ -130,7 +130,16 @@ class EWP_Encryption {
 			return '';
 		}
 
-		return '****';
+		$plain = self::decrypt($encrypted, $algorithm);
+
+		if ('' === $plain || strlen($plain) < 5) {
+			return '***';
+		}
+
+		$first = mb_substr($plain, 0, 2);
+		$last = mb_substr($plain, -3);
+
+		return $first . '***' . $last;
 	}
 
 	/**
@@ -145,7 +154,21 @@ class EWP_Encryption {
 	 * @since 1.3.0
 	 */
 	public static function is_masked( string $value ): bool {
-		return '' !== $value && 0 === strpos( $value, self::MASK_CHAR );
+		if ('' === $value) {
+			return false;
+		}
+
+		// Check for new mask format: 2chars***3chars (e.g., sk***key)
+		if (preg_match('/^.{2}\*{3}.{3}$/', $value)) {
+			return true;
+		}
+
+		// Check for short mask format: *** (for values shorter than 5 chars)
+		if ('***' === $value) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**

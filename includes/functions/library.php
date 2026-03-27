@@ -14,16 +14,9 @@ add_filter('update_post_meta', 'awm_encrypt_meta_on_save', 10, 4);
 add_filter('update_user_meta', 'awm_encrypt_meta_on_save', 10, 4);
 add_filter('update_term_meta', 'awm_encrypt_meta_on_save', 10, 4);
 
-// Hook into core WordPress meta get functions to decrypt values
-add_filter('get_post_meta', 'awm_decrypt_meta_on_retrieve', 10, 4);
-add_filter('get_user_meta', 'awm_decrypt_meta_on_retrieve', 10, 4);
-add_filter('get_term_meta', 'awm_decrypt_meta_on_retrieve', 10, 4);
+// Hook into updated_option to encrypt option values after they're saved
+add_action('updated_option', 'awm_encrypt_option_after_save', 10, 3);
 
-// Hook into update_option to encrypt option values
-add_filter('pre_update_option', 'awm_encrypt_option_on_save', 10, 3);
-
-// Hook into get_option to decrypt option values
-add_filter('option_', 'awm_decrypt_option_on_retrieve', 10, 2);
 
 if (!function_exists('awm_show_explanation')) {
     /**
@@ -74,6 +67,35 @@ if (!function_exists('awm_get_field_value')) {
         }
         $val = apply_filters('awm_show_content_value_filter', $val, $id, $original_meta, $view);
         return $val;
+    }
+}
+
+if (!function_exists('awm_get_raw_field_value')) {
+    /**
+     * Get raw field value from database without decryption hooks.
+     * Used to check if a value is encrypted before masking.
+     *
+     * @param string $view the view type (post, user, term, option)
+     * @param int|string|array $id the object ID
+     * @param string $original_meta the meta key
+     * @return mixed Raw value from database
+     *
+     * @since 1.0.0
+     */
+    function awm_get_raw_field_value($view, $id, $original_meta)
+    {
+        switch ($view) {
+            case 'user':
+                return get_user_meta($id, $original_meta, true) ?: '';
+            case 'term':
+                return get_term_meta($id, $original_meta, true) ?: '';
+            case 'post':
+                return get_post_meta($id, $original_meta, true) ?: '';
+            case 'option':
+                return get_option($original_meta) ?: '';
+            default:
+                return '';
+        }
     }
 }
 
@@ -213,8 +235,11 @@ if (!function_exists('awm_encrypt_meta_on_save')) {
         // Get field config if available
         $field_config = isset($awm_field_configs[$meta_key]) ? $awm_field_configs[$meta_key] : array();
 
-        // Check if field should be encrypted
-        if (!awm_should_encrypt_field($field_config)) {
+        // Check if field should be encrypted (config OR POST marker)
+        $encrypt_fields = isset($_POST['ewp_encrypt']) ? (array)$_POST['ewp_encrypt'] : [];
+        $should_encrypt = awm_should_encrypt_field($field_config) || in_array($meta_key, $encrypt_fields, true);
+
+        if (!$should_encrypt) {
             return $meta_value;
         }
 
@@ -230,7 +255,27 @@ if (!function_exists('awm_encrypt_meta_on_save')) {
 
         // Encrypt the value
         if (!empty($meta_value)) {
-            return awm_encrypt_field_value($meta_value, $field_config);
+            $encrypted_value = awm_encrypt_field_value($meta_value, $field_config);
+
+            // Log encryption event
+            if (function_exists('ewp_log')) {
+                ewp_log(
+                    'extend-wp',
+                    'field_encrypted',
+                    sprintf('Meta field "%s" encrypted for object ID %d', $meta_key, $object_id),
+                    [
+                        'meta_key' => $meta_key,
+                        'object_id' => $object_id,
+                        'meta_id' => $meta_id,
+                        'value_length' => strlen($meta_value),
+                    ],
+                    'developer',
+                    '',
+                    1
+                );
+            }
+
+            return $encrypted_value;
         }
 
         return $meta_value;
@@ -271,89 +316,184 @@ if (!function_exists('awm_decrypt_meta_on_retrieve')) {
     }
 }
 
-if (!function_exists('awm_encrypt_option_on_save')) {
+if (!function_exists('awm_parse_encryption_field_path')) {
     /**
-     * Encrypt option values before they're saved to the database.
-     * Hooks into pre_update_option.
+     * Parse encryption field path to extract option name and field key.
+     * Handles both bracket notation "option[field]" and simple field names.
      *
-     * @param mixed $new_value The new option value
-     * @param mixed $old_value The old option value
-     * @param string $option The option name
-     * @return mixed The (possibly encrypted) option value
+     * @param string $field_path Field path from ewp_encrypt[] marker
+     * @return array|null Array with 'option' and 'field' keys, or null if invalid
      *
      * @since 1.0.0
      */
-    function awm_encrypt_option_on_save($new_value, $old_value, $option)
+    function awm_parse_encryption_field_path($field_path)
     {
-        // Only encrypt if it's an array (serialized settings)
-        if (!is_array($new_value)) {
-            return $new_value;
+        if (strpos($field_path, '[') !== false) {
+            // Parse bracket notation: "provider_config[openai_api_key]"
+            preg_match('/^([^\[]+)\[([^\]]+)\]$/', $field_path, $matches);
+
+            if (count($matches) !== 3) {
+                return null; // Invalid format
+            }
+
+            return [
+                'option' => $matches[1],
+                'field'  => $matches[2],
+            ];
         }
 
-        $key_fields = ['openai_api_key', 'claude_api_key', 'gemini_api_key'];
-
-        foreach ($key_fields as $field) {
-            if (!isset($new_value[$field])) {
-                continue;
-            }
-
-            $raw = $new_value[$field];
-
-            // If the field is empty, preserve the existing encrypted value
-            if ('' === $raw) {
-                $new_value[$field] = is_array($old_value) ? ($old_value[$field] ?? '') : '';
-                continue;
-            }
-
-            // If the value is already encrypted, don't re-encrypt
-            if (EWP_Encryption::is_encrypted($raw)) {
-                continue;
-            }
-
-            // If the value looks like the masked placeholder, don't re-encrypt
-            if (EWP_Encryption::is_masked($raw)) {
-                $new_value[$field] = is_array($old_value) ? ($old_value[$field] ?? '') : '';
-                continue;
-            }
-
-            // Encrypt the API key
-            $new_value[$field] = EWP_Encryption::encrypt($raw);
-        }
-
-        return $new_value;
+        // Simple field name (no brackets)
+        return [
+            'option' => null,
+            'field'  => $field_path,
+        ];
     }
 }
 
-if (!function_exists('awm_decrypt_option_on_retrieve')) {
+if (!function_exists('awm_should_encrypt_field_value')) {
     /**
-     * Decrypt option values when they're retrieved from the database.
-     * Hooks into option_{option_name}.
+     * Check if a field value should be encrypted.
+     * Skips already encrypted, masked, or empty values.
      *
-     * @param mixed $value The option value from the database
-     * @param string $option The option name
-     * @return mixed The (possibly decrypted) option value
+     * @param mixed $value Field value to check
+     * @return bool True if value should be encrypted
      *
      * @since 1.0.0
      */
-    function awm_decrypt_option_on_retrieve($value, $option)
+    function awm_should_encrypt_field_value($value)
     {
-        // Only decrypt if it's an array (serialized settings)
-        if (!is_array($value)) {
-            return $value;
+        // Skip if already encrypted
+        if (EWP_Encryption::is_encrypted($value)) {
+            return false;
         }
 
-        $key_fields = ['openai_api_key', 'claude_api_key', 'gemini_api_key'];
+        // Skip if masked (user didn't change it)
+        if (EWP_Encryption::is_masked($value)) {
+            return false;
+        }
 
-        foreach ($key_fields as $field) {
-            if (!isset($value[$field]) || empty($value[$field])) {
+        // Skip empty values
+        if ('' === $value) {
+            return false;
+        }
+
+        return true;
+    }
+}
+
+if (!function_exists('awm_encrypt_option_field')) {
+    /**
+     * Encrypt a single field in an option array.
+     *
+     * @param array $option_value Current option value array
+     * @param string $field_key Field key to encrypt
+     * @param string $option_name Option name for validation
+     * @param string|null $expected_option Expected option name (for bracket notation)
+     * @return array|null Updated option value array, or null if field should be skipped
+     *
+     * @since 1.0.0
+     */
+    function awm_encrypt_option_field($option_value, $field_key, $option_name, $expected_option = null)
+    {
+        // Validate option name matches (for bracket notation)
+        if ($expected_option !== null && $expected_option !== $option_name) {
+            return null;
+        }
+
+        // Check if this is an array option with the nested field
+        if (!is_array($option_value) || !isset($option_value[$field_key])) {
+            return null;
+        }
+
+        $raw = $option_value[$field_key];
+
+        // Check if value should be encrypted
+        if (!awm_should_encrypt_field_value($raw)) {
+            return null;
+        }
+
+        // Encrypt the field
+        $option_value[$field_key] = EWP_Encryption::encrypt($raw);
+
+        // Log encryption event
+        if (function_exists('ewp_log')) {
+            ewp_log(
+                'extend-wp',
+                'field_encrypted',
+                sprintf('Option field "%s[%s]" encrypted', $option_name, $field_key),
+                [
+                    'option_name' => $option_name,
+                    'field_key' => $field_key,
+                    'value_length' => strlen($raw),
+                ],
+                'developer',
+                '',
+                1
+            );
+        }
+
+        return $option_value;
+    }
+}
+
+if (!function_exists('awm_encrypt_option_after_save')) {
+    /**
+     * Encrypt option values after they're saved to the database.
+     * Uses hidden input markers (ewp_encrypt[]) to determine which fields to encrypt.
+     * Hooks into updated_option action.
+     *
+     * @param string $option The option name
+     * @param mixed $old_value The old option value
+     * @param mixed $value The new option value
+     *
+     * @since 1.0.0
+     */
+    function awm_encrypt_option_after_save($option, $old_value, $value)
+    {
+        // Only process if this is an EWP options page save
+        if (!isset($_POST['awm_metabox_case']) || $_POST['awm_metabox_case'] !== 'option') {
+            return;
+        }
+
+        // Get fields marked for encryption
+        $encrypt_fields = isset($_POST['ewp_encrypt']) ? (array)$_POST['ewp_encrypt'] : [];
+
+        if (empty($encrypt_fields)) {
+            return;
+        }
+
+        // Get the current option value
+        $current_value = get_option($option);
+        $updated = false;
+
+        foreach ($encrypt_fields as $field_path) {
+            // Parse field path to extract option name and field key
+            $parsed = awm_parse_encryption_field_path($field_path);
+
+            if ($parsed === null) {
                 continue;
             }
 
-            // Decrypt the API key
-            $value[$field] = EWP_Encryption::decrypt($value[$field]);
+            // Encrypt the field
+            $result = awm_encrypt_option_field(
+                $current_value,
+                $parsed['field'],
+                $option,
+                $parsed['option']
+            );
+
+            if ($result !== null) {
+                $current_value = $result;
+                $updated = true;
+            }
         }
 
-        return $value;
+        // Update the option with encrypted values (avoid infinite loop by removing action)
+        if ($updated) {
+            remove_action('updated_option', 'awm_encrypt_option_after_save', 10);
+            update_option($option, $current_value);
+            add_action('updated_option', 'awm_encrypt_option_after_save', 10, 3);
+        }
     }
 }
 
@@ -665,8 +805,13 @@ if (!function_exists('awm_show_content')) {
                     // For display in encrypted fields, show masked value
                     if (awm_should_encrypt_field($a)) {
                         $show_masked = isset($a['show_masked']) ? $a['show_masked'] : true;
-                        if ($show_masked && !empty($val)) {
-                            $val = EWP_Encryption::mask($val);
+                        if ($show_masked) {
+                            // Get raw encrypted value from database to check if it's encrypted
+                            $raw_val = awm_get_raw_field_value($view, $id, $original_meta);
+                            if (EWP_Encryption::is_encrypted($raw_val)) {
+                                // Pass encrypted value to mask() so it can decrypt and extract characters
+                                $val = EWP_Encryption::mask($raw_val);
+                            }
                         }
                     }
 
@@ -791,6 +936,11 @@ if (!function_exists('awm_show_content')) {
                                     $ins .= '<div class="eye" data-toggle="password" data-id="' . $original_meta_id . '"></div>';
                                 }
                                 $ins .= '</div>';
+
+                                // Add hidden encryption marker for fields that need encryption
+                                if (awm_should_encrypt_field($a)) {
+                                    $ins .= '<input type="hidden" name="ewp_encrypt[]" value="' . esc_attr($original_meta) . '">';
+                                }
                             }
 
                             break;
@@ -989,6 +1139,9 @@ if (!function_exists('awm_show_content')) {
                                     $data['attributes']['value'] = $val[$key];
                                 }
                                 $section_fields[$inputname] = $data;
+
+                                // Register field config for section fields so masking works
+                                $awm_field_configs[$key] = $data;
                             }
                             $ins .= awm_show_content($section_fields);
                             $ins .= '</div></div>';

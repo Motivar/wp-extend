@@ -191,9 +191,10 @@ class EWP_AI_Gemini_Provider implements EWP_AI_Provider_Interface {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Retrieve the decrypted API key.
+	 * Retrieve the API key.
 	 *
-	 * Priority: PHP constant EWP_GEMINI_API_KEY → encrypted DB value.
+	 * Priority: PHP constant EWP_GEMINI_API_KEY → decrypted value from settings.
+	 * Decrypts the API key if it's stored encrypted in the database.
 	 *
 	 * @return string Plain-text API key, or '' if not set.
 	 *
@@ -205,7 +206,14 @@ class EWP_AI_Gemini_Provider implements EWP_AI_Provider_Interface {
 		}
 
 		$settings = EWP_AI_Content::get_settings();
-		return $settings['gemini_api_key'] ?? '';
+		$encrypted_key = $settings['gemini_api_key'] ?? '';
+
+		// Decrypt if encrypted
+		if (EWP_Encryption::is_encrypted($encrypted_key)) {
+			return EWP_Encryption::decrypt($encrypted_key);
+		}
+
+		return $encrypted_key;
 	}
 
 	/**
