@@ -545,7 +545,18 @@ JS;
 				'case'    => 'section',
 				'label'   => __('Content Settings', 'extend-wp'),
 				'include' => [
-
+					'brand_voice' => [
+						'label'       => __('Brand Voice', 'extend-wp'),
+						'case'        => 'select',
+						'default'     => 'professional',
+						'options'     => [
+							'professional' => ['label' => __('Professional', 'extend-wp')],
+							'casual'       => ['label' => __('Casual', 'extend-wp')],
+							'friendly'     => ['label' => __('Friendly', 'extend-wp')],
+							'luxurious'    => ['label' => __('Luxurious', 'extend-wp')],
+						],
+						'explanation' => __('Tone used by the AI in all generated content.', 'extend-wp'),
+					],
 					'max_tokens' => [
 						'label'       => __('Max Tokens', 'extend-wp'),
 						'case'        => 'input',
@@ -665,18 +676,7 @@ JS;
 			],
 
 			// ── Content & Voice ──────────────────────────────────────────
-			'brand_voice' => [
-				'label'       => __('Brand Voice', 'extend-wp'),
-				'case'        => 'select',
-				'default'     => 'professional',
-				'options'     => [
-					'professional' => ['label' => __('Professional', 'extend-wp')],
-					'casual'       => ['label' => __('Casual', 'extend-wp')],
-					'friendly'     => ['label' => __('Friendly', 'extend-wp')],
-					'luxurious'    => ['label' => __('Luxurious', 'extend-wp')],
-				],
-				'explanation' => __('Tone used by the AI in all generated content.', 'extend-wp'),
-			],
+
 			'target_audience' => [
 				'label'       => __('Target Audience', 'extend-wp'),
 				'case'        => 'textarea',
@@ -707,14 +707,6 @@ JS;
 				],
 			],
 
-			// Auto-populated via generate-business-context endpoint, editable.
-			'customer_sentiment' => [
-				'label'       => __('Customer Review Summary', 'extend-wp'),
-				'case'        => 'textarea',
-				'default'     => '',
-				'explanation' => __('Summarises what customers say. Auto-generated when you save — or write your own.', 'extend-wp'),
-			],
-
 			// ── Social links — URL only ───────────────────────────────────
 			'social_links' => [
 				'label'       => __('Social Media Profiles', 'extend-wp'),
@@ -740,12 +732,8 @@ JS;
 				'minrows'     => 0,
 				'explanation' => __('Add main competitors to help the AI differentiate your content.', 'extend-wp'),
 				'include'     => [
-					'name' => [
-						'label'      => __('Name', 'extend-wp'),
-						'case'       => 'input',
-						'type'       => 'text',
-						'attributes' => ['placeholder' => 'Competitor name'],
-					],
+
+
 					'url' => [
 						'label'      => __('Website', 'extend-wp'),
 						'case'       => 'input',
@@ -1345,7 +1333,7 @@ JS;
 
 			// ── Build prompt parts ──────────────────────────────────────────────
 			$parts = [
-				'Generate a concise business context summary (max 150 words) for use in AI content generation prompts. '
+				'Generate a concise business context summary (max 200 words) for use in AI content generation prompts. '
 					. 'Write only the summary paragraph — no headers, no labels, no markdown.',
 			];
 
