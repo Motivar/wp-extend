@@ -304,9 +304,9 @@ class AWM_API extends WP_REST_Controller
 
   /**
    * Permission check for modal endpoints
-   * 
+   *
    * Requires user to have edit_posts capability.
-   * 
+   *
    * @return bool True if user has permission
    * @since 1.2.0
    */
@@ -317,11 +317,12 @@ class AWM_API extends WP_REST_Controller
 
   /**
    * Get modal fields HTML with current values
-   * 
+   *
    * Renders the modal field definitions with pre-populated values
    * based on the view type (post/term/user/option/content_meta).
+   * Field definitions are looked up server-side from registered meta boxes/options.
    * Uses PHP template file for modal HTML structure.
-   * 
+   *
    * @param WP_REST_Request $request REST request object
    * @return WP_REST_Response Rendered HTML or error
    * @since 1.2.0
@@ -333,23 +334,24 @@ class AWM_API extends WP_REST_Controller
     $meta_key = isset($params['meta_key']) ? sanitize_key($params['meta_key']) : '';
     $view = isset($params['view']) ? sanitize_key($params['view']) : 'post';
     $object_id = isset($params['object_id']) ? absint($params['object_id']) : 0;
-    $include = isset($params['include']) ? $params['include'] : '';
     $modal_title = isset($params['modal_title']) ? sanitize_text_field($params['modal_title']) : '';
     $modal_id = isset($params['modal_id']) ? sanitize_key($params['modal_id']) : $meta_key;
+    $option_page = isset($params['option_page']) ? sanitize_key($params['option_page']) : '';
 
-    if (empty($meta_key) || empty($include)) {
+    if (empty($meta_key)) {
       return new WP_REST_Response(
-        array('message' => __('Missing required parameters', 'extend-wp')),
+        array('message' => __('Missing meta_key parameter', 'extend-wp')),
         400
       );
     }
 
-    $fields = is_string($include) ? json_decode(stripslashes($include), true) : $include;
+    // Lookup field definitions server-side
+    $fields = $this->lookup_modal_field_definition($meta_key, $view, $object_id, $option_page);
 
     if (!is_array($fields) || empty($fields)) {
       return new WP_REST_Response(
-        array('message' => __('Invalid field definitions', 'extend-wp')),
-        400
+        array('message' => sprintf(__('Field definition not found for meta_key: %s', 'extend-wp'), $meta_key)),
+        404
       );
     }
 
@@ -373,23 +375,23 @@ class AWM_API extends WP_REST_Controller
 
     /**
      * Filter modal fields before rendering
-     * 
-     * @param array  $metas      Field definitions with values
-     * @param string $meta_key   The modal meta key
-     * @param string $view       View type (post/term/user/option)
-     * @param int    $object_id  Object ID
-     * @param array  $current_value Current stored values
+     *
+     * @param array $metas Field definitions with values
+     * @param string $meta_key The modal meta key
+     * @param string $view View type (post/term/user/option)
+     * @param int $object_id Object ID
+     * @param array $current_value Current stored values
      * @since 1.2.0
      */
     $metas = apply_filters('awm_modal_fields_rendered', $metas, $meta_key, $view, $object_id, $current_value);
 
-    $fields_html = awm_show_content($metas, $object_id, 'none');
+    $fields_html = awm_show_content($metas, $object_id);
 
     $args = array(
-      'meta_key'   => $meta_key,
-      'view'       => $view,
-      'object_id'  => $object_id,
-      'include'    => $fields,
+      'meta_key' => $meta_key,
+      'view' => $view,
+      'object_id' => $object_id,
+      'include' => $fields,
     );
 
     $modal_html = $this->render_modal_template($modal_id, $modal_title, $fields_html, $args);
@@ -404,11 +406,11 @@ class AWM_API extends WP_REST_Controller
 
   /**
    * Render modal template using PHP template file
-   * 
-   * @param string $modal_id    Unique modal identifier
+   *
+   * @param string $modal_id Unique modal identifier
    * @param string $modal_title Modal header title
    * @param string $fields_html Rendered fields HTML
-   * @param array  $args        Original field arguments
+   * @param array $args Original field arguments
    * @return string Rendered modal HTML
    * @since 1.2.0
    */
@@ -416,12 +418,12 @@ class AWM_API extends WP_REST_Controller
   {
     /**
      * Filter modal template path
-     * 
+     *
      * Allows developers to use a custom template file for the modal.
-     * 
+     *
      * @param string $template_path Default template path
-     * @param string $modal_id      Modal identifier
-     * @param array  $args          Field arguments
+     * @param string $modal_id Modal identifier
+     * @param array $args Field arguments
      * @since 1.2.0
      */
     $template_path = apply_filters(
@@ -432,7 +434,9 @@ class AWM_API extends WP_REST_Controller
     );
 
     if (!file_exists($template_path)) {
-      return '<div class="notice notice-error"><p>' . esc_html__('Modal template not found', 'extend-wp') . '</p></div>';
+      return '<div class="notice notice-error">
+ <p>' . esc_html__('Modal template not found', 'extend-wp') . '</p>
+</div>';
     }
 
     ob_start();
@@ -442,10 +446,10 @@ class AWM_API extends WP_REST_Controller
 
   /**
    * Save modal field values
-   * 
+   *
    * Saves the serialized modal values to the appropriate storage
    * based on view type (post_meta/term_meta/user_meta/option/content_meta).
-   * 
+   *
    * @param WP_REST_Request $request REST request object
    * @return WP_REST_Response Success or error response
    * @since 1.2.0
@@ -468,11 +472,11 @@ class AWM_API extends WP_REST_Controller
 
     /**
      * Action before saving modal values
-     * 
-     * @param string $meta_key  The modal meta key
-     * @param string $view      View type (post/term/user/option)
-     * @param int    $object_id Object ID
-     * @param array  $values    Values to save
+     *
+     * @param string $meta_key The modal meta key
+     * @param string $view View type (post/term/user/option)
+     * @param int $object_id Object ID
+     * @param array $values Values to save
      * @since 1.2.0
      */
     do_action('awm_modal_before_save', $meta_key, $view, $object_id, $values);
@@ -481,19 +485,44 @@ class AWM_API extends WP_REST_Controller
     $result = $this->save_modal_value($view, $object_id, $meta_key, $sanitized_values);
 
     if (!$result) {
+      // Log detailed error information
+      if (function_exists('ewp_log')) {
+        ewp_log(
+          'extend-wp',
+          'modal_save_error',
+          sprintf('Modal save failed for meta_key: %s', $meta_key),
+          array(
+            'meta_key' => $meta_key,
+            'view' => $view,
+            'object_id' => $object_id,
+            'values_count' => count($sanitized_values),
+          ),
+          'developer',
+          '',
+          0
+        );
+      }
+
       return new WP_REST_Response(
-        array('message' => __('Failed to save data', 'extend-wp')),
+        array(
+          'message' => __('Failed to save data', 'extend-wp'),
+          'debug' => array(
+            'meta_key' => $meta_key,
+            'view' => $view,
+            'object_id' => $object_id,
+          )
+        ),
         500
       );
     }
 
     /**
      * Action after saving modal values
-     * 
-     * @param string $meta_key  The modal meta key
-     * @param string $view      View type (post/term/user/option)
-     * @param int    $object_id Object ID
-     * @param array  $sanitized_values Saved values
+     *
+     * @param string $meta_key The modal meta key
+     * @param string $view View type (post/term/user/option)
+     * @param int $object_id Object ID
+     * @param array $sanitized_values Saved values
      * @since 1.2.0
      */
     do_action('awm_modal_after_save', $meta_key, $view, $object_id, $sanitized_values);
@@ -506,11 +535,127 @@ class AWM_API extends WP_REST_Controller
   }
 
   /**
+   * Lookup modal field definition from registered meta boxes/options
+   *
+   * Searches through registered meta boxes, option pages, term boxes, and user boxes
+   * to find the field definition for the given meta_key.
+   *
+   * @param string $meta_key Meta key to lookup
+   * @param string $view View type (post/term/user/option/content_meta)
+   * @param int $object_id Object ID (used to determine post type for post view)
+   * @param string $option_page Optional option page key for direct lookup (option view only)
+   * @return array|false Field 'include' definitions or false if not found
+   * @since 1.2.0
+   */
+  private function lookup_modal_field_definition($meta_key, $view, $object_id, $option_page = '')
+  {
+    $metas = new AWM_Meta();
+    $field_def = false;
+
+    switch ($view) {
+      case 'option':
+        // Direct lookup if option_page is provided
+        if (!empty($option_page)) {
+          $option_pages = $metas->options_boxes();
+
+          if (isset($option_pages[$option_page])) {
+            $fields = awm_callback_library_options($option_pages[$option_page]);
+            if (!empty($fields)) {
+              $fields = awm_callback_library($fields, $option_page);
+            }
+            if (isset($fields[$meta_key]) && isset($fields[$meta_key]['include'])) {
+              $field_def = $fields[$meta_key]['include'];
+            }
+          }
+        } else {
+          // Fallback: search all option pages
+          $option_pages = $metas->options_boxes();
+          foreach ($option_pages as $page_id => $page_data) {
+            $fields = awm_callback_library_options($page_data);
+            if (!empty($fields)) {
+              $fields = awm_callback_library($fields, $page_id);
+            }
+            if (isset($fields[$meta_key]) && isset($fields[$meta_key]['include'])) {
+              $field_def = $fields[$meta_key]['include'];
+              break;
+            }
+          }
+        }
+        break;
+
+      case 'post':
+        // Search in meta boxes - need post type
+        if ($object_id > 0) {
+          $post_type = get_post_type($object_id);
+          if ($post_type) {
+            $meta_boxes = $metas->meta_boxes();
+            foreach ($meta_boxes as $box_id => $box_data) {
+              if (isset($box_data['postTypes']) && in_array($post_type, $box_data['postTypes'])) {
+                $fields = awm_callback_library_options($box_data);
+                if (isset($fields[$meta_key]) && isset($fields[$meta_key]['include'])) {
+                  $field_def = $fields[$meta_key]['include'];
+                  break 2;
+                }
+              }
+            }
+          }
+        }
+        break;
+
+      case 'term':
+        // Search in term meta boxes
+        if ($object_id > 0) {
+          $term = get_term($object_id);
+          if ($term && !is_wp_error($term)) {
+            $taxonomy = $term->taxonomy;
+            $term_boxes = $metas->term_meta_boxes();
+            foreach ($term_boxes as $box_id => $box_data) {
+              if (isset($box_data['taxonomies']) && in_array($taxonomy, $box_data['taxonomies'])) {
+                $fields = awm_callback_library_options($box_data);
+                if (isset($fields[$meta_key]) && isset($fields[$meta_key]['include'])) {
+                  $field_def = $fields[$meta_key]['include'];
+                  break 2;
+                }
+              }
+            }
+          }
+        }
+        break;
+
+      case 'user':
+        // Search in user boxes
+        $user_boxes = $metas->user_boxes();
+        foreach ($user_boxes as $box_id => $box_data) {
+          $fields = awm_callback_library_options($box_data);
+          if (isset($fields[$meta_key]) && isset($fields[$meta_key]['include'])) {
+            $field_def = $fields[$meta_key]['include'];
+            break;
+          }
+        }
+        break;
+    }
+
+    /**
+     * Filter modal field definition lookup result
+     *
+     * Allows developers to provide custom field definitions or override
+     * the default lookup logic.
+     *
+     * @param array|false $field_def Field definitions or false if not found
+     * @param string $meta_key Meta key being looked up
+     * @param string $view View type
+     * @param int $object_id Object ID
+     * @since 1.2.0
+     */
+    return apply_filters('awm_modal_field_definition_lookup', $field_def, $meta_key, $view, $object_id);
+  }
+
+  /**
    * Get modal value from storage
-   * 
-   * @param string $view      View type (post/term/user/option/content_meta)
-   * @param int    $object_id Object ID
-   * @param string $meta_key  Meta key
+   *
+   * @param string $view View type (post/term/user/option/content_meta)
+   * @param int $object_id Object ID
+   * @param string $meta_key Meta key
    * @return mixed Stored value or empty array
    * @since 1.2.0
    */
@@ -526,7 +671,10 @@ class AWM_API extends WP_REST_Controller
       case 'option':
         return get_option($meta_key, array());
       case 'content_meta':
-        return awm_get_db_content_meta_value($object_id, $meta_key);
+        if (function_exists('awm_get_db_content_meta_value')) {
+          return awm_get_db_content_meta_value($object_id, $meta_key);
+        }
+        return array();
       default:
         return array();
     }
@@ -534,11 +682,11 @@ class AWM_API extends WP_REST_Controller
 
   /**
    * Save modal value to storage
-   * 
-   * @param string $view      View type (post/term/user/option/content_meta)
-   * @param int    $object_id Object ID
-   * @param string $meta_key  Meta key
-   * @param array  $values    Values to save
+   *
+   * @param string $view View type (post/term/user/option/content_meta)
+   * @param int $object_id Object ID
+   * @param string $meta_key Meta key
+   * @param array $values Values to save
    * @return bool True on success
    * @since 1.2.0
    */
@@ -552,9 +700,20 @@ class AWM_API extends WP_REST_Controller
       case 'user':
         return update_user_meta($object_id, $meta_key, $values) !== false;
       case 'option':
-        return update_option($meta_key, $values);
+        // update_option returns false if the value hasn't changed, but that's not an error
+        $result = update_option($meta_key, $values);
+        // If update_option returns false, check if the current value matches what we're trying to save
+        if (!$result) {
+          $current = get_option($meta_key);
+          // If values match, it's a success (no change needed)
+          return $current === $values;
+        }
+        return true;
       case 'content_meta':
-        return awm_update_db_content_meta($object_id, $meta_key, $values);
+        if (function_exists('awm_update_db_content_meta')) {
+          return awm_update_db_content_meta($object_id, $meta_key, $values);
+        }
+        return false;
       default:
         return false;
     }
@@ -562,7 +721,7 @@ class AWM_API extends WP_REST_Controller
 
   /**
    * Sanitize modal field values recursively
-   * 
+   *
    * @param mixed $values Values to sanitize
    * @return mixed Sanitized values
    * @since 1.2.0

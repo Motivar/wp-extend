@@ -5,19 +5,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * API Key Encryption for EWP AI Content Generator.
+ * Global Encryption Utility for Sensitive Meta Fields.
  *
- * Two-way AES-256-CBC encryption using WordPress salts so that API keys
- * are never stored in plain text in wp_options. The encryption key is
- * derived from AUTH_KEY and the IV from SECURE_AUTH_SALT.
+ * Two-way AES-256-CBC encryption using WordPress salts so that sensitive
+ * data (API keys, secrets, etc.) are never stored in plain text in the database.
+ * The encryption key is derived from AUTH_KEY and the IV from SECURE_AUTH_SALT.
  *
  * NOTE: If WordPress salts are rotated (e.g. after a security incident)
- * all stored keys will become undecryptable and must be re-entered.
+ * all stored encrypted values will become undecryptable and must be re-entered.
  *
- * @package EWP\AIContent
- * @since   1.0.0
+ * @package EWP
+ * @since   1.3.0
  */
-class EWP_AI_Encryption {
+class EWP_Encryption {
 
 	/**
 	 * Cipher algorithm.
@@ -48,19 +48,24 @@ class EWP_AI_Encryption {
 	 * string when $value is empty.
 	 *
 	 * @param string $value Plain-text value to encrypt.
+	 * @param string $algorithm Optional cipher algorithm. Defaults to aes-256-cbc.
 	 * @return string Encrypted + base64-encoded string, or '' on empty input.
 	 *
-	 * @since 1.0.0
+	 * @since 1.3.0
 	 */
-	public static function encrypt( string $value ): string {
+	public static function encrypt( string $value, string $algorithm = '' ): string {
 		if ( '' === $value ) {
 			return '';
+		}
+
+		if ( '' === $algorithm ) {
+			$algorithm = apply_filters( 'ewp_encryption_algorithm', self::CIPHER );
 		}
 
 		$key = self::derive_key();
 		$iv  = self::derive_iv();
 
-		$encrypted = openssl_encrypt( $value, self::CIPHER, $key, OPENSSL_RAW_DATA, $iv );
+		$encrypted = openssl_encrypt( $value, $algorithm, $key, OPENSSL_RAW_DATA, $iv );
 
 		if ( false === $encrypted ) {
 			return '';
@@ -76,11 +81,12 @@ class EWP_AI_Encryption {
 	 * string (legacy / never-encrypted). Returns '' on failure.
 	 *
 	 * @param string $encrypted Encrypted string from the database.
+	 * @param string $algorithm Optional cipher algorithm. Defaults to aes-256-cbc.
 	 * @return string Decrypted plain-text value, or '' on failure.
 	 *
-	 * @since 1.0.0
+	 * @since 1.3.0
 	 */
-	public static function decrypt( string $encrypted ): string {
+	public static function decrypt( string $encrypted, string $algorithm = '' ): string {
 		if ( '' === $encrypted ) {
 			return '';
 		}
@@ -88,6 +94,10 @@ class EWP_AI_Encryption {
 		// Not an encrypted value — return as-is (migration safety).
 		if ( 0 !== strpos( $encrypted, self::PREFIX ) ) {
 			return $encrypted;
+		}
+
+		if ( '' === $algorithm ) {
+			$algorithm = apply_filters( 'ewp_encryption_algorithm', self::CIPHER );
 		}
 
 		$payload = base64_decode( substr( $encrypted, strlen( self::PREFIX ) ), true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
@@ -98,7 +108,7 @@ class EWP_AI_Encryption {
 
 		$key   = self::derive_key();
 		$iv    = self::derive_iv();
-		$plain = openssl_decrypt( $payload, self::CIPHER, $key, OPENSSL_RAW_DATA, $iv );
+		$plain = openssl_decrypt( $payload, $algorithm, $key, OPENSSL_RAW_DATA, $iv );
 
 		return false !== $plain ? $plain : '';
 	}
@@ -111,12 +121,13 @@ class EWP_AI_Encryption {
 	 * without revealing the full secret.
 	 *
 	 * @param string $encrypted Encrypted string from the database.
+	 * @param string $algorithm Optional cipher algorithm. Defaults to aes-256-cbc.
 	 * @return string Masked string, e.g. "••••••••abcd", or '' if empty.
 	 *
-	 * @since 1.0.0
+	 * @since 1.3.0
 	 */
-	public static function mask( string $encrypted ): string {
-		$plain = self::decrypt( $encrypted );
+	public static function mask( string $encrypted, string $algorithm = '' ): string {
+		$plain = self::decrypt( $encrypted, $algorithm );
 
 		if ( '' === $plain ) {
 			return '';
@@ -136,7 +147,7 @@ class EWP_AI_Encryption {
 	 * @param string $value Raw input value from $_POST.
 	 * @return bool True when the value looks like an unmodified mask.
 	 *
-	 * @since 1.0.0
+	 * @since 1.3.0
 	 */
 	public static function is_masked( string $value ): bool {
 		return '' !== $value && 0 === strpos( $value, self::MASK_CHAR );
@@ -147,10 +158,10 @@ class EWP_AI_Encryption {
 	 *
 	 * @return string 32-byte binary key.
 	 *
-	 * @since 1.0.0
+	 * @since 1.3.0
 	 */
 	private static function derive_key(): string {
-		$salt = defined( 'AUTH_KEY' ) ? AUTH_KEY : 'ewp-ai-content-fallback-key';
+		$salt = defined( 'AUTH_KEY' ) ? AUTH_KEY : 'ewp-encryption-fallback-key';
 		return hash( 'sha256', $salt, true );
 	}
 
@@ -159,10 +170,10 @@ class EWP_AI_Encryption {
 	 *
 	 * @return string 16-byte binary IV.
 	 *
-	 * @since 1.0.0
+	 * @since 1.3.0
 	 */
 	private static function derive_iv(): string {
-		$salt = defined( 'SECURE_AUTH_SALT' ) ? SECURE_AUTH_SALT : 'ewp-ai-content-fallback-iv';
+		$salt = defined( 'SECURE_AUTH_SALT' ) ? SECURE_AUTH_SALT : 'ewp-encryption-fallback-iv';
 		return substr( hash( 'sha256', $salt, true ), 0, 16 );
 	}
 }

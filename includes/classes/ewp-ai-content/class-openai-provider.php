@@ -176,9 +176,10 @@ class EWP_AI_OpenAI_Provider implements EWP_AI_Provider_Interface {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Retrieve the decrypted API key.
+	 * Retrieve the API key.
 	 *
-	 * Priority: PHP constant EWP_OPENAI_API_KEY → encrypted DB value.
+	 * Priority: PHP constant EWP_OPENAI_API_KEY → decrypted value from settings.
+	 * Note: get_settings() already decrypts API keys, so no need to decrypt again.
 	 *
 	 * @return string Plain-text API key, or '' if not set.
 	 *
@@ -190,7 +191,7 @@ class EWP_AI_OpenAI_Provider implements EWP_AI_Provider_Interface {
 		}
 
 		$settings = EWP_AI_Content::get_settings();
-		return EWP_AI_Encryption::decrypt( $settings['openai_api_key'] ?? '' );
+		return $settings['openai_api_key'] ?? '';
 	}
 
 	/**

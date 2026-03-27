@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php -l /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/includes/classes/ewp-ai-content/class-ewp-ai-content.php)",
+      "Bash(php -l /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/includes/classes/ewp-ai-content/class-content-generator.php)",
+      "Bash(ddev exec:*)",
+      "Bash(python3 -c \"import sys,json; routes=json.load\\(sys.stdin\\).get\\(''''routes'''',{}\\); [print\\(r\\) for r in routes if ''''ai'''' in r]\")",
+      "Bash(grep -n \"case ''repeater''\" /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/includes/functions/library.php)",
+      "Bash(grep -n \"function awm_create_boxes\" /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/includes/functions/*.php)",
+      "Bash(grep -n \"view.*options\\\\|options.*view\\\\|$view\\\\|option_name\\\\|get_option\\\\|original_meta\" /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/includes/functions/library.php)",
+      "Bash(grep -n \"case ''section''\" /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/includes/functions/library.php)",
+      "Bash(python3:*)"
+    ]
+  }
+}

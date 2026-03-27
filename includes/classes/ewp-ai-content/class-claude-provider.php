@@ -198,7 +198,7 @@ class EWP_AI_Claude_Provider implements EWP_AI_Provider_Interface {
 		}
 
 		$settings = EWP_AI_Content::get_settings();
-		return EWP_AI_Encryption::decrypt( $settings['claude_api_key'] ?? '' );
+		return $settings['claude_api_key'] ?? '';
 	}
 
 	/**

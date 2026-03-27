@@ -7,6 +7,137 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Global Encryption Helper for Meta Fields** (`2026-03-27`):
+  - **New Class**: `EWP_Encryption` — Moved from AI Content module to global `includes/classes/class-encryption.php` for reusability across all meta field types.
+  - **Automatic Encryption/Decryption**: Fields with `'encrypt' => true` automatically encrypt values before saving and decrypt/mask them on display.
+  - **Field Configuration**: Add `'encrypt' => true`, `'show_masked' => true` (default), and optional `'encrypt_algorithm'` to any input field definition.
+  - **Supported Field Types**: Input fields only (`text`, `password`, `email`, `url`, `number`). Complex fields like repeater, select, textarea are excluded.
+  - **Masked Display**: Encrypted values show as `••••••••abcd` (8 bullets + last 4 chars) in password fields by default, allowing users to verify stored values without exposing secrets.
+  - **Backward Compatibility**: Existing plain-text values automatically migrate to encrypted format on first save.
+  - **Masked Value Preservation**: When user doesn't change a masked field, the original encrypted value is preserved (not re-encrypted).
+  - **Helper Functions**:
+    - `awm_should_encrypt_field($field_config)` — Check if field should be encrypted
+    - `awm_encrypt_field_value($value, $field_config)` — Encrypt before save
+    - `awm_decrypt_field_value($value, $field_config, $for_display)` — Decrypt/mask on display
+  - **Field Config Registry**: Global `$awm_field_configs` tracks field definitions during rendering for use in save operations.
+  - **Integration Points**:
+    - `awm_show_content()` — Registers field configs and decrypts values for display
+    - `awm_custom_meta_update_vars()` — Encrypts values before DB save
+  - **Filters**:
+    - `ewp_encryption_algorithm` — Override default cipher (aes-256-cbc)
+    - `ewp_encrypt_field_value` — Modify value before encryption
+    - `ewp_decrypt_field_value` — Modify value after decryption
+  - **Example Usage**: `'openai_api_key' => ['case' => 'input', 'type' => 'password', 'encrypt' => true, 'show_masked' => true]`
+  - **Affected Files**: `includes/classes/class-encryption.php` (new), `includes/functions/library.php`, `includes/classes/ewp-ai-content/class-ewp-ai-content.php`
+  - **Security**: Encryption keys derived from WordPress salts (AUTH_KEY, SECURE_AUTH_SALT). If salts are rotated, encrypted values must be re-entered.
+
+### Changed
+- **EWP AI Content — Inherit AWM Modal + DRY field definitions** (`2026-03-27`):
+  - **Business Data modal** now fully managed by `awm_modal` field type. All custom PHP/JS modal lifecycle code removed.
+  - **Field consolidation**: `brand_voice`, `target_audience`, `custom_instructions` moved from `general_instructions` settings section into the Business Data modal (`get_business_data_fields()`). Single source of truth — field labels and defaults defined once.
+  - **Auto-generated `business_context`**: On modal save (`awm_modal_fields_saved` JS event), JS automatically calls `POST /ai-content/generate-business-context`. This endpoint reads `business_data` from DB, fetches review pages for sentiment extraction, includes competitor context, and returns a concise `business_context` paragraph that is auto-populated in the settings textarea.
+  - **Removed PHP**: `render_business_modal_footer_actions()`, `render_business_modal_summary_area()`, `rest_save_business_data()`, `rest_extract_review_sentiment()`, `rest_business_summary()`, `rest_save_business_context()`, global `ewp_ai_render_extract_sentiment_button()`.
+  - **Removed REST routes**: `/save-business-data`, `/business-summary`, `/save-business-context`, `/extract-review-sentiment`.
+  - **Added PHP**: `rest_generate_business_context()` + route, `EWP_AI_Content::get_business_data()` static accessor, `EWP_AI_Content::extract_scalar_defaults()` helper. `get_business_data_fields()` is now `public static`.
+  - **Removed JS**: `openOnboardingModal()`, `closeOnboardingModal()`, `serializeBusinessForm()`, `_setNestedValue()`, `generateBusinessSummary()`, `saveBusinessContext()`, `saveBusinessData()`.
+  - **Added JS**: `generateBusinessContext()` — async method called after modal save to populate `business_context` textarea.
+  - **Affected files**: `class-ewp-ai-content.php`, `class-ewp-ai-content.js`.
+
+### Changed
+- **AWM Modal Field — Server-side field lookup with direct option page access**: Modal field REST API now retrieves field definitions server-side using `meta_key` and optional `option_page`, eliminating massive URL parameters and enabling direct field lookup.
+  - **Original Issue**: Modal was sending all field definitions via URL parameters (`data-include` attribute), creating 4KB+ URLs that hit browser limits and caused performance issues. Additionally, the server had to search through all registered option pages to find the field definition.
+  - **Changes**:
+    - `GET extend-wp/v1/modal-fields/` now accepts `meta_key`, `view`, `object_id`, `modal_title`, and optional `option_page` parameters
+    - Server performs direct lookup when `option_page` is provided (e.g., `option_page=ewp_ai_content_settings&meta_key=business_data`)
+    - Falls back to searching all pages if `option_page` is not provided (backwards compatible)
+    - Removed `data-include` attribute from modal trigger button HTML
+    - Added `data-option-page` attribute for option view modal fields
+    - JavaScript client sends `option_page` parameter when available
+    - Settings template passes option page ID as `context_id` to `awm_show_content()`
+  - **New Method**: `AWM_API::lookup_modal_field_definition()` with direct lookup path for option pages
+  - **New Filter**: `awm_modal_field_definition_lookup` — Override field definition lookup logic
+  - **New Parameter**: `awm_show_content()` now accepts `$context_id` (8th parameter) for passing option page key
+  - **Affected Files**:
+    - `includes/classes/awm-api/class-awm-api.php` — Added server-side field lookup with direct option page access
+    - `assets/js/admin/class-awm-modal-field.js` — Added option_page parameter to REST call
+    - `includes/functions/library.php` — Added context_id parameter and data-option-page attribute
+    - `templates/settings.php` — Pass option page ID as context to awm_show_content
+    - `includes/classes/ewp-ai-content/class-ewp-ai-content.php` — Moved `awm_add_options_boxes_filter` registration outside `is_admin()` guard for REST API access
+  - **Benefits**: Smaller DOM, faster page load, no URL length limits, single source of truth, direct field access without searching
+  - **Backwards Compatibility**: Fully backwards-compatible. Existing modal fields work without changes; option_page is optional.
+
+### Fixed
+- **AWM Modal Field — Options page not available in REST context**: Moved `awm_add_options_boxes_filter` registration in `EWP_AI_Content` class outside the `is_admin()` guard. Previously, the AI Content settings page was only registered in admin context, causing REST API modal field lookups to fail with "Field definition not found" error. The filter now registers on all request types, making option pages available for server-side field lookup in REST endpoints.
+
+### Added
+- **AWM Modal Field Type (`awm_modal`)**: New input field type that displays nested fields inside a modal overlay, with REST API endpoints for loading/saving data.
+  - **Original Request**: "We need to create a new view for input fields like repeater, section, tabs. We need to add the modal view. 'case' => 'awm_modal'. We need to use the 'ewp-ai-modal-overlay'."
+  - **Features**:
+    - Trigger button (`.awm-modal-trigger`) opens modal overlay
+    - Modal HTML rendered server-side via PHP template (`templates/admin-view/modal-field.php`)
+    - Fields loaded via REST API (`GET /modal-fields/`) with pre-populated values
+    - Field definitions looked up server-side from registered meta boxes/options
+    - Values saved via REST API (`POST /modal-save/`) as single serialized array
+    - Supports post_meta, term_meta, user_meta, options, and content_meta storage
+    - Uses existing `ewp-ai-modal-overlay` CSS pattern for consistent UI
+    - Nested fields defined via `include` key (same as repeater/section)
+    - JS/CSS loaded dynamically via Dynamic Asset Loader (selector: `.awm-modal-trigger`)
+  - **REST Endpoints**:
+    - `GET extend-wp/v1/modal-fields/` — Render modal HTML + fields with current values (server-side field lookup)
+    - `POST extend-wp/v1/modal-save/` — Save modal field values to meta/option
+  - **Filters/Hooks**:
+    - `awm_modal_template_path` — Use custom template file for modal
+    - `awm_modal_wrapper_classes` — Modify modal wrapper classes
+    - `awm_modal_dialog_classes` — Modify modal dialog classes
+    - `awm_modal_header_classes` — Modify modal header classes
+    - `awm_modal_body_classes` — Modify modal body classes
+    - `awm_modal_footer_classes` — Modify modal footer classes
+    - `awm_modal_save_button_text` — Modify save button text
+    - `awm_modal_cancel_button_text` — Modify cancel button text
+    - `awm_modal_save_button_classes` — Modify save button classes
+    - `awm_modal_cancel_button_classes` — Modify cancel button classes
+    - `awm_modal_body_content` — Modify modal body content
+    - `awm_modal_field_args` — Modify modal field configuration before rendering
+    - `awm_modal_fields_rendered` — Modify rendered fields HTML
+    - `awm_modal_before_save` — Action before saving modal values
+    - `awm_modal_after_save` — Action after saving modal values
+  - **Actions**:
+    - `awm_modal_before_wrapper` — Before modal wrapper
+    - `awm_modal_after_wrapper` — After modal wrapper
+    - `awm_modal_before_header` — Before modal header
+    - `awm_modal_after_header` — After modal header
+    - `awm_modal_before_body` — Before modal body
+    - `awm_modal_after_body` — After modal body
+    - `awm_modal_before_footer` — Before modal footer
+    - `awm_modal_after_footer` — After modal footer
+    - `awm_modal_footer_start` — At start of modal footer
+    - `awm_modal_footer_end` — At end of modal footer
+  - **Affected Files**:
+    - `templates/admin-view/modal-field.php` — PHP template for modal HTML
+    - `includes/classes/awm-api/class-awm-api.php` — REST endpoints
+    - `includes/functions/library.php` — `awm_modal` case in `awm_show_content()`
+    - `assets/js/admin/class-awm-modal-field.js` — `AWMModalField` JavaScript class
+    - `assets/css/admin/awm-modal-field.css` — Modal field styles
+    - `includes/classes/class-extend-wp.php` — Dynamic Asset Loader registration
+    - `includes/classes/ewp-fields/ewp_field_functions.php` — `awm_modal` option in `awm_fields_usages()`
+  - **Backwards Compatibility**: Fully backwards-compatible. New field type, no changes to existing functionality.
+
+- **AI Content Generator — Business Data section in settings**: New `business_data` options section on the AI Content settings page with fields: business name, website URL (defaults to `home_url()`), location/service area, description, key products/services, unique selling points, customer review summary, and three EWP repeater fields — review platform links, social media profiles, and competitors.
+- **AI Content Generator — PHP-rendered Business Data modal**: `render_business_data_modal()` (hooked to `admin_footer`) outputs a server-side modal using `awm_show_content()`, pre-populated from the `business_data` option. Separate repeaters for Review Links, Social Media, and Competitors. Footer: "Generate Summary", "Save to Settings", "Save Data", "Cancel".
+- **AI Content Generator — `POST /ai-content/save-business-data` REST endpoint**: Persists the full business data object to the `business_data` wp_options row with full sanitization (scalar fields + repeater rows). Busts the settings cache on success.
+- **AI Content Generator — URL accessibility validation before AI prompts**: `is_url_accessible()` performs a HEAD request (5 s timeout, 3 redirects, SSL-permissive) to check that each URL returns 2xx–3xx before it is included in the AI prompt. Applied to review links, social links, and competitor URLs in `rest_business_summary()`. Competitor entries with inaccessible URLs include the name only.
+- **AI Content Generator — Expanded `rest_business_summary()`**: Accepts all new structured fields (`business_location`, `unique_selling_points`, `customer_sentiment`, `review_links[]`, `social_links[]`, `competitors[]`). All link arrays are validated per-URL before inclusion in the summary prompt.
+- **AI Content Generator — Business data merged into `get_settings()`**: `get_settings()` now reads and merges the `business_data` option alongside the three existing section options. Defaults added for all new fields.
+- **AI Content Generator — Structured business data in system prompt**: `build_system_prompt()` now includes all business data fields (name, location, description, services, USPs, customer sentiment, review platforms, social media, competitors) when populated.
+- **AI Content Generator — JS modal rewrite for PHP-rendered onboarding**: `openOnboardingModal()` now reveals the server-side `#ewp-ai-business-data-modal` DOM node instead of building a custom modal. `serializeBusinessForm()` parses EWP bracket-notation field names (including nested repeater rows) into a plain JS object. `saveBusinessData()` and `generateBusinessSummary()` updated to use the structured repeater data.
+
+### Added
+- **AI Content Generator — Business Onboarding Modal**: On-demand "🏢 Setup Business Context" button injected on the AI Content settings page. Clicking opens a guided modal that collects business name, website URL, industry, description, services, and review/social links. Data is sent to the configured AI provider via `POST extend-wp/v1/ai-content/business-summary`, which generates a compact 150-word summary. The user can review the summary in an editable textarea before approving. On approval, the summary is saved to `general_instructions.business_context` via `POST extend-wp/v1/ai-content/save-business-context` and immediately included in all subsequent AI content prompts. Fully on-demand — not triggered automatically on key save.
+- **AI Content Generator — Generator Modal with multi-select tasks**: The post editor meta box is now a single "✦ Generate with AI" trigger button. Clicking opens a full overlay modal with: task checkboxes (Title / Excerpt / Full Content — any combination selectable), provider and model dropdowns (auto-populated from configured providers), WPML translation mode radios (Translate / Recreate, shown when WPML active), per-generation custom instructions textarea, and a collapsible Prompt Preview panel. Generation runs tasks sequentially, showing per-task results in a results section. "Accept All" applies all results to editor fields at once; "Retry" regenerates all selected tasks with the same parameters; "Close" discards results. New REST endpoints: `GET /ai-content/prompt-preview` and `POST /ai-content/business-summary` and `POST /ai-content/save-business-context`.
+- **AI Content Generator — Gutenberg native block insertion**: "Accept All" now inserts content as native Gutenberg blocks via `wp.blocks.rawHandler({ HTML })` + `wp.data.dispatch('core/block-editor').resetBlocks(blocks)` instead of a raw `core/html` block. HTML is parsed into proper paragraph, heading, list, and other core blocks, giving the user full block-level control after insertion. Classic editor and excerpt fallback paths unchanged (TinyMCE `setContent` / textarea value).
+- **AI Content Generator — Prompt Preview Panel**: Collapsible "Preview prompt" section inside the generator modal. Before or after generation, clicking "Preview prompt" calls `GET extend-wp/v1/ai-content/prompt-preview?post_id=&task=&instructions=&translation_mode=` which builds the full system + user prompt without making an AI API call. Both prompts are displayed in monospace `<pre>` blocks so the user can inspect exactly what will be sent to the provider.
+
 ### Fixed
 - **AI Content Generator — REST 404 on `health-status`**: `rest_api_init` was registered inside `is_admin()` guard; WordPress REST API requests are not admin requests so routes were never registered. Moved `add_action('rest_api_init', ...)` before the guard so REST routes register on every request type.
 - **AI Content Generator — grey admin bar dot / providers always empty**: `get_settings()` read from `ewp_ai_content_settings` option but EWP stores settings by **section key** (`provider_config`, `content_settings`, `general_instructions`). Fixed by merging the three section options in `get_settings()`. Also fixed `pre_update_option_` to hook `provider_config` where API keys actually live, and added `$section_keys` map for documentation.

@@ -108,6 +108,29 @@ class EWP_AI_Content_Generator {
 	}
 
 	/**
+	 * Build prompts for a post without calling the AI — used by the preview endpoint.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $task    'title', 'excerpt', or 'full_content'.
+	 * @param array  $options Same options array as generate_content().
+	 * @return array|\WP_Error { system: string, user: string } or WP_Error.
+	 *
+	 * @since 1.0.0
+	 */
+	public function get_prompts( int $post_id, string $task, array $options = [] ): array|\WP_Error {
+		$context = $this->context_builder->build( $post_id );
+		if ( is_wp_error( $context ) ) {
+			return $context;
+		}
+		$settings         = EWP_AI_Content::get_settings();
+		$translation_mode = $options['translation_mode'] ?? '';
+		return [
+			'system' => $this->build_system_prompt( $context, $settings ),
+			'user'   => $this->build_user_prompt( $task, $context, $options, $translation_mode ),
+		];
+	}
+
+	/**
 	 * Generate content for a post.
 	 *
 	 * @param int    $post_id Post ID.
@@ -267,8 +290,67 @@ class EWP_AI_Content_Generator {
 			$parts[] = sprintf( 'Target audience: %s.', $settings['target_audience'] );
 		}
 
+		// Business context (AI-generated summary from onboarding).
 		if ( ! empty( $settings['business_context'] ) ) {
 			$parts[] = sprintf( 'Business context: %s.', $settings['business_context'] );
+		}
+
+		// Structured business data fields.
+		$business_parts = [];
+
+		if ( ! empty( $settings['business_name'] ) ) {
+			$business_parts[] = sprintf( 'Name: %s', $settings['business_name'] );
+		}
+		if ( ! empty( $settings['business_location'] ) ) {
+			$business_parts[] = sprintf( 'Location/service area: %s', $settings['business_location'] );
+		}
+		if ( ! empty( $settings['business_description'] ) ) {
+			$business_parts[] = sprintf( 'Description: %s', $settings['business_description'] );
+		}
+		if ( ! empty( $settings['key_services'] ) ) {
+			$business_parts[] = sprintf( 'Products/services: %s', $settings['key_services'] );
+		}
+		if ( ! empty( $settings['unique_selling_points'] ) ) {
+			$business_parts[] = sprintf( 'Differentiators: %s', $settings['unique_selling_points'] );
+		}
+		if ( ! empty( $settings['customer_sentiment'] ) ) {
+			$business_parts[] = sprintf( 'Customer sentiment: %s', $settings['customer_sentiment'] );
+		}
+
+		// Links (URL-only; already validated on save).
+		$review_links = is_array( $settings['review_links'] ?? null ) ? $settings['review_links'] : [];
+		$review_urls  = array_filter( array_map(
+			fn( $l ) => is_array( $l ) ? ( $l['url'] ?? '' ) : ( is_string( $l ) ? $l : '' ),
+			$review_links
+		) );
+		if ( ! empty( $review_urls ) ) {
+			$business_parts[] = 'Review platforms: ' . implode( ', ', $review_urls );
+		}
+
+		$social_links = is_array( $settings['social_links'] ?? null ) ? $settings['social_links'] : [];
+		$social_urls  = array_filter( array_map(
+			fn( $l ) => is_array( $l ) ? ( $l['url'] ?? '' ) : ( is_string( $l ) ? $l : '' ),
+			$social_links
+		) );
+		if ( ! empty( $social_urls ) ) {
+			$business_parts[] = 'Social media: ' . implode( ', ', $social_urls );
+		}
+
+		$competitors       = is_array( $settings['competitors'] ?? null ) ? $settings['competitors'] : [];
+		$competitor_labels = [];
+		foreach ( $competitors as $comp ) {
+			$name = $comp['name'] ?? '';
+			$url  = $comp['url'] ?? '';
+			if ( $name ) {
+				$competitor_labels[] = $url ? "{$name} ({$url})" : $name;
+			}
+		}
+		if ( ! empty( $competitor_labels ) ) {
+			$business_parts[] = 'Competitors: ' . implode( ', ', $competitor_labels );
+		}
+
+		if ( ! empty( $business_parts ) ) {
+			$parts[] = 'Business information: ' . implode( '. ', $business_parts ) . '.';
 		}
 
 		if ( ! empty( $settings['custom_instructions'] ) ) {

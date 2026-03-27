@@ -205,7 +205,7 @@ class EWP_AI_Gemini_Provider implements EWP_AI_Provider_Interface {
 		}
 
 		$settings = EWP_AI_Content::get_settings();
-		return EWP_AI_Encryption::decrypt( $settings['gemini_api_key'] ?? '' );
+		return $settings['gemini_api_key'] ?? '';
 	}
 
 	/**

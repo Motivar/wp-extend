@@ -53,6 +53,122 @@ if (!function_exists('awm_get_field_value')) {
     }
 }
 
+if (!function_exists('awm_should_encrypt_field')) {
+    /**
+     * Check if a field should have encryption applied.
+     *
+     * Validates that the field has 'encrypt' => true and is a supported type
+     * (input fields like text, password, email, url, etc.).
+     *
+     * @param array $field_config The field configuration array
+     * @return bool True if field should be encrypted, false otherwise
+     *
+     * @since 1.3.0
+     */
+    function awm_should_encrypt_field($field_config)
+    {
+        // Check if encryption is explicitly enabled
+        if (!isset($field_config['encrypt']) || !$field_config['encrypt']) {
+            return false;
+        }
+
+        // Only support input field types (not repeater, select, textarea, etc.)
+        if (!isset($field_config['case']) || $field_config['case'] !== 'input') {
+            return false;
+        }
+
+        // Validate input type is supported
+        $supported_types = array('text', 'password', 'email', 'url', 'number');
+        $input_type = isset($field_config['type']) ? $field_config['type'] : 'text';
+
+        return in_array($input_type, $supported_types, true);
+    }
+}
+
+if (!function_exists('awm_encrypt_field_value')) {
+    /**
+     * Encrypt a field value before saving to database.
+     *
+     * Skips encryption if value is empty, already encrypted, or is a masked value.
+     * Applies 'ewp_encrypt_field_value' filter before encryption.
+     *
+     * @param string $value The plain-text value to encrypt
+     * @param array $field_config The field configuration array
+     * @return string Encrypted value or original value if skipped
+     *
+     * @since 1.3.0
+     */
+    function awm_encrypt_field_value($value, $field_config)
+    {
+        // Skip empty values
+        if (empty($value)) {
+            return $value;
+        }
+
+        // Skip if already encrypted
+        if (strpos($value, 'ewp_enc:') === 0) {
+            return $value;
+        }
+
+        // Skip if value is a masked placeholder (user didn't change it)
+        if (EWP_Encryption::is_masked($value)) {
+            return $value;
+        }
+
+        // Get algorithm from field config or use default
+        $algorithm = isset($field_config['encrypt_algorithm']) ? $field_config['encrypt_algorithm'] : '';
+
+        // Apply filter before encryption
+        $value = apply_filters('ewp_encrypt_field_value', $value, $field_config);
+
+        // Encrypt the value
+        return EWP_Encryption::encrypt($value, $algorithm);
+    }
+}
+
+if (!function_exists('awm_decrypt_field_value')) {
+    /**
+     * Decrypt a field value for display or editing.
+     *
+     * When displaying (for_display=true), returns masked value by default unless
+     * show_masked is explicitly set to false.
+     *
+     * @param string $value The encrypted or plain value from database
+     * @param array $field_config The field configuration array
+     * @param bool $for_display Whether this is for display (true) or editing (false)
+     * @return string Decrypted, masked, or original value
+     *
+     * @since 1.3.0
+     */
+    function awm_decrypt_field_value($value, $field_config, $for_display = true)
+    {
+        // Skip empty values
+        if (empty($value)) {
+            return $value;
+        }
+
+        // Get algorithm from field config or use default
+        $algorithm = isset($field_config['encrypt_algorithm']) ? $field_config['encrypt_algorithm'] : '';
+
+        // Decrypt the value
+        $decrypted = EWP_Encryption::decrypt($value, $algorithm);
+
+        // For display, show masked value by default
+        if ($for_display) {
+            $show_masked = isset($field_config['show_masked']) ? $field_config['show_masked'] : true;
+
+            if ($show_masked) {
+                return EWP_Encryption::mask($value, $algorithm);
+            }
+        }
+
+        // Apply filter after decryption
+        $decrypted = apply_filters('ewp_decrypt_field_value', $decrypted, $field_config);
+
+        return $decrypted;
+    }
+}
+
 if (!function_exists('awm_get_wp_editor_args')) {
     /**
      * Get default wp_editor arguments with filter support
@@ -246,8 +362,14 @@ if (!function_exists('awm_show_content')) {
     {
         static $user_roles = array();
         static $user_checked = false;
+        global $awm_post_id, $awm_field_configs;
+
+        // Initialize field config registry if not already done
+        if (!isset($awm_field_configs)) {
+            $awm_field_configs = array();
+        }
+
         $msg = array();
-        global $awm_post_id;
         $awm_post_id = $id;
         $awm_id = '';
         if (isset($arrs['awm-id'])) {
@@ -348,6 +470,15 @@ if (!function_exists('awm_show_content')) {
 
                     /*make changes for combined inputs*/
                     $val = awm_get_field_value($view, $a, $id, $original_meta);
+
+                    // Register field config for later use in save operations
+                    $awm_field_configs[$original_meta] = $a;
+
+                    // Decrypt encrypted fields for display
+                    if (awm_should_encrypt_field($a)) {
+                        $val = awm_decrypt_field_value($val, $a, true);
+                    }
+
                     $label_class = $extra_fields2 = $label_attrs = array();
                     $extraa = '';
                     $class = isset($a['class']) ? implode(' ', $a['class']) : '';
@@ -1020,6 +1151,8 @@ function awm_auto_translate($data, $dataa, $id, $view)
 
 function awm_custom_meta_update_vars($meta, $metaa, $id, $view)
 {
+    global $awm_field_configs;
+
     foreach ($meta as $k) {
         $chk = '';
 
@@ -1045,6 +1178,20 @@ function awm_custom_meta_update_vars($meta, $metaa, $id, $view)
             }
             $val = isset($chk) ? $chk : '';
             $arr[$k] = $val;
+        }
+
+        // Get field config if available
+        $field_config = isset($awm_field_configs[$k]) ? $awm_field_configs[$k] : array();
+
+        // Encrypt sensitive fields before save
+        if (!empty($val) && awm_should_encrypt_field($field_config)) {
+            // Skip if value is masked (user didn't change it)
+            if (!EWP_Encryption::is_masked($val)) {
+                $val = awm_encrypt_field_value($val, $field_config);
+            } else {
+                // Value is masked - don't update, keep existing encrypted value
+                continue;
+            }
         }
 
         switch ($view) {

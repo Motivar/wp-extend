@@ -1,125 +1,346 @@
 /**
- * EWP AI Content Generator — Meta Box Styles
- *
- * Scoped to .ewp-ai-content-metabox so these styles never affect
- * other parts of the admin UI.
+ * EWP AI Content Generator — Styles
+ * Modal overlay, generator modal, onboarding modal, meta box trigger.
  *
  * @package EWP\AIContent
  * @since   1.0.0
  */
 
-/* ── Wrapper ─────────────────────────────────────────────────── */
-
-.ewp-ai-content-metabox {
-	font-size: 13px;
+/* ── Body scroll lock ──────────────────────────────────────────── */
+body.ewp-ai-modal-open {
+	overflow: hidden;
 }
 
-.ewp-ai-content-metabox p {
-	margin: 0 0 10px;
+/* ── Modal overlay ─────────────────────────────────────────────── */
+.ewp-ai-modal-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 100000;
+	background: rgba(0, 0, 0, 0.55);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+	opacity: 0;
+	transition: opacity 0.2s ease;
 }
 
-.ewp-ai-content-metabox label {
+.ewp-ai-modal-overlay.ewp-ai-modal--visible {
+	opacity: 1;
+}
+
+/* ── Modal container ───────────────────────────────────────────── */
+.ewp-ai-modal {
+	background: #fff;
+	border-radius: 6px;
+	box-shadow: 0 8px 40px rgba(0, 0, 0, 0.22);
+	width: 100%;
+	max-width: 680px;
+	max-height: 90vh;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	transform: translateY(16px);
+	transition: transform 0.2s ease;
+}
+
+.ewp-ai-modal-overlay.ewp-ai-modal--visible .ewp-ai-modal {
+	transform: translateY(0);
+}
+
+
+/* ── Modal header ──────────────────────────────────────────────── */
+.ewp-ai-modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16px 20px;
+	border-bottom: 1px solid #dcdcde;
+	flex-shrink: 0;
+}
+
+.ewp-ai-modal-header h2 {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.ewp-ai-modal-close {
+	background: none;
+	border: none;
+	cursor: pointer;
+	font-size: 18px;
+	color: #787c82;
+	padding: 4px 6px;
+	line-height: 1;
+	border-radius: 3px;
+}
+
+.ewp-ai-modal-close:hover {
+	background: #f0f0f1;
+	color: #1d2327;
+}
+
+/* ── Modal body ────────────────────────────────────────────────── */
+.ewp-ai-modal-body {
+	padding: 20px;
+	overflow-y: auto;
+	flex: 1;
+}
+
+/* ── Modal footer ──────────────────────────────────────────────── */
+.ewp-ai-modal-footer {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 14px 20px;
+	border-top: 1px solid #dcdcde;
+	background: #f9f9f9;
+	flex-shrink: 0;
+}
+
+/* ── Form rows ─────────────────────────────────────────────────── */
+.ewp-ai-modal-row {
+	margin-bottom: 16px;
+}
+
+.ewp-ai-modal-row:last-child {
+	margin-bottom: 0;
+}
+
+.ewp-ai-row-label {
 	display: block;
+	font-weight: 600;
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: #50575e;
+	margin-bottom: 6px;
+}
+
+.ewp-ai-optional {
+	font-weight: 400;
+	text-transform: none;
+	font-size: 11px;
+	color: #8c8f94;
+	letter-spacing: 0;
+}
+
+.ewp-ai-modal-row--2col {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
+}
+
+.ewp-ai-modal-row--2col .ewp-ai-row-label {
 	margin-bottom: 4px;
 }
 
-/* ── Selects & Textarea ──────────────────────────────────────── */
+/* ── Task checkboxes ───────────────────────────────────────────── */
+.ewp-ai-task-checks {
+	display: flex;
+	gap: 16px;
+	flex-wrap: wrap;
+}
 
-.ewp-ai-content-metabox .ewp-ai-select,
-.ewp-ai-content-metabox textarea {
+.ewp-ai-task-checks label {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	font-size: 13px;
+	cursor: pointer;
+}
+
+.ewp-ai-task-checks input[type="checkbox"] {
+	margin: 0;
+}
+
+/* ── Radios ────────────────────────────────────────────────────── */
+.ewp-ai-radio-group {
+	display: flex;
+	gap: 16px;
+}
+
+.ewp-ai-radio-group label {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	font-size: 13px;
+	cursor: pointer;
+}
+
+/* ── Selects & Textareas ───────────────────────────────────────── */
+.ewp-ai-select,
+.ewp-ai-modal textarea,
+.ewp-ai-modal input[type="text"],
+.ewp-ai-modal input[type="url"] {
 	width: 100%;
 	box-sizing: border-box;
 }
 
-.ewp-ai-content-metabox textarea {
+.ewp-ai-modal textarea {
 	resize: vertical;
-	min-height: 60px;
+	font-family: inherit;
 }
 
-/* ── Translation mode radios ─────────────────────────────────── */
-
-.ewp-ai-translation-mode label {
-	display: inline;
-	margin-right: 6px;
+/* ── Prompt preview ────────────────────────────────────────────── */
+.ewp-ai-prompt-toggle {
+	background: none;
+	border: 1px solid #dcdcde;
+	border-radius: 3px;
+	padding: 4px 10px;
+	font-size: 12px;
+	cursor: pointer;
+	color: #2271b1;
 }
 
-/* ── Progress indicator ──────────────────────────────────────── */
+.ewp-ai-prompt-toggle:hover {
+	background: #f0f0f1;
+}
 
-.ewp-ai-progress {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding: 6px 0;
-	color: #555;
+.ewp-ai-prompt-preview {
+	margin-top: 10px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #f6f7f7;
+	overflow: hidden;
+}
+
+.ewp-ai-prompt-loading {
+	padding: 10px 14px;
+	font-size: 12px;
+	color: #787c82;
 	font-style: italic;
 }
 
-.ewp-ai-progress .spinner {
+.ewp-ai-prompt-content {
+	padding: 12px 14px;
+}
+
+.ewp-ai-prompt-section {
+	margin-bottom: 12px;
+}
+
+.ewp-ai-prompt-section:last-child {
+	margin-bottom: 0;
+}
+
+.ewp-ai-prompt-section strong {
+	display: block;
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: #50575e;
+	margin-bottom: 4px;
+}
+
+.ewp-ai-pre {
+	margin: 0;
+	white-space: pre-wrap;
+	word-break: break-word;
+	font-size: 11px;
+	line-height: 1.6;
+	color: #1d2327;
+	font-family: 'Courier New', monospace;
+	max-height: 160px;
+	overflow-y: auto;
+}
+
+/* ── Progress indicator ────────────────────────────────────────── */
+.ewp-ai-modal-progress {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 0;
+	color: #555;
+	font-style: italic;
+	font-size: 13px;
+}
+
+.ewp-ai-modal-progress .spinner {
 	float: none;
 	margin: 0;
 }
 
-/* ── Result preview ──────────────────────────────────────────── */
-
-.ewp-ai-result {
-	margin-top: 8px;
-	border: 1px solid #dcdcde;
-	border-radius: 3px;
-	background: #f9f9f9;
-	padding: 10px;
+/* ── Error notice ──────────────────────────────────────────────── */
+.ewp-ai-modal-error {
+	margin: 8px 0 0;
 }
 
-.ewp-ai-result-content {
-	max-height: 200px;
-	overflow-y: auto;
-	font-size: 12px;
+.ewp-ai-modal-error p {
+	margin: 0;
+}
+
+/* ── Results section ───────────────────────────────────────────── */
+.ewp-ai-results-section {
+	border-top: 1px solid #dcdcde;
+}
+
+.ewp-ai-result-item {
+	margin-bottom: 14px;
+	padding-bottom: 14px;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.ewp-ai-result-item:last-of-type {
+	border-bottom: none;
+	margin-bottom: 0;
+	padding-bottom: 0;
+}
+
+.ewp-ai-result-item > strong {
+	display: block;
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: #50575e;
+	margin-bottom: 6px;
+}
+
+.ewp-ai-result-text {
+	font-size: 13px;
 	line-height: 1.6;
-	color: #333;
-	margin-bottom: 10px;
+	color: #1d2327;
+	background: #f9f9f9;
+	border: 1px solid #dcdcde;
+	border-radius: 3px;
+	padding: 8px 10px;
 	white-space: pre-wrap;
 	word-break: break-word;
 }
 
-/* Rendered HTML preview (full_content task) */
-.ewp-ai-result-content p,
-.ewp-ai-result-content h2,
-.ewp-ai-result-content h3,
-.ewp-ai-result-content ul,
-.ewp-ai-result-content ol {
+.ewp-ai-result-text--content {
+	max-height: 200px;
+	overflow-y: auto;
+	white-space: normal;
+}
+
+.ewp-ai-result-text--content p,
+.ewp-ai-result-text--content h2,
+.ewp-ai-result-text--content h3,
+.ewp-ai-result-text--content ul,
+.ewp-ai-result-text--content ol {
 	margin: 0 0 8px;
 }
 
-/* ── Action buttons ──────────────────────────────────────────── */
-
-.ewp-ai-actions {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
+/* ── Meta box trigger ──────────────────────────────────────────── */
+.ewp-ai-content-metabox {
+	font-size: 13px;
 }
 
-.ewp-ai-actions .button {
-	flex: 1 1 auto;
+.ewp-ai-content-metabox .ewp-ai-open-modal {
+	width: 100%;
 	text-align: center;
 }
 
-/* ── Error notice ────────────────────────────────────────────── */
-
-.ewp-ai-error {
-	margin: 8px 0 0;
-	padding: 8px 12px;
-}
-
-.ewp-ai-error p {
-	margin: 0;
-}
-
-/* ── Notice (no provider configured) ────────────────────────── */
-
+/* ── Notice (no provider) ──────────────────────────────────────── */
 .ewp-ai-notice {
 	padding: 8px 10px;
 	border-left: 4px solid #f0b849;
 	background: #fff8e5;
 	margin: 0;
+	font-size: 13px;
 }
 
 .ewp-ai-notice a {
@@ -127,9 +348,41 @@
 	text-decoration: underline;
 }
 
-/* ── Loading state on generate button ───────────────────────── */
-
-.ewp-ai-content-metabox .button.ewp-ai--loading {
-	opacity: 0.6;
-	cursor: not-allowed;
+/* ── Loading overlay ───────────────────────────────────────────── */
+.ewp-ai-loading-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 100001;
+	background: rgba(0, 0, 0, 0.7);
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
+
+.ewp-ai-loading-content {
+	background: #fff;
+	border-radius: 6px;
+	padding: 24px 32px;
+	box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 12px;
+}
+
+.ewp-ai-loading-content .spinner {
+	float: none;
+	margin: 0;
+}
+
+.ewp-ai-loading-content p {
+	margin: 0;
+	font-size: 14px;
+	color: #1d2327;
+	font-weight: 500;
+}
+
+body.ewp-ai-loading {
+	overflow: hidden;
+}
+

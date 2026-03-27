@@ -453,6 +453,92 @@ class AWM_Field_Examples {
                 'explanation' => 'Some roles cannot edit this field',
                 'order' => 250,
                 'not_editable_by' => array('author', 'contributor', 'subscriber')
+            ),
+
+            // Encrypted password field with masking
+            'api_key_field' => array(
+                'case' => 'input',
+                'type' => 'password',
+                'label' => 'API Key',
+                'explanation' => 'Your API key is encrypted and stored securely. Shows masked value (••••••••abcd) on edit.',
+                'order' => 260,
+                'encrypt' => true,
+                'show_masked' => true,
+                'attributes' => array(
+                    'placeholder' => 'Enter your API key'
+                )
+            ),
+
+            // Encrypted email field
+            'encrypted_email' => array(
+                'case' => 'input',
+                'type' => 'email',
+                'label' => 'Encrypted Email',
+                'explanation' => 'Email address stored encrypted. Useful for sensitive contact information.',
+                'order' => 270,
+                'encrypt' => true,
+                'show_masked' => true,
+                'attributes' => array(
+                    'placeholder' => 'user@example.com'
+                )
+            ),
+
+            // Encrypted text field without masking
+            'secret_token' => array(
+                'case' => 'input',
+                'type' => 'text',
+                'label' => 'Secret Token',
+                'explanation' => 'Encrypted field that shows empty instead of masked value.',
+                'order' => 280,
+                'encrypt' => true,
+                'show_masked' => false,
+                'attributes' => array(
+                    'placeholder' => 'Enter secret token'
+                )
+            ),
+
+            // Encrypted URL field
+            'encrypted_webhook_url' => array(
+                'case' => 'input',
+                'type' => 'url',
+                'label' => 'Webhook URL',
+                'explanation' => 'Webhook URL stored encrypted for security.',
+                'order' => 290,
+                'encrypt' => true,
+                'show_masked' => true,
+                'attributes' => array(
+                    'placeholder' => 'https://example.com/webhook'
+                )
+            ),
+
+            // Encrypted number field
+            'encrypted_account_id' => array(
+                'case' => 'input',
+                'type' => 'number',
+                'label' => 'Account ID (Encrypted)',
+                'explanation' => 'Numeric account identifier stored encrypted.',
+                'order' => 300,
+                'encrypt' => true,
+                'show_masked' => true,
+                'attributes' => array(
+                    'min' => 1,
+                    'placeholder' => 'Enter account ID'
+                )
+            ),
+
+            // Encrypted field with custom algorithm
+            'custom_cipher_field' => array(
+                'case' => 'input',
+                'type' => 'password',
+                'label' => 'Custom Cipher Field',
+                'explanation' => 'Uses custom encryption algorithm (if configured via filter).',
+                'order' => 310,
+                'encrypt' => true,
+                'encrypt_algorithm' => 'aes-256-cbc',
+                'show_masked' => true,
+                'attributes' => array(
+                    'placeholder' => 'Enter sensitive data'
+                )
             )
         );
         
