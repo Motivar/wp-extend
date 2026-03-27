@@ -71,8 +71,9 @@ if (!empty($page)) {
                         $settings[$key] = $data; // Add the option to the settings array.
                     }
 
-                    // Render the settings content.
-                    echo awm_show_content($settings);
+                        // Render the settings content.
+                        // Pass the option page ID as context for modal fields
+                        echo awm_show_content($settings, 0, 'option', 'edit', true, '', ', ', $awm_settings['id']);
 
                     // Add hidden input fields to store metadata for the form.
                     echo '<input type="hidden" name="awm_metabox[]" value="' . $awm_settings['id'] . '"/>';

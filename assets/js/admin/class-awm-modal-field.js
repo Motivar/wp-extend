@@ -65,6 +65,7 @@ class AWMModalField {
 	 * Open modal overlay by loading HTML from REST API
 	 * 
 	 * Modal HTML is rendered server-side via PHP template.
+	 * Field definitions are looked up server-side using meta_key and optional option_page.
 	 * Uses awm_ajax_call for REST request.
 	 * 
 	 * @param {HTMLElement} trigger The trigger button element
@@ -76,7 +77,7 @@ class AWMModalField {
 		const view = trigger.dataset.view || 'post';
 		const objectId = trigger.dataset.objectId || '0';
 		const modalTitle = trigger.dataset.modalTitle || this.strings.edit || 'Edit';
-		const include = trigger.dataset.include || '{}';
+		const optionPage = trigger.dataset.optionPage || '';
 
 		this.currentTrigger = trigger;
 		document.body.classList.add('ewp-ai-modal-open');
@@ -86,8 +87,10 @@ class AWMModalField {
 		url.searchParams.set('meta_key', metaKey);
 		url.searchParams.set('view', view);
 		url.searchParams.set('object_id', objectId);
-		url.searchParams.set('include', include);
 		url.searchParams.set('modal_title', modalTitle);
+		if (optionPage) {
+			url.searchParams.set('option_page', optionPage);
+		}
 
 		awm_ajax_call({
 			method: 'GET',
@@ -252,6 +255,21 @@ class AWMModalField {
 	 */
 	static handleSaveResponse(data) {
 		const instance = AWMModalField.instance;
+		const overlay = instance.activeModal;
+
+		// Dispatch custom event for post-save actions
+		if (overlay) {
+			const event = new CustomEvent('awm_modal_fields_saved', {
+				detail: {
+					data,
+					overlay,
+					trigger: instance.currentTrigger
+				},
+				bubbles: true,
+			});
+			overlay.dispatchEvent(event);
+		}
+
 		instance.closeModal();
 	}
 

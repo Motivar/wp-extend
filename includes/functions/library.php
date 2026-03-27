@@ -236,8 +236,13 @@ if (!function_exists('awm_show_content')) {
      * @param array $arrs the array with the inputs
      * @param array $id the post_id,term_id
      * @param array $view which source to use to load the data
+     * @param string $target edit or display
+     * @param bool $label show label or not
+     * @param string $specific specific field to show
+     * @param string $sep separator for multi-value fields
+     * @param string $context_id optional context identifier (e.g., option page key for modal fields)
      */
-    function awm_show_content($arrs, $id = 0, $view = 'post', $target = 'edit', $label = true, $specific = '', $sep = ', ')
+    function awm_show_content($arrs, $id = 0, $view = 'post', $target = 'edit', $label = true, $specific = '', $sep = ', ', $context_id = '')
     {
         static $user_roles = array();
         static $user_checked = false;
@@ -756,6 +761,7 @@ if (!function_exists('awm_show_content')) {
                              * Modal field case — renders a trigger button that opens a modal overlay
                              * with nested fields loaded via REST API.
                              * 
+                             * Field definitions are looked up server-side using meta_key and optional option_page.
                              * Values are saved directly to DB via REST API on modal save.
                              * No hidden input — just the trigger button.
                              * 
@@ -766,12 +772,11 @@ if (!function_exists('awm_show_content')) {
                                 $button_label = isset($a['button_label']) ? $a['button_label'] : $a['label'];
                                 $button_class = isset($a['button_class']) ? $a['button_class'] : 'button button-secondary';
 
-                                $modal_view = $view;
+                                // Allow field definition to override the view (e.g. 'option' on settings pages).
+                                $modal_view = isset($a['modal_view']) ? $a['modal_view'] : $view;
                                 if ($modal_view === 'none') {
-                                    $modal_view = isset($a['modal_view']) ? $a['modal_view'] : 'post';
+                                    $modal_view = 'post';
                                 }
-
-                                $include_json = esc_attr(wp_json_encode($a['include']));
 
                                 /**
                                  * Filter modal field arguments before rendering
@@ -791,7 +796,10 @@ if (!function_exists('awm_show_content')) {
                                 $ins .= ' data-view="' . esc_attr($modal_view) . '"';
                                 $ins .= ' data-object-id="' . esc_attr($id) . '"';
                                 $ins .= ' data-modal-title="' . esc_attr($modal_title) . '"';
-                                $ins .= ' data-include="' . $include_json . '"';
+                                // Add option_page for direct lookup when rendering in options context
+                                if (!empty($context_id) && $modal_view === 'option') {
+                                    $ins .= ' data-option-page="' . esc_attr($context_id) . '"';
+                                }
                                 $ins .= '>' . esc_html($button_label) . '</button>';
                                 $ins .= '</div>';
                             }
