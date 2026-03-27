@@ -114,11 +114,11 @@ class EWP_AI_Content
 		add_action('admin_bar_menu', [$this, 'render_admin_bar_node'], 100);
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_bar_assets']);
 
-		// Bust settings cache whenever EWP's modal save persists business_data.
-		add_action('awm_modal_after_save', [$this, 'on_business_data_saved'], 10, 4);
+		// Invalidate health check transient when provider config is updated.
+		add_action('updated_option', [$this, 'invalidate_health_check_on_provider_update'], 10, 3);
 
-		// Invalidate health check transient when settings are saved.
-		add_filter('pre_update_option_ewp_ai_content_settings', [$this, 'invalidate_health_check_on_save'], 10, 2);
+		// Bust settings cache when business_data or provider_config is updated.
+		add_action('updated_option', [$this, 'on_option_updated'], 10, 3);
 	}
 
 	/* =========================================================
@@ -758,39 +758,41 @@ JS;
 	}
 
 	/**
-	 * Bust the settings cache after EWP's modal system saves the business_data option.
+	 * Bust settings cache when business_data or provider_config is updated.
 	 *
-	 * @param string $meta_key  Saved option key.
-	 * @param string $view      View type ('option').
-	 * @param int    $object_id Not used for options.
-	 * @param array  $values    Saved values.
+	 * @param string $option    The option name.
+	 * @param mixed  $old_value The old option value.
+	 * @param mixed  $value     The new option value.
 	 *
-	 * @hook awm_modal_after_save
+	 * @hook updated_option
 	 * @since 1.0.0
 	 */
-	public function on_business_data_saved(string $meta_key, string $view, int $object_id, array $values): void
+	public function on_option_updated(string $option, $old_value, $value): void
 	{
-		if ('business_data' === $meta_key) {
+		if ('business_data' === $option || 'provider_config' === $option) {
 			self::bust_cache();
 		}
 	}
 
 	/**
-	 * Invalidate health check transient when settings are saved.
+	 * Invalidate health check transient when provider config is updated.
 	 *
 	 * Deletes the cached health status so the next health-status request
-	 * will trigger a fresh check. Works even if no settings values changed.
+	 * will trigger a fresh check when API keys or provider settings change.
 	 *
-	 * @param mixed $new_value The new option value.
-	 * @param mixed $old_value The old option value.
-	 * @return mixed The new value (unchanged).
+	 * @param string $option    The option name.
+	 * @param mixed  $old_value The old option value.
+	 * @param mixed  $value     The new option value.
 	 *
+	 * @hook updated_option
 	 * @since 1.0.2
 	 */
-	public function invalidate_health_check_on_save($new_value, $old_value)
+	public function invalidate_health_check_on_provider_update(string $option, $old_value, $value): void
 	{
-		delete_transient(self::$health_transient);
-		return $new_value;
+		// Only invalidate when provider_config is updated (contains API keys)
+		if ('provider_config' === $option) {
+			delete_transient(self::$health_transient);
+		}
 	}
 
 	/**
