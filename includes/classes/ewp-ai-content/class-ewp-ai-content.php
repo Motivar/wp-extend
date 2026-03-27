@@ -4,6 +4,7 @@ if (! defined('ABSPATH')) {
 	exit;
 }
 
+require_once __DIR__ . '/../class-encryption.php';
 require_once __DIR__ . '/class-ai-provider-interface.php';
 require_once __DIR__ . '/class-openai-provider.php';
 require_once __DIR__ . '/class-claude-provider.php';
@@ -54,28 +55,7 @@ class EWP_AI_Content
 	 */
 	private static string $option_key = 'ewp_ai_content_settings';
 
-	/**
-	 * EWP section option keys — the actual wp_options rows where settings are stored.
-	 * Keys map to which section each field belongs to.
-	 *
-	 * @var array<string, string>
-	 */
-	private static array $section_keys = [
-		'default_provider'    => 'provider_config',
-		'openai_api_key'      => 'provider_config',
-		'openai_model'        => 'provider_config',
-		'claude_api_key'      => 'provider_config',
-		'claude_model'        => 'provider_config',
-		'gemini_api_key'      => 'provider_config',
-		'gemini_model'        => 'provider_config',
-		'max_tokens'          => 'content_settings',
-		'temperature'         => 'content_settings',
-		'include_screenshot'  => 'content_settings',
-		'brand_voice'         => 'general_instructions',
-		'target_audience'     => 'general_instructions',
-		'business_context'    => 'general_instructions',
-		'custom_instructions' => 'general_instructions',
-	];
+
 
 	/**
 	 * Transient key for cached health-check status.
@@ -538,83 +518,23 @@ JS;
 	 */
 	private function get_settings_fields(): array
 	{
-		$openai_models = (new EWP_AI_OpenAI_Provider())->get_models();
-		$claude_models = (new EWP_AI_Claude_Provider())->get_models();
-		$gemini_models = (new EWP_AI_Gemini_Provider())->get_models();
-
 		return [
 
 			// ── Provider Configuration ────────────────────────────────────
 			'provider_config' => [
 				'case'    => 'section',
 				'label'   => __('Provider Configuration', 'extend-wp'),
-				'include' => [
-
-					'default_provider' => [
-						'label'       => __('Default Provider', 'extend-wp'),
-						'case'        => 'select',
-						'options'     => [
-							'openai' => ['label' => 'OpenAI'],
-							'claude' => ['label' => 'Claude (Anthropic)'],
-							'gemini' => ['label' => 'Gemini (Google)'],
+				'include' => array_merge(
+					[
+						'default_provider' => [
+							'label'       => __('Default Provider', 'extend-wp'),
+							'case'        => 'select',
+							'options'     => apply_filters('ewp_ai_provider_options', []),
+							'explanation' => __('Provider used when none is specified per request.', 'extend-wp'),
 						],
-						'explanation' => __('Provider used when none is specified per request.', 'extend-wp'),
 					],
-
-					'openai_api_key' => [
-						'label'       => __('OpenAI API Key', 'extend-wp'),
-						'case'        => 'input',
-						'type'        => 'password',
-						'encrypt'     => true,
-						'show_masked' => true,
-						'explanation' => __('Your OpenAI API key from platform.openai.com. Stored encrypted.', 'extend-wp'),
-						'show-when'   => ['default_provider' => ['values' => ['openai' => true]]],
-					],
-
-					'openai_model' => [
-						'label'       => __('OpenAI Model', 'extend-wp'),
-						'case'        => 'select',
-						'options'     => array_map(fn($label) => ['label' => $label], $openai_models),
-						'explanation' => __('Default model for OpenAI requests.', 'extend-wp'),
-						'show-when'   => ['default_provider' => ['values' => ['openai' => true]]],
-					],
-
-					'claude_api_key' => [
-						'label'       => __('Claude API Key', 'extend-wp'),
-						'case'        => 'input',
-						'type'        => 'password',
-						'encrypt'     => true,
-						'show_masked' => true,
-						'explanation' => __('Your Anthropic API key from console.anthropic.com. Stored encrypted.', 'extend-wp'),
-						'show-when'   => ['default_provider' => ['values' => ['claude' => true]]],
-					],
-
-					'claude_model' => [
-						'label'       => __('Claude Model', 'extend-wp'),
-						'case'        => 'select',
-						'options'     => array_map(fn($label) => ['label' => $label], $claude_models),
-						'explanation' => __('Default model for Claude requests.', 'extend-wp'),
-						'show-when'   => ['default_provider' => ['values' => ['claude' => true]]],
-					],
-
-					'gemini_api_key' => [
-						'label'       => __('Gemini API Key', 'extend-wp'),
-						'case'        => 'input',
-						'type'        => 'password',
-						'encrypt'     => true,
-						'show_masked' => true,
-						'explanation' => __('Your Google Gemini API key from aistudio.google.com. Stored encrypted.', 'extend-wp'),
-						'show-when'   => ['default_provider' => ['values' => ['gemini' => true]]],
-					],
-
-					'gemini_model' => [
-						'label'       => __('Gemini Model', 'extend-wp'),
-						'case'        => 'select',
-						'options'     => array_map(fn($label) => ['label' => $label], $gemini_models),
-						'explanation' => __('Default model for Gemini requests.', 'extend-wp'),
-						'show-when'   => ['default_provider' => ['values' => ['gemini' => true]]],
-					],
-				],
+					apply_filters('ewp_ai_provider_settings_fields', [])
+				),
 			],
 
 			// ── Content Settings ──────────────────────────────────────────
@@ -850,6 +770,55 @@ JS;
 		if ('business_data' === $meta_key) {
 			self::bust_cache();
 		}
+	}
+
+	/**
+	 * Encrypt API keys before saving to the database via Settings API.
+	 *
+	 * Hooked into pre_update_option_{option_key} so encryption is transparent
+	 * to the standard WP Settings API flow.
+	 *
+	 * @param mixed $new_value Incoming settings array.
+	 * @param mixed $old_value Previously stored settings array.
+	 * @return mixed Encrypted settings array.
+	 *
+	 * @since 1.0.0
+	 */
+	public function encrypt_api_keys_on_save($new_value, $old_value): mixed
+	{
+		if (!is_array($new_value)) {
+			return $new_value;
+		}
+
+		$key_fields = ['openai_api_key', 'claude_api_key', 'gemini_api_key'];
+
+		foreach ($key_fields as $field) {
+			if (!isset($new_value[$field])) {
+				continue;
+			}
+
+			$raw = $new_value[$field];
+
+			// If the field is empty, preserve the existing encrypted value.
+			if ('' === $raw) {
+				$new_value[$field] = is_array($old_value) ? ($old_value[$field] ?? '') : '';
+				continue;
+			}
+
+			// If the value looks like the masked placeholder, don't re-encrypt.
+			if (EWP_Encryption::is_masked($raw)) {
+				$new_value[$field] = is_array($old_value) ? ($old_value[$field] ?? '') : '';
+				continue;
+			}
+
+			// Encrypt the API key
+			$new_value[$field] = EWP_Encryption::encrypt($raw);
+		}
+
+		// Bust the settings cache so subsequent calls get fresh values.
+		self::$settings_cache = null;
+
+		return $new_value;
 	}
 
 	/* =========================================================

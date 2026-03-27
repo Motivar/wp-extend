@@ -116,26 +116,21 @@ class EWP_Encryption {
 	/**
 	 * Return a masked representation for display in the admin UI.
 	 *
-	 * Shows eight bullet characters followed by the last four characters
-	 * of the decrypted value so the user can confirm which key is stored
-	 * without revealing the full secret.
+	 * Shows four asterisks to indicate the field is encrypted without
+	 * revealing any information about the stored value.
 	 *
 	 * @param string $encrypted Encrypted string from the database.
 	 * @param string $algorithm Optional cipher algorithm. Defaults to aes-256-cbc.
-	 * @return string Masked string, e.g. "••••••••abcd", or '' if empty.
+	 * @return string Masked string, e.g. "****", or '' if empty.
 	 *
 	 * @since 1.3.0
 	 */
 	public static function mask( string $encrypted, string $algorithm = '' ): string {
-		$plain = self::decrypt( $encrypted, $algorithm );
-
-		if ( '' === $plain ) {
+		if ('' === $encrypted) {
 			return '';
 		}
 
-		$suffix = mb_substr( $plain, -4 );
-
-		return str_repeat( self::MASK_CHAR, 8 ) . $suffix;
+		return '****';
 	}
 
 	/**
@@ -151,6 +146,21 @@ class EWP_Encryption {
 	 */
 	public static function is_masked( string $value ): bool {
 		return '' !== $value && 0 === strpos( $value, self::MASK_CHAR );
+	}
+
+	/**
+	 * Check whether a value is already encrypted.
+	 *
+	 * Used to avoid re-encrypting already encrypted values.
+	 *
+	 * @param string $value Value to check.
+	 * @return bool True if the value is already encrypted.
+	 *
+	 * @since 1.3.0
+	 */
+	public static function is_encrypted(string $value): bool
+	{
+		return '' !== $value && 0 === strpos($value, self::PREFIX);
 	}
 
 	/**

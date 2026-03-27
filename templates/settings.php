@@ -40,7 +40,8 @@ if (!empty($page)) {
     // Check if the current admin page matches the criteria to display the settings form.
     if ($pagenow == 'admin.php' || $pagenow == 'options-general.php' || $custom_link == $awm_settings['parent']) { ?>
         <!-- Start of the settings form wrapper -->
-        <div class="wrap awm-settings-form" id="<?php echo $awm_settings['id']; ?>" data-page="<?php echo esc_attr($awm_settings['id']); ?>">
+        <div class="wrap awm-settings-form" id="<?php echo $awm_settings['id']; ?>"
+            data-page="<?php echo esc_attr($awm_settings['id']); ?>">
             <h2><?php echo $awm_settings['title']; ?></h2> <!-- Display the page title -->
             <?php echo awm_show_explanation($awm_settings); ?>
             <!-- Display an explanation or description -->
@@ -64,16 +65,18 @@ if (!empty($page)) {
                         $data['id'] = $key;
 
                         // Check if the value is already set; otherwise, get it from WordPress options.
+                        // Don't set the value as an attribute — let awm_show_content() handle it via awm_get_field_value()
+                        // This ensures encrypted fields are properly decrypted and masked
                         if (!isset($data['attributes']['value'])) {
-                            $value = get_option($key);
-                            $data['attributes']['value'] = apply_filters('awm_settings_page_value', $value, $data, $awm_settings);
+                            // Only apply the filter, don't set as attribute
+                            apply_filters('awm_settings_page_value', get_option($key), $data, $awm_settings);
                         }
                         $settings[$key] = $data; // Add the option to the settings array.
                     }
 
-                        // Render the settings content.
-                        // Pass the option page ID as context for modal fields
-                        echo awm_show_content($settings, 0, 'option', 'edit', true, '', ', ', $awm_settings['id']);
+                    // Render the settings content.
+                    // Pass the option page ID as context for modal fields
+                    echo awm_show_content($settings, 0, 'option', 'edit', true, '', ', ', $awm_settings['id']);
 
                     // Add hidden input fields to store metadata for the form.
                     echo '<input type="hidden" name="awm_metabox[]" value="' . $awm_settings['id'] . '"/>';

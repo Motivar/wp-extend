@@ -245,4 +245,55 @@ class EWP_AI_OpenAI_Provider implements EWP_AI_Provider_Interface {
 
 		return $messages;
 	}
+
+	/**
+	 * Register provider option in the default_provider dropdown.
+	 *
+	 * @param array $options Existing provider options.
+	 * @return array Updated provider options.
+	 *
+	 * @since 1.0.0
+	 */
+	public static function register_provider_option(array $options): array
+	{
+		$options['openai'] = ['label' => 'OpenAI'];
+		return $options;
+	}
+
+	/**
+	 * Register provider settings fields (API key + model).
+	 *
+	 * @param array $fields Existing settings fields.
+	 * @return array Updated settings fields.
+	 *
+	 * @since 1.0.0
+	 */
+	public static function register_settings_fields(array $fields): array
+	{
+		$models = (new self())->get_models();
+
+		$fields['openai_api_key'] = [
+			'label'       => __('OpenAI API Key', 'extend-wp'),
+			'case'        => 'input',
+			'type'        => 'text',
+			'encrypt'     => true,
+			'show_masked' => true,
+			'explanation' => __('Your OpenAI API key from platform.openai.com. Stored encrypted.', 'extend-wp'),
+			'show-when'   => ['default_provider' => ['values' => ['openai' => true]]],
+		];
+
+		$fields['openai_model'] = [
+			'label'       => __('OpenAI Model', 'extend-wp'),
+			'case'        => 'select',
+			'options'     => array_map(fn($label) => ['label' => $label], $models),
+			'explanation' => __('Default model for OpenAI requests.', 'extend-wp'),
+			'show-when'   => ['default_provider' => ['values' => ['openai' => true]]],
+		];
+
+		return $fields;
+	}
 }
+
+// Register provider option and settings fields filters.
+add_filter('ewp_ai_provider_options', ['EWP_AI_OpenAI_Provider', 'register_provider_option']);
+add_filter('ewp_ai_provider_settings_fields', ['EWP_AI_OpenAI_Provider', 'register_settings_fields']);
