@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **EWP AI Content Modal — Refactored to use awm_modal Infrastructure** (`2026-03-28`):
+  - **User Request**: "refactor this to use the awm_modal type and remove code not needed or is redundant. hook into awm_modal_body_content and prepare the fields using the EWP field types"
+  - **Implementation**: Refactored AI Content Generator modal to leverage existing `awm_modal` system:
+    - **PHP Changes** (`class-ewp-ai-content.php`):
+      - Replaced direct `add_meta_box()` with `awm_add_meta_boxes_filter` registration
+      - Created `register_ai_meta_box()` method to register meta box via filter with `awm_modal` field type
+      - Created `get_ai_generator_fields()` method to define modal fields using EWP field types (checkbox, select, radio, textarea, html)
+      - Provider/model options now populated from PHP settings (single source of truth)
+      - Added template filter callbacks:
+        - `filter_modal_wrapper_classes()` — Add AI-specific CSS classes
+        - `filter_modal_body_content()` — Wrap fields in AI container
+        - `filter_modal_footer_start()` — Inject custom Generate/Accept All/Retry buttons
+        - `filter_modal_after_body()` — Inject results section HTML
+      - Created `get_prompt_preview_html()` helper for collapsible prompt preview
+      - Updated `register_dynamic_assets()` to use new modal trigger selector
+    - **JavaScript Changes** (`class-ewp-ai-content.js`):
+      - Removed `buildGeneratorModal()`, `openGeneratorModal()`, `closeGeneratorModal()` methods (~200 lines)
+      - Added `initGeneratorModal(overlay)` method to hook into `awm_modal_fields_loaded` event
+      - Updated `syncModels()`, `togglePromptPreview()`, `runGenerate()`, `showResults()` to accept modal parameter
+      - Updated field selectors to work with new awm_modal field structure (`[name*="[field]"]`)
+      - Kept all editor integration methods unchanged
+      - Kept business context generation logic unchanged
+    - **Benefits**:
+      - Single source of truth for provider/model options (PHP settings)
+      - Reuses existing `awm_modal` template and REST infrastructure
+      - Removed ~200 lines of redundant modal HTML generation
+      - Consistent UX with other EWP features
+      - JavaScript only loads when modal trigger exists (Dynamic Asset Loader)
+      - Clear separation: field definitions in PHP, behavior in JS
+  - **Backwards Compatibility**: Full — all existing functionality preserved, just refactored infrastructure
+
 ### Added
 - **EWP AI Content — Comprehensive Developer Filters and Hooks** (`2026-03-29`):
   - **User Request**: "at all php files please add necessary filters and hooks for developers, so they can edit fields/auto populate fields in prompt etc."

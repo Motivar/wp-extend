@@ -14,7 +14,8 @@
       "Bash(grep -n \"try\\\\|catch\\\\|{$\\\\|}\")",
       "Bash(ls -la /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/includes/classes/ewp-ai-content/class-ewp-ai-content.php*)",
       "Bash(/tmp/verification_summary.md:*)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }

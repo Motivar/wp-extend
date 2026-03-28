@@ -7,19 +7,16 @@
  *  - Gutenberg: content inserted as native blocks via wp.blocks.rawHandler.
  *  - Classic editor: TinyMCE / textarea fallback.
  *
- * Loaded via Dynamic Asset Loader (.ewp-ai-content-metabox)
- * and also explicitly on the settings page.
+ * Loaded via Dynamic Asset Loader (.awm-modal-trigger[data-modal-id*="ai_generator"])
+ * Hooks into awm_modal_fields_loaded event to initialize AI-specific functionality.
  *
  * @package EWP\AIContent
- * @since   1.0.0
+ * @since   1.0.3
  */
 class EWPAiContent {
 
 	/** @type {object} */
 	static config = typeof ewpAiContent !== 'undefined' ? ewpAiContent : {};
-
-	/** @type {EWP_AI_Provider[]} */
-	providers = [];
 
 	/** @type {object} { title, excerpt, full_content } */
 	results = {};
@@ -28,10 +25,7 @@ class EWPAiContent {
 	lastParams = {};
 
 	/** @type {HTMLElement|null} */
-	generatorModal = null;
-
-	/** @type {HTMLElement|null} */
-	onboardingModal = null;
+	currentModal = null;
 
 	constructor() {
 		this.s = EWPAiContent.config.strings || {};
@@ -39,29 +33,27 @@ class EWPAiContent {
 	}
 
 	init() {
-		const metaBox = document.querySelector('.ewp-ai-content-metabox');
-		if (metaBox) {
-			this.initMetaBox(metaBox);
-		}
+		// Listen for modal loaded event from awm_modal_field.js
+		document.addEventListener('awm_modal_fields_loaded', (e) => {
+			const container = e.detail?.container;
+			const overlay = container?.closest('.awm-modal-overlay');
+			if (!overlay) { return; }
+
+			const modalId = overlay.id;
+			if (modalId && modalId.includes('ai_generator')) {
+				this.initGeneratorModal(overlay);
+			}
+		});
+
+		// Settings page: auto-generate business context after modal saves
 		if (EWPAiContent.config.isSettingsPage) {
 			this.initSettingsPage();
-		}
-	}
-
-	// ── Meta box ────────────────────────────────────────────────────────────
-
-	initMetaBox(metaBox) {
-		const btn = metaBox.querySelector('.ewp-ai-open-modal');
-		if (btn) {
-			btn.addEventListener('click', () => this.openGeneratorModal(metaBox));
 		}
 	}
 
 	// ── Settings page ────────────────────────────────────────────────────────
 
 	initSettingsPage() {
-		// After awm_modal saves business_data, auto-generate the business_context
-		// summary and populate the textarea on the settings page.
 		document.addEventListener('awm_modal_fields_saved', e => {
 			const overlay = e.detail?.overlay;
 			if (!overlay || !overlay.id.includes('business_data')) { return; }
@@ -71,238 +63,62 @@ class EWPAiContent {
 
 	// ── Generator Modal ─────────────────────────────────────────────────────
 
-	async openGeneratorModal(metaBox) {
+	initGeneratorModal(overlay) {
 		this.results = {};
 		this.lastParams = {};
+		this.currentModal = overlay;
 
-		const postId = parseInt(metaBox.dataset.postId, 10);
-		const frontUrl = metaBox.dataset.frontendUrl || '';
-		const screenshot = metaBox.dataset.screenshotEnabled === '1';
-		const wpml = metaBox.dataset.wpmlActive === '1';
+		// Get post ID from trigger button data
+		const trigger = document.querySelector('.awm-modal-trigger[data-modal-id*="ai_generator"]');
+		const postId = trigger ? parseInt(trigger.dataset.objectId, 10) : 0;
+		const frontUrl = trigger?.dataset.frontendUrl || '';
+		const screenshot = trigger?.dataset.screenshotEnabled === '1';
 
-		// Build and mount modal.
-		this.generatorModal = this.buildGeneratorModal(postId, frontUrl, screenshot, wpml);
-		document.body.appendChild(this.generatorModal);
-		document.body.classList.add('ewp-ai-modal-open');
-
-		// Load providers into selects.
-		await this.loadProviders();
-
-		// Bind modal events.
-		this.bindGeneratorEvents(postId, frontUrl, screenshot);
-
-		// Animate in.
-		requestAnimationFrame(() => this.generatorModal.classList.add('ewp-ai-modal--visible'));
-	}
-
-	buildGeneratorModal(postId, frontUrl, screenshot, wpml) {
-		const s = this.s;
-		const cfg = EWPAiContent.config;
-
-		const overlay = document.createElement('div');
-		overlay.className = 'ewp-ai-modal-overlay';
-		overlay.id = 'ewp-ai-generator-modal';
-
-		overlay.innerHTML = `
-			<div class="ewp-ai-modal" role="dialog" aria-modal="true">
-				<div class="ewp-ai-modal-header">
-					<h2>✦ ${s.generate || 'Generate with AI'}</h2>
-					<button type="button" class="ewp-ai-modal-close" aria-label="Close">✕</button>
-				</div>
-				<div class="ewp-ai-modal-body">
-					<div class="ewp-ai-modal-row">
-						<label class="ewp-ai-row-label">${s.generate || 'Generate'}</label>
-						<div class="ewp-ai-task-checks">
-							<label><input type="checkbox" name="ewp_tasks" value="title" checked> ${s.task_title || 'Title'}</label>
-							<label><input type="checkbox" name="ewp_tasks" value="excerpt"> ${s.task_excerpt || 'Excerpt'}</label>
-							<label><input type="checkbox" name="ewp_tasks" value="full_content"> ${s.task_content || 'Full Content'}</label>
-						</div>
-					</div>
-					<div class="ewp-ai-modal-row ewp-ai-modal-row--2col">
-						<div>
-							<label class="ewp-ai-row-label">Provider</label>
-							<select id="ewp-ai-modal-provider" class="ewp-ai-select">
-								<option>${s.generating || 'Loading…'}</option>
-							</select>
-						</div>
-						<div>
-							<label class="ewp-ai-row-label">Model</label>
-							<select id="ewp-ai-modal-model" class="ewp-ai-select"></select>
-						</div>
-					</div>
-					${wpml ? `
-					<div class="ewp-ai-modal-row ewp-ai-wpml-row">
-						<label class="ewp-ai-row-label">${s.translate_mode || 'Translation Mode'}</label>
-						<div class="ewp-ai-radio-group">
-							<label><input type="radio" name="ewp_trans_mode" value="translate" checked> ${s.translate_label || 'Translate'}</label>
-							<label><input type="radio" name="ewp_trans_mode" value="recreate"> ${s.recreate_label || 'Recreate'}</label>
-						</div>
-					</div>` : ''}
-					<div class="ewp-ai-modal-row">
-						<label class="ewp-ai-row-label">Instructions <span class="ewp-ai-optional">(optional)</span></label>
-						<textarea id="ewp-ai-modal-instructions" rows="2" placeholder="${s.instructions_ph || 'Add specific instructions…'}"></textarea>
-					</div>
-					<div class="ewp-ai-modal-row ewp-ai-prompt-row">
-						<button type="button" class="ewp-ai-prompt-toggle">${s.preview_prompt || '▶ Preview Prompt'}</button>
-						<div class="ewp-ai-prompt-preview" style="display:none;">
-							<div class="ewp-ai-prompt-loading">${s.loading_preview || 'Loading…'}</div>
-							<div class="ewp-ai-prompt-content" style="display:none;">
-								<div class="ewp-ai-prompt-section">
-									<strong>System</strong>
-									<pre class="ewp-ai-pre" id="ewp-prompt-system"></pre>
-								</div>
-								<div class="ewp-ai-prompt-section">
-									<strong>User</strong>
-									<pre class="ewp-ai-pre" id="ewp-prompt-user"></pre>
-								</div>
-							</div>
-						</div>
-					</div>
-					<div class="ewp-ai-modal-progress" style="display:none;">
-						<span class="spinner is-active"></span>
-						<span class="ewp-ai-progress-label">${s.generating || 'Generating…'}</span>
-					</div>
-					<div class="ewp-ai-modal-error notice notice-error" style="display:none;"><p></p></div>
-				</div>
-				<div class="ewp-ai-modal-footer">
-					<button type="button" class="button button-primary ewp-ai-generate-submit">${s.generate || '✦ Generate'}</button>
-					<button type="button" class="button ewp-ai-modal-close-btn">${s.cancel || 'Cancel'}</button>
-				</div>
-				<div class="ewp-ai-results-section" style="display:none;">
-					<div class="ewp-ai-modal-body">
-						<div class="ewp-ai-result-item" data-task="title" style="display:none;">
-							<strong>${s.task_title || 'Title'}</strong>
-							<div class="ewp-ai-result-text"></div>
-						</div>
-						<div class="ewp-ai-result-item" data-task="excerpt" style="display:none;">
-							<strong>${s.task_excerpt || 'Excerpt'}</strong>
-							<div class="ewp-ai-result-text"></div>
-						</div>
-						<div class="ewp-ai-result-item" data-task="full_content" style="display:none;">
-							<strong>${s.task_content || 'Full Content'}</strong>
-							<div class="ewp-ai-result-text ewp-ai-result-text--content"></div>
-						</div>
-					</div>
-					<div class="ewp-ai-modal-footer">
-						<button type="button" class="button button-primary ewp-ai-accept-all">${s.accept_all || 'Accept All'}</button>
-						<button type="button" class="button ewp-ai-retry">${s.retry || 'Retry'}</button>
-						<button type="button" class="button ewp-ai-modal-close-btn">${s.cancel || 'Cancel'}</button>
-					</div>
-				</div>
-			</div>`;
-
-		return overlay;
-	}
-
-	bindGeneratorEvents(postId, frontUrl, screenshot) {
-		const m = this.generatorModal;
-
-		// Close.
-		m.querySelectorAll('.ewp-ai-modal-close, .ewp-ai-modal-close-btn').forEach(btn => {
-			btn.addEventListener('click', () => this.closeGeneratorModal());
-		});
-		m.addEventListener('click', e => {
-			if (e.target === m) { this.closeGeneratorModal(); }
-		});
-
-		// Provider → model sync.
-		const providerSel = m.querySelector('#ewp-ai-modal-provider');
-		if ( providerSel ) {
-			providerSel.addEventListener('change', () => this.syncModels());
+		// Sync provider/model on provider change
+		const providerSel = overlay.querySelector('[name*="[provider]"]');
+		if (providerSel) {
+			providerSel.addEventListener('change', () => this.syncModels(overlay));
 		}
 
-		// Prompt preview toggle.
-		const promptToggle = m.querySelector('.ewp-ai-prompt-toggle');
+		// Prompt preview toggle
+		const promptToggle = overlay.querySelector('.ewp-ai-prompt-toggle');
 		if (promptToggle) {
-			promptToggle.addEventListener('click', () => this.togglePromptPreview(postId));
+			promptToggle.addEventListener('click', () => this.togglePromptPreview(overlay, postId));
 		}
 
-		// Generate.
-		const generateBtn = m.querySelector('.ewp-ai-generate-submit');
+		// Generate button
+		const generateBtn = overlay.querySelector('.ewp-ai-generate-btn');
 		if (generateBtn) {
-			generateBtn.addEventListener('click', () => this.runGenerate(postId, frontUrl, screenshot));
+			generateBtn.addEventListener('click', () => this.runGenerate(overlay, postId, frontUrl, screenshot));
 		}
 
-		// Accept All.
-		const acceptBtn = m.querySelector('.ewp-ai-accept-all');
+		// Accept All button
+		const acceptBtn = overlay.querySelector('.ewp-ai-accept-all');
 		if (acceptBtn) {
 			acceptBtn.addEventListener('click', () => {
 				this.applyToEditor(this.results);
-				this.closeGeneratorModal();
+				if (typeof AWMModalField !== 'undefined' && AWMModalField.instance) {
+					AWMModalField.instance.closeModal();
+				}
 			});
 		}
 
-		// Retry.
-		const retryBtn = m.querySelector('.ewp-ai-retry');
+		// Retry button
+		const retryBtn = overlay.querySelector('.ewp-ai-retry');
 		if (retryBtn) {
-			retryBtn.addEventListener('click', () => this.runGenerate(postId, frontUrl, screenshot));
+			retryBtn.addEventListener('click', () => this.runGenerate(overlay, postId, frontUrl, screenshot));
 		}
 
-		// Escape key.
-		this._escHandler = e => { if (e.key === 'Escape') { this.closeGeneratorModal(); } };
-		document.addEventListener('keydown', this._escHandler);
-	}
-
-	closeGeneratorModal() {
-		if (!this.generatorModal) { return; }
-		this.generatorModal.classList.remove('ewp-ai-modal--visible');
-		setTimeout(() => {
-			if (this.generatorModal && this.generatorModal.parentNode) {
-				this.generatorModal.parentNode.removeChild(this.generatorModal);
-			}
-			this.generatorModal = null;
-			document.body.classList.remove('ewp-ai-modal-open');
-		}, 200);
-		if (this._escHandler) {
-			document.removeEventListener('keydown', this._escHandler);
-		}
+		// Initial model sync
+		this.syncModels(overlay);
 	}
 
 	// ── Providers ────────────────────────────────────────────────────────────
 
-	async loadProviders() {
-		const cfg = EWPAiContent.config;
-		try {
-			const resp = await fetch(cfg.restUrl + 'providers', {
-				headers: { 'X-WP-Nonce': cfg.nonce },
-			});
-			if (!resp.ok) { throw new Error('Failed to load providers'); }
-			this.providers = await resp.json();
-		} catch {
-			this.providers = [];
-		}
-
-		const providerSel = this.generatorModal && this.generatorModal.querySelector('#ewp-ai-modal-provider');
-		const modelSel = this.generatorModal && this.generatorModal.querySelector('#ewp-ai-modal-model');
-
-		if (!providerSel || !modelSel) { return; }
-
-		providerSel.innerHTML = '';
-		modelSel.innerHTML = '';
-
-		this.providers.forEach(p => {
-			const opt = document.createElement('option');
-			opt.value = p.id;
-			opt.text = p.label;
-			providerSel.appendChild(opt);
-
-			Object.entries(p.models || {}).forEach(([id, label]) => {
-				const mOpt = document.createElement('option');
-				mOpt.value = id;
-				mOpt.text = label;
-				mOpt.dataset.provider = p.id;
-				modelSel.appendChild(mOpt);
-			});
-		});
-
-		this.syncModels();
-	}
-
-	syncModels() {
-		const m = this.generatorModal;
-		if (!m) { return; }
-		const providerSel = m.querySelector('#ewp-ai-modal-provider');
-		const modelSel = m.querySelector('#ewp-ai-modal-model');
+	syncModels(modal) {
+		if (!modal) { return; }
+		const providerSel = modal.querySelector('[name*="[provider]"]');
+		const modelSel = modal.querySelector('[name*="[model]"]');
 		if (!providerSel || !modelSel) { return; }
 
 		const selected = providerSel.value;
@@ -313,7 +129,7 @@ class EWPAiContent {
 			opt.hidden = !show;
 			opt.disabled = !show;
 			if (show && !first) { first = opt; }
-		} );
+		});
 
 		if (modelSel.selectedOptions[0] && modelSel.selectedOptions[0].hidden && first) {
 			modelSel.value = first.value;
@@ -322,17 +138,17 @@ class EWPAiContent {
 
 	// ── Prompt preview ───────────────────────────────────────────────────────
 
-	async togglePromptPreview(postId) {
-		const m = this.generatorModal;
-		const wrapper = m && m.querySelector('.ewp-ai-prompt-preview');
-		const btn = m && m.querySelector('.ewp-ai-prompt-toggle');
+	async togglePromptPreview(modal, postId) {
+		if (!modal) { return; }
+		const wrapper = modal.querySelector('.ewp-ai-prompt-preview');
+		const btn = modal.querySelector('.ewp-ai-prompt-toggle');
 		if (!wrapper) { return; }
 
 		const isOpen = wrapper.style.display !== 'none';
 
 		if (isOpen) {
 			wrapper.style.display = 'none';
-			if (btn) { btn.textContent = (this.s.preview_prompt || '▶ Preview Prompt'); }
+			if (btn) { btn.textContent = '▶ ' + (this.s.preview_prompt || 'Preview Prompt').replace(/^[▶▼]\s*/, ''); }
 			return;
 		}
 
@@ -344,10 +160,10 @@ class EWPAiContent {
 		if (loading) { loading.style.display = 'block'; }
 		if (content) { content.style.display = 'none'; }
 
-		const tasks = this.getSelectedTasks();
+		const tasks = this.getSelectedTasks(modal);
 		const task = tasks[0] || 'title';
-		const instruct = m.querySelector('#ewp-ai-modal-instructions')?.value || '';
-		const transMode = m.querySelector('input[name="ewp_trans_mode"]:checked')?.value || '';
+		const instruct = modal.querySelector('[name*="[instructions]"]')?.value || '';
+		const transMode = modal.querySelector('[name*="[translation_mode]"]:checked')?.value || '';
 		const cfg = EWPAiContent.config;
 
 		try {
@@ -368,51 +184,50 @@ class EWPAiContent {
 
 	// ── Generate ─────────────────────────────────────────────────────────────
 
-	getSelectedTasks() {
-		if (!this.generatorModal) { return []; }
+	getSelectedTasks(modal) {
+		if (!modal) { return []; }
 		return Array.from(
-			this.generatorModal.querySelectorAll('input[name="ewp_tasks"]:checked')
+			modal.querySelectorAll('[name*="[tasks]"]:checked')
 		).map(el => el.value);
 	}
 
-	async runGenerate(postId, frontUrl, screenshot) {
-		const m = this.generatorModal;
-		if (!m) { return; }
+	async runGenerate(modal, postId, frontUrl, screenshot) {
+		if (!modal) { return; }
 
-		const tasks = this.getSelectedTasks();
+		const tasks = this.getSelectedTasks(modal);
 		if (!tasks.length) { return; }
 
-		const provider = m.querySelector('#ewp-ai-modal-provider')?.value || '';
-		const model = m.querySelector('#ewp-ai-modal-model')?.value || '';
-		const instruct = m.querySelector('#ewp-ai-modal-instructions')?.value || '';
-		const transMode = m.querySelector('input[name="ewp_trans_mode"]:checked')?.value || '';
+		const provider = modal.querySelector('[name*="[provider]"]')?.value || '';
+		const model = modal.querySelector('[name*="[model]"]')?.value || '';
+		const instruct = modal.querySelector('[name*="[instructions]"]')?.value || '';
+		const transMode = modal.querySelector('[name*="[translation_mode]"]:checked')?.value || '';
 
 		this.lastParams = { postId, frontUrl, screenshot, tasks, provider, model, instruct, transMode };
 		this.results = {};
 
 		// Hide results, show progress.
-		const resultsSection = m.querySelector('.ewp-ai-results-section');
-		const footer = m.querySelector('.ewp-ai-modal-footer');
-		const progress = m.querySelector('.ewp-ai-modal-progress');
-		const errorEl = m.querySelector('.ewp-ai-modal-error');
+		const resultsSection = modal.querySelector('.ewp-ai-results-section');
+		const progress = modal.querySelector('.ewp-ai-modal-progress');
+		const errorEl = modal.querySelector('.ewp-ai-modal-error');
+		const generateBtn = modal.querySelector('.ewp-ai-generate-btn');
 
 		if (resultsSection) { resultsSection.style.display = 'none'; }
 		if (errorEl) { errorEl.style.display = 'none'; }
 		if (progress) { progress.style.display = 'flex'; }
-		if (footer) { footer.querySelector('.ewp-ai-generate-submit').disabled = true; }
+		if (generateBtn) { generateBtn.disabled = true; }
 
 		// Screenshot capture.
 		let imageBase64 = '';
 		const cfg = EWPAiContent.config;
 		if (screenshot && frontUrl && typeof html2canvas !== 'undefined') {
-			const progressLabel = m.querySelector('.ewp-ai-progress-label');
+			const progressLabel = modal.querySelector('.ewp-ai-progress-label');
 			if (progressLabel) { progressLabel.textContent = cfg.strings?.capturing || 'Capturing…'; }
 			try {
 				imageBase64 = await this.captureScreenshot(frontUrl);
 			} catch { /* non-fatal */ }
 		}
 
-		const progressLabel = m.querySelector('.ewp-ai-progress-label');
+		const progressLabel = modal.querySelector('.ewp-ai-progress-label');
 
 		for (const task of tasks) {
 			if (progressLabel) {
@@ -434,7 +249,7 @@ class EWPAiContent {
 				this.results[task] = data.content || '';
 			} catch (err) {
 				if (progress) { progress.style.display = 'none'; }
-				if (footer) { footer.querySelector('.ewp-ai-generate-submit').disabled = false; }
+				if (generateBtn) { generateBtn.disabled = false; }
 				if (errorEl) {
 					errorEl.style.display = 'block';
 					errorEl.querySelector('p').textContent = err.message || (cfg.strings?.error_generic || 'Error');
@@ -445,17 +260,17 @@ class EWPAiContent {
 
 		// Show results.
 		if (progress) { progress.style.display = 'none'; }
-		if (footer) { footer.querySelector('.ewp-ai-generate-submit').disabled = false; }
-		this.showResults(tasks);
+		if (generateBtn) { generateBtn.disabled = false; }
+		this.showResults(modal, tasks);
 	}
 
-	showResults(tasks) {
-		const m = this.generatorModal;
-		if (!m) { return; }
+	showResults(modal, tasks) {
+		if (!modal) { return; }
 
-		const section = m.querySelector('.ewp-ai-results-section');
+		const section = modal.querySelector('.ewp-ai-results-section');
 		if (!section) { return; }
 
+		// Show/hide result items based on tasks
 		tasks.forEach(task => {
 			const item = section.querySelector(`.ewp-ai-result-item[data-task="${task}"]`);
 			const textEl = item && item.querySelector('.ewp-ai-result-text');
@@ -469,7 +284,15 @@ class EWPAiContent {
 			}
 		});
 
+		// Show results section and update footer buttons
 		section.style.display = 'block';
+		const generateBtn = modal.querySelector('.ewp-ai-generate-btn');
+		const acceptBtn = modal.querySelector('.ewp-ai-accept-all');
+		const retryBtn = modal.querySelector('.ewp-ai-retry');
+
+		if (generateBtn) { generateBtn.style.display = 'none'; }
+		if (acceptBtn) { acceptBtn.style.display = 'inline-block'; }
+		if (retryBtn) { retryBtn.style.display = 'inline-block'; }
 	}
 
 	// ── Editor integration ───────────────────────────────────────────────────

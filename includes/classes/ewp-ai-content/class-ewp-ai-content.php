@@ -109,7 +109,11 @@ class EWP_AI_Content
 		if (! is_admin()) {
 			return;
 		}
-		add_action('add_meta_boxes', [$this, 'register_meta_box']);
+		add_filter('awm_add_meta_boxes_filter', [$this, 'register_ai_meta_box']);
+		add_filter('awm_modal_wrapper_classes', [$this, 'filter_modal_wrapper_classes'], 10, 3);
+		add_filter('awm_modal_body_content', [$this, 'filter_modal_body_content'], 10, 3);
+		add_filter('awm_modal_footer_start', [$this, 'filter_modal_footer_start'], 10, 3);
+		add_filter('awm_modal_after_body', [$this, 'filter_modal_after_body'], 10, 3);
 		add_filter('ewp_register_dynamic_assets', [$this, 'register_dynamic_assets']);
 		add_action('admin_bar_menu', [$this, 'render_admin_bar_node'], 100);
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_bar_assets']);
@@ -835,69 +839,258 @@ JS;
 	 * ========================================================= */
 
 	/**
-	 * Register the AI Content meta box on all public post types.
+	 * Register the AI Content meta box via awm_add_meta_boxes_filter.
 	 *
 	 * Only registered when at least one provider has an API key configured.
+	 * Uses awm_modal field type for the generator interface.
 	 *
-	 * @hook add_meta_boxes
-	 * @since 1.0.0
+	 * @param array $meta_boxes Existing meta boxes.
+	 * @return array Updated meta boxes.
+	 *
+	 * @hook awm_add_meta_boxes_filter
+	 * @since 1.0.3
 	 */
-	public function register_meta_box(): void
+	public function register_ai_meta_box(array $meta_boxes): array
 	{
 		if (empty($this->generator->get_configured_providers())) {
-			return;
+			return $meta_boxes;
 		}
 
 		$post_types = get_post_types(['public' => true], 'names');
 
-		foreach ($post_types as $post_type) {
-			add_meta_box(
-				'ewp-ai-content',
-				__('AI Content Generator', 'extend-wp'),
-				[$this, 'render_meta_box'],
-				$post_type,
-				'side',
-				'default'
-			);
-		}
+		$meta_boxes['ewp_ai_content'] = [
+			'id'        => 'ewp_ai_content',
+			'title'     => __('AI Content Generator', 'extend-wp'),
+			'postTypes' => $post_types,
+			'context'   => 'side',
+			'priority'  => 'default',
+			'library'   => [
+				'ai_generator' => [
+					'case'         => 'awm_modal',
+					'modal_view'   => 'post',
+					'label'        => __('✦ Generate with AI', 'extend-wp'),
+					'button_label' => __('✦ Generate with AI', 'extend-wp'),
+					'modal_title'  => __('AI Content Generator', 'extend-wp'),
+					'button_class' => 'button button-primary widefat',
+					'include'      => $this->get_ai_generator_fields(),
+				],
+			],
+		];
+
+		return $meta_boxes;
 	}
 
 	/**
-	 * Render the AI Content meta box HTML.
+	 * Get AI generator field definitions for the modal.
 	 *
-	 * The .ewp-ai-content-metabox wrapper class is used by the Dynamic
-	 * Asset Loader as a selector to conditionally load JS + CSS.
+	 * Returns field library with tasks, provider, model, instructions, and custom HTML sections.
+	 * Provider and model options are populated from configured providers.
 	 *
-	 * @param \WP_Post $post Current post object.
-	 * @since 1.0.0
+	 * @return array Field definitions.
+	 * @since 1.0.3
 	 */
-	public function render_meta_box(\WP_Post $post): void
+	private function get_ai_generator_fields(): array
 	{
-		$configured         = $this->generator->get_configured_providers();
-		$settings           = self::get_settings();
-		$screenshot_enabled = ! empty($settings['include_screenshot']);
-		$frontend_url       = $this->screenshot_generator->get_frontend_url($post->ID);
+		$settings  = self::get_settings();
+		$providers = $this->generator->get_configured_providers();
 
-		wp_nonce_field('ewp_ai_content_metabox', 'ewp_ai_content_nonce');
-?>
-		<div class="ewp-ai-content-metabox" data-post-id="<?php echo esc_attr($post->ID); ?>"
-			data-frontend-url="<?php echo esc_attr($frontend_url ?: ''); ?>"
-			data-screenshot-enabled="<?php echo esc_attr($screenshot_enabled ? '1' : '0'); ?>"
-			data-wpml-active="<?php echo esc_attr(defined('ICL_LANGUAGE_CODE') ? '1' : '0'); ?>">
-			<?php if (empty($configured)) : ?>
-				<p class="ewp-ai-notice ewp-ai-notice--warn">
-					<?php printf(
-						wp_kses(__('No AI provider configured. <a href="%s">Go to settings</a>.', 'extend-wp'), ['a' => ['href' => []]]),
-						esc_url(admin_url('admin.php?page=ewp_ai_content_settings'))
-					); ?>
-				</p>
-			<?php else : ?>
-				<button type="button" class="button button-primary widefat ewp-ai-open-modal">
-					✦ <?php esc_html_e('Generate with AI', 'extend-wp'); ?>
-				</button>
-			<?php endif; ?>
-		</div>
-<?php
+		// Build provider and model options from configured providers
+		$provider_options = [];
+		$model_options    = [];
+
+		foreach ($providers as $provider) {
+			$provider_id                    = $provider->get_id();
+			$provider_options[$provider_id] = ['label' => $provider->get_label()];
+
+			foreach ($provider->get_models() as $model_id => $model_label) {
+				$model_options[$model_id] = [
+					'label'           => $model_label,
+					'data-provider'   => $provider_id,
+				];
+			}
+		}
+
+		return [
+			'tasks' => [
+				'label'   => __('✦ Generate', 'extend-wp'),
+				'case'    => 'checkbox',
+				'options' => [
+					'title'        => ['label' => __('Title', 'extend-wp')],
+					'excerpt'      => ['label' => __('Excerpt', 'extend-wp')],
+					'full_content' => ['label' => __('Full Content', 'extend-wp')],
+				],
+				'default' => ['title'],
+			],
+			'provider' => [
+				'label'   => __('Provider', 'extend-wp'),
+				'case'    => 'select',
+				'options' => $provider_options,
+				'default' => $settings['default_provider'] ?? 'openai',
+			],
+			'model' => [
+				'label'   => __('Model', 'extend-wp'),
+				'case'    => 'select',
+				'options' => $model_options,
+			],
+			'translation_mode' => [
+				'label'   => __('Translation Mode', 'extend-wp'),
+				'case'    => 'radio',
+				'options' => [
+					'translate' => ['label' => __('Translate', 'extend-wp')],
+					'recreate'  => ['label' => __('Recreate', 'extend-wp')],
+				],
+				'default' => 'translate',
+			],
+			'instructions' => [
+				'label'      => __('Instructions', 'extend-wp'),
+				'case'       => 'textarea',
+				'attributes' => [
+					'rows'        => 2,
+					'placeholder' => __('Add specific instructions for this post…', 'extend-wp'),
+				],
+			],
+			'prompt_preview' => [
+				'case'  => 'html',
+				'value' => $this->get_prompt_preview_html(),
+			],
+			'progress' => [
+				'case'  => 'html',
+				'value' => '<div class="ewp-ai-modal-progress" style="display:none;">
+					<span class="spinner is-active"></span>
+					<span class="ewp-ai-progress-label">' . esc_html__('Generating…', 'extend-wp') . '</span>
+				</div>',
+			],
+			'error' => [
+				'case'  => 'html',
+				'value' => '<div class="ewp-ai-modal-error notice notice-error" style="display:none;"><p></p></div>',
+			],
+		];
+	}
+
+	/**
+	 * Get HTML for the prompt preview section.
+	 *
+	 * Returns a collapsible preview section with toggle button and placeholder content.
+	 *
+	 * @return string HTML for prompt preview.
+	 * @since 1.0.3
+	 */
+	private function get_prompt_preview_html(): string
+	{
+		return '<div class="ewp-ai-prompt-row">
+			<button type="button" class="ewp-ai-prompt-toggle">▶ ' . esc_html__('Preview Prompt', 'extend-wp') . '</button>
+			<div class="ewp-ai-prompt-preview" style="display:none;">
+				<div class="ewp-ai-prompt-loading">' . esc_html__('Loading preview…', 'extend-wp') . '</div>
+				<div class="ewp-ai-prompt-content" style="display:none;">
+					<div class="ewp-ai-prompt-section">
+						<strong>' . esc_html__('System', 'extend-wp') . '</strong>
+						<pre class="ewp-ai-pre" id="ewp-prompt-system"></pre>
+					</div>
+					<div class="ewp-ai-prompt-section">
+						<strong>' . esc_html__('User', 'extend-wp') . '</strong>
+						<pre class="ewp-ai-pre" id="ewp-prompt-user"></pre>
+					</div>
+				</div>
+			</div>
+		</div>';
+	}
+
+	/**
+	 * Filter modal wrapper classes to add AI-specific styling.
+	 *
+	 * @param array  $classes Default wrapper classes.
+	 * @param string $modal_id Modal identifier.
+	 * @param array  $args     Field arguments.
+	 * @return array Updated classes.
+	 *
+	 * @hook awm_modal_wrapper_classes
+	 * @since 1.0.3
+	 */
+	public function filter_modal_wrapper_classes(array $classes, string $modal_id, array $args): array
+	{
+		if (strpos($modal_id, 'ai_generator') !== false) {
+			$classes[] = 'ewp-ai-generator-modal';
+		}
+		return $classes;
+	}
+
+	/**
+	 * Filter modal body content to customize field rendering for AI modal.
+	 *
+	 * @param string $fields_html Rendered fields HTML.
+	 * @param string $modal_id    Modal identifier.
+	 * @param array  $args        Field arguments.
+	 * @return string Updated HTML.
+	 *
+	 * @hook awm_modal_body_content
+	 * @since 1.0.3
+	 */
+	public function filter_modal_body_content(string $fields_html, string $modal_id, array $args): string
+	{
+		if (strpos($modal_id, 'ai_generator') === false) {
+			return $fields_html;
+		}
+
+		// Wrap fields in AI-specific container
+		return '<div class="ewp-ai-modal-body">' . $fields_html . '</div>';
+	}
+
+	/**
+	 * Filter modal footer to inject custom AI buttons instead of default Save/Cancel.
+	 *
+	 * @param string $content  Footer content.
+	 * @param string $modal_id Modal identifier.
+	 * @param array  $args     Field arguments.
+	 * @return string Updated footer content.
+	 *
+	 * @hook awm_modal_footer_start
+	 * @since 1.0.3
+	 */
+	public function filter_modal_footer_start(string $content, string $modal_id, array $args): string
+	{
+		if (strpos($modal_id, 'ai_generator') === false) {
+			return $content;
+		}
+
+		// Inject custom AI buttons
+		return '<button type="button" class="button button-primary ewp-ai-generate-btn">✦ ' . esc_html__('Generate', 'extend-wp') . '</button>
+			<button type="button" class="button ewp-ai-accept-all" style="display:none;">' . esc_html__('Accept All', 'extend-wp') . '</button>
+			<button type="button" class="button ewp-ai-retry" style="display:none;">' . esc_html__('Retry', 'extend-wp') . '</button>
+			<button type="button" class="button awm-modal-cancel">' . esc_html__('Cancel', 'extend-wp') . '</button>';
+	}
+
+	/**
+	 * Filter modal body to inject results section after main content.
+	 *
+	 * @param string $content  Body content.
+	 * @param string $modal_id Modal identifier.
+	 * @param array  $args     Field arguments.
+	 * @return string Updated content.
+	 *
+	 * @hook awm_modal_after_body
+	 * @since 1.0.3
+	 */
+	public function filter_modal_after_body(string $content, string $modal_id, array $args): string
+	{
+		if (strpos($modal_id, 'ai_generator') === false) {
+			return $content;
+		}
+
+		// Inject results section
+		return '<div class="ewp-ai-results-section" style="display:none;">
+			<div class="ewp-ai-result-item" data-task="title" style="display:none;">
+				<strong>' . esc_html__('Title', 'extend-wp') . '</strong>
+				<div class="ewp-ai-result-text"></div>
+			</div>
+			<div class="ewp-ai-result-item" data-task="excerpt" style="display:none;">
+				<strong>' . esc_html__('Excerpt', 'extend-wp') . '</strong>
+				<div class="ewp-ai-result-text"></div>
+			</div>
+			<div class="ewp-ai-result-item" data-task="full_content" style="display:none;">
+				<strong>' . esc_html__('Full Content', 'extend-wp') . '</strong>
+				<div class="ewp-ai-result-text ewp-ai-result-text--content"></div>
+			</div>
+		</div>';
 	}
 
 	/* =========================================================
@@ -1677,15 +1870,15 @@ JS;
 		$settings           = self::get_settings();
 		$screenshot_enabled = ! empty($settings['include_screenshot']);
 
-		// JavaScript.
+		// JavaScript — loads when AI generator modal trigger exists.
 		$assets[] = [
 			'handle'       => 'ewp-ai-content',
-			'selector'     => '.ewp-ai-content-metabox',
+			'selector'     => '.awm-modal-trigger[data-modal-id*="ai_generator"]',
 			'type'         => 'script',
 			'src'          => awm_url . 'assets/js/admin/class-ewp-ai-content.js',
 			'version'      => self::$version,
 			'context'      => 'admin',
-			'dependencies' => $screenshot_enabled ? ['html2canvas'] : [],
+			'dependencies' => ['awm-modal-field', $screenshot_enabled ? 'html2canvas' : null],
 			'in_footer'    => true,
 			'defer'        => true,
 			'localize'     => [
