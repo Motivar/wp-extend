@@ -7,13 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **AWM Modal Field — Data loss on options page save** (`2026-03-28`):
+  - **Issue**: Modal field data was being deleted when saving the options page via WordPress Settings API.
+  - **Root Cause**: `awm_modal` fields only rendered a trigger button without any hidden input. When the settings form submitted to `options.php`, there was no POST data for the modal field (e.g., `business_data`), causing WordPress's `register_setting()` to delete or empty the option.
+  - **Solution**: Added hidden input for `awm_modal` fields when `modal_view === 'option'`. The hidden input preserves the current option value during settings page saves, preventing WordPress Settings API from deleting the data.
+  - **Affected File**: `includes/functions/library.php` — Added lines 1280-1286 in `awm_show_content()` function.
+  - **Impact**: Modal field data now persists correctly when saving options pages. Modal saves via REST API continue to work as before, and settings page saves no longer delete modal data.
+
 ### Changed
-- **EWP AI Content — Prompt Optimization & Smart Caching** (`2026-03-27`):
+- **EWP AI Content — Prompt Optimization & Smart Caching** (`2026-03-27` to `2026-03-28`):
   - **Field Simplification**: Removed low-value fields from `get_business_data_fields()`:
     - Removed `brand_voice` select field (no longer used in system prompt)
-    - Removed `competitors` repeater field (not sent to AI)
-    - Removed `social_links` repeater field (not sent to AI)
+    - Removed `competitors` repeater field (removed from prompting logic and frontend UI)
+    - Removed `social_links` repeater field (removed from prompting logic and frontend UI)
     - These fields were previously sent to the AI model as raw structured data alongside the AI-generated `business_context` summary, creating redundancy
+    - **Frontend Impact**: Removed field definitions from `get_business_data_fields()` so these fields no longer appear in the admin modal interface
   - **Smart Caching with Hash Detection**:
     - Added `get_business_data_hash()` private static method — calculates SHA256 hash of `business_data` option (excluding `business_data_hash` field itself)
     - `rest_generate_business_context()` endpoint now:

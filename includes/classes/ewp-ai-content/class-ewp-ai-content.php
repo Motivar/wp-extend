@@ -705,58 +705,6 @@ JS;
 				'explanation' => __('Additional instructions added to every AI prompt. Example: "Always mention our 5-year warranty."', 'extend-wp'),
 			],
 
-			// ── Review links — URL only (platform inferred from domain) ──
-			'review_links' => [
-				'label'       => __('Review Platform Links', 'extend-wp'),
-				'case'        => 'repeater',
-				'item_name'   => __('Link', 'extend-wp'),
-				'minrows'     => 0,
-				'explanation' => __('Google Maps, TripAdvisor, Yelp, Booking.com… The AI will extract customer sentiment from these when you save.', 'extend-wp'),
-				'include'     => [
-					'url' => [
-						'label'      => __('URL', 'extend-wp'),
-						'case'       => 'input',
-						'type'       => 'url',
-						'attributes' => ['placeholder' => 'https://maps.google.com/…'],
-					],
-				],
-			],
-
-			// ── Social links — URL only ───────────────────────────────────
-			'social_links' => [
-				'label'       => __('Social Media Profiles', 'extend-wp'),
-				'case'        => 'repeater',
-				'item_name'   => __('Profile', 'extend-wp'),
-				'minrows'     => 0,
-				'explanation' => __('Facebook, Instagram, TikTok, LinkedIn… URLs validated before being sent to the AI.', 'extend-wp'),
-				'include'     => [
-					'url' => [
-						'label'      => __('URL', 'extend-wp'),
-						'case'       => 'input',
-						'type'       => 'url',
-						'attributes' => ['placeholder' => 'https://facebook.com/…'],
-					],
-				],
-			],
-
-			// ── Competitors ───────────────────────────────────────────────
-			'competitors' => [
-				'label'       => __('Competitors', 'extend-wp'),
-				'case'        => 'repeater',
-				'item_name'   => __('Competitor', 'extend-wp'),
-				'minrows'     => 0,
-				'explanation' => __('Add main competitors to help the AI differentiate your content.', 'extend-wp'),
-				'include'     => [
-
-
-					'url' => [
-						'label'      => __('Website', 'extend-wp'),
-						'case'       => 'input',
-						'type'       => 'url',
-						'attributes' => ['placeholder' => 'https://… (optional)'],
-					],
-				],
-			],
 		];
 	}
 

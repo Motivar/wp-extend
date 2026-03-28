@@ -1276,6 +1276,15 @@ if (!function_exists('awm_show_content')) {
                                     $ins .= ' data-option-page="' . esc_attr($context_id) . '"';
                                 }
                                 $ins .= '>' . esc_html($button_label) . '</button>';
+
+                                // Add hidden input to preserve value during settings page saves
+                                // Modal saves directly via REST API, but WordPress Settings API needs POST data
+                                // to prevent deleting the option when the settings form submits
+                                if ($modal_view === 'option') {
+                                    $current_value = get_option($original_meta, array());
+                                    $ins .= '<input type="hidden" name="' . esc_attr($original_meta) . '" value="' . esc_attr(wp_json_encode($current_value)) . '">';
+                                }
+
                                 $ins .= '</div>';
                             }
                             break;
