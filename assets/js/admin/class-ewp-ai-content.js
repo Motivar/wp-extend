@@ -186,9 +186,9 @@ class EWPAiContent {
 
 	getSelectedTasks(modal) {
 		if (!modal) { return []; }
-		return Array.from(
-			modal.querySelectorAll('[name*="[tasks]"]:checked')
-		).map(el => el.value);
+		// Handle both checkbox and checkbox_multiple field types
+		const checkboxes = modal.querySelectorAll('input[name*="[tasks]"]:checked');
+		return Array.from(checkboxes).map(el => el.value);
 	}
 
 	async runGenerate(modal, postId, frontUrl, screenshot) {

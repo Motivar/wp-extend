@@ -11,6 +11,11 @@ body.ewp-ai-modal-open {
 	overflow: hidden;
 }
 
+/* ── Hidden utility class ──────────────────────────────────────── */
+.awm-hidden {
+	display: none !important;
+}
+
 /* ── Modal overlay ─────────────────────────────────────────────── */
 .ewp-ai-modal-overlay {
 	position: fixed;

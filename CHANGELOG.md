@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **EWP AI Content Modal — Footer Buttons and Field Rendering** (`2026-03-28`):
+  - Fixed footer buttons not displaying correctly — changed from filter to action hook for `awm_modal_footer_start`
+  - Added filters to hide default Save/Cancel buttons using `awm-hidden` CSS class
+  - Fixed tasks checkbox field not rendering — changed field type from `checkbox` to `checkbox_multiple`
+  - Updated JavaScript to properly select checkbox inputs with `input[name*="[tasks]"]:checked` selector
+  - Added `.awm-hidden` utility class to CSS for hiding elements
+  - **Fixed modal not displaying as overlay** — Updated CSS dynamic asset selector from `.ewp-ai-content-metabox` to `.awm-modal-trigger[data-modal-id*="ai_generator"]` so CSS file loads properly and modal displays as fixed overlay
+
 ### Changed
 - **EWP AI Content Modal — Refactored to use awm_modal Infrastructure** (`2026-03-28`):
   - **User Request**: "refactor this to use the awm_modal type and remove code not needed or is redundant. hook into awm_modal_body_content and prepare the fields using the EWP field types"
@@ -22,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - `filter_modal_footer_start()` — Inject custom Generate/Accept All/Retry buttons
         - `filter_modal_after_body()` — Inject results section HTML
       - Created `get_prompt_preview_html()` helper for collapsible prompt preview
+      - Added `filter_modal_field_definition_lookup()` to provide field definitions to REST API modal-fields endpoint
       - Updated `register_dynamic_assets()` to use new modal trigger selector
     - **JavaScript Changes** (`class-ewp-ai-content.js`):
       - Removed `buildGeneratorModal()`, `openGeneratorModal()`, `closeGeneratorModal()` methods (~200 lines)

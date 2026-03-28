@@ -105,6 +105,9 @@ class EWP_AI_Content
 		// Register options page for both admin and REST contexts (needed for modal field lookup)
 		add_filter('awm_add_options_boxes_filter', [$this, 'register_options_page']);
 
+		// Modal field definition lookup (needed for REST API modal-fields endpoint)
+		add_filter('awm_modal_field_definition_lookup', [$this, 'filter_modal_field_definition_lookup'], 10, 4);
+
 		// Everything below is admin-only — never runs on frontend or REST requests.
 		if (! is_admin()) {
 			return;
@@ -112,7 +115,9 @@ class EWP_AI_Content
 		add_filter('awm_add_meta_boxes_filter', [$this, 'register_ai_meta_box']);
 		add_filter('awm_modal_wrapper_classes', [$this, 'filter_modal_wrapper_classes'], 10, 3);
 		add_filter('awm_modal_body_content', [$this, 'filter_modal_body_content'], 10, 3);
-		add_filter('awm_modal_footer_start', [$this, 'filter_modal_footer_start'], 10, 3);
+		add_action('awm_modal_footer_start', [$this, 'action_modal_footer_start'], 10, 2);
+		add_filter('awm_modal_save_button_classes', [$this, 'filter_save_button_classes'], 10, 3);
+		add_filter('awm_modal_cancel_button_classes', [$this, 'filter_cancel_button_classes'], 10, 3);
 		add_filter('awm_modal_after_body', [$this, 'filter_modal_after_body'], 10, 3);
 		add_filter('ewp_register_dynamic_assets', [$this, 'register_dynamic_assets']);
 		add_action('admin_bar_menu', [$this, 'render_admin_bar_node'], 100);
@@ -913,7 +918,7 @@ JS;
 		return [
 			'tasks' => [
 				'label'   => __('✦ Generate', 'extend-wp'),
-				'case'    => 'checkbox',
+				'case'    => 'checkbox_multiple',
 				'options' => [
 					'title'        => ['label' => __('Title', 'extend-wp')],
 					'excerpt'      => ['label' => __('Excerpt', 'extend-wp')],
@@ -1036,27 +1041,62 @@ JS;
 	}
 
 	/**
-	 * Filter modal footer to inject custom AI buttons instead of default Save/Cancel.
+	 * Action to inject custom AI buttons at start of modal footer.
 	 *
-	 * @param string $content  Footer content.
 	 * @param string $modal_id Modal identifier.
 	 * @param array  $args     Field arguments.
-	 * @return string Updated footer content.
 	 *
 	 * @hook awm_modal_footer_start
 	 * @since 1.0.3
 	 */
-	public function filter_modal_footer_start(string $content, string $modal_id, array $args): string
+	public function action_modal_footer_start(string $modal_id, array $args): void
 	{
 		if (strpos($modal_id, 'ai_generator') === false) {
-			return $content;
+			return;
 		}
 
-		// Inject custom AI buttons
-		return '<button type="button" class="button button-primary ewp-ai-generate-btn">✦ ' . esc_html__('Generate', 'extend-wp') . '</button>
+		// Output custom AI buttons
+		echo '<button type="button" class="button button-primary ewp-ai-generate-btn">✦ ' . esc_html__('Generate', 'extend-wp') . '</button>
 			<button type="button" class="button ewp-ai-accept-all" style="display:none;">' . esc_html__('Accept All', 'extend-wp') . '</button>
-			<button type="button" class="button ewp-ai-retry" style="display:none;">' . esc_html__('Retry', 'extend-wp') . '</button>
-			<button type="button" class="button awm-modal-cancel">' . esc_html__('Cancel', 'extend-wp') . '</button>';
+			<button type="button" class="button ewp-ai-retry" style="display:none;">' . esc_html__('Retry', 'extend-wp') . '</button>';
+	}
+
+	/**
+	 * Filter save button classes to hide default Save button for AI modal.
+	 *
+	 * @param array  $classes  Default button classes.
+	 * @param string $modal_id Modal identifier.
+	 * @param array  $args     Field arguments.
+	 * @return array Updated classes.
+	 *
+	 * @hook awm_modal_save_button_classes
+	 * @since 1.0.3
+	 */
+	public function filter_save_button_classes(array $classes, string $modal_id, array $args): array
+	{
+		if (strpos($modal_id, 'ai_generator') !== false) {
+			$classes[] = 'awm-hidden';
+		}
+		return $classes;
+	}
+
+	/**
+	 * Filter cancel button classes for AI modal.
+	 *
+	 * @param array  $classes  Default button classes.
+	 * @param string $modal_id Modal identifier.
+	 * @param array  $args     Field arguments.
+	 * @return array Updated classes.
+	 *
+	 * @hook awm_modal_cancel_button_classes
+	 * @since 1.0.3
+	 */
+	public function filter_cancel_button_classes(array $classes, string $modal_id, array $args): array
+	{
+		if (strpos($modal_id, 'ai_generator') !== false) {
+			$classes[] = 'awm-hidden';
+		}
+		return $classes;
 	}
 
 	/**
@@ -1091,6 +1131,37 @@ JS;
 				<div class="ewp-ai-result-text ewp-ai-result-text--content"></div>
 			</div>
 		</div>';
+	}
+
+	/**
+	 * Filter modal field definition lookup to provide AI generator field definitions.
+	 *
+	 * Called by REST API when looking up field definitions for modal rendering.
+	 * Provides the field definitions for the ai_generator modal field.
+	 *
+	 * @param array|false $field_def    Current field definition (false if not found).
+	 * @param string      $meta_key     Meta key being looked up.
+	 * @param string      $view         View type (post/term/user/option).
+	 * @param int         $object_id    Object ID.
+	 * @return array|false Field definitions or false.
+	 *
+	 * @hook awm_modal_field_definition_lookup
+	 * @since 1.0.3
+	 */
+	public function filter_modal_field_definition_lookup($field_def, string $meta_key, string $view, int $object_id)
+	{
+		// Only handle ai_generator field in post view
+		if ($meta_key !== 'ai_generator' || $view !== 'post') {
+			return $field_def;
+		}
+
+		// If already found, don't override
+		if ($field_def !== false) {
+			return $field_def;
+		}
+
+		// Return AI generator field definitions
+		return $this->get_ai_generator_fields();
 	}
 
 	/* =========================================================
@@ -1927,14 +1998,14 @@ JS;
 			];
 		}
 
-		// CSS.
+		// CSS — loads when AI generator modal trigger exists.
 		$assets[] = [
-			'handle'  => 'ewp-ai-content-style',
-			'selector' => '.ewp-ai-content-metabox',
-			'type'    => 'style',
-			'src'     => awm_url . 'assets/css/admin/ewp-ai-content.css',
-			'version' => self::$version,
-			'context' => 'admin',
+			'handle'   => 'ewp-ai-content-style',
+			'selector' => '.awm-modal-trigger[data-modal-id*="ai_generator"]',
+			'type'     => 'style',
+			'src'      => awm_url . 'assets/css/admin/ewp-ai-content.css',
+			'version'  => self::$version,
+			'context'  => 'admin',
 		];
 
 		return $assets;
