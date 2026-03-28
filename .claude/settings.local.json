@@ -9,7 +9,12 @@
       "Bash(grep -n \"function awm_create_boxes\" /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/includes/functions/*.php)",
       "Bash(grep -n \"view.*options\\\\|options.*view\\\\|$view\\\\|option_name\\\\|get_option\\\\|original_meta\" /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/includes/functions/library.php)",
       "Bash(grep -n \"case ''section''\" /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/includes/functions/library.php)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(php -l includes/classes/ewp-ai-content/class-ewp-ai-content.php)",
+      "Bash(grep -n \"try\\\\|catch\\\\|{$\\\\|}\")",
+      "Bash(ls -la /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/includes/classes/ewp-ai-content/class-ewp-ai-content.php*)",
+      "Bash(/tmp/verification_summary.md:*)",
+      "Read(//tmp/**)"
     ]
   }
 }

@@ -279,86 +279,28 @@ class EWP_AI_Content_Generator {
 	 */
 	private function build_system_prompt( array $context, array $settings ): string {
 		$parts = [
-			'You are an expert content writer creating high-quality WordPress content.',
+			'You are an expert content writer for WordPress.',
 		];
 
-		if ( ! empty( $settings['brand_voice'] ) ) {
-			$parts[] = sprintf( 'Write in a %s tone.', $settings['brand_voice'] );
+		// SINGLE SOURCE OF TRUTH: business_context contains all business facts
+		// (generated from business_data fields, includes customer_sentiment from reviews).
+		if ( ! empty( $settings['business_context'] ) ) {
+			$parts[] = $settings['business_context'];
 		}
 
+		// Communication strategy
 		if ( ! empty( $settings['target_audience'] ) ) {
 			$parts[] = sprintf( 'Target audience: %s.', $settings['target_audience'] );
 		}
 
-		// Business context (AI-generated summary from onboarding).
-		if ( ! empty( $settings['business_context'] ) ) {
-			$parts[] = sprintf( 'Business context: %s.', $settings['business_context'] );
-		}
-
-		// Structured business data fields.
-		$business_parts = [];
-
-		if ( ! empty( $settings['business_name'] ) ) {
-			$business_parts[] = sprintf( 'Name: %s', $settings['business_name'] );
-		}
-		if ( ! empty( $settings['business_location'] ) ) {
-			$business_parts[] = sprintf( 'Location/service area: %s', $settings['business_location'] );
-		}
-		if ( ! empty( $settings['business_description'] ) ) {
-			$business_parts[] = sprintf( 'Description: %s', $settings['business_description'] );
-		}
-		if ( ! empty( $settings['key_services'] ) ) {
-			$business_parts[] = sprintf( 'Products/services: %s', $settings['key_services'] );
-		}
-		if ( ! empty( $settings['unique_selling_points'] ) ) {
-			$business_parts[] = sprintf( 'Differentiators: %s', $settings['unique_selling_points'] );
-		}
-		if ( ! empty( $settings['customer_sentiment'] ) ) {
-			$business_parts[] = sprintf( 'Customer sentiment: %s', $settings['customer_sentiment'] );
-		}
-
-		// Links (URL-only; already validated on save).
-		$review_links = is_array( $settings['review_links'] ?? null ) ? $settings['review_links'] : [];
-		$review_urls  = array_filter( array_map(
-			fn( $l ) => is_array( $l ) ? ( $l['url'] ?? '' ) : ( is_string( $l ) ? $l : '' ),
-			$review_links
-		) );
-		if ( ! empty( $review_urls ) ) {
-			$business_parts[] = 'Review platforms: ' . implode( ', ', $review_urls );
-		}
-
-		$social_links = is_array( $settings['social_links'] ?? null ) ? $settings['social_links'] : [];
-		$social_urls  = array_filter( array_map(
-			fn( $l ) => is_array( $l ) ? ( $l['url'] ?? '' ) : ( is_string( $l ) ? $l : '' ),
-			$social_links
-		) );
-		if ( ! empty( $social_urls ) ) {
-			$business_parts[] = 'Social media: ' . implode( ', ', $social_urls );
-		}
-
-		$competitors       = is_array( $settings['competitors'] ?? null ) ? $settings['competitors'] : [];
-		$competitor_labels = [];
-		foreach ( $competitors as $comp ) {
-			$name = $comp['name'] ?? '';
-			$url  = $comp['url'] ?? '';
-			if ( $name ) {
-				$competitor_labels[] = $url ? "{$name} ({$url})" : $name;
-			}
-		}
-		if ( ! empty( $competitor_labels ) ) {
-			$business_parts[] = 'Competitors: ' . implode( ', ', $competitor_labels );
-		}
-
-		if ( ! empty( $business_parts ) ) {
-			$parts[] = 'Business information: ' . implode( '. ', $business_parts ) . '.';
-		}
-
+		// Custom instructions (if any)
 		if ( ! empty( $settings['custom_instructions'] ) ) {
 			$parts[] = $settings['custom_instructions'];
 		}
 
+		// Language & output format
 		$parts[] = sprintf( 'Write in language: %s.', $context['language'] );
-		$parts[] = 'Provide only the requested content — no explanations, no meta-commentary, no markdown fences.';
+		$parts[] = 'Output only the requested content — no explanations, no markdown.';
 
 		return implode( "\n", $parts );
 	}

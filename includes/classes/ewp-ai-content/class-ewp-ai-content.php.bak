@@ -467,21 +467,6 @@ JS;
 	}
 
 	/**
-	 * Calculate SHA256 hash of current business_data.
-	 * Excludes 'business_data_hash' field from calculation to avoid circular dependency.
-	 *
-	 * @return string SHA256 hash hex string.
-	 *
-	 * @since 1.0.0
-	 */
-	private static function get_business_data_hash(): string
-	{
-		$biz = self::get_business_data();
-		unset($biz['business_data_hash']); // Exclude hash from hash calculation
-		return hash('sha256', wp_json_encode($biz));
-	}
-
-	/**
 	 * Walk a flat field-definition array and collect 'default' values for scalar fields.
 	 *
 	 * Repeater fields (whose default would be an array) are intentionally skipped —
@@ -1346,20 +1331,20 @@ JS;
 
 			$biz = self::get_business_data();
 
-		// ── Smart caching: skip regeneration if data hasn't changed ──────────
-		$current_hash = self::get_business_data_hash();
-		if ($current_hash === ($biz['business_data_hash'] ?? '') && ! empty($biz['business_context'])) {
-			return rest_ensure_response(['business_context' => $biz['business_context']]);
-		}
-
 			// ── Build prompt parts ──────────────────────────────────────────────
 			$parts = [
-				'Generate a concise business context summary for use in AI content generation prompts. '
+				'Generate a concise business context summary (max 200 words) for use in AI content generation prompts. '
 					. 'Write only the summary paragraph — no headers, no labels, no markdown.',
 			];
 
 			if (! empty($biz['business_name'])) {
 				$parts[] = 'Business name: ' . $biz['business_name'];
+			}
+			if (! empty($biz['business_website'])) {
+				$url = esc_url_raw($biz['business_website']);
+				if ($this->is_url_accessible($url)) {
+					$parts[] = 'Website: ' . $url;
+				}
 			}
 			if (! empty($biz['business_location'])) {
 				$parts[] = 'Location/service area: ' . $biz['business_location'];
@@ -1374,6 +1359,9 @@ JS;
 				$parts[] = 'What makes them different: ' . $biz['unique_selling_points'];
 			}
 			if (! empty($biz['brand_voice'])) {
+				$parts[] = 'Brand voice/tone: ' . $biz['brand_voice'];
+			}
+			if (! empty($biz['target_audience'])) {
 				$parts[] = 'Target audience: ' . $biz['target_audience'];
 			}
 
@@ -1423,6 +1411,42 @@ JS;
 				$parts[] = 'Customer sentiment: ' . $biz['customer_sentiment'];
 			}
 
+			// ── Social links ────────────────────────────────────────────────────
+			$social_links = is_array($biz['social_links'] ?? null) ? $biz['social_links'] : [];
+			$valid_social = [];
+			foreach ($social_links as $link) {
+				$url = esc_url_raw(is_array($link) ? ($link['url'] ?? '') : '');
+				if ($url && $this->is_url_accessible($url)) {
+					$valid_social[] = $url;
+				}
+			}
+			if (! empty($valid_social)) {
+				$parts[] = 'Social media: ' . implode(', ', $valid_social);
+			}
+
+			// ── Competitors ─────────────────────────────────────────────────────
+			$competitors       = is_array($biz['competitors'] ?? null) ? $biz['competitors'] : [];
+			$competitor_labels = [];
+			foreach ($competitors as $comp) {
+				if (! is_array($comp)) {
+					continue;
+				}
+				$name = sanitize_text_field($comp['name'] ?? '');
+				$url  = esc_url_raw($comp['url'] ?? '');
+				if (! $name) {
+					continue;
+				}
+				if ($url && ! $this->is_url_accessible($url)) {
+					$competitor_labels[] = $name;
+				} elseif ($url) {
+					$competitor_labels[] = "{$name} ({$url})";
+				} else {
+					$competitor_labels[] = $name;
+				}
+			}
+			if (! empty($competitor_labels)) {
+				$parts[] = 'Main competitors: ' . implode(', ', $competitor_labels);
+			}
 
 			// ── AI call ─────────────────────────────────────────────────────────
 			$prompt = implode("\n", $parts);
@@ -1437,12 +1461,7 @@ JS;
 				return $result;
 			}
 
-			// Update hash and context in business_data option
-			$biz['business_data_hash'] = $current_hash;
-			$biz['business_context'] = trim($result['content']);
-			update_option('business_data', $biz);
-
-			return rest_ensure_response(['business_context' => $biz['business_context']]);
+			return rest_ensure_response(['business_context' => trim($result['content'])]);
 		} catch (\Throwable $e) {
 			// Log the exception
 			if (function_exists('ewp_log')) {
