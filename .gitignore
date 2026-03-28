@@ -16,3 +16,5 @@ reference
 *.DS_Store
 *.*.DS_Store
 .windsurfrules
+.claude/*
+.claude/settings.local.json
