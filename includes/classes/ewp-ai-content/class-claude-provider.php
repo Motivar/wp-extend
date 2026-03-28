@@ -122,6 +122,17 @@ class EWP_AI_Claude_Provider implements EWP_AI_Provider_Interface {
 
 	/** @inheritDoc */
 	public function generate( string $prompt, string $model, array $options = [] ): array|\WP_Error {
+		/**
+		 * Action fired before Claude API call.
+		 *
+		 * @param string $prompt User prompt.
+		 * @param string $model Model ID.
+		 * @param array  $options Generation options.
+		 *
+		 * @since 1.0.0
+		 */
+		do_action('ewp_ai_claude_before_generate', $prompt, $model, $options);
+
 		$api_key = $this->get_api_key();
 
 		if ( '' === $api_key ) {
@@ -143,6 +154,20 @@ class EWP_AI_Claude_Provider implements EWP_AI_Provider_Interface {
 		if ( isset( $options['temperature'] ) ) {
 			$body['temperature'] = (float) $options['temperature'];
 		}
+
+		/**
+		 * Filter Claude API request body before sending.
+		 *
+		 * Allows developers to modify request parameters or add Claude-specific options.
+		 *
+		 * @param array  $body Request body array.
+		 * @param string $prompt User prompt.
+		 * @param string $model Model ID.
+		 * @param array  $options Generation options.
+		 *
+		 * @since 1.0.0
+		 */
+		$body = apply_filters('ewp_ai_claude_request_body', $body, $prompt, $model, $options);
 
 		$response = wp_remote_post(
 			self::API_BASE . '/messages',
@@ -172,11 +197,36 @@ class EWP_AI_Claude_Provider implements EWP_AI_Provider_Interface {
 
 		$content = $data['content'][0]['text'] ?? '';
 
-		return [
+		$result = [
 			'content' => trim( $content ),
 			'model'   => $data['model'] ?? $model,
 			'usage'   => $data['usage'] ?? [],
 		];
+
+		/**
+		 * Filter Claude API response before returning.
+		 *
+		 * @param array  $result Processed result array.
+		 * @param array  $data Raw API response data.
+		 * @param string $prompt User prompt.
+		 * @param string $model Model ID.
+		 *
+		 * @since 1.0.0
+		 */
+		$result = apply_filters('ewp_ai_claude_response', $result, $data, $prompt, $model);
+
+		/**
+		 * Action fired after successful Claude API call.
+		 *
+		 * @param array  $result Result array.
+		 * @param string $prompt User prompt.
+		 * @param string $model Model ID.
+		 *
+		 * @since 1.0.0
+		 */
+		do_action('ewp_ai_claude_after_generate', $result, $prompt, $model);
+
+		return $result;
 	}
 
 	// -------------------------------------------------------------------------
@@ -237,6 +287,16 @@ class EWP_AI_Claude_Provider implements EWP_AI_Provider_Interface {
 	 * @since 1.0.0
 	 */
 	private function build_messages( string $prompt, array $options ): array {
+		/**
+		 * Filter the prompt before building messages.
+		 *
+		 * @param string $prompt User prompt.
+		 * @param array  $options Generation options.
+		 *
+		 * @since 1.0.0
+		 */
+		$prompt = apply_filters('ewp_ai_claude_prompt', $prompt, $options);
+
 		if ( ! empty( $options['image_base64'] ) ) {
 			$mime = $options['image_mime'] ?? 'image/jpeg';
 
@@ -261,12 +321,23 @@ class EWP_AI_Claude_Provider implements EWP_AI_Provider_Interface {
 			];
 		}
 
-		return [
+		$messages = [
 			[
 				'role'    => 'user',
 				'content' => $prompt,
 			],
 		];
+
+		/**
+		 * Filter Claude messages array before sending.
+		 *
+		 * @param array  $messages Messages array.
+		 * @param string $prompt User prompt.
+		 * @param array  $options Generation options.
+		 *
+		 * @since 1.0.0
+		 */
+		return apply_filters('ewp_ai_claude_messages', $messages, $prompt, $options);
 	}
 
 	/**

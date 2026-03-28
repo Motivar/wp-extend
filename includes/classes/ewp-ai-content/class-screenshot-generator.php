@@ -42,6 +42,15 @@ class EWP_AI_Screenshot_Generator {
 	 * @since 1.0.0
 	 */
 	public function get_frontend_url( int $post_id ): string|false {
+		/**
+		 * Action fired before getting frontend URL for screenshot.
+		 *
+		 * @param int $post_id Post ID.
+		 *
+		 * @since 1.0.0
+		 */
+		do_action('ewp_ai_screenshot_before_get_url', $post_id);
+
 		$post = get_post( $post_id );
 
 		if ( ! $post instanceof \WP_Post ) {
@@ -51,12 +60,23 @@ class EWP_AI_Screenshot_Generator {
 		// Published post — use the public permalink.
 		if ( 'publish' === $post->post_status ) {
 			$url = get_permalink( $post_id );
-			return $url ?: false;
+		} else {
+			// Draft / pending — use WP's built-in preview URL.
+			$url = get_preview_post_link($post);
 		}
 
-		// Draft / pending — use WP's built-in preview URL.
-		$url = get_preview_post_link( $post );
-		return $url ?: false;
+		/**
+		 * Filter the frontend URL before returning.
+		 *
+		 * Allows developers to customize the URL used for screenshot capture.
+		 *
+		 * @param string|false $url Frontend URL or false.
+		 * @param int          $post_id Post ID.
+		 * @param \WP_Post     $post Post object.
+		 *
+		 * @since 1.0.0
+		 */
+		return apply_filters('ewp_ai_screenshot_frontend_url', $url ?: false, $post_id, $post);
 	}
 
 	/**
@@ -71,6 +91,15 @@ class EWP_AI_Screenshot_Generator {
 	 * @since 1.0.0
 	 */
 	public function sanitise_base64( string $raw ): string|\WP_Error {
+		/**
+		 * Filter raw base64 screenshot data before sanitization.
+		 *
+		 * @param string $raw Raw base64 string from client.
+		 *
+		 * @since 1.0.0
+		 */
+		$raw = apply_filters('ewp_ai_screenshot_raw_base64', $raw);
+
 		if ( '' === $raw ) {
 			return new \WP_Error( 'screenshot_empty', __( 'Screenshot data is empty.', 'extend-wp' ) );
 		}
@@ -86,14 +115,32 @@ class EWP_AI_Screenshot_Generator {
 		}
 
 		// Enforce size limit.
-		if ( strlen( $raw ) > self::MAX_BASE64_BYTES ) {
+		$max_size = self::MAX_BASE64_BYTES;
+
+		/**
+		 * Filter maximum allowed screenshot size in bytes.
+		 *
+		 * @param int $max_size Maximum size in bytes.
+		 *
+		 * @since 1.0.0
+		 */
+		$max_size = apply_filters('ewp_ai_screenshot_max_size', $max_size);
+
+		if (strlen($raw) > $max_size) {
 			return new \WP_Error(
 				'screenshot_too_large',
 				__( 'Screenshot exceeds the maximum allowed size (1 MB). Try disabling screenshots or reducing the browser window size.', 'extend-wp' )
 			);
 		}
 
-		return $raw;
+		/**
+		 * Filter sanitized base64 screenshot data.
+		 *
+		 * @param string $raw Sanitized base64 string.
+		 *
+		 * @since 1.0.0
+		 */
+		return apply_filters('ewp_ai_screenshot_sanitized_base64', $raw);
 	}
 
 	/**
@@ -117,9 +164,23 @@ class EWP_AI_Screenshot_Generator {
 
 		// All three providers use the same $options keys; each provider class
 		// translates them into its own API format internally.
-		return [
+		$options = [
 			'image_base64' => $base64,
 			'image_mime'   => $mime,
 		];
+
+		/**
+		 * Filter screenshot options before sending to provider.
+		 *
+		 * Allows developers to modify screenshot data or add provider-specific options.
+		 *
+		 * @param array  $options Screenshot options array.
+		 * @param string $base64 Base64 image string.
+		 * @param string $provider_id Provider ID.
+		 * @param string $mime MIME type.
+		 *
+		 * @since 1.0.0
+		 */
+		return apply_filters('ewp_ai_screenshot_provider_options', $options, $base64, $provider_id, $mime);
 	}
 }

@@ -118,6 +118,17 @@ class EWP_AI_OpenAI_Provider implements EWP_AI_Provider_Interface {
 
 	/** @inheritDoc */
 	public function generate( string $prompt, string $model, array $options = [] ): array|\WP_Error {
+		/**
+		 * Action fired before OpenAI API call.
+		 *
+		 * @param string $prompt User prompt.
+		 * @param string $model Model ID.
+		 * @param array  $options Generation options.
+		 *
+		 * @since 1.0.0
+		 */
+		do_action('ewp_ai_openai_before_generate', $prompt, $model, $options);
+
 		$api_key = $this->get_api_key();
 
 		if ( '' === $api_key ) {
@@ -132,6 +143,20 @@ class EWP_AI_OpenAI_Provider implements EWP_AI_Provider_Interface {
 			'max_tokens'  => isset( $options['max_tokens'] ) ? (int) $options['max_tokens'] : 2048,
 			'temperature' => isset( $options['temperature'] ) ? (float) $options['temperature'] : 0.7,
 		];
+
+		/**
+		 * Filter OpenAI API request body before sending.
+		 *
+		 * Allows developers to modify request parameters or add OpenAI-specific options.
+		 *
+		 * @param array  $body Request body array.
+		 * @param string $prompt User prompt.
+		 * @param string $model Model ID.
+		 * @param array  $options Generation options.
+		 *
+		 * @since 1.0.0
+		 */
+		$body = apply_filters('ewp_ai_openai_request_body', $body, $prompt, $model, $options);
 
 		$response = wp_remote_post(
 			self::API_BASE . '/chat/completions',
@@ -164,11 +189,36 @@ class EWP_AI_OpenAI_Provider implements EWP_AI_Provider_Interface {
 
 		$content = $data['choices'][0]['message']['content'] ?? '';
 
-		return [
+		$result = [
 			'content' => trim( $content ),
 			'model'   => $data['model'] ?? $model,
 			'usage'   => $data['usage'] ?? [],
 		];
+
+		/**
+		 * Filter OpenAI API response before returning.
+		 *
+		 * @param array  $result Processed result array.
+		 * @param array  $data Raw API response data.
+		 * @param string $prompt User prompt.
+		 * @param string $model Model ID.
+		 *
+		 * @since 1.0.0
+		 */
+		$result = apply_filters('ewp_ai_openai_response', $result, $data, $prompt, $model);
+
+		/**
+		 * Action fired after successful OpenAI API call.
+		 *
+		 * @param array  $result Result array.
+		 * @param string $prompt User prompt.
+		 * @param string $model Model ID.
+		 *
+		 * @since 1.0.0
+		 */
+		do_action('ewp_ai_openai_after_generate', $result, $prompt, $model);
+
+		return $result;
 	}
 
 	// -------------------------------------------------------------------------
@@ -216,6 +266,16 @@ class EWP_AI_OpenAI_Provider implements EWP_AI_Provider_Interface {
 	private function build_messages( string $prompt, array $options ): array {
 		$messages = [];
 
+		/**
+		 * Filter the prompt before building messages.
+		 *
+		 * @param string $prompt User prompt.
+		 * @param array  $options Generation options.
+		 *
+		 * @since 1.0.0
+		 */
+		$prompt = apply_filters('ewp_ai_openai_prompt', $prompt, $options);
+
 		// System message (optional).
 		if ( ! empty( $options['system'] ) ) {
 			$messages[] = [
@@ -250,7 +310,16 @@ class EWP_AI_OpenAI_Provider implements EWP_AI_Provider_Interface {
 			];
 		}
 
-		return $messages;
+		/**
+		 * Filter OpenAI messages array before sending.
+		 *
+		 * @param array  $messages Messages array.
+		 * @param string $prompt User prompt.
+		 * @param array  $options Generation options.
+		 *
+		 * @since 1.0.0
+		 */
+		return apply_filters('ewp_ai_openai_messages', $messages, $prompt, $options);
 	}
 
 	/**

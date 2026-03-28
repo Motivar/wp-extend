@@ -108,6 +108,17 @@ class EWP_AI_Gemini_Provider implements EWP_AI_Provider_Interface {
 
 	/** @inheritDoc */
 	public function generate( string $prompt, string $model, array $options = [] ): array|\WP_Error {
+		/**
+		 * Action fired before Gemini API call.
+		 *
+		 * @param string $prompt User prompt.
+		 * @param string $model Model ID.
+		 * @param array  $options Generation options.
+		 *
+		 * @since 1.0.0
+		 */
+		do_action('ewp_ai_gemini_before_generate', $prompt, $model, $options);
+
 		$api_key = $this->get_api_key();
 
 		if ( '' === $api_key ) {
@@ -141,6 +152,20 @@ class EWP_AI_Gemini_Provider implements EWP_AI_Provider_Interface {
 		if ( ! empty( $gen_config ) ) {
 			$body['generationConfig'] = $gen_config;
 		}
+
+		/**
+		 * Filter Gemini API request body before sending.
+		 *
+		 * Allows developers to modify request parameters or add Gemini-specific options.
+		 *
+		 * @param array  $body Request body array.
+		 * @param string $prompt User prompt.
+		 * @param string $model Model ID.
+		 * @param array  $options Generation options.
+		 *
+		 * @since 1.0.0
+		 */
+		$body = apply_filters('ewp_ai_gemini_request_body', $body, $prompt, $model, $options);
 
 		$response = wp_remote_post(
 			$url,
@@ -179,11 +204,36 @@ class EWP_AI_Gemini_Provider implements EWP_AI_Provider_Interface {
 			];
 		}
 
-		return [
+		$result = [
 			'content' => trim( $content ),
 			'model'   => $model,
 			'usage'   => $usage,
 		];
+
+		/**
+		 * Filter Gemini API response before returning.
+		 *
+		 * @param array  $result Processed result array.
+		 * @param array  $data Raw API response data.
+		 * @param string $prompt User prompt.
+		 * @param string $model Model ID.
+		 *
+		 * @since 1.0.0
+		 */
+		$result = apply_filters('ewp_ai_gemini_response', $result, $data, $prompt, $model);
+
+		/**
+		 * Action fired after successful Gemini API call.
+		 *
+		 * @param array  $result Result array.
+		 * @param string $prompt User prompt.
+		 * @param string $model Model ID.
+		 *
+		 * @since 1.0.0
+		 */
+		do_action('ewp_ai_gemini_after_generate', $result, $prompt, $model);
+
+		return $result;
 	}
 
 	// -------------------------------------------------------------------------
@@ -228,6 +278,16 @@ class EWP_AI_Gemini_Provider implements EWP_AI_Provider_Interface {
 	 * @since 1.0.0
 	 */
 	private function build_contents( string $prompt, array $options ): array {
+		/**
+		 * Filter the prompt before building contents.
+		 *
+		 * @param string $prompt User prompt.
+		 * @param array  $options Generation options.
+		 *
+		 * @since 1.0.0
+		 */
+		$prompt = apply_filters('ewp_ai_gemini_prompt', $prompt, $options);
+
 		$parts = [ [ 'text' => $prompt ] ];
 
 		if ( ! empty( $options['image_base64'] ) ) {
@@ -240,12 +300,23 @@ class EWP_AI_Gemini_Provider implements EWP_AI_Provider_Interface {
 			];
 		}
 
-		return [
+		$contents = [
 			[
 				'role'  => 'user',
 				'parts' => $parts,
 			],
 		];
+
+		/**
+		 * Filter Gemini contents array before sending.
+		 *
+		 * @param array  $contents Contents array.
+		 * @param string $prompt User prompt.
+		 * @param array  $options Generation options.
+		 *
+		 * @since 1.0.0
+		 */
+		return apply_filters('ewp_ai_gemini_contents', $contents, $prompt, $options);
 	}
 
 	/**

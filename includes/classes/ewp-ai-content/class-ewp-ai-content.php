@@ -433,6 +433,17 @@ JS;
 			$settings[$key] = $stored[$key] ?? $default;
 		}
 
+		/**
+		 * Filter the AI Content settings before caching.
+		 *
+		 * Allows developers to modify or add settings dynamically.
+		 *
+		 * @param array $settings Complete settings array with defaults applied.
+		 *
+		 * @since 1.0.0
+		 */
+		$settings = apply_filters('ewp_ai_content_settings', $settings);
+
 		self::$settings_cache = $settings;
 		return $settings;
 	}
@@ -463,7 +474,18 @@ JS;
 	{
 		$saved    = (array) get_option('business_data', []);
 		$defaults = self::extract_scalar_defaults(self::get_business_data_fields());
-		return wp_parse_args($saved, $defaults);
+		$data     = wp_parse_args($saved, $defaults);
+
+		/**
+		 * Filter the business data before returning.
+		 *
+		 * Allows developers to modify or add business data fields dynamically.
+		 *
+		 * @param array $data Business data array with defaults applied.
+		 *
+		 * @since 1.0.0
+		 */
+		return apply_filters('ewp_ai_content_business_data', $data);
 	}
 
 	/**
@@ -647,7 +669,7 @@ JS;
 	 */
 	public static function get_business_data_fields(): array
 	{
-		return [
+		$fields = [
 			// ── Identity ──────────────────────────────────────────────────
 			'business_name' => [
 				'label'      => __('Business Name', 'extend-wp'),
@@ -707,6 +729,18 @@ JS;
 			],
 
 		];
+
+		/**
+		 * Filter the business data field definitions.
+		 *
+		 * Allows developers to add, remove, or modify business data fields
+		 * displayed in the modal and used for AI context generation.
+		 *
+		 * @param array $fields Field definitions array.
+		 *
+		 * @since 1.0.0
+		 */
+		return apply_filters('ewp_ai_content_business_data_fields', $fields);
 	}
 
 	/**
@@ -1004,6 +1038,21 @@ JS;
 				'image_base64'     => $image_base64,
 				'image_mime'       => $request->get_param('image_mime') ?: 'image/jpeg',
 			];
+
+			/**
+			 * Filter generation options before processing.
+			 *
+			 * Allows developers to modify or add generation options,
+			 * auto-populate instructions, or override provider settings.
+			 *
+			 * @param array            $options Generation options array.
+			 * @param int              $post_id Post ID being generated for.
+			 * @param string           $task    Task type (title, excerpt, full_content).
+			 * @param \WP_REST_Request $request REST request object.
+			 *
+			 * @since 1.0.0
+			 */
+			$options = apply_filters('ewp_ai_content_generation_options', $options, $post_id, $request->get_param('task'), $request);
 
 			// Strip empty string values so defaults apply in the generator.
 			$options = array_filter($options, fn($v) => '' !== $v);
@@ -1317,6 +1366,18 @@ JS;
 			// ── Build prompt parts ──────────────────────────────────────────────
 			$context_parts = [];
 
+			/**
+			 * Filter business data before building context prompt.
+			 *
+			 * Allows developers to modify business data used for context generation,
+			 * add computed fields, or inject external data sources.
+			 *
+			 * @param array $biz Business data array.
+			 *
+			 * @since 1.0.0
+			 */
+			$biz = apply_filters('ewp_ai_content_business_context_data', $biz);
+
 			if (! empty($biz['business_name'])) {
 				$context_parts[] = 'Business: ' . $biz['business_name'];
 			}
@@ -1342,8 +1403,21 @@ JS;
 			}
 
 
+			/**
+			 * Filter context parts before building the business context prompt.
+			 *
+			 * Allows developers to add, remove, or modify context parts
+			 * that will be sent to the AI for business context generation.
+			 *
+			 * @param array $context_parts Array of context strings.
+			 * @param array $biz           Business data array.
+			 *
+			 * @since 1.0.0
+			 */
+			$context_parts = apply_filters('ewp_ai_content_business_context_parts', $context_parts, $biz);
+
 			// ── AI call ─────────────────────────────────────────────────────────
-			$prompt = implode("\n", [
+			$prompt_parts = [
 
 				'Create a business context for an AI content generation system.',
 
@@ -1368,9 +1442,45 @@ JS;
 
 				'Business data:',
 				implode("\n", $context_parts),
-			]);
+			];
+
+			/**
+			 * Filter the business context generation prompt parts.
+			 *
+			 * Allows developers to modify the prompt structure sent to AI
+			 * for generating business context.
+			 *
+			 * @param array $prompt_parts Array of prompt strings.
+			 * @param array $context_parts Array of context data strings.
+			 * @param array $biz Business data array.
+			 *
+			 * @since 1.0.0
+			 */
+			$prompt_parts = apply_filters('ewp_ai_content_business_context_prompt_parts', $prompt_parts, $context_parts, $biz);
+
+			$prompt = implode("\n", $prompt_parts);
 			$model  = $settings[$provider_id . '_model'] ?? array_key_first($provider->get_models());
 			$system_prompt = 'You are a senior conversion copywriter creating foundational business context for an AI system. Your goal is to produce clear, specific, and non-generic descriptions that will guide all future AI-generated content. Avoid vague claims and generic marketing language.';
+
+			/**
+			 * Filter the system prompt for business context generation.
+			 *
+			 * @param string $system_prompt System prompt text.
+			 * @param array  $biz Business data array.
+			 *
+			 * @since 1.0.0
+			 */
+			$system_prompt = apply_filters('ewp_ai_content_business_context_system_prompt', $system_prompt, $biz);
+
+			/**
+			 * Filter the user prompt for business context generation.
+			 *
+			 * @param string $prompt User prompt text.
+			 * @param array  $biz Business data array.
+			 *
+			 * @since 1.0.0
+			 */
+			$prompt = apply_filters('ewp_ai_content_business_context_user_prompt', $prompt, $biz);
 
 			// Log AI call details
 			ewp_log(
@@ -1418,7 +1528,39 @@ JS;
 			// Update hash and context in business_data option
 			$biz['business_data_hash'] = $current_hash;
 			$biz['business_context'] = trim($result['content']);
+
+			/**
+			 * Filter the generated business context before saving.
+			 *
+			 * Allows developers to post-process the AI-generated business context.
+			 *
+			 * @param string $business_context Generated business context text.
+			 * @param array  $result AI generation result.
+			 * @param array  $biz Business data array.
+			 *
+			 * @since 1.0.0
+			 */
+			$biz['business_context'] = apply_filters('ewp_ai_content_business_context_generated', $biz['business_context'], $result, $biz);
+
+			/**
+			 * Action fired before saving generated business context.
+			 *
+			 * @param array $biz Business data array with new context.
+			 *
+			 * @since 1.0.0
+			 */
+			do_action('ewp_ai_content_before_save_business_context', $biz);
+
 			update_option('business_data', $biz);
+
+			/**
+			 * Action fired after saving generated business context.
+			 *
+			 * @param array $biz Business data array with new context.
+			 *
+			 * @since 1.0.0
+			 */
+			do_action('ewp_ai_content_after_save_business_context', $biz);
 
 			// Log successful generation
 			ewp_log(

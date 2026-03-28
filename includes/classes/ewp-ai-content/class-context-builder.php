@@ -41,6 +41,15 @@ class EWP_AI_Context_Builder {
 	 * @since 1.0.0
 	 */
 	public function build( int $post_id ): array|\WP_Error {
+		/**
+		 * Action fired before building post context.
+		 *
+		 * @param int $post_id Post ID.
+		 *
+		 * @since 1.0.0
+		 */
+		do_action('ewp_ai_content_before_build_context', $post_id);
+
 		$post = get_post( $post_id );
 
 		if ( ! $post instanceof \WP_Post ) {
@@ -49,6 +58,16 @@ class EWP_AI_Context_Builder {
 				sprintf( __( 'Post #%d not found.', 'extend-wp' ), $post_id )
 			);
 		}
+
+		/**
+		 * Filter the post object before extracting context.
+		 *
+		 * @param \WP_Post $post Post object.
+		 * @param int      $post_id Post ID.
+		 *
+		 * @since 1.0.0
+		 */
+		$post = apply_filters('ewp_ai_content_context_post', $post, $post_id);
 
 		$context = [
 			'post_id'             => $post->ID,
@@ -64,6 +83,22 @@ class EWP_AI_Context_Builder {
 			'language'            => $this->get_language(),
 			'permalink'           => get_permalink( $post->ID ) ?: '',
 		];
+
+		/**
+		 * Filter individual context fields.
+		 *
+		 * Allows developers to modify specific context fields before final filtering.
+		 *
+		 * @param mixed    $value Field value.
+		 * @param string   $field Field name.
+		 * @param \WP_Post $post Post object.
+		 *
+		 * @since 1.0.0
+		 */
+		foreach ($context as $field => $value) {
+			$context[$field] = apply_filters('ewp_ai_content_context_field', $value, $field, $post);
+			$context[$field] = apply_filters("ewp_ai_content_context_field_{$field}", $context[$field], $post);
+		}
 
 		/**
 		 * Filter the post context before it is used to build a prompt.
@@ -93,11 +128,21 @@ class EWP_AI_Context_Builder {
 	 */
 	private function get_excerpt( \WP_Post $post ): string {
 		if ( ! empty( $post->post_excerpt ) ) {
-			return wp_strip_all_tags( $post->post_excerpt );
+			$excerpt = wp_strip_all_tags($post->post_excerpt);
+		} else {
+			$plain = wp_strip_all_tags($post->post_content);
+			$excerpt = mb_substr($plain, 0, 300);
 		}
 
-		$plain = wp_strip_all_tags( $post->post_content );
-		return mb_substr( $plain, 0, 300 );
+		/**
+		 * Filter the excerpt before adding to context.
+		 *
+		 * @param string   $excerpt Extracted excerpt.
+		 * @param \WP_Post $post Post object.
+		 *
+		 * @since 1.0.0
+		 */
+		return apply_filters('ewp_ai_content_context_excerpt', $excerpt, $post);
 	}
 
 	/**
@@ -110,7 +155,18 @@ class EWP_AI_Context_Builder {
 	 */
 	private function get_content( \WP_Post $post ): string {
 		$plain = wp_strip_all_tags( $post->post_content );
-		return mb_substr( $plain, 0, self::MAX_CONTENT_CHARS );
+		$content = mb_substr($plain, 0, self::MAX_CONTENT_CHARS);
+
+		/**
+		 * Filter the content before adding to context.
+		 *
+		 * @param string   $content Extracted content (truncated).
+		 * @param \WP_Post $post Post object.
+		 * @param int      $max_chars Maximum characters allowed.
+		 *
+		 * @since 1.0.0
+		 */
+		return apply_filters('ewp_ai_content_context_content', $content, $post, self::MAX_CONTENT_CHARS);
 	}
 
 	/**
@@ -123,7 +179,18 @@ class EWP_AI_Context_Builder {
 	 */
 	private function get_author_name( \WP_Post $post ): string {
 		$user = get_userdata( (int) $post->post_author );
-		return $user ? $user->display_name : '';
+		$author_name = $user ? $user->display_name : '';
+
+		/**
+		 * Filter the author name before adding to context.
+		 *
+		 * @param string   $author_name Author display name.
+		 * @param \WP_Post $post Post object.
+		 * @param \WP_User|false $user User object or false.
+		 *
+		 * @since 1.0.0
+		 */
+		return apply_filters('ewp_ai_content_context_author', $author_name, $post, $user);
 	}
 
 	/**
@@ -142,7 +209,18 @@ class EWP_AI_Context_Builder {
 		}
 
 		$src = wp_get_attachment_image_src( $thumbnail_id, 'large' );
-		return $src ? $src[0] : '';
+		$image_url = $src ? $src[0] : '';
+
+		/**
+		 * Filter the featured image URL before adding to context.
+		 *
+		 * @param string $image_url Featured image URL.
+		 * @param int    $post_id Post ID.
+		 * @param int    $thumbnail_id Attachment ID.
+		 *
+		 * @since 1.0.0
+		 */
+		return apply_filters('ewp_ai_content_context_featured_image', $image_url, $post_id, $thumbnail_id);
 	}
 
 	/**
@@ -158,6 +236,17 @@ class EWP_AI_Context_Builder {
 	 */
 	private function get_taxonomies( \WP_Post $post ): array {
 		$taxonomies = get_object_taxonomies( $post->post_type, 'objects' );
+
+		/**
+		 * Filter taxonomies to include in context.
+		 *
+		 * @param array    $taxonomies Taxonomy objects.
+		 * @param \WP_Post $post Post object.
+		 *
+		 * @since 1.0.0
+		 */
+		$taxonomies = apply_filters('ewp_ai_content_context_taxonomies_list', $taxonomies, $post);
+
 		$result     = [];
 
 		foreach ( $taxonomies as $taxonomy ) {
@@ -173,7 +262,15 @@ class EWP_AI_Context_Builder {
 			$result[ $taxonomy->label ] = implode( ', ', $names );
 		}
 
-		return $result;
+		/**
+		 * Filter the taxonomies array before adding to context.
+		 *
+		 * @param array    $result Taxonomies array (label => terms).
+		 * @param \WP_Post $post Post object.
+		 *
+		 * @since 1.0.0
+		 */
+		return apply_filters('ewp_ai_content_context_taxonomies', $result, $post);
 	}
 
 	/**
@@ -199,10 +296,11 @@ class EWP_AI_Context_Builder {
 		 * Filter which meta keys to exclude from AI context.
 		 *
 		 * @param string[] $excluded Additional keys to exclude.
+		 * @param int      $post_id Post ID.
 		 *
 		 * @since 1.0.0
 		 */
-		$extra_excluded = apply_filters( 'ewp_ai_exclude_meta_keys', [] );
+		$extra_excluded = apply_filters('ewp_ai_exclude_meta_keys', [], $post_id);
 
 		foreach ( $all_meta as $key => $values ) {
 			if ( $this->should_skip_meta_key( $key, $extra_excluded ) ) {
@@ -216,10 +314,27 @@ class EWP_AI_Context_Builder {
 				continue;
 			}
 
-			$result[ $key ] = (string) $value;
+			/**
+			 * Filter individual meta value before adding to context.
+			 *
+			 * @param mixed  $value Meta value.
+			 * @param string $key Meta key.
+			 * @param int    $post_id Post ID.
+			 *
+			 * @since 1.0.0
+			 */
+			$result[$key] = apply_filters('ewp_ai_content_context_meta_value', (string) $value, $key, $post_id);
 		}
 
-		return $result;
+		/**
+		 * Filter the complete meta array before adding to context.
+		 *
+		 * @param array $result Meta array (key => value).
+		 * @param int   $post_id Post ID.
+		 *
+		 * @since 1.0.0
+		 */
+		return apply_filters('ewp_ai_content_context_meta', $result, $post_id);
 	}
 
 	/**
@@ -255,6 +370,15 @@ class EWP_AI_Context_Builder {
 	 * @since 1.0.0
 	 */
 	private function get_language(): string {
-		return (string) apply_filters( 'wpml_current_language', get_locale() );
+		$language = (string) apply_filters('wpml_current_language', get_locale());
+
+		/**
+		 * Filter the language code before adding to context.
+		 *
+		 * @param string $language Language code.
+		 *
+		 * @since 1.0.0
+		 */
+		return apply_filters('ewp_ai_content_context_language', $language);
 	}
 }

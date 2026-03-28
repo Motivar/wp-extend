@@ -158,6 +158,17 @@ class EWP_AI_Content_Generator {
 	 * @since 1.0.0
 	 */
 	public function generate_content( int $post_id, string $task, array $options = [] ): array|\WP_Error {
+		/**
+		 * Action fired before content generation starts.
+		 *
+		 * @param int    $post_id Post ID.
+		 * @param string $task    Task type (title, excerpt, full_content).
+		 * @param array  $options Generation options.
+		 *
+		 * @since 1.0.0
+		 */
+		do_action('ewp_ai_content_before_generate', $post_id, $task, $options);
+
 		// Log generation request start
 		if (function_exists('ewp_log')) {
 			ewp_log(
@@ -190,6 +201,20 @@ class EWP_AI_Content_Generator {
 			return $context;
 		}
 
+		/**
+		 * Filter the post context after building.
+		 *
+		 * Allows developers to modify context data before prompt generation.
+		 *
+		 * @param array  $context Post context array.
+		 * @param int    $post_id Post ID.
+		 * @param string $task    Task type.
+		 * @param array  $options Generation options.
+		 *
+		 * @since 1.0.0
+		 */
+		$context = apply_filters('ewp_ai_content_generation_context', $context, $post_id, $task, $options);
+
 		// Resolve provider + model.
 		$settings         = EWP_AI_Content::get_settings();
 		$provider_id      = $options['provider'] ?? $settings['default_provider'];
@@ -213,6 +238,19 @@ class EWP_AI_Content_Generator {
 
 		// Build prompts.
 		$translation_mode = $options['translation_mode'] ?? '';
+
+		/**
+		 * Filter translation mode before prompt building.
+		 *
+		 * @param string $translation_mode Translation mode (translate, recreate, or empty).
+		 * @param int    $post_id Post ID.
+		 * @param string $task Task type.
+		 * @param array  $context Post context.
+		 *
+		 * @since 1.0.0
+		 */
+		$translation_mode = apply_filters('ewp_ai_content_translation_mode', $translation_mode, $post_id, $task, $context);
+
 		$system_prompt    = $this->build_system_prompt( $context, $settings );
 		$user_prompt      = $this->build_user_prompt( $task, $context, $options, $translation_mode );
 
@@ -261,6 +299,22 @@ class EWP_AI_Content_Generator {
 			'max_tokens'  => (int) ( $settings['max_tokens'] ?? 2048 ),
 			'temperature' => (float) ( $settings['temperature'] ?? 0.7 ),
 		];
+
+		/**
+		 * Filter generation options before API call.
+		 *
+		 * Allows developers to modify max_tokens, temperature, or add
+		 * provider-specific parameters.
+		 *
+		 * @param array  $gen_options Generation options.
+		 * @param int    $post_id Post ID.
+		 * @param string $task Task type.
+		 * @param string $provider_id Provider ID.
+		 * @param string $model Model ID.
+		 *
+		 * @since 1.0.0
+		 */
+		$gen_options = apply_filters('ewp_ai_content_provider_options', $gen_options, $post_id, $task, $provider_id, $model);
 
 		// Attach screenshot if provided.
 		if ( ! empty( $options['image_base64'] ) ) {
@@ -348,6 +402,20 @@ class EWP_AI_Content_Generator {
 		 */
 		$result = apply_filters( 'ewp_ai_content_result', $result, $task, $context );
 
+		/**
+		 * Filter the generated content text before returning.
+		 *
+		 * Allows developers to post-process AI-generated content.
+		 *
+		 * @param string $content Generated content.
+		 * @param string $task Task type.
+		 * @param int    $post_id Post ID.
+		 * @param array  $result Full result array.
+		 *
+		 * @since 1.0.0
+		 */
+		$result['content'] = apply_filters('ewp_ai_content_generated_text', $result['content'], $task, $post_id, $result);
+
 		// Log successful generation with full details
 		if (function_exists('ewp_log')) {
 			ewp_log(
@@ -369,13 +437,27 @@ class EWP_AI_Content_Generator {
 			);
 		}
 
-		return [
+		$final_result = [
 			'content'  => $result['content'],
 			'task'     => $task,
 			'provider' => $provider_id,
 			'model'    => $result['model'],
 			'usage'    => $result['usage'],
 		];
+
+		/**
+		 * Action fired after successful content generation.
+		 *
+		 * @param array  $final_result Complete result array.
+		 * @param int    $post_id Post ID.
+		 * @param string $task Task type.
+		 * @param array  $options Generation options.
+		 *
+		 * @since 1.0.0
+		 */
+		do_action('ewp_ai_content_after_generate', $final_result, $post_id, $task, $options);
+
+		return $final_result;
 	}
 
 	// -------------------------------------------------------------------------
@@ -396,30 +478,69 @@ class EWP_AI_Content_Generator {
 	 */
 	private function build_system_prompt( array $context, array $settings ): string {
 		$parts = [
-			'You are an expert content writer for WordPress.',
+
+			// ── ROLE ─────────────────────────────────────────────────────
+			'You are a senior SEO-focused conversion copywriter generating high-quality content for WordPress websites.',
+
+			// ── CORE WRITING PRINCIPLES ──────────────────────────────────
+			'Write clear, specific, and non-generic content.',
+			'Avoid vague marketing phrases such as "high-quality service", "enhance your experience", or similar filler language.',
+			'Prioritize clarity, usefulness, and real-world value over fluff.',
+			'Write like a human expert — natural, confident, and concise.',
+
+			// ── QUALITY CONSTRAINTS ──────────────────────────────────────
+			'Avoid repetition and redundant phrasing.',
+			'Do not invent information that is not provided.',
+			'Focus on concrete details and meaningful differentiation.',
+
 		];
 
-		// SINGLE SOURCE OF TRUTH: business_context contains all business facts
-		// (generated from business_data fields, includes customer_sentiment from reviews).
-		if ( ! empty( $settings['business_context'] ) ) {
+
+
+		// ── BUSINESS CONTEXT (CRITICAL) ─────────────────────────────────
+		if (! empty($settings['business_context'])) {
+			$parts[] = 'Business context (use this to guide tone, positioning, and messaging):';
 			$parts[] = $settings['business_context'];
+			$parts[] = 'Ensure all content aligns with this business context.';
 		}
 
-		// Communication strategy
-		if ( ! empty( $settings['target_audience'] ) ) {
-			$parts[] = sprintf( 'Target audience: %s.', $settings['target_audience'] );
-		}
 
-		// Custom instructions (if any)
-		if ( ! empty( $settings['custom_instructions'] ) ) {
+		// ── CUSTOM INSTRUCTIONS ─────────────────────────────────────────
+		if (! empty($settings['custom_instructions'])) {
+			$parts[] = 'Additional instructions:';
 			$parts[] = $settings['custom_instructions'];
 		}
 
-		// Language & output format
-		$parts[] = sprintf( 'Write in language: %s.', $context['language'] );
-		$parts[] = 'Output only the requested content — no explanations, no markdown.';
 
-		return implode( "\n", $parts );
+		// ── LANGUAGE & OUTPUT RULES ─────────────────────────────────────
+		$parts[] = sprintf('Write in language: %s.', $context['language']);
+		$parts[] = 'Output only the requested content — no explanations, no markdown, no extra text.';
+
+
+		/**
+		 * Filter system prompt parts before joining.
+		 */
+		$parts = apply_filters('ewp_ai_content_system_prompt_parts', $parts, $context, $settings);
+
+		$system_prompt = implode("\n", $parts);
+
+		/**
+		 * Filter the complete system prompt.
+		 */
+		return apply_filters('ewp_ai_content_system_prompt', $system_prompt, $context, $settings);
+
+		$system_prompt = implode("\n", $parts);
+
+		/**
+		 * Filter the complete system prompt.
+		 *
+		 * @param string $system_prompt Complete system prompt text.
+		 * @param array  $context Post context.
+		 * @param array  $settings AI settings.
+		 *
+		 * @since 1.0.0
+		 */
+		return apply_filters('ewp_ai_content_system_prompt', $system_prompt, $context, $settings);
 	}
 
 	/**
@@ -435,6 +556,18 @@ class EWP_AI_Content_Generator {
 	 */
 	private function build_user_prompt( string $task, array $context, array $options, string $translation_mode ): string {
 		$context_block = $this->format_context_block( $context );
+
+		/**
+		 * Filter the formatted context block.
+		 *
+		 * @param string $context_block Formatted context text.
+		 * @param array  $context Raw context array.
+		 * @param string $task Task type.
+		 *
+		 * @since 1.0.0
+		 */
+		$context_block = apply_filters('ewp_ai_content_context_block', $context_block, $context, $task);
+
 		$task_prompt   = $this->build_task_instruction( $task, $context, $translation_mode );
 
 		$parts = [
@@ -450,7 +583,33 @@ class EWP_AI_Content_Generator {
 		$parts[] = '## Task';
 		$parts[] = $task_prompt;
 
-		return implode( "\n\n", $parts );
+		/**
+		 * Filter user prompt parts before joining.
+		 *
+		 * Allows developers to add, remove, or reorder user prompt sections.
+		 *
+		 * @param array  $parts User prompt parts.
+		 * @param string $task Task type.
+		 * @param array  $context Post context.
+		 * @param array  $options Generation options.
+		 *
+		 * @since 1.0.0
+		 */
+		$parts = apply_filters('ewp_ai_content_user_prompt_parts', $parts, $task, $context, $options);
+
+		$user_prompt = implode("\n\n", $parts);
+
+		/**
+		 * Filter the complete user prompt.
+		 *
+		 * @param string $user_prompt Complete user prompt text.
+		 * @param string $task Task type.
+		 * @param array  $context Post context.
+		 * @param array  $options Generation options.
+		 *
+		 * @since 1.0.0
+		 */
+		return apply_filters('ewp_ai_content_user_prompt', $user_prompt, $task, $context, $options);
 	}
 
 	/**
@@ -463,6 +622,17 @@ class EWP_AI_Content_Generator {
 	 */
 	private function format_context_block( array $context ): string {
 		$lines = [];
+
+		/**
+		 * Filter context array before formatting.
+		 *
+		 * Allows developers to add or modify context fields before formatting.
+		 *
+		 * @param array $context Post context array.
+		 *
+		 * @since 1.0.0
+		 */
+		$context = apply_filters('ewp_ai_content_format_context', $context);
 
 		if ( ! empty( $context['title'] ) ) {
 			$lines[] = 'Title: ' . $context['title'];
@@ -497,6 +667,18 @@ class EWP_AI_Content_Generator {
 			$lines[] = 'Featured image URL: ' . $context['featured_image_url'];
 		}
 
+		/**
+		 * Filter formatted context lines before joining.
+		 *
+		 * Allows developers to add, remove, or reorder context lines.
+		 *
+		 * @param array $lines Context lines array.
+		 * @param array $context Raw context array.
+		 *
+		 * @since 1.0.0
+		 */
+		$lines = apply_filters('ewp_ai_content_context_lines', $lines, $context);
+
 		return implode( "\n", $lines );
 	}
 
@@ -510,35 +692,75 @@ class EWP_AI_Content_Generator {
 	 *
 	 * @since 1.0.0
 	 */
-	private function build_task_instruction( string $task, array $context, string $translation_mode ): string {
+	private function build_task_instruction(string $task, array $context, string $translation_mode): string
+	{
+
 		$lang = $context['language'] ?? 'the same language as the post';
 
-		// Translation mode prefix.
+		$lang = apply_filters('ewp_ai_content_task_language', $lang, $context, $task);
+
+		// ── Translation mode prefix ───────────────────────────────────
 		$translation_prefix = '';
-		if ( 'translate' === $translation_mode ) {
+		if ('translate' === $translation_mode) {
 			$translation_prefix = sprintf(
-				"Translate the content to %s, preserving the original meaning as closely as possible.\n",
+				"Translate the content to %s, preserving the original meaning exactly. Do not add or remove information.\n",
 				$lang
 			);
-		} elseif ( 'recreate' === $translation_mode ) {
+		} elseif ('recreate' === $translation_mode) {
 			$translation_prefix = sprintf(
-				"Rewrite the content for a %s-speaking audience, adapting tone and phrasing naturally for that language and culture.\n",
+				"Rewrite the content for a %s-speaking audience, adapting tone and phrasing naturally while preserving intent.\n",
 				$lang
 			);
 		}
 
-		switch ( $task ) {
-			case 'title':
-				return $translation_prefix . 'Write a compelling, SEO-friendly post title. Return only the title text, no quotes.';
+		// ── Task instructions ─────────────────────────────────────────
+		$instructions = [
 
-			case 'excerpt':
-				return $translation_prefix . 'Write an engaging excerpt of 2–3 sentences that summarises the post and entices the reader. Return only the excerpt text.';
+			'title' => $translation_prefix . implode("\n", [
+				'Write an SEO-optimized post title.',
+				'- Max 60 characters',
+				'- Include relevant keywords if possible',
+				'- Be clear and specific',
+				'- Avoid clickbait and generic phrases',
+				'Return only the title text (no quotes, no formatting).',
+			]),
 
-			case 'full_content':
-				return $translation_prefix . 'Write complete, well-structured post content in HTML format using paragraphs (<p>), headings (<h2>, <h3>), and lists (<ul>/<ol>) where appropriate. Return only the HTML content.';
+			'excerpt' => $translation_prefix . implode("\n", [
+				'Write a concise and engaging excerpt.',
+				'- 2–3 sentences',
+				'- Maximum ~160 characters if possible',
+				'- Clearly communicate the value of the content',
+				'- Avoid generic phrases and filler language',
+				'Return only the excerpt text.',
+			]),
 
-			default:
-				return $translation_prefix . 'Write content for this post.';
-		}
+			'full_content' => $translation_prefix . implode("\n", [
+				'Write well-structured, SEO-friendly content in HTML format.',
+
+				'Structure:',
+				'- Use <h2> and <h3> headings',
+				'- Use short paragraphs (2–4 lines)',
+				'- Use <ul>/<ol> lists where appropriate',
+
+				'Content guidelines:',
+				'- Be informative, clear, and practical',
+				'- Avoid repetition and filler phrases',
+				'- Avoid generic marketing language',
+				'- Use natural, human tone',
+
+				'Formatting rules:',
+				'- Use valid HTML only (no markdown)',
+				'- Do NOT wrap content in <html> or <body>',
+				'- Do NOT include explanations',
+
+				'Return only the HTML content.',
+			]),
+		];
+
+		$instructions = apply_filters('ewp_ai_content_task_instructions', $instructions, $translation_prefix, $context, $lang);
+
+		$instruction = $instructions[$task] ?? ($translation_prefix . 'Write content for this post.');
+
+		return apply_filters('ewp_ai_content_task_instruction', $instruction, $task, $context, $translation_mode);
 	}
 }

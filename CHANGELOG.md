@@ -8,6 +8,91 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **EWP AI Content — Comprehensive Developer Filters and Hooks** (`2026-03-29`):
+  - **User Request**: "at all php files please add necessary filters and hooks for developers, so they can edit fields/auto populate fields in prompt etc."
+  - **Implementation**: Added 60+ filters and actions across all AI Content PHP files to enable complete developer customization:
+    - **Settings & Business Data** (`class-ewp-ai-content.php`):
+      - `ewp_ai_content_settings` — Modify AI settings before caching
+      - `ewp_ai_content_business_data` — Modify business data fields dynamically
+      - `ewp_ai_content_business_data_fields` — Add/remove business data field definitions
+      - `ewp_ai_content_generation_options` — Modify generation options (provider, model, instructions, etc.)
+      - `ewp_ai_content_business_context_data` — Modify business data before context generation
+      - `ewp_ai_content_business_context_parts` — Add/remove context parts for business prompt
+      - `ewp_ai_content_business_context_prompt_parts` — Modify business context prompt structure
+      - `ewp_ai_content_business_context_system_prompt` — Customize system prompt for business context
+      - `ewp_ai_content_business_context_user_prompt` — Customize user prompt for business context
+      - `ewp_ai_content_business_context_generated` — Post-process generated business context
+      - `ewp_ai_content_before_save_business_context` — Action before saving business context
+      - `ewp_ai_content_after_save_business_context` — Action after saving business context
+    - **Content Generation** (`class-content-generator.php`):
+      - `ewp_ai_content_before_generate` — Action before generation starts
+      - `ewp_ai_content_generation_context` — Modify post context before prompt building
+      - `ewp_ai_content_translation_mode` — Modify translation mode (translate/recreate)
+      - `ewp_ai_content_provider_options` — Modify provider-specific options (max_tokens, temperature)
+      - `ewp_ai_content_result` — Modify AI result before returning
+      - `ewp_ai_content_generated_text` — Post-process generated content text
+      - `ewp_ai_content_after_generate` — Action after successful generation
+      - `ewp_ai_content_system_prompt_role` — Customize AI role description
+      - `ewp_ai_content_system_prompt_parts` — Add/remove system prompt sections
+      - `ewp_ai_content_system_prompt` — Modify complete system prompt
+      - `ewp_ai_content_context_block` — Modify formatted context block
+      - `ewp_ai_content_user_prompt_parts` — Add/remove user prompt sections
+      - `ewp_ai_content_user_prompt` — Modify complete user prompt
+      - `ewp_ai_content_task_language` — Customize language for task instructions
+      - `ewp_ai_content_task_instructions` — Modify task-specific instructions
+      - `ewp_ai_content_task_instruction` — Modify final task instruction
+      - `ewp_ai_content_format_context` — Modify context before formatting
+      - `ewp_ai_content_context_lines` — Add/remove formatted context lines
+    - **Context Building** (`class-context-builder.php`):
+      - `ewp_ai_content_before_build_context` — Action before building context
+      - `ewp_ai_content_context_post` — Modify post object before extraction
+      - `ewp_ai_content_context_field` — Modify individual context fields (generic)
+      - `ewp_ai_content_context_field_{$field}` — Modify specific context field (dynamic)
+      - `ewp_ai_content_context` — Modify complete context array (existing)
+      - `ewp_ai_content_context_excerpt` — Customize excerpt extraction
+      - `ewp_ai_content_context_content` — Customize content extraction
+      - `ewp_ai_content_context_author` — Customize author name
+      - `ewp_ai_content_context_featured_image` — Customize featured image URL
+      - `ewp_ai_content_context_taxonomies_list` — Filter taxonomies to include
+      - `ewp_ai_content_context_taxonomies` — Modify taxonomies array
+      - `ewp_ai_exclude_meta_keys` — Add meta keys to exclude (existing, enhanced with $post_id)
+      - `ewp_ai_content_context_meta_value` — Modify individual meta values
+      - `ewp_ai_content_context_meta` — Modify complete meta array
+      - `ewp_ai_content_context_language` — Customize language code
+    - **Provider APIs** (OpenAI, Claude, Gemini):
+      - `ewp_ai_{provider}_before_generate` — Action before API call
+      - `ewp_ai_{provider}_prompt` — Modify prompt before building messages
+      - `ewp_ai_{provider}_request_body` — Modify API request body
+      - `ewp_ai_{provider}_messages` / `ewp_ai_{provider}_contents` — Modify messages/contents array
+      - `ewp_ai_{provider}_response` — Modify API response
+      - `ewp_ai_{provider}_after_generate` — Action after successful API call
+    - **Screenshot Processing** (`class-screenshot-generator.php`):
+      - `ewp_ai_screenshot_before_get_url` — Action before getting frontend URL
+      - `ewp_ai_screenshot_frontend_url` — Customize URL for screenshot capture
+      - `ewp_ai_screenshot_raw_base64` — Modify raw base64 before sanitization
+      - `ewp_ai_screenshot_max_size` — Customize maximum screenshot size
+      - `ewp_ai_screenshot_sanitized_base64` — Modify sanitized base64 data
+      - `ewp_ai_screenshot_provider_options` — Modify screenshot options for provider
+  - **Affected Files**:
+    - `includes/classes/ewp-ai-content/class-ewp-ai-content.php` — 12 filters, 2 actions
+    - `includes/classes/ewp-ai-content/class-content-generator.php` — 18 filters, 2 actions
+    - `includes/classes/ewp-ai-content/class-context-builder.php` — 14 filters, 1 action
+    - `includes/classes/ewp-ai-content/class-openai-provider.php` — 4 filters, 2 actions
+    - `includes/classes/ewp-ai-content/class-claude-provider.php` — 4 filters, 2 actions
+    - `includes/classes/ewp-ai-content/class-gemini-provider.php` — 4 filters, 2 actions
+    - `includes/classes/ewp-ai-content/class-screenshot-generator.php` — 5 filters, 1 action
+  - **Use Cases Enabled**:
+    - Auto-populate instructions based on post type or custom fields
+    - Inject external data sources into context (CRM, analytics, etc.)
+    - Customize prompts per post type or taxonomy
+    - Override provider settings dynamically
+    - Add custom business data fields
+    - Post-process AI-generated content
+    - Implement custom caching strategies
+    - Add custom validation or sanitization
+    - Integrate with third-party services
+  - **Documentation**: All filters/actions include comprehensive PHPDoc with parameters and @since tags
+  - **Backwards Compatibility**: All changes are additive; existing functionality unchanged
 - **EWP AI Content — Comprehensive Developer-Level Logging** (`2026-03-28`):
   - **User Request**: "When a call to AI happens either for business context or AI content generation, please log everything at developer level with ewp_log"
   - **Implementation**: Added comprehensive logging at developer level for all AI-related operations:
