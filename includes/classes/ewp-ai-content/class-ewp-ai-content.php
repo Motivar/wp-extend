@@ -612,6 +612,7 @@ JS;
 					'business_context' => [
 						'label'       => __('Business Context', 'extend-wp'),
 						'case'        => 'textarea',
+						'attributes' => array('readonly' => true),
 						'default'     => '',
 						'explanation' => __('Auto-generated from your Business Data when you save the modal. You can also edit manually.', 'extend-wp'),
 					],
@@ -1263,6 +1264,19 @@ JS;
 			// Force settings reload
 			$settings = self::get_settings();
 
+			// Log business context generation start
+			ewp_log(
+				'extend-wp',
+				'ai_content_business_context',
+				'Business context generation started',
+				[
+					'default_provider' => $settings['default_provider'] ?? 'openai',
+				],
+				'developer',
+				'',
+				1
+			);
+
 			// Debug: Log the API key from settings to verify decryption
 			if (function_exists('ewp_log')) {
 				$openai_key = $settings['openai_api_key'] ?? '';
@@ -1294,94 +1308,110 @@ JS;
 
 			$biz = self::get_business_data();
 
-		// ── Smart caching: skip regeneration if data hasn't changed ──────────
-		$current_hash = self::get_business_data_hash();
-		if ($current_hash === ($biz['business_data_hash'] ?? '') && ! empty($biz['business_context'])) {
-			return rest_ensure_response(['business_context' => $biz['business_context']]);
-		}
+			// ── Smart caching: skip regeneration if data hasn't changed ──────────
+			$current_hash = self::get_business_data_hash();
+			if ($current_hash === ($biz['business_data_hash'] ?? '') && ! empty($biz['business_context'])) {
+				return rest_ensure_response(['business_context' => $biz['business_context']]);
+			}
 
 			// ── Build prompt parts ──────────────────────────────────────────────
-			$parts = [
-				'Generate a concise business context summary for use in AI content generation prompts. '
-					. 'Write only the summary paragraph — no headers, no labels, no markdown.',
-			];
+			$context_parts = [];
 
 			if (! empty($biz['business_name'])) {
-				$parts[] = 'Business name: ' . $biz['business_name'];
-			}
-			if (! empty($biz['business_location'])) {
-				$parts[] = 'Location/service area: ' . $biz['business_location'];
-			}
-			if (! empty($biz['business_description'])) {
-				$parts[] = 'Description: ' . $biz['business_description'];
-			}
-			if (! empty($biz['key_services'])) {
-				$parts[] = 'Key services/products: ' . $biz['key_services'];
-			}
-			if (! empty($biz['unique_selling_points'])) {
-				$parts[] = 'What makes them different: ' . $biz['unique_selling_points'];
-			}
-			if (! empty($biz['brand_voice'])) {
-				$parts[] = 'Target audience: ' . $biz['target_audience'];
+				$context_parts[] = 'Business: ' . $biz['business_name'];
 			}
 
-			// ── Fetch review page snippets for sentiment ────────────────────────
-			$review_links = is_array($biz['review_links'] ?? null) ? $biz['review_links'] : [];
-			$snippets     = [];
-			foreach ($review_links as $link) {
-				$url = esc_url_raw(is_array($link) ? ($link['url'] ?? '') : '');
-				if (! $url || ! $this->is_url_accessible($url)) {
-					continue;
-				}
-				$response = wp_remote_get($url, [
-					'timeout'    => 8,
-					'sslverify'  => false,
-					'user-agent' => 'Mozilla/5.0 (compatible; WP/' . get_bloginfo('version') . ')',
-				]);
-				if (is_wp_error($response)) {
-					continue;
-				}
-				$html  = wp_remote_retrieve_body($response);
-				$title = '';
-				$desc  = '';
-				if (preg_match('/<title[^>]*>(.*?)<\/title>/is', $html, $m)) {
-					$title = wp_strip_all_tags($m[1]);
-				}
-				if (
-					preg_match('/<meta[^>]+name=["\']description["\'][^>]+content=["\']([^"\']+)["\'][^>]*>/i', $html, $m)
-					|| preg_match('/<meta[^>]+content=["\']([^"\']+)["\'][^>]+name=["\']description["\'][^>]*>/i', $html, $m)
-				) {
-					$desc = $m[1];
-				}
-				$snippet = trim($title . ($desc ? ' — ' . $desc : ''));
-				if ($snippet) {
-					$snippets[] = $snippet;
-				} else {
-					$parsed = wp_parse_url($url);
-					if (! empty($parsed['host'])) {
-						$snippets[] = $parsed['host'];
-					}
-				}
+			if (! empty($biz['business_location'])) {
+				$context_parts[] = 'Location: ' . $biz['business_location'];
 			}
-			if (! empty($snippets)) {
-				$biz_label = ! empty($biz['business_name']) ? " for \"{$biz['business_name']}\"" : '';
-				$parts[]   = "Customer review snippets{$biz_label}: " . implode(' | ', $snippets);
-			} elseif (! empty($biz['customer_sentiment'])) {
-				// Fall back to manually written sentiment if reviews are inaccessible.
-				$parts[] = 'Customer sentiment: ' . $biz['customer_sentiment'];
+
+			if (! empty($biz['business_description'])) {
+				$context_parts[] = 'Description: ' . $biz['business_description'];
+			}
+
+			if (! empty($biz['key_services'])) {
+				$context_parts[] = 'Services: ' . $biz['key_services'];
+			}
+
+			if (! empty($biz['unique_selling_points'])) {
+				$context_parts[] = 'Differentiation: ' . $biz['unique_selling_points'];
+			}
+
+			if (! empty($biz['target_audience'])) {
+				$context_parts[] = 'Audience: ' . $biz['target_audience'];
 			}
 
 
 			// ── AI call ─────────────────────────────────────────────────────────
-			$prompt = implode("\n", $parts);
+			$prompt = implode("\n", [
+
+				'Create a business context for an AI content generation system.',
+
+				'The output must define:',
+				'- what the business does',
+				'- who it serves',
+				'- what makes it different',
+				'- the appropriate tone of voice',
+				'- how future content should be written',
+
+				'Guidelines:',
+				'- Be specific and concrete',
+				'- Avoid generic marketing phrases (e.g. "high-quality service")',
+				'- Avoid fluff and repetition',
+				'- Focus on clarity and real value',
+				'- Use natural language (not robotic)',
+				'- Keep it under 120 words',
+
+				'Output rules:',
+				'- Return a single paragraph',
+				'- No headings, no bullet points, no markdown',
+
+				'Business data:',
+				implode("\n", $context_parts),
+			]);
 			$model  = $settings[$provider_id . '_model'] ?? array_key_first($provider->get_models());
+			$system_prompt = 'You are a senior conversion copywriter creating foundational business context for an AI system. Your goal is to produce clear, specific, and non-generic descriptions that will guide all future AI-generated content. Avoid vague claims and generic marketing language.';
+
+			// Log AI call details
+			ewp_log(
+				'extend-wp',
+				'ai_content_business_context',
+				'Calling AI provider for business context generation',
+				[
+					'provider' => $provider_id,
+					'model' => $model,
+					'system_prompt' => $system_prompt,
+					'user_prompt' => $prompt,
+					'max_tokens' => 300,
+					'temperature' => 0.5,
+					'business_data_fields' => array_keys($context_parts),
+				],
+				'developer',
+				'',
+				1
+			);
+
 			$result = $provider->generate($prompt, $model, [
-				'system'      => 'You are a professional copywriter. Write clear, accurate, concise business context paragraphs for AI content generation.',
+				'system' => $system_prompt,
 				'max_tokens'  => 300,
 				'temperature' => 0.5,
 			]);
 
 			if (is_wp_error($result)) {
+				ewp_log(
+					'extend-wp',
+					'ai_content_business_context',
+					'Business context generation failed: ' . $result->get_error_message(),
+					[
+						'provider' => $provider_id,
+						'model' => $model,
+						'error_code' => $result->get_error_code(),
+						'error_message' => $result->get_error_message(),
+					],
+					'developer',
+					'',
+					0
+				);
 				return $result;
 			}
 
@@ -1389,6 +1419,23 @@ JS;
 			$biz['business_data_hash'] = $current_hash;
 			$biz['business_context'] = trim($result['content']);
 			update_option('business_data', $biz);
+
+			// Log successful generation
+			ewp_log(
+				'extend-wp',
+				'ai_content_business_context',
+				'Business context generated successfully',
+				[
+					'provider' => $provider_id,
+					'model' => $result['model'] ?? $model,
+					'usage' => $result['usage'] ?? [],
+					'content_length' => strlen($biz['business_context']),
+					'business_data_hash' => $current_hash,
+				],
+				'developer',
+				'',
+				1
+			);
 
 			return rest_ensure_response(['business_context' => $biz['business_context']]);
 		} catch (\Throwable $e) {
@@ -1592,6 +1639,20 @@ JS;
 			'ai_content_health_check',
 			'AI Content Health Check',
 			'An AI provider API key was validated.'
+		);
+
+		ewp_register_log_type(
+			'extend-wp',
+			'ai_content_business_context',
+			'Ai Content Business Context',
+			'Business context generation for AI content system.'
+		);
+
+		ewp_register_log_type(
+			'extend-wp',
+			'ai_content_api_call',
+			'AI Content Api Call',
+			'API call to AI provider for content generation.'
 		);
 	}
 }

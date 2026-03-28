@@ -158,6 +158,23 @@ class EWP_AI_Content_Generator {
 	 * @since 1.0.0
 	 */
 	public function generate_content( int $post_id, string $task, array $options = [] ): array|\WP_Error {
+		// Log generation request start
+		if (function_exists('ewp_log')) {
+			ewp_log(
+				'extend-wp',
+				'ai_content_api_call',
+				sprintf('AI content generation started for post #%d, task: %s', $post_id, $task),
+				[
+					'post_id' => $post_id,
+					'task' => $task,
+					'options' => $options,
+				],
+				'developer',
+				'post_type',
+				$post_id
+			);
+		}
+
 		// Validate task.
 		$valid_tasks = [ 'title', 'excerpt', 'full_content' ];
 		if ( ! in_array( $task, $valid_tasks, true ) ) {
@@ -199,6 +216,27 @@ class EWP_AI_Content_Generator {
 		$system_prompt    = $this->build_system_prompt( $context, $settings );
 		$user_prompt      = $this->build_user_prompt( $task, $context, $options, $translation_mode );
 
+		// Log prompts before filtering
+		if (function_exists('ewp_log')) {
+			ewp_log(
+				'extend-wp',
+				'ai_content_api_call',
+				sprintf('Built prompts for post #%d', $post_id),
+				[
+					'post_id' => $post_id,
+					'task' => $task,
+					'provider' => $provider_id,
+					'model' => $model,
+					'system_prompt' => $system_prompt,
+					'user_prompt' => $user_prompt,
+					'translation_mode' => $translation_mode,
+				],
+				'developer',
+				'post_type',
+				$post_id
+			);
+		}
+
 		/**
 		 * Filter the full prompt before it is sent to the provider.
 		 *
@@ -232,12 +270,70 @@ class EWP_AI_Content_Generator {
 				$options['image_mime'] ?? 'image/jpeg'
 			);
 			$gen_options = array_merge( $gen_options, $image_opts );
+
+			if (function_exists('ewp_log')) {
+				ewp_log(
+					'extend-wp',
+					'ai_content_api_call',
+					sprintf('Screenshot attached for post #%d', $post_id),
+					[
+						'post_id' => $post_id,
+						'image_mime' => $options['image_mime'] ?? 'image/jpeg',
+						'image_size_bytes' => strlen($options['image_base64']),
+					],
+					'developer',
+					'post_type',
+					$post_id
+				);
+			}
+		}
+
+		// Log final generation options before API call
+		if (function_exists('ewp_log')) {
+			ewp_log(
+				'extend-wp',
+				'ai_content_api_call',
+				sprintf('Calling %s API for post #%d', $provider->get_label(), $post_id),
+				[
+					'post_id' => $post_id,
+					'task' => $task,
+					'provider' => $provider_id,
+					'model' => $model,
+					'max_tokens' => $gen_options['max_tokens'],
+					'temperature' => $gen_options['temperature'],
+					'has_image' => ! empty($options['image_base64']),
+					'final_system_prompt' => $prompts['system'],
+					'final_user_prompt' => $prompts['user'],
+				],
+				'developer',
+				'post_type',
+				$post_id
+			);
 		}
 
 		// Call provider.
 		$result = $provider->generate( $prompts['user'], $model, $gen_options );
 
 		if ( is_wp_error( $result ) ) {
+			if (function_exists('ewp_log')) {
+				ewp_log(
+					'extend-wp',
+					'ai_content_api_call',
+					sprintf('AI API call failed for post #%d: %s', $post_id, $result->get_error_message()),
+					[
+						'post_id' => $post_id,
+						'task' => $task,
+						'provider' => $provider_id,
+						'model' => $model,
+						'error_code' => $result->get_error_code(),
+						'error_message' => $result->get_error_message(),
+						'error_data' => $result->get_error_data(),
+					],
+					'developer',
+					'post_type',
+					$post_id
+				);
+			}
 			return $result;
 		}
 
@@ -251,6 +347,27 @@ class EWP_AI_Content_Generator {
 		 * @since 1.0.0
 		 */
 		$result = apply_filters( 'ewp_ai_content_result', $result, $task, $context );
+
+		// Log successful generation with full details
+		if (function_exists('ewp_log')) {
+			ewp_log(
+				'extend-wp',
+				'ai_content_api_call',
+				sprintf('AI content generated successfully for post #%d', $post_id),
+				[
+					'post_id' => $post_id,
+					'task' => $task,
+					'provider' => $provider_id,
+					'model' => $result['model'],
+					'usage' => $result['usage'],
+					'content_length' => strlen($result['content']),
+					'content_preview' => substr($result['content'], 0, 200),
+				],
+				'developer',
+				'post_type',
+				$post_id
+			);
+		}
 
 		return [
 			'content'  => $result['content'],

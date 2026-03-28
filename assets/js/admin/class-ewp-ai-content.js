@@ -583,6 +583,13 @@ class EWPAiContent {
 					clearTimeout(timeoutId);
 					this.hideLoadingOverlay();
 
+					// Check if response contains an error (REST API returns 200 with error payload)
+					if (data && data.code && data.message) {
+						this.showErrorNotice(data.message);
+						console.error('[EWP AI] generateBusinessContext failed:', data);
+						return;
+					}
+
 					if (data && data.business_context) {
 						textarea.value = data.business_context;
 						// Mark field dirty so EWP settings form saves it.

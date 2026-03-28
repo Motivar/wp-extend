@@ -7,13 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **EWP AI Content — Comprehensive Developer-Level Logging** (`2026-03-28`):
+  - **User Request**: "When a call to AI happens either for business context or AI content generation, please log everything at developer level with ewp_log"
+  - **Implementation**: Added comprehensive logging at developer level for all AI-related operations:
+    - **Business Context Generation** (`rest_generate_business_context`):
+      - Logs generation start with default provider
+      - Logs full system and user prompts before API call
+      - Logs business data fields being sent
+      - Logs API response with usage statistics
+      - Logs success/failure with detailed error information
+    - **AI Content Generation** (`generate_content` in `class-content-generator.php`):
+      - Logs generation request start with post ID, task, and options
+      - Logs built prompts (system and user) before filtering
+      - Logs screenshot attachment details (MIME type, size)
+      - Logs final prompts and generation options before API call
+      - Logs API call failures with error codes and messages
+      - Logs successful generation with usage stats and content preview
+    - **All logs include**:
+      - Provider ID and model used
+      - Full system and user prompts
+      - Token usage statistics
+      - Temperature and max_tokens settings
+      - Error details when applicable
+  - **New Log Types Registered**:
+    - `ai_content_business_context` — Business context generation for AI content system
+    - `ai_content_api_call` — API call to AI provider for content generation
+  - **Affected Files**:
+    - `includes/classes/ewp-ai-content/class-ewp-ai-content.php` — Added logging to `rest_generate_business_context()` method
+    - `includes/classes/ewp-ai-content/class-content-generator.php` — Added logging throughout `generate_content()` method
+  - **Log Level**: All logs use `developer` level for detailed debugging
+  - **Impact**: Complete visibility into all AI operations for debugging and monitoring
+
 ### Fixed
-- **AWM Modal Field — Data loss on options page save** (`2026-03-28`):
-  - **Issue**: Modal field data was being deleted when saving the options page via WordPress Settings API.
-  - **Root Cause**: `awm_modal` fields only rendered a trigger button without any hidden input. When the settings form submitted to `options.php`, there was no POST data for the modal field (e.g., `business_data`), causing WordPress's `register_setting()` to delete or empty the option.
-  - **Solution**: Added hidden input for `awm_modal` fields when `modal_view === 'option'`. The hidden input preserves the current option value during settings page saves, preventing WordPress Settings API from deleting the data.
-  - **Affected File**: `includes/functions/library.php` — Added lines 1280-1286 in `awm_show_content()` function.
-  - **Impact**: Modal field data now persists correctly when saving options pages. Modal saves via REST API continue to work as before, and settings page saves no longer delete modal data.
+- **EWP AI Content — Variable typo causing null prompt in business context generation** (`2026-03-28`):
+  - **Issue**: Fatal type error "Argument #1 ($prompt) must be of type string, null given" when generating business context.
+  - **Root Cause**: Line 1332 used `$$prompt` (double dollar sign) instead of `$prompt`, creating a variable variable that evaluated to null.
+  - **Solution**: Fixed typo to use single `$prompt` variable.
+  - **Affected File**: `includes/classes/ewp-ai-content/class-ewp-ai-content.php` — line 1332.
+  - **Impact**: Business context generation now works correctly without type errors.
+
+- **EWP AI Content — Target audience not included in business context prompt** (`2026-03-28`):
+  - **Issue**: The `target_audience` field was never sent to the AI when generating business context.
+  - **Root Cause**: Condition on line 1325 checked `$biz['brand_voice']` (non-existent field) instead of `$biz['target_audience']`.
+  - **Solution**: Changed condition to check `$biz['target_audience']`.
+  - **Affected File**: `includes/classes/ewp-ai-content/class-ewp-ai-content.php` — line 1325.
+
+- **AWM Modal Field — Prevent Settings API interference with modal data** (`2026-03-28`):
+  - **Issue**: Modal field data was corrupted/lost when saving options page due to double-encoding and Settings API processing.
+  - **Root Cause**: `awm_modal` fields were registered with `register_setting()`, causing WordPress to expect POST data. A hidden input workaround used `wp_json_encode()` on serialized data, creating encoding conflicts where serialized PHP arrays were JSON-encoded, resulting in corrupted data.
+  - **Solution**: Skip `register_setting()` for `awm_modal` fields and remove hidden input. Modal fields now save exclusively via REST API, completely independent from WordPress Settings API.
+  - **Affected Files**: 
+    - `includes/classes/class-extend-wp.php` — Added check to skip modal field registration (lines 569-572)
+    - `includes/functions/library.php` — Removed hidden input workaround (previously lines 1280-1286)
+  - **Backwards Compatibility**: Modal fields continue to save via REST API as before. Options page saves no longer interfere with modal data.
+  - **Impact**: Clean separation of concerns - Settings API handles regular fields, REST API handles modal fields. No data loss, no encoding issues.
 
 ### Changed
 - **EWP AI Content — Prompt Optimization & Smart Caching** (`2026-03-27` to `2026-03-28`):

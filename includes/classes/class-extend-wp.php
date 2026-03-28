@@ -566,6 +566,10 @@ class AWM_Meta
                         }
 
                         foreach ($options as $key => $data) {
+                            // Skip registering awm_modal fields - they save via REST API only
+                            if (isset($data['case']) && $data['case'] === 'awm_modal') {
+                                continue;
+                            }
                             register_setting($optionKey, $key, $args);
                         }
                         add_filter('option_page_capability_' . $optionKey, function () {
