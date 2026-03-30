@@ -45,6 +45,17 @@ class EWPAiContent {
 			}
 		});
 
+		// Listen for footer ready event to initialize button handlers
+		document.addEventListener('awm_modal_footer_ready', (e) => {
+			const overlay = e.detail?.overlay;
+			if (!overlay) { return; }
+
+			const modalId = overlay.id;
+			if (modalId && modalId.includes('ai_generator')) {
+				this.initButtonHandlers(overlay);
+			}
+		});
+
 		// Settings page: auto-generate business context after modal saves
 		if (EWPAiContent.config.isSettingsPage) {
 			this.initSettingsPage();
@@ -63,6 +74,53 @@ class EWPAiContent {
 
 	// ── Generator Modal ─────────────────────────────────────────────────────
 
+	initButtonHandlers(overlay) {
+		// Get post ID from trigger button data
+		const trigger = document.querySelector('.awm-modal-trigger[data-modal-id*="ai_generator"]');
+		const postId = trigger ? parseInt(trigger.dataset.objectId, 10) : 0;
+		const frontUrl = trigger?.dataset.frontendUrl || '';
+		const screenshot = trigger?.dataset.screenshotEnabled === '1';
+
+		// Get footer and attach event listeners
+		const footer = overlay.querySelector('.awm-modal-footer');
+		if (!footer) {
+			console.log('[EWP AI] Footer not found in overlay');
+			return;
+		}
+
+		// Generate button
+		const generateBtn = footer.querySelector('.ewp-ai-generate-btn');
+		console.log('[EWP AI] Generate button found:', !!generateBtn, generateBtn);
+		if (generateBtn) {
+			generateBtn.addEventListener('click', (e) => {
+				console.log('[EWP AI] Generate button clicked');
+				e.preventDefault();
+				this.runGenerate(overlay, postId, frontUrl, screenshot);
+			});
+		}
+
+		// Accept All button
+		const acceptBtn = footer.querySelector('.ewp-ai-accept-all');
+		if (acceptBtn) {
+			acceptBtn.addEventListener('click', (e) => {
+				e.preventDefault();
+				this.applyToEditor(this.results);
+				if (typeof AWMModalField !== 'undefined' && AWMModalField.instance) {
+					AWMModalField.instance.closeModal();
+				}
+			});
+		}
+
+		// Retry button
+		const retryBtn = footer.querySelector('.ewp-ai-retry');
+		if (retryBtn) {
+			retryBtn.addEventListener('click', (e) => {
+				e.preventDefault();
+				this.runGenerate(overlay, postId, frontUrl, screenshot);
+			});
+		}
+	}
+
 	initGeneratorModal(overlay) {
 		this.results = {};
 		this.lastParams = {};
@@ -71,8 +129,6 @@ class EWPAiContent {
 		// Get post ID from trigger button data
 		const trigger = document.querySelector('.awm-modal-trigger[data-modal-id*="ai_generator"]');
 		const postId = trigger ? parseInt(trigger.dataset.objectId, 10) : 0;
-		const frontUrl = trigger?.dataset.frontendUrl || '';
-		const screenshot = trigger?.dataset.screenshotEnabled === '1';
 
 		// Sync provider/model on provider change
 		const providerSel = overlay.querySelector('[name*="[provider]"]');
@@ -84,29 +140,6 @@ class EWPAiContent {
 		const promptToggle = overlay.querySelector('.ewp-ai-prompt-toggle');
 		if (promptToggle) {
 			promptToggle.addEventListener('click', () => this.togglePromptPreview(overlay, postId));
-		}
-
-		// Generate button
-		const generateBtn = overlay.querySelector('.ewp-ai-generate-btn');
-		if (generateBtn) {
-			generateBtn.addEventListener('click', () => this.runGenerate(overlay, postId, frontUrl, screenshot));
-		}
-
-		// Accept All button
-		const acceptBtn = overlay.querySelector('.ewp-ai-accept-all');
-		if (acceptBtn) {
-			acceptBtn.addEventListener('click', () => {
-				this.applyToEditor(this.results);
-				if (typeof AWMModalField !== 'undefined' && AWMModalField.instance) {
-					AWMModalField.instance.closeModal();
-				}
-			});
-		}
-
-		// Retry button
-		const retryBtn = overlay.querySelector('.ewp-ai-retry');
-		if (retryBtn) {
-			retryBtn.addEventListener('click', () => this.runGenerate(overlay, postId, frontUrl, screenshot));
 		}
 
 		// Initial model sync

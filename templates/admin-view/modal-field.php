@@ -1,4 +1,5 @@
 <?php
+
 /**
  * AWM Modal Field Template
  * 
@@ -141,7 +142,7 @@ do_action('awm_modal_before_wrapper', $modal_id, $args);
 
 <div class="<?php echo esc_attr(implode(' ', $wrapper_classes)); ?>" id="awm-modal-<?php echo esc_attr($modal_id); ?>">
     <div class="<?php echo esc_attr(implode(' ', $dialog_classes)); ?>" role="dialog" aria-modal="true" aria-labelledby="awm-modal-title-<?php echo esc_attr($modal_id); ?>">
-        
+
         <?php
         /**
          * Action before modal header
@@ -152,12 +153,12 @@ do_action('awm_modal_before_wrapper', $modal_id, $args);
          */
         do_action('awm_modal_before_header', $modal_id, $args);
         ?>
-        
+
         <div class="<?php echo esc_attr(implode(' ', $header_classes)); ?>">
             <h2 id="awm-modal-title-<?php echo esc_attr($modal_id); ?>"><?php echo esc_html($modal_title); ?></h2>
             <button type="button" class="ewp-ai-modal-close" aria-label="<?php esc_attr_e('Close', 'extend-wp'); ?>">✕</button>
         </div>
-        
+
         <?php
         /**
          * Action after modal header
@@ -168,7 +169,7 @@ do_action('awm_modal_before_wrapper', $modal_id, $args);
          */
         do_action('awm_modal_after_header', $modal_id, $args);
         ?>
-        
+
         <?php
         /**
          * Action before modal body
@@ -179,7 +180,7 @@ do_action('awm_modal_before_wrapper', $modal_id, $args);
          */
         do_action('awm_modal_before_body', $modal_id, $args);
         ?>
-        
+
         <div class="<?php echo esc_attr(implode(' ', $body_classes)); ?>">
             <?php
             /**
@@ -193,7 +194,7 @@ do_action('awm_modal_before_wrapper', $modal_id, $args);
             echo apply_filters('awm_modal_body_content', $fields_html, $modal_id, $args);
             ?>
         </div>
-        
+
         <?php
         /**
          * Action after modal body
@@ -204,7 +205,7 @@ do_action('awm_modal_before_wrapper', $modal_id, $args);
          */
         do_action('awm_modal_after_body', $modal_id, $args);
         ?>
-        
+
         <?php
         /**
          * Action before modal footer
@@ -215,7 +216,7 @@ do_action('awm_modal_before_wrapper', $modal_id, $args);
          */
         do_action('awm_modal_before_footer', $modal_id, $args);
         ?>
-        
+
         <div class="<?php echo esc_attr(implode(' ', $footer_classes)); ?>">
             <?php
             /**
@@ -227,14 +228,40 @@ do_action('awm_modal_before_wrapper', $modal_id, $args);
              */
             do_action('awm_modal_footer_start', $modal_id, $args);
             ?>
-            
-            <button type="button" class="<?php echo esc_attr(implode(' ', $save_button_classes)); ?>">
-                <?php echo esc_html($save_text); ?>
-            </button>
-            <button type="button" class="<?php echo esc_attr(implode(' ', $cancel_button_classes)); ?>">
-                <?php echo esc_html($cancel_text); ?>
-            </button>
-            
+
+            <?php
+            /**
+             * Filter modal footer buttons HTML
+             *
+             * Allows customization of the default Save/Cancel buttons.
+             * Return custom HTML to replace default buttons.
+             *
+             * @param string $buttons_html          Default buttons HTML
+             * @param array  $save_button_classes   Save button CSS classes
+             * @param string $save_text             Save button text
+             * @param array  $cancel_button_classes Cancel button CSS classes
+             * @param string $cancel_text           Cancel button text
+             * @param string $modal_id              Modal identifier
+             * @param array  $args                  Field arguments
+             * @since 1.2.0
+             */
+            $buttons_html = '';
+            ob_start();
+            include awm_path . 'templates/admin-view/modal-footer-buttons.php';
+            $default_buttons = ob_get_clean();
+
+            echo apply_filters(
+                'awm_modal_footer_buttons_html',
+                $default_buttons,
+                $save_button_classes,
+                $save_text,
+                $cancel_button_classes,
+                $cancel_text,
+                $modal_id,
+                $args
+            );
+            ?>
+
             <?php
             /**
              * Action at end of modal footer
@@ -246,7 +273,7 @@ do_action('awm_modal_before_wrapper', $modal_id, $args);
             do_action('awm_modal_footer_end', $modal_id, $args);
             ?>
         </div>
-        
+
         <?php
         /**
          * Action after modal footer
@@ -257,7 +284,7 @@ do_action('awm_modal_before_wrapper', $modal_id, $args);
          */
         do_action('awm_modal_after_footer', $modal_id, $args);
         ?>
-        
+
     </div>
 </div>
 

@@ -19,6 +19,12 @@ class Setup
 {
  public function __construct()
  {
+  // Register encryption hooks for meta and options
+  add_filter('update_post_meta', 'awm_encrypt_meta_on_save', 10, 4);
+  add_filter('update_user_meta', 'awm_encrypt_meta_on_save', 10, 4);
+  add_filter('update_term_meta', 'awm_encrypt_meta_on_save', 10, 4);
+  add_action('updated_option', 'awm_encrypt_option_after_save', 10, 3);
+
   add_action('init', function () {
    load_plugin_textdomain('extend-wp', false, awm_relative_path . '/languages');
   });

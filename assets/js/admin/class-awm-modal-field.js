@@ -125,7 +125,16 @@ class AWMModalField {
 		instance.bindModalEvents(overlay, instance.currentTrigger);
 		instance.initializeNestedFields(overlay.querySelector('.awm-modal-body'));
 
-		requestAnimationFrame(() => overlay.classList.add('ewp-ai-modal--visible'));
+		requestAnimationFrame(() => {
+			overlay.classList.add('ewp-ai-modal--visible');
+
+			// Dispatch custom event after modal footer is fully rendered
+			const footerEvent = new CustomEvent('awm_modal_footer_ready', {
+				detail: { overlay, footer: overlay.querySelector('.awm-modal-footer') },
+				bubbles: true,
+			});
+			document.dispatchEvent(footerEvent);
+		});
 		awm_init_inputs();
 	}
 

@@ -108,6 +108,9 @@ class EWP_AI_Content
 		// Modal field definition lookup (needed for REST API modal-fields endpoint)
 		add_filter('awm_modal_field_definition_lookup', [$this, 'filter_modal_field_definition_lookup'], 10, 4);
 
+		// Modal footer buttons filter (needed for REST API modal rendering)
+		add_filter('awm_modal_footer_buttons_html', [$this, 'filter_modal_footer_buttons_html'], 10, 7);
+
 		// Everything below is admin-only — never runs on frontend or REST requests.
 		if (! is_admin()) {
 			return;
@@ -115,9 +118,6 @@ class EWP_AI_Content
 		add_filter('awm_add_meta_boxes_filter', [$this, 'register_ai_meta_box']);
 		add_filter('awm_modal_wrapper_classes', [$this, 'filter_modal_wrapper_classes'], 10, 3);
 		add_filter('awm_modal_body_content', [$this, 'filter_modal_body_content'], 10, 3);
-		add_action('awm_modal_footer_start', [$this, 'action_modal_footer_start'], 10, 2);
-		add_filter('awm_modal_save_button_classes', [$this, 'filter_save_button_classes'], 10, 3);
-		add_filter('awm_modal_cancel_button_classes', [$this, 'filter_cancel_button_classes'], 10, 3);
 		add_filter('awm_modal_after_body', [$this, 'filter_modal_after_body'], 10, 3);
 		add_filter('ewp_register_dynamic_assets', [$this, 'register_dynamic_assets']);
 		add_action('admin_bar_menu', [$this, 'render_admin_bar_node'], 100);
@@ -918,24 +918,25 @@ JS;
 		return [
 			'tasks' => [
 				'label'   => __('✦ Generate', 'extend-wp'),
-				'case'    => 'checkbox_multiple',
+				'case'    => 'select',
 				'options' => [
 					'title'        => ['label' => __('Title', 'extend-wp')],
 					'excerpt'      => ['label' => __('Excerpt', 'extend-wp')],
 					'full_content' => ['label' => __('Full Content', 'extend-wp')],
 				],
-				'default' => ['title'],
+				'attributes' => array('multiple' => true),
 			],
 			'provider' => [
 				'label'   => __('Provider', 'extend-wp'),
 				'case'    => 'select',
 				'options' => $provider_options,
-				'default' => $settings['default_provider'] ?? 'openai',
+				'removeEmpty' => true,
 			],
 			'model' => [
 				'label'   => __('Model', 'extend-wp'),
 				'case'    => 'select',
 				'options' => $model_options,
+				'removeEmpty' => true,
 			],
 			'translation_mode' => [
 				'label'   => __('Translation Mode', 'extend-wp'),
@@ -1041,22 +1042,36 @@ JS;
 	}
 
 	/**
-	 * Action to inject custom AI buttons at start of modal footer.
+	 * Filter modal footer buttons HTML to replace with custom AI buttons.
 	 *
-	 * @param string $modal_id Modal identifier.
-	 * @param array  $args     Field arguments.
+	 * @param string $default_buttons        Default Save/Cancel button HTML.
+	 * @param array  $save_button_classes    Save button CSS classes.
+	 * @param string $save_text              Save button text.
+	 * @param array  $cancel_button_classes  Cancel button CSS classes.
+	 * @param string $cancel_text            Cancel button text.
+	 * @param string $modal_id               Modal identifier.
+	 * @param array  $args                   Field arguments.
+	 * @return string Custom button HTML for AI modal, default buttons for others.
 	 *
-	 * @hook awm_modal_footer_start
+	 * @hook awm_modal_footer_buttons_html
 	 * @since 1.0.3
 	 */
-	public function action_modal_footer_start(string $modal_id, array $args): void
-	{
-		if (strpos($modal_id, 'ai_generator') === false) {
-			return;
+	public function filter_modal_footer_buttons_html(
+		string $default_buttons,
+		array $save_button_classes,
+		string $save_text,
+		array $cancel_button_classes,
+		string $cancel_text,
+		string $modal_id,
+		array $args
+	): string {
+		// Only customize AI generator modal
+		if (empty($modal_id) || false === strpos($modal_id, 'ai_generator')) {
+			return $default_buttons;
 		}
 
-		// Output custom AI buttons
-		echo '<button type="button" class="button button-primary ewp-ai-generate-btn">✦ ' . esc_html__('Generate', 'extend-wp') . '</button>
+		// Return custom AI buttons instead of default Save/Cancel
+		return '<button type="button" class="button button-primary ewp-ai-generate-btn">✦ ' . esc_html__('Generate', 'extend-wp') . '</button>
 			<button type="button" class="button ewp-ai-accept-all" style="display:none;">' . esc_html__('Accept All', 'extend-wp') . '</button>
 			<button type="button" class="button ewp-ai-retry" style="display:none;">' . esc_html__('Retry', 'extend-wp') . '</button>';
 	}

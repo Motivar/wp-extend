@@ -8,13 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **PHP Fatal Error: Undefined function add_filter() in library.php** (`2026-03-30`):
+  - Fixed fatal error caused by calling WordPress hooks during Composer autoload before WordPress initialization
+  - Moved encryption hook registrations from `library.php` (lines 13-18) to `Setup.php` constructor
+  - Hooks now registered after WordPress core functions are available: `update_post_meta`, `update_user_meta`, `update_term_meta`, `updated_option`
+  - **Affected files**: `includes/functions/library.php`, `includes/classes/Setup.php`
+  - **Backwards compatibility**: No breaking changes; hooks function identically, just registered at proper time
 - **EWP AI Content Modal — Footer Buttons and Field Rendering** (`2026-03-28`):
-  - Fixed footer buttons not displaying correctly — changed from filter to action hook for `awm_modal_footer_start`
-  - Added filters to hide default Save/Cancel buttons using `awm-hidden` CSS class
+  - Fixed footer buttons not displaying correctly — refactored to use filterable template approach
   - Fixed tasks checkbox field not rendering — changed field type from `checkbox` to `checkbox_multiple`
   - Updated JavaScript to properly select checkbox inputs with `input[name*="[tasks]"]:checked` selector
-  - Added `.awm-hidden` utility class to CSS for hiding elements
   - **Fixed modal not displaying as overlay** — Updated CSS dynamic asset selector from `.ewp-ai-content-metabox` to `.awm-modal-trigger[data-modal-id*="ai_generator"]` so CSS file loads properly and modal displays as fixed overlay
+  - **Refactored modal footer buttons** — Created new template `modal-footer-buttons.php` with `awm_modal_footer_buttons_html` filter to allow clean button replacement without CSS hacks
+    - Default modals render Save/Cancel buttons via template
+    - AI modal renders Generate/Accept All/Retry buttons via filter override
+    - Removed all button-hiding CSS rules and footer sizing workarounds
+    - Fixed filter not running on REST API requests by moving registration outside admin-only guard
+    - Fixed Generate/Accept All/Retry button click handlers using event delegation on footer for robustness
 
 ### Changed
 - **EWP AI Content Modal — Refactored to use awm_modal Infrastructure** (`2026-03-28`):
