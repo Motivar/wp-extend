@@ -505,7 +505,7 @@ class EWP_Logger
         $stored = get_option('ewp_logger_settings', []);
         if (is_array($stored) && isset($stored['storage'])) {
             unset($stored['storage']);
-            update_option('ewp_logger_settings', $stored);
+            update_option('ewp_logger_settings', $stored, false);
         }
 
         update_option('ewp_logger_db_table_dropped', true, false);

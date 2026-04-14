@@ -1830,7 +1830,7 @@ JS;
 			 */
 			do_action('ewp_ai_content_before_save_business_context', $biz);
 
-			update_option('business_data', $biz);
+			update_option('business_data', $biz, false);
 
 			/**
 			 * Action fired after saving generated business context.
