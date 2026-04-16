@@ -912,6 +912,11 @@ if (!function_exists('awm_show_content')) {
                                     }
                                     $val = 1;
                                     break;
+                                case 'time':
+                                    if (!empty($val) && strpos($val, ':') === false) {
+                                        $val = gmdate('H:i', strtotime($val));
+                                    }
+                                    break;
                                 case 'hidden':
                                     $ins .= '<input type="' . $input_type . '" name="' . $original_meta . '" id="' . $original_meta_id . '" value="' . $val . '" ' . $extraa . ' class="' . $class . '" ' . $required . '/>';
                                     $display_wrapper = false;

@@ -1066,6 +1066,7 @@ if (!function_exists('awmInputFieldsTypes')) {
       'number' => array('label' => __('Number', 'extend-wp')),
       'file' => array('label' => __('File', 'extend-wp')),
       'color' => array('label' => __('Color', 'extend-wp')),
+      'time' => array('label' => __('Time', 'extend-wp')),
       'submit' => array('label' => __('Submit', 'extend-wp')),
       'hidden' => array('label' => __('Hidden', 'extend-wp')),
     ));

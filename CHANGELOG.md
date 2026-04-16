@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Time Input Field Type** (`2026-04-16`):
+  - Added `time` to `awmInputFieldsTypes()` function for field type selection in UI
+  - Implemented time value formatting in `awm_show_content()` to convert stored values to HH:mm format
+  - Time fields now properly display and save time values in HTML5 time input format
+  - **Affected files**: `includes/classes/ewp-fields/ewp_field_functions.php`, `includes/functions/library.php`
+  - **Backwards compatibility**: No breaking changes; new field type available for new fields
+
 ### Fixed
 - **PHP Fatal Error: Undefined function add_filter() in library.php** (`2026-03-30`):
   - Fixed fatal error caused by calling WordPress hooks during Composer autoload before WordPress initialization
