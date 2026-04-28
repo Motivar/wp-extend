@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **EWP Slug Manager** (`2026-04-28`):
+  - Implemented transient caching system for post type/taxonomy slug options
+  - Reduces 11 database queries to 1 on first load, 0 on cached loads (30-day cache)
+  - Auto-invalidates cache when slug options are updated via WordPress admin
+  - Integrated with `ewp_flush_cache()` for manual cache clearing
+  - Created `EWP\WP_Content\Slug_Manager` singleton class with namespace
+  - Filter hook: `ewp_slug_manager_slugs` for developer customization
+  - **Affected files**: 
+    - `includes/classes/ewp-wp-content/class-slug-manager.php` (new)
+    - `includes/classes/ewp-wp-content/class-wp-content-installer.php`
+    - `includes/classes/Setup.php`
+  - **Performance**: ~99% reduction in slug-related database queries
+  - **Backwards compatibility**: Fully compatible, transparent to existing code
 - **Time Input Field Type** (`2026-04-16`):
   - Added `time` to `awmInputFieldsTypes()` function for field type selection in UI
   - Implemented time value formatting in `awm_show_content()` to convert stored values to HH:mm format

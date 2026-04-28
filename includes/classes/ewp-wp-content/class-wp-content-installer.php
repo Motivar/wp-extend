@@ -8,6 +8,8 @@ if (!defined('ABSPATH')) {
 global $ewp_post_types;
 require_once 'ewp_wp_functions.php';
 
+use EWP\WP_Content\Slug_Manager;
+
 class EWP_WP_Content_Installer
 {
 
@@ -40,6 +42,7 @@ class EWP_WP_Content_Installer
         die();
       }
     });
+    Slug_Manager::instance();
   }
 
 
@@ -347,7 +350,7 @@ class EWP_WP_Content_Installer
           'show_ui' => isset($term_data['show_ui']) ? $term_data['show_ui'] : true,
           'query_var' => isset($term_data['query_var']) ? $term_data['query_var'] : true,
           'rewrite' => array(
-            'slug' => get_option($term . '_slug') ?: $term,
+            'slug' => Slug_Manager::get_slug($term, $term),
             'with_front' => false,
           ),
           'show_admin_column' => isset($term_data['show_admin_column']) ? $term_data['show_admin_column'] : false,
@@ -373,7 +376,7 @@ class EWP_WP_Content_Installer
         
         $extra_sl = isset($type['extra_slug']) ? '/%' . $type['extra_slug'] . '%' : '';
         $extra_sl = apply_filters('flx_extra_slug_filter', $extra_sl);
-        $general_slug = isset($type['slug']) ? $type['slug'] : (get_option($type['post'] . '_slug') ?: $type['post']);
+        $general_slug = isset($type['slug']) ? $type['slug'] : Slug_Manager::get_slug($type['post'], $type['post']);
         $chk = (isset($type['flx_custom_template']) && $type['flx_custom_template']) ? true : false;
         $labels = $args = array();
         $type['sn'] = __(ucwords(($type['sn'])), 'extend-wp');
