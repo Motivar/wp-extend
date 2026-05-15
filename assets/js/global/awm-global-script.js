@@ -1,3 +1,10 @@
+/**
+ * Global queue for deferred callbacks
+ * Stores callbacks that are triggered before their functions are loaded
+ * Used by Dynamic Asset Loader to execute callbacks after scripts load
+ */
+window.awmDeferredCallbacks = window.awmDeferredCallbacks || [];
+
 awm_auto_fill_inputs();
 awm_toggle_password();
 awmShowInputs();
@@ -228,6 +235,29 @@ function awm_selectr_box(elem) {
 
     }
     new SlimSelect(slim_options);
+
+    // Check for onchange attribute and queue callback if function doesn't exist yet
+    var onchangeAttr = elem.getAttribute('onchange');
+    if (onchangeAttr) {
+        // Extract function name from "functionName()" or "functionName(args)"
+        var match = onchangeAttr.match(/^(\w+)\s*\(/);
+        if (match) {
+            var funcName = match[1];
+
+            // Check if function exists
+            if (typeof window[funcName] !== 'function') {
+                console.log('[AWM] Deferring callback: ' + funcName + ' (not loaded yet)');
+
+                // Queue it for later execution
+                window.awmDeferredCallbacks.push({
+                    funcName: funcName,
+                    element: elem,
+                    originalAttr: onchangeAttr,
+                    timestamp: Date.now()
+                });
+            }
+        }
+    }
 
 }
 

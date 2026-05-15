@@ -191,6 +191,7 @@ class EWPDynamicAssetLoader {
                 this.log(`Script loaded: ${asset.handle}`);
                 this.markPerformance(asset.handle, 'loaded');
                 this.dispatchAssetLoadedEvent(asset, true);
+                this.processDeferredCallbacks();
             };
 
             script.onerror = () => {
@@ -567,6 +568,46 @@ class EWPDynamicAssetLoader {
      */
     isAssetLoaded(handle) {
         return this.loadedAssets.has(handle);
+    }
+
+    /**
+     * Process deferred callbacks that were queued before scripts loaded
+     * Called after each script loads to execute any pending callbacks
+     * 
+     * @return {void}
+     */
+    processDeferredCallbacks() {
+        if (!window.awmDeferredCallbacks || window.awmDeferredCallbacks.length === 0) {
+            return;
+        }
+
+        this.log('Processing deferred callbacks', { count: window.awmDeferredCallbacks.length });
+
+        const remainingCallbacks = [];
+
+        window.awmDeferredCallbacks.forEach((callback) => {
+            if (typeof window[callback.funcName] === 'function') {
+                this.log('Executing deferred callback: ' + callback.funcName);
+                try {
+                    window[callback.funcName]();
+                } catch (error) {
+                    this.log('Error executing deferred callback: ' + callback.funcName, error);
+                }
+            } else {
+                const age = Date.now() - callback.timestamp;
+                if (age < 10000) {
+                    remainingCallbacks.push(callback);
+                } else {
+                    this.log('Callback timeout (10s): ' + callback.funcName);
+                }
+            }
+        });
+
+        window.awmDeferredCallbacks = remainingCallbacks;
+
+        if (remainingCallbacks.length > 0) {
+            this.log('Remaining deferred callbacks', { count: remainingCallbacks.length });
+        }
     }
 }
 
