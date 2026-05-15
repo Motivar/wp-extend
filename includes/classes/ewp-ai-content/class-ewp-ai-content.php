@@ -2078,4 +2078,7 @@ JS;
 	}
 }
 
-new EWP_AI_Content();
+// Only instantiate if AI integration is enabled in general settings
+if (Extend_WP_Default_Content::get_general_settings('ewp_enable_ai_integration')) {
+	new EWP_AI_Content();
+}

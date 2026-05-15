@@ -15,6 +15,13 @@ if (!defined('ABSPATH')) {
 class Extend_WP_Default_Content
 {
   /**
+   * Cached general settings.
+   *
+   * @var array|null
+   */
+  private static ?array $general_settings_cache = null;
+
+  /**
    * Constructor
    * 
    * Initializes the class by registering hooks for admin menu and dashboard widgets.
@@ -26,8 +33,67 @@ class Extend_WP_Default_Content
   {
     add_filter('awm_add_options_boxes_filter', [$this, 'admin_menu'], 1);
     add_action('wp_dashboard_setup', [$this, 'remove_dashboard_widgets']);
+    add_action('updated_option', [$this, 'on_option_updated'], 10, 3);
   }
-  
+
+  /**
+   * Bust cache when ewp_general_settings is updated.
+   *
+   * @param string $option    The option name.
+   * @param mixed  $old_value The old option value.
+   * @param mixed  $value     The new option value.
+   *
+   * @hook updated_option
+   * @since 1.0.0
+   */
+  public function on_option_updated(string $option, $old_value, $value): void
+  {
+    if ('ewp_general_settings' === $option) {
+      self::bust_general_settings_cache();
+    }
+  }
+
+  /**
+   * Get general settings from ewp_general_settings option.
+   *
+   * Retrieves and caches the general settings array with defaults applied.
+   * Single source of truth for accessing ewp_general_settings.
+   *
+   * @param string|null $key Optional specific setting key to retrieve.
+   * @return array|mixed Full settings array if no key specified, or the value for the key.
+   *
+   * @since 1.0.0
+   */
+  public static function get_general_settings(?string $key = null)
+  {
+    if (self::$general_settings_cache === null) {
+      self::$general_settings_cache = get_option('ewp_general_settings', []);
+      if (!is_array(self::$general_settings_cache)) {
+        self::$general_settings_cache = [];
+      }
+    }
+
+    if ($key === null) {
+      return self::$general_settings_cache;
+    }
+
+    return self::$general_settings_cache[$key] ?? null;
+  }
+
+  /**
+   * Bust the general settings cache.
+   *
+   * Call this when ewp_general_settings option is updated.
+   *
+   * @return void
+   *
+   * @since 1.0.0
+   */
+  public static function bust_general_settings_cache(): void
+  {
+    self::$general_settings_cache = null;
+  }
+
   /**
    * Remove Dashboard Widgets
    * 
@@ -39,11 +105,8 @@ class Extend_WP_Default_Content
    */
   public function remove_dashboard_widgets()
   {
-    // Get plugin settings or use empty array if not set
-    $settings = get_option('ewp_general_settings') ?: array();
-    
     // If dashboard widgets are allowed in settings, exit early
-    if (isset($settings['ewp_allow_dashboard_core_widgets']) && $settings['ewp_allow_dashboard_core_widgets']) {
+    if (self::get_general_settings('ewp_allow_dashboard_core_widgets')) {
       return;
     }
     
@@ -73,16 +136,8 @@ class Extend_WP_Default_Content
    */
   public function admin_menu($options)
   {
-    // Initialize array for allowed user roles
-    $allowed_users = array();
-    
-    // Get plugin settings or use empty array if not set
-    $settings = get_option('ewp_general_settings') ?: array();
-    
-    // Get allowed user roles from settings if available
-    if (isset($settings['ewp_user_access']) && !empty($settings['ewp_user_access'])) {
-      $allowed_users = $settings['ewp_user_access'];
-    } 
+    // Get allowed user roles from settings
+    $allowed_users = (array) self::get_general_settings('ewp_user_access');
 
     // Always allow administrators
     $allowed_users[] = 'administrator';
@@ -143,7 +198,12 @@ class Extend_WP_Default_Content
               'case' => 'input',
               'type' => 'checkbox',
               'label' => __('Allow dashboard core widgets to non administrators', 'extend-wp'),
-            )
+            ),
+            'ewp_enable_ai_integration' => array(
+              'case' => 'input',
+              'type' => 'checkbox',
+              'label' => __('Enable AI Integration', 'extend-wp'),
+            ),
           )
         ),
         

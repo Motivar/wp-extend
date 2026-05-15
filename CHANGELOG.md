@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **General Settings Utility Function** (`2026-05-15`):
+  - Created `Extend_WP_Default_Content::get_general_settings()` static method for centralized access to `ewp_general_settings` option
+  - Supports optional key parameter to retrieve specific settings: `get_general_settings('ewp_enable_ai_integration')`
+  - Implements request-level caching via `$general_settings_cache` to reduce database queries
+  - Added `bust_general_settings_cache()` static method for cache invalidation on option updates
+  - Hooked `updated_option` to automatically bust cache when `ewp_general_settings` is modified
+  - Replaces 4 scattered `get_option('ewp_general_settings')` calls with single reusable function
+  - **Affected files**: `includes/classes/awm-content-db-api/custom-content/class-defaults.php`, `includes/classes/ewp-ai-content/class-ewp-ai-content.php`
+  - **DRY principle**: Single source of truth for general settings access
+- **AI Integration Conditional Loading** (`2026-05-15`):
+  - Made `EWP_AI_Content` class instantiation conditional on `ewp_enable_ai_integration` setting
+  - AI module now only loads when enabled in General Settings → Enable AI Integration checkbox
+  - Uses new `Extend_WP_Default_Content::get_general_settings()` utility function
+  - **Affected files**: `includes/classes/ewp-ai-content/class-ewp-ai-content.php`
+  - **Backwards compatibility**: Fully compatible; setting defaults to disabled for clean installations
 - **EWP Slug Manager** (`2026-04-28`):
   - Implemented transient caching system for post type/taxonomy slug options
   - Reduces 11 database queries to 1 on first load, 0 on cached loads (30-day cache)
