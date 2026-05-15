@@ -589,7 +589,14 @@ class EWPDynamicAssetLoader {
             if (typeof window[callback.funcName] === 'function') {
                 this.log('Executing deferred callback: ' + callback.funcName);
                 try {
+                    // Execute the callback
                     window[callback.funcName]();
+
+                    // Restore the onchange attribute so future changes work normally
+                    if (callback.element && callback.originalAttr) {
+                        callback.element.setAttribute('onchange', callback.originalAttr);
+                        this.log('Restored onchange attribute for: ' + callback.funcName);
+                    }
                 } catch (error) {
                     this.log('Error executing deferred callback: ' + callback.funcName, error);
                 }

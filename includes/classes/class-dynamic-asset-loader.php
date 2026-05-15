@@ -51,7 +51,7 @@ class Dynamic_Asset_Loader
      * 
      * @var string
      */
-    private const VERSION = '1.0.2';
+    private const VERSION = '1.0.3';
 
     /**
      * Get singleton instance
