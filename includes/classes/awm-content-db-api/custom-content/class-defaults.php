@@ -67,10 +67,8 @@ class Extend_WP_Default_Content
   public static function get_general_settings(?string $key = null)
   {
     if (self::$general_settings_cache === null) {
-      self::$general_settings_cache = get_option('ewp_general_settings', []);
-      if (!is_array(self::$general_settings_cache)) {
-        self::$general_settings_cache = [];
-      }
+      $settings = get_option('ewp_general_settings', []);
+      self::$general_settings_cache = is_array($settings) ? $settings : [];
     }
 
     if ($key === null) {

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **PHP 8.1+ Type Error in General Settings Utility** (`2026-05-15`):
+  - Fixed TypeError when `get_option('ewp_general_settings')` returns non-array value
+  - Changed assignment to use ternary operator ensuring only arrays are assigned to typed property
+  - Prevents fatal error: "Cannot assign string to property Extend_WP_Default_Content::$general_settings_cache of type ?array"
+  - **Affected files**: `includes/classes/awm-content-db-api/custom-content/class-defaults.php`
+
 ### Added
 - **General Settings Utility Function** (`2026-05-15`):
   - Created `Extend_WP_Default_Content::get_general_settings()` static method for centralized access to `ewp_general_settings` option
