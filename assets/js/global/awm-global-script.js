@@ -174,6 +174,35 @@ function awm_ensure_disabled_inputs() {
 function awm_selectr_box(elem) {
     var id = elem.id;
 
+    // Check for onchange attribute BEFORE SlimSelect initialization to prevent errors
+    var onchangeAttr = elem.getAttribute('onchange');
+    var funcName = null;
+
+    if (onchangeAttr) {
+        // Extract function name from "functionName()" or "functionName(args)"
+        var match = onchangeAttr.match(/^(\w+)\s*\(/);
+        if (match) {
+            funcName = match[1];
+
+            // If function doesn't exist yet, remove the attribute to prevent error
+            // and queue it for later execution
+            if (typeof window[funcName] !== 'function') {
+                console.log('[AWM] Deferring callback: ' + funcName + ' (not loaded yet)');
+
+                // Remove onchange to prevent SlimSelect from triggering it
+                elem.removeAttribute('onchange');
+
+                // Queue it for later execution
+                window.awmDeferredCallbacks.push({
+                    funcName: funcName,
+                    element: elem,
+                    originalAttr: onchangeAttr,
+                    timestamp: Date.now()
+                });
+            }
+        }
+    }
+
     var showSearch = elem.length > 3 ? true : false;
     var data = [];
     var soptions = elem.options;
