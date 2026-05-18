@@ -791,10 +791,26 @@ class EWPLogViewer {
     }
 }
 
-// Auto-initialize when DOM is ready and the container exists
-document.addEventListener('DOMContentLoaded', function () {
+// Auto-initialize when the script is loaded via Dynamic Asset Loader
+// Listen for the script load event to ensure full initialization
+function initEWPLogViewer() {
     const container = document.querySelector('.ewp-log-viewer-wrap');
-    if (container) {
+    if (container && typeof EWPLogViewer !== 'undefined') {
         new EWPLogViewer(container);
+    }
+}
+
+// Try to initialize on DOMContentLoaded (fallback for non-dynamic loading)
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initEWPLogViewer);
+} else {
+    // DOM already loaded, initialize immediately
+    initEWPLogViewer();
+}
+
+// Also listen for Dynamic Asset Loader script load event
+document.addEventListener('ewp_dynamic_asset_loaded', function (e) {
+    if (e.detail && e.detail.handle === 'ewp-log-viewer-script') {
+        initEWPLogViewer();
     }
 });

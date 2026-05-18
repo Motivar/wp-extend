@@ -370,7 +370,7 @@ class EWP_Logger_Viewer
             'selector'     => '.ewp-log-viewer-wrap',
             'type'         => 'script',
             'src'          => awm_url . 'assets/js/admin/class-ewp-log-viewer.js',
-            'version'      => '1.0.0',
+            'version'      => '1.1.0',
             'context'      => 'admin',
             'in_footer'    => true,
             'module'       => false,
