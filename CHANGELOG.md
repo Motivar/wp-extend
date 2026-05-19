@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **EWP Log Viewer Cache Busting Issue** (`2026-05-19`):
+  - Fixed hardcoded version string (`1.0.0`) in log viewer asset registration causing browser cache issues
+  - Changed to dynamically read plugin version from `extend-wp.php` header
+  - Ensures script/CSS files are properly cache-busted when plugin version updates
+  - Prevents stale JavaScript from being loaded when changes are made to `class-ewp-log-viewer.js`
+  - **Affected files**: `includes/classes/ewp-logger/class-ewp-logger-viewer.php`
 - **PHP 8.1+ Type Error in General Settings Utility** (`2026-05-15`):
   - Fixed TypeError when `get_option('ewp_general_settings')` returns non-array value
   - Changed assignment to use ternary operator ensuring only arrays are assigned to typed property

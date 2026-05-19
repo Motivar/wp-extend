@@ -791,10 +791,5 @@ class EWPLogViewer {
     }
 }
 
-// Auto-initialize when DOM is ready and the container exists
-document.addEventListener('DOMContentLoaded', function () {
-    const container = document.querySelector('.ewp-log-viewer-wrap');
-    if (container) {
-        new EWPLogViewer(container);
-    }
-});
+
+new EWPLogViewer(document.querySelector('.ewp-log-viewer-wrap'));
