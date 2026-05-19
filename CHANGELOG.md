@@ -7,32 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- **Pre-exposed Function Stubs for External Plugin Compatibility** (`2026-05-19`):
-  - **Question**: How to prevent "Can't find variable: awm_selectr_box" errors when external plugins (like Filox) call AWM functions before dynamic modules load?
-  - **Solution**: Implemented pre-exposed function stub system that queues calls until real implementations are ready
-  - Added IIFE that creates stub functions for all dynamically-loaded AWM functions immediately on script load
-  - Stub functions check if real implementation exists; if not, queue the call with context and arguments
-  - Added `awm_process_pending_calls()` function that replaces stubs with real implementations and processes queued calls
-  - Updated all module loading (inputs, repeater, TinyMCE, forms) to use `awm_process_pending_calls()` pattern
-  - Added `window.awm_is_ready` flag and `awm_ready` custom event dispatch when all modules are loaded
-  - Prevents race conditions where external plugins call AWM functions before dynamic imports complete
-  - Functions covered: `awm_selectr_box`, `awm_create_calendar`, `awmMultipleCheckBox`, `awmSelectrBoxes`, `awmCallbacks`, `awmShowInputs`, `awm_auto_fill_inputs`, `awm_toggle_password`, `awm_ensure_disabled_inputs`, `awm_timestamp`, `repeater`, `ewp_repeater_clone_row`, `awm_repeater_order`, `awm_initialize_repeater_wp_editor`, `awm_get_tinymce_args`, `awmInitForms`, `awmCheckValidation`, `awmShowError`
-  - **Affected files**: `assets/js/global/awm-global-script.js`
-  - **Backwards compatibility**: Fully compatible; external plugins work without changes, calls are queued if made before module loads
-  - **Benefits**: Eliminates "Can't find variable" errors, maintains performance with dynamic imports, provides developer-friendly console warnings
-
 ### Changed
 - **JavaScript Performance Optimization — Modular Architecture with Lazy Loading** (`2026-05-19`):
   - **Fixed**: Module import paths corrected from `./modules/` to `../modules/` for proper relative resolution
   - **Fixed**: Module functions now properly exposed globally for backwards compatibility
-  - **Fixed**: Consolidated inputs module imports to load once instead of multiple times
   - **Added**: WP Rocket compatibility filter to exclude ES6 modules from minification
+  - **Optimized**: Smart loading strategy - inputs module loads once when `.awm-show-content` exists
   - When modules are imported, their functions are assigned to `window` object to ensure availability in admin scripts and custom code
   - Ensures `ewp_jsVanillaSerialize()`, `awm_selectr_box()`, `repeater()`, and other critical functions are accessible globally
   - Maintains full backwards compatibility with existing code that calls these functions directly
   - Added `exclude_from_rocket_minification()` method in AWM_Meta class to prevent WP Rocket from breaking relative import paths
   - Automatically excludes `/assets/js/global/awm-global-script.js` and `/assets/js/modules/` from WP Rocket minification
+  - Inputs module loads once and initializes all features (calendars, selects, checkboxes, callbacks, etc.) when form content exists
+  - Other modules (repeaters, TinyMCE, forms) load independently based on their specific DOM presence
   - Restructured JavaScript codebase from monolithic to modular architecture for better performance
   - Eliminated redundant `awm-public-script.js` (only contained 2 function calls already in global script)
   - Refactored `awm-global-script.js` into smart loader with dynamic module imports based on DOM presence
