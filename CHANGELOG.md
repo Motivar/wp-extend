@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Dynamic Asset Loader — Individual Asset Registration** (`2026-05-19`):
+  - `register_scripts()` method now registers individual asset handles (both scripts and styles) from `get_registered_assets()` in addition to the main loader script
+  - Developers can now enqueue specific asset scripts via `wp_enqueue_script()` and styles via `wp_enqueue_style()` independently for extra flexibility
+  - Each registered asset respects its configured dependencies, version, and media type (for styles) or footer placement (for scripts)
+  - Allows developers to manually control when/where individual assets load without relying on dynamic loader
+  - **Affected files**: `includes/classes/class-dynamic-asset-loader.php`
+
 ### Changed
 - **JavaScript Performance Optimization — Modular Architecture with Lazy Loading** (`2026-05-19`):
   - **Fixed**: Module import paths corrected from `./modules/` to `../modules/` for proper relative resolution

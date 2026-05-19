@@ -91,22 +91,25 @@ class Dynamic_Asset_Loader
             return;
         }
 
-        add_action('wp_enqueue_scripts', array($this, 'register_loader_script'), 5);
+        add_action('init', array($this, 'register_scripts'), 5);
         add_action('wp_enqueue_scripts', array($this, 'enqueue_loader'), 999);
         add_action('wp_head', array($this, 'add_resource_hints'), 1);
         add_action('wp_head', array($this, 'add_preload_links'), 2);
         add_action('wp_head', array($this, 'add_critical_css'), 3);
-        add_action('admin_enqueue_scripts', array($this, 'register_loader_script'), 1);
         add_action('admin_enqueue_scripts', array($this, 'enqueue_loader'), 1);
     }
 
 
     /**
-     * Register the main loader script
+     * Register the main loader script and individual asset scripts
+     * 
+     * Registers the dynamic asset loader script and all individual asset handles
+     * managed by get_registered_assets(). This allows developers to enqueue
+     * specific asset scripts independently if needed for extra flexibility.
      * 
      * @return void
      */
-    public function register_loader_script()
+    public function register_scripts()
     {
         wp_register_script(
             self::LOADER_HANDLE,
@@ -115,6 +118,32 @@ class Dynamic_Asset_Loader
             self::VERSION,
             true
         );
+
+        $assets = $this->get_registered_assets();
+
+        if (empty($assets)) {
+            return;
+        }
+
+        foreach ($assets as $asset) {
+            if ($asset['type'] === 'script') {
+                wp_register_script(
+                    $asset['handle'],
+                    $asset['src'],
+                    $asset['dependencies'],
+                    $asset['version'],
+                    $asset['in_footer']
+                );
+            } elseif ($asset['type'] === 'style') {
+                wp_register_style(
+                    $asset['handle'],
+                    $asset['src'],
+                    $asset['dependencies'],
+                    $asset['version'],
+                    $asset['media']
+                );
+            }
+        }
     }
 
     /**
@@ -257,7 +286,6 @@ class Dynamic_Asset_Loader
 
             $validated[] = $this->sanitize_asset($asset);
         }
-
         return $validated;
     }
 
