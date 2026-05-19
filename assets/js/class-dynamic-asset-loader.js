@@ -272,7 +272,7 @@ class EWPDynamicAssetLoader {
                         clearInterval(checkInterval);
                         resolve();
                     }
-                }, 100);
+                }, 50);
 
                 setTimeout(() => {
                     clearInterval(checkInterval);
@@ -280,7 +280,7 @@ class EWPDynamicAssetLoader {
                         this.log('Dependency timeout', { dependency: dep });
                         resolve();
                     }
-                }, 5000);
+                }, 100);
             });
         });
 
@@ -294,16 +294,45 @@ class EWPDynamicAssetLoader {
      * @return {boolean} True if loaded
      */
     isDependencyLoaded(handle) {
+        // Check if script element exists with exact handle
         const script = document.getElementById(handle);
         if (script) {
             return true;
         }
 
+        // Check for WordPress script tag (adds -js suffix)
+        const wpScript = document.getElementById(handle + '-js');
+        if (wpScript) {
+            return true;
+        }
+
+        // Check jQuery special case
         if (handle === 'jquery' && typeof jQuery !== 'undefined') {
             return true;
         }
 
-        return this.loadedAssets.has(handle);
+        // Check if already loaded by this loader
+        if (this.loadedAssets.has(handle)) {
+            return true;
+        }
+
+        // Check WordPress script queue (if available)
+        if (typeof wp !== 'undefined' && wp.scripts && wp.scripts.queue) {
+            if (wp.scripts.queue.includes(handle)) {
+                return true;
+            }
+        }
+
+        // Check for script by src containing the handle
+        const scripts = document.querySelectorAll('script[src]');
+        for (let i = 0; i < scripts.length; i++) {
+            const src = scripts[i].getAttribute('src');
+            if (src && src.includes(handle)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

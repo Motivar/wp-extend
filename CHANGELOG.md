@@ -7,11 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Dynamic Asset Loader — Dependency Loading Performance** (`2026-05-19`):
+  - **Issue**: Scripts with dependencies (e.g., `'dependencies' => array('awm-global-script')`) were waiting up to 5 seconds before loading, causing significant delays for small libraries
+  - **Root Cause**: `isDependencyLoaded()` method couldn't detect WordPress-enqueued scripts properly, causing full timeout on every dependency check
+  - **Solution**: Enhanced dependency detection with multiple fallback checks:
+    - Check for WordPress script tags with `-js` suffix (WordPress naming convention)
+    - Check WordPress script queue (`wp.scripts.queue`) if available
+    - Search all script tags by src attribute containing the handle name
+    - Reduced timeout from 5000ms to 1000ms for faster failure recovery
+    - Reduced check interval from 100ms to 50ms for faster detection
+  - **Impact**: Scripts with dependencies now load instantly when dependencies are already present, eliminating the 5-second delay
+  - **Affected files**: `assets/js/class-dynamic-asset-loader.js` (v1.0.4), `includes/classes/class-dynamic-asset-loader.php`
+  - **Backwards Compatibility**: Fully compatible, no breaking changes
+
 ### Added
 - **Dynamic Asset Loader — Individual Asset Registration** (`2026-05-19`):
   - `register_scripts()` method now registers individual asset handles (both scripts and styles) from `get_registered_assets()` in addition to the main loader script
   - Developers can now enqueue specific asset scripts via `wp_enqueue_script()` and styles via `wp_enqueue_style()` independently for extra flexibility
   - Each registered asset respects its configured dependencies, version, and media type (for styles) or footer placement (for scripts)
+  - Main loader script loads in `<head>` (not footer) for faster initialization and earlier DOM detection
   - Allows developers to manually control when/where individual assets load without relying on dynamic loader
   - **Affected files**: `includes/classes/class-dynamic-asset-loader.php`
 
