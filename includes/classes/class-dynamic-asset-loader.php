@@ -150,7 +150,7 @@ class Dynamic_Asset_Loader
                 'assets' => array_values($filtered_assets),
                 'nonce' => wp_create_nonce('ewp_dynamic_assets'),
                 'ajaxUrl' => admin_url('admin-ajax.php'),
-                'debug' => defined('WP_DEBUG') && WP_DEBUG,
+                'debug' => apply_filters('ewp_dynamic_assets_debug_filter', defined('WP_DEBUG') && WP_DEBUG),
                 'context' => $current_context,
                 'performance' => array(
                     'lazyLoad' => apply_filters('ewp_dynamic_assets_lazy_load', true),

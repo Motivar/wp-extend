@@ -1,19 +1,28 @@
-/*inits*/
+/**
+ * Admin Script - Admin-specific initialization
+ * Extends the core awm_init_inputs() with admin-only features
+ */
+
 var awm_call_map = false;
 
-function awm_init_inputs() {
+/**
+ * Admin initialization function
+ * Calls the smart init function and adds admin-specific features
+ */
+async function awm_admin_init() {
+    // Call the smart init function from core
+    await awm_init_inputs();
+
+// Admin-specific: initialize maps if present
     awm_add_map();
-    awmCallbacks();
-    awm_create_calendar();
-    awmSelectrBoxes();
-    awmInitForms();
-    awmMultipleCheckBox();
 }
-awm_init_inputs();
 
+// Initialize on page load
+awm_admin_init();
 
+// Re-initialize when widgets are sorted
 jQuery('div.widgets-sortables').bind('sortstop', function (event, ui) {
-    awm_init_inputs();
+    awm_admin_init();
 });
 
 

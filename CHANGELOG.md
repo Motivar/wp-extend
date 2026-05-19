@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **JavaScript Performance Optimization — Modular Architecture with Lazy Loading** (`2026-05-19`):
+  - **Fixed**: Module import paths corrected from `./modules/` to `../modules/` for proper relative resolution
+  - **Fixed**: Module functions now properly exposed globally for backwards compatibility
+  - When modules are imported, their functions are assigned to `window` object to ensure availability in admin scripts and custom code
+  - Ensures `ewp_jsVanillaSerialize()`, `awm_selectr_box()`, `repeater()`, and other critical functions are accessible globally
+  - Maintains full backwards compatibility with existing code that calls these functions directly
+  - Restructured JavaScript codebase from monolithic to modular architecture for better performance
+  - Eliminated redundant `awm-public-script.js` (only contained 2 function calls already in global script)
+  - Refactored `awm-global-script.js` into smart loader with dynamic module imports based on DOM presence
+  - Created modular system with 4 lazy-loaded feature modules:
+    - `awm-tinymce-module.js`: TinyMCE editor initialization, repeater editor queue, editor utilities
+    - `awm-repeater-module.js`: Repeater cloning, ordering, field management
+    - `awm-forms-module.js`: Form validation and submission handling
+    - `awm-inputs-module.js`: Calendar pickers, checkboxes, select boxes, callbacks, conditional fields
+  - Implemented smart `awm_init_inputs()` function that detects required features via DOM queries and imports only needed modules
+  - Modules are dynamically imported via ES6 `import()` only when corresponding DOM elements are detected
+  - Frontend pages now load ~75% less JavaScript (typical form: 450 lines vs 1900 lines previously)
+  - Admin pages benefit from better parse time with async module loading
+  - Eliminated one HTTP request (removed public-script)
+  - Modules cached separately by browser for better long-term caching
+  - Updated `awm-admin-script.js` to use new modular system while maintaining admin-specific features
+  - Updated PHP registration in `class-extend-wp.php`:
+    - Removed `awm-public-script` registration and enqueue
+    - Added module script registrations for lazy loading
+    - Maintained backwards compatibility with all existing functions
+  - **Affected files**:
+    - `assets/js/global/awm-global-script.js` (refactored to core + smart loader)
+    - `assets/js/admin/awm-admin-script.js` (updated to use new system)
+    - `assets/js/public/awm-public-script.js` (removed - functionality moved to core)
+    - `assets/js/modules/awm-tinymce-module.js` (new)
+    - `assets/js/modules/awm-repeater-module.js` (new)
+    - `assets/js/modules/awm-forms-module.js` (new)
+    - `assets/js/modules/awm-inputs-module.js` (new)
+    - `includes/classes/class-extend-wp.php` (script registration updates)
+  - **Backwards compatibility**: Fully compatible; all existing functions remain available globally, just loaded on-demand
+  - **Performance gains**:
+    - Frontend: ~75% reduction in typical form pages (from 1900 to ~450 lines)
+    - Admin: Better parse time with async loading
+    - Eliminates one HTTP request
+    - Better browser caching with separate module files
+  - **Testing**: Verified on frontend forms (calendars, checkboxes, validation) and admin (all field types, repeaters, TinyMCE)
+
 ### Fixed
 - **Repeater WP Editor Blank Visual Mode Issue** (`2026-05-19`):
   - Fixed issue where `wp_editor` fields in repeater rows showed blank visual mode on page load and when cloning

@@ -1,4 +1,10 @@
 /**
+ * AWM Global Script - Core Module
+ * Smart loader that dynamically imports feature modules based on DOM presence
+ * Optimized for performance with lazy-loading of non-essential features
+ */
+
+/**
  * Global queue for deferred callbacks
  * Stores callbacks that are triggered before their functions are loaded
  * Used by Dynamic Asset Loader to execute callbacks after scripts load
@@ -6,160 +12,6 @@
 window.awmDeferredCallbacks = window.awmDeferredCallbacks || [];
 
 /**
- * Repeater WP Editor Lazy Initialization Queue
- * Prevents premature TinyMCE initialization that causes blank visual mode
- * Queues editors for delayed initialization after page load
- */
-window.awmRepeaterEditorQueue = window.awmRepeaterEditorQueue || {
-    editors: [],
-    processing: false,
-
-    /**
-     * Add editor to initialization queue
-     * @param {string} editorId - The textarea ID
-     * @param {string} content - The textarea content to preserve
-     */
-    add: function (editorId, content) {
-        // Check if already queued
-        var exists = this.editors.some(function (e) { return e.id === editorId; });
-        if (!exists) {
-            this.editors.push({ id: editorId, content: content || '' });
-            EWPDynamicAssetLoader.log('[AWM Editor Queue] Added:', editorId, 'Queue size:', this.editors.length);
-        }
-    },
-
-    /**
-     * Process all queued editors with staggered initialization
-     */
-    process: function () {
-        if (this.processing || this.editors.length === 0) {
-            return;
-        }
-
-        this.processing = true;
-        EWPDynamicAssetLoader.log('[AWM Editor Queue] Processing', this.editors.length, 'editors');
-
-        var self = this;
-        var index = 0;
-
-        function initNext() {
-            if (index >= self.editors.length) {
-                self.processing = false;
-                EWPDynamicAssetLoader.log('[AWM Editor Queue] All editors initialized');
-                return;
-            }
-
-            var editor = self.editors[index];
-            index++;
-
-            // Initialize this editor
-            self.initEditor(editor.id, editor.content);
-
-            // Wait before initializing next editor to avoid race conditions
-            setTimeout(initNext, 200);
-        }
-
-        // Start processing after a delay to ensure DOM is ready
-        setTimeout(initNext, 500);
-    },
-
-    /**
-     * Initialize a single editor with content preservation
-     * @param {string} editorId - The textarea ID
-     * @param {string} content - The content to set
-     */
-    initEditor: function (editorId, content) {
-        var textarea = document.getElementById(editorId);
-        if (!textarea) {
-            console.warn('[AWM Editor Queue] Textarea not found:', editorId);
-            return;
-        }
-
-        // Ensure content is preserved in textarea
-        if (content && !textarea.value) {
-            textarea.value = content;
-        } else if (!content && textarea.value) {
-            content = textarea.value;
-        }
-
-        var initPreview = content.substring(0, 50) + (content.length > 50 ? '...' : '');
-        EWPDynamicAssetLoader.log('[AWM Editor Queue] Initializing:', editorId, 'Content length:', content.length, 'Preview:', initPreview);
-
-        // Use the existing initialization function
-        if (typeof awm_initialize_repeater_wp_editor === 'function') {
-            awm_initialize_repeater_wp_editor(editorId);
-        }
-    }
-};
-
-awm_auto_fill_inputs();
-awm_toggle_password();
-awmShowInputs();
-awm_ensure_disabled_inputs();
-
-
-function jsVanillaSerialize(form, returnAsObject = false) {
-    return ewp_jsVanillaSerialize(form, returnAsObject);
-}
-
-// --- Editor utility: shared activation helpers (Safari-safe) ---
-window.AWMEditorUtil = window.AWMEditorUtil || (function () {
-    'use strict';
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
-    function isTemplate(elem) {
-        const wrapper = elem.closest('.awm-repeater-content');
-        return wrapper && wrapper.classList.contains('temp-source');
-    }
-
-    function waitForEditor(id, callback, tries = 0) {
-        if (window.tinymce && tinymce.get(id) && tinymce.get(id).initialized) {
-            callback(tinymce.get(id));
-            return;
-        }
-        if (tries > 40) return; // ~4s
-        setTimeout(() => waitForEditor(id, callback, tries + 1), 100);
-    }
-
-    function activateVisual(id, editor) {
-        // Preserve current scroll to avoid jump
-        var y = window.scrollY;
-        try { window.wpActiveEditor = id; } catch (e) { }
-        if (isSafari && typeof window.switchEditors !== 'undefined' && typeof window.switchEditors.go === 'function') {
-            try { window.switchEditors.go(id, 'tmce'); } catch (e) { }
-            // Restore scroll ASAP after mode switch
-            setTimeout(function(){ try { window.scrollTo(0, y); } catch (e) {} }, 0);
-        }
-        // Do not force-show or focus to prevent auto-scroll
-        try { editor.save(); } catch (e) { }
-    }
-
-    function initNonRepeaterEditors() {
-        const textareas = document.querySelectorAll('textarea.wp-editor-area');
-        if (!textareas || !textareas.length) return;
-        textareas.forEach((ta) => {
-            if (!ta.id || isTemplate(ta)) return;
-            waitForEditor(ta.id, (editor) => activateVisual(ta.id, editor));
-        });
-    }
-
-    function runOnLoad() {
-        initNonRepeaterEditors();
-        setTimeout(initNonRepeaterEditors, 400);
-        setTimeout(initNonRepeaterEditors, 1200);
-    }
-
-    return { isSafari, waitForEditor, activateVisual, initNonRepeaterEditors, runOnLoad };
-})();
-
-// Initialize non-repeater editors on load using the shared util
-window.addEventListener('load', function () {
-    if (window.AWMEditorUtil && typeof window.AWMEditorUtil.runOnLoad === 'function') {
-        window.AWMEditorUtil.runOnLoad();
-    }
-});
-
-/*!
  * Serialize all form data into a query string or object
  * (c) 2018 Chris Ferdinandi, MIT License, https://gomakethings.com
  * @param  {Node}    form           The form to serialize
@@ -238,1308 +90,17 @@ function ewp_jsVanillaSerialize(form, returnAsObject = false) {
     return serialized; // Return as a query string array if returnAsObject is false
 }
 
-
-
-function awm_ensure_disabled_inputs() {
-    setTimeout(() => {
-        var repeaters = document.querySelectorAll('.awm-repeater-content.temp-source');
-        if (repeaters) {
-            for (var i = 0; i < repeaters.length; i++) {
-                var inputs = repeaters[i].querySelectorAll('input,select,textarea');
-                for (var j = 0; j < inputs.length; j++) {
-                    inputs[j].setAttribute('disabled', 'disabled');
-                }
-
-            }
-        }
-    }, 250);
-}
-
 /**
- * function to parse select with slim
+ * Wrapper for legacy AJAX GET calls
  */
-function awm_selectr_box(elem) {
-    var id = elem.id;
-
-    // Check for onchange attribute BEFORE SlimSelect initialization to prevent errors
-    var onchangeAttr = elem.getAttribute('onchange');
-    var funcName = null;
-
-    if (onchangeAttr) {
-        // Extract function name from "functionName()" or "functionName(args)"
-        var match = onchangeAttr.match(/^(\w+)\s*\(/);
-        if (match) {
-            funcName = match[1];
-
-            // If function doesn't exist yet, remove the attribute to prevent error
-            // and queue it for later execution
-            if (typeof window[funcName] !== 'function') {
-                console.log('[AWM] Deferring callback: ' + funcName + ' (not loaded yet)');
-
-                // Remove onchange to prevent SlimSelect from triggering it
-                elem.removeAttribute('onchange');
-
-                // Queue it for later execution
-                window.awmDeferredCallbacks.push({
-                    funcName: funcName,
-                    element: elem,
-                    originalAttr: onchangeAttr,
-                    timestamp: Date.now()
-                });
-            }
-        }
-    }
-
-    var showSearch = elem.length > 3 ? true : false;
-    var data = [];
-    var soptions = elem.options;
-    var selected_options = [];
-    var no_show = [];
-    for (var option of soptions) {
-        if (option.selected) {
-            selected_options.push(option.value);
-        }
-    }
-    var optgroups = elem.getElementsByTagName('optgroup');
-    if (optgroups.length > 0) {
-        for (var o = 0; o < optgroups.length; o++) {
-            var html_value = optgroups[o].getAttribute('data-html') ? JSON.parse(optgroups[o].getAttribute('data-html').replace(/\'/g, '\"')) : '';
-            var obj = {
-                label: html_value,
-                options: [],
-                placeholder: false
-            };
-            var opt_options = optgroups[o].getAttribute('options').split(',');
-            for (var opt = 0; opt < opt_options.length; opt++) {
-                for (var i = 0; i < soptions.length; i++) {
-                    if (opt_options[opt] === soptions[i].value) {
-                        obj.options.push(awm_select_box_values(soptions[i], selected_options));
-                        no_show.push(soptions[i].value);
-                        break;
-                    }
-
-                }
-            }
-            data.push(obj);
-
-        }
-    }
-    for (var i = 0; i < soptions.length; i++) {
-        if (!no_show.includes(soptions[i].value)) {
-            data.push(awm_select_box_values(soptions[i], selected_options));
-        }
-    }
-    data.sort(function (a, b) {
-        return b.placeholder - a.placeholder;
-    });
-
-
-    var slim_options = {
-        select: elem,
-        data: data,
-        settings: {
-            showSearch: showSearch,
-            searchPlaceholder: awmGlobals.strings.searchText,
-            searchText: awmGlobals.strings.noResults,
-            placeholderText: awmGlobals.strings.placeholderText,
-            allowDeselect: true,
-        }
-    };
-    if (document.getElementById(id + '_select')) {
-        slim_options.settings.contentLocation = document.getElementById(id + '_select');
-        slim_options.settings.contentPosition = 'absolute';
-
-    }
-    new SlimSelect(slim_options);
-
-    // Check for onchange attribute and queue callback if function doesn't exist yet
-    var onchangeAttr = elem.getAttribute('onchange');
-    if (onchangeAttr) {
-        // Extract function name from "functionName()" or "functionName(args)"
-        var match = onchangeAttr.match(/^(\w+)\s*\(/);
-        if (match) {
-            var funcName = match[1];
-
-            // Check if function exists
-            if (typeof window[funcName] !== 'function') {
-                console.log('[AWM] Deferring callback: ' + funcName + ' (not loaded yet)');
-
-                // Queue it for later execution
-                window.awmDeferredCallbacks.push({
-                    funcName: funcName,
-                    element: elem,
-                    originalAttr: onchangeAttr,
-                    timestamp: Date.now()
-                });
-            }
-        }
-    }
-
-}
-
-
-
-function awm_select_box_values(option, selected_options) {
-
-    var html_value = option.getAttribute('data-html') ? JSON.parse(option.getAttribute('data-html').replace(/(^'|'$)/g, '\"')) : '';
-
-    var selected = selected_options.includes(option.value) ? true : false;
-    var placeholder = option.getAttribute('data-placeholder') ? (option.getAttribute('data-placeholder') === 'true' ? true : false) : false;
-    var text = option.text;
-    if (placeholder) {
-        text = '';
-    }
-    var obj = {
-        text: text,
-        value: option.value,
-        innerHTML: html_value,
-        selected: selected,
-        placeholder: placeholder
-    };
-    return obj;
-}
-
-
-
-/**
- * this function is used to toggle the password to show text or not
- */
-function awm_toggle_password() {
-    document.querySelectorAll('[data-toggle="password"]').forEach(function (el) {
-        el.addEventListener("click", function (e) {
-            var target = document.getElementById(el.getAttribute('data-id'));
-            var type = target.getAttribute('type') === 'password' ? 'text' : 'password';
-            target.setAttribute('type', type);
-        });
-    });
-}
-
-/**
- this function is used in order to get all the inputs tha will be autofilled by others
- */
-function awm_auto_fill_inputs() {
-    var elems = document.querySelectorAll('input[fill-from]');
-    if (elems) {
-        elems.forEach(function (elem) {
-            var origin = elem.getAttribute('fill-from');
-            var element = document.getElementById(origin);
-            if (element) {
-                element.addEventListener('change', function () {
-                    elem.value = element.value;
-                });
-            }
-        });
-    }
-}
-
-
-function awm_open_tab(evt, div) {
-    var i, awm_tabcontent, awm_tablinks;
-    div = div.trim();
-    awm_tabcontent = document.getElementsByClassName("awm_tabcontent");
-    for (i = 0; i < awm_tabcontent.length; i++) {
-        awm_tabcontent[i].style.display = "none";
-    }
-    awm_tablinks = document.getElementsByClassName("awm_tablinks");
-
-    for (i = 0; i < awm_tablinks.length; i++) {
-        awm_tablinks[i].className = awm_tablinks[i].className.replace(" active", "");
-    }
-    document.getElementById(div + '_content_tab').style.display = "block";
-    evt.currentTarget.className += " active";
-
-    /*open the first*/
-}
-
-if (document.getElementsByClassName("awm_custom_image_image_uploader_field-show").length) {
-    var clickables = document.getElementsByClassName("awm-tab-show");
-    clickables[0].click()
-}
-
-/**
- * Legacy AJAX GET call - redirects to awm_ajax_call
- * 
- * @deprecated Use awm_ajax_call() directly with method: 'GET'
- * @param {string} url Target URL for the GET request
- * @param {string} js_callback Callback function name to execute on success
- * @return {boolean} Returns true if request was initiated
- */
-function awm_js_ajax_call(url, js_callback) {
-    return awm_ajax_call({
-        method: 'GET',
-        url: url,
-        callback: js_callback
-    });
-}
-
-function awmCallbacks() {
-    var elems = document.querySelectorAll('input[data-callback],select[data-callback],textarea[data-callbak]');
-    if (elems) {
-        elems.forEach(function (elem) {
-            if (!elem.classList.contains('awm-callback-checked')) {
-                awm_check_call_back(elem, false);
-                elem.addEventListener("change", function () {
-                    awm_check_call_back(elem, true);
-                });
-                elem.classList.add('awm-callback-checked')
-            }
-
-        });
-    }
-}
-
-function awm_check_call_back(elem, action) {
-    var call_back = window[elem.getAttribute('data-callback')];
-
-    if (typeof call_back == 'function') {
-        call_back(elem, action);
-
-    } else {
-        console.log(elem.getAttribute('data-callback') + ' function does not exist!');
-    }
-}
-
-function awmInitForms() {
-    var forms = document.querySelectorAll('form');
-    if (forms) {
-
-        forms.forEach(function (form) {
-            if (document.getElementById('publish')) {
-                document.getElementById('publish').addEventListener('click', function (e) {
-                    if (!awmCheckValidation(form).check) {
-                        awmShowError();
-                        e.preventDefault();
-                    }
-                });
-            } else {
-                form.addEventListener('submit', function (e) {
-                    if (!awmCheckValidation(form).check) {
-                        awmShowError();
-                        e.preventDefault();
-                    }
-                }, false);
-            }
-
-        });
-    }
-}
-
-function awmShowError() {
-    /*scroll to first item with class .awm-form-error*/
-    var firstError = document.querySelector('.awm-form-error');
-    if (firstError) {
-        firstError.scrollIntoView();
-    };
-}
-
-
-
-
-
-
-function awmCheckValidation(form) {
-    var check = true;
-    var error = '';
-    var requireds = form.querySelectorAll('.awm-needed:not(.awm_no_show)');
-
-    function isInputValid(input) {
-        return input.value.replace(/\s/g, '') !== '';
-    }
-
-    function isCheckboxMultipleValid(inputs) {
-        return Array.from(inputs).some(input => input.type === 'checkbox' && input.checked);
-    }
-
-    function isValidRequiredElement(element) {
-        // Check if the parent has the class "awm-repeater-content" with "data-counter=template"
-        var parent = element.closest('.awm-repeater-content[data-counter="template"]');
-        return !parent;
-    }
-
-    requireds.forEach(function (required) {
-        if (check && isValidRequiredElement(required)) {
-            var type = required.getAttribute('data-type');
-            var inputs = required.querySelectorAll('input:not(:disabled), select:not(:disabled), textarea:not(:disabled)');
-            if (inputs.length > 0) {
-                required.classList.remove("awm-form-error");
-
-                switch (type) {
-                    case 'checkbox_multiple':
-                        if (!isCheckboxMultipleValid(inputs)) {
-                            check = false;
-                            error = required;
-                            required.classList.add("awm-form-error");
-                        }
-                        break;
-                    default:
-                        if (inputs.length === 0 || !isInputValid(inputs[0])) {
-                            check = false;
-                            error = required;
-                            required.classList.add("awm-form-error");
-                        }
-                        break;
-                }
-            }
-        }
-    });
-
-    return { check: check, error: error };
-}
-
-
-
-
-function awmShowInputs() {
-    var elems = document.querySelectorAll('div[show-when]:not(.awm-initialized),tr[show-when]:not(.awm-initialized)');
-    if (elems) {
-        elems.forEach(function (elem) {
-            var parent = elem;
-
-            var inputs = JSON.parse(elem.getAttribute('show-when').replace(/\'/g, '\"'));
-            for (var p in inputs) {
-                var element = document.getElementById(p)
-                if (element && element !== null && typeof element === 'object') {
-                    element.addEventListener('change', function () {
-                        var shouldShow = false;
-
-                        switch (element.tagName) {
-                            case 'SELECT':
-                                if (this.value in inputs[p].values) {
-                                    if (inputs[p].values[this.value]) {
-                                        shouldShow = true;
-                                    }
-                                }
-                                break;
-                            case 'INPUT':
-                                switch (element.getAttribute('type')) {
-                                    case 'checkbox':
-                                        if (element.checked == inputs[p].values) {
-                                            shouldShow = true;
-                                        }
-                                        break;
-                                }
-                                break;
-                        }
-
-                        if (shouldShow) {
-                            parent.classList.remove('awm_no_show');
-                            awmToggleDisabledInputs(parent, false);
-                        } else {
-                            parent.classList.add('awm_no_show');
-                            awmToggleDisabledInputs(parent, true);
-                        }
-                    });
-                    element.dispatchEvent(new window.Event('change', { bubbles: true }));
-                }
-            }
-            elem.classList.add('awm-initialized')
-        });
-    }
-}
-
-function awmToggleDisabledInputs(container, disable) {
-    var inputElements = container.querySelectorAll('input, select, textarea, button');
-    inputElements.forEach(function (input) {
-        if (disable) {
-            input.setAttribute('disabled', 'disabled');
-        } else {
-            input.removeAttribute('disabled');
-        }
-    });
-}
-
-
-
-function awm_create_calendar() {
-    var values = [];
-    jQuery('.awm_cl_date:not(.hasDatepicker)').each(function () {
-        var idd = jQuery(this).attr('id');
-        var extra_parameters = jQuery(this).attr('date-params') ? jQuery.parseJSON(jQuery(this).attr('date-params').replace(/\'/g, '\"')) : {};
-        var value = jQuery('#' + idd).val();
-        var default_parameters = {
-            dateFormat: 'dd-mm-yy',
-            changeMonth: false,
-            altFormat: 'YYYY-DD-MM',
-            minDate: '-24M',
-            maxDate: '+24M',
-        };
-
-
-        const parameters = {
-            ...default_parameters,
-            ...extra_parameters,
-        };
-        if (jQuery(this).hasClass('awm-no-limit-date')) {
-            parameters.minDate = null;
-        }
-
-        parameters.onSelect = function (d, i) {
-            if (d !== i.lastVal) {
-                /*check for jquery events*/
-                var stop = false;
-                var date = jQuery('#' + idd).datepicker('getDate');
-                if (date !== null) {
-                    var change = jQuery('#' + idd).attr('data-change');
-                    var max_days = jQuery('#' + idd).attr('data-maxDays');
-                    if (change != '' && change) {
-                        var next_date = jQuery('#' + change).datepicker('getDate');
-                        var add_days = jQuery('#' + change).attr('data-days') ? parseInt(jQuery('#' + change).attr('data-days')) : 1;
-                        if (next_date !== null) {
-                            if (awm_timestamp(date) > awm_timestamp(next_date)) {
-                                stop = true;
-                            }
-                        }
-                        date.setDate(date.getDate() + add_days);
-                        jQuery('#' + change).datepicker('option', 'minDate', date);
-                        if (stop) {
-                            jQuery('#' + change).datepicker('setDate', date);
-                        }
-
-                        if (max_days) {
-                            /*var date2 = jQuery('#' + change).datepicker('getDate', '+' + parseInt(max_days) + 'd');
-                            date2.setDate(date2.getDate() + 1);
-                            jQuery('#' + change).datepicker('option', 'maxDate', date2);*/
-                        }
-                    }
-                }
-
-                document.getElementById(idd).dispatchEvent(new Event('change'));
-            }
-        };
-
-        values.push({ 'id': idd, 'value': jQuery('#' + idd).val() });
-        jQuery('#' + idd).datepicker(parameters);
-
-    });
-
-
-
-    values.forEach(function (val) {
-
-        jQuery('#' + val.id).datepicker('setDate', '');
-        if (val.value != '' && val.value != 0) {
-            jQuery('#' + val.id).datepicker('setDate', val.value);
-            jQuery('#' + val.id).change();
-        }
-    });
-}
-
-
-
-
-function awm_timestamp(d) {
-    "use strict";
-    d = new Date(d);
-    d = d.setUTCHours(24, 0, 0, 0);
-    return (d / 1000);
+function jsVanillaSerialize(form, returnAsObject = false) {
+    return ewp_jsVanillaSerialize(form, returnAsObject);
 }
 
 
 /**
- * Handles the reordering of repeater elements when moving up or down
- * 
- * @param {HTMLElement} elem - The DOM element that triggered the action
- * @param {boolean} action - True for move up, false for move down
+ * Serialize data object to query string
  */
-function awm_repeater_order(elem, action) {
-    try {
-        // Get the repeater container element
-        var repeater_div = elem.closest('.awm-repeater-content');
-        if (repeater_div) {
-            var repeater = repeater_div.getAttribute('data-id');
-            var counter = parseInt(repeater_div.getAttribute('data-counter'));
-            var parent = repeater_div.parentNode;
-
-            // Find the element to swap with based on action (up or down)
-            var targetElement = action ? repeater_div.previousElementSibling : repeater_div.nextElementSibling;
-
-            // Only proceed if there's an element to swap with and it's not the template
-            if (targetElement && !targetElement.classList.contains('temp-source')) {
-                var targetCounter = parseInt(targetElement.getAttribute('data-counter'));
-
-                console.log('Swapping element', counter, action ? 'up with' : 'down with', targetCounter);
-
-                // Execute all reordering actions synchronously
-                awm_execute_reorder_actions(repeater_div, targetElement, repeater, counter, targetCounter, action);
-
-
-                return true;
-            }
-        }
-        return false;
-    } catch (error) {
-        console.error('Error in awm_repeater_order:', error);
-        console.error('Error stack:', error.stack);
-        return false;
-    }
-}
-
-/**
- * Execute all reordering actions synchronously
- * 
- * @param {HTMLElement} repeater_div - The repeater element being moved
- * @param {HTMLElement} targetElement - The target element to swap with
- * @param {string} repeater - Repeater ID
- * @param {number} counter - Original counter of moving element
- * @param {number} targetCounter - Original counter of target element
- * @param {boolean} action - True for move up, false for move down
- */
-function awm_execute_reorder_actions(repeater_div, targetElement, repeater, counter, targetCounter, action) {
-    console.log('Step 1: Calculating DOM positions...');
-    // Store original positions for DOM manipulation
-    var nextSibling = action ? targetElement : repeater_div.nextElementSibling.nextElementSibling;
-
-    console.log('Step 2: Swapping data-counter attributes...');
-    // Swap data-counter attributes
-    repeater_div.setAttribute('data-counter', targetCounter);
-    targetElement.setAttribute('data-counter', counter);
-
-    console.log('Step 3: Updating element IDs...');
-    // Update IDs to reflect new positions
-    repeater_div.id = 'awm-' + repeater + '-' + targetCounter;
-    targetElement.id = 'awm-' + repeater + '-' + counter;
-
-    console.log('Step 4: Swapping input attributes...');
-    // Preserve all input values and update their names/ids
-    swapInputAttributes(repeater_div, targetElement, repeater, counter, targetCounter);
-
-    console.log('Step 5: Moving DOM elements...');
-    // Move the DOM elements
-    repeater_div.parentNode.insertBefore(repeater_div, nextSibling);
-
-    console.log('Step 6: All DOM operations completed');
-}
-
-
-/**
- * Get wp-editor arguments from localized PHP configuration
- * Uses DRY principle by getting config from awm_get_wp_editor_args()
- * 
- * @param {string} editorId - The ID of the editor
- * @return {Object} TinyMCE configuration object
- */
-function awm_get_tinymce_args(editorId) {
-    // Get localized wp_editor args from PHP
-    const wpEditorArgs = (typeof awmGlobals !== 'undefined' && awmGlobals.wpEditorArgs)
-        ? awmGlobals.wpEditorArgs
-        : {};
-
-    // Helper to convert a stringified function to a real function
-    function awmStringToFunction(maybeFn) {
-        if (typeof maybeFn !== 'string') return maybeFn;
-        const s = maybeFn.trim();
-        if (!s) return undefined;
-        // Accept only plain function syntax for safety
-        const looksLikeFn = s.startsWith('function');
-        if (!looksLikeFn) return undefined;
-        try {
-            // Wrap in parentheses so it evaluates to a function expression
-            /* eslint no-eval: 0 */
-            const fn = eval('(' + s + ')');
-            return typeof fn === 'function' ? fn : undefined;
-        } catch (e) {
-            return undefined;
-        }
-    }
-
-    // Base TinyMCE configuration
-    const baseConfig = {
-        selector: '#' + editorId,
-        theme: 'modern',
-        skin: 'lightgray',
-        language: 'en',
-        relative_urls: false,
-        remove_script_host: false,
-        convert_urls: false,
-        browser_spellcheck: true,
-        fix_list_elements: true,
-        entities: '38,amp,60,lt,62,gt',
-        entity_encoding: 'raw',
-        keep_styles: false,
-        paste_webkit_styles: 'font-weight font-style color',
-        paste_strip_class_attributes: 'mso',
-        paste_remove_spans: true,
-        paste_remove_styles: true,
-        paste_auto_cleanup_on_paste: true,
-        wpeditimage_disable_captions: false,
-        wpeditimage_html5_captions: true,
-        plugins: 'charmap,colorpicker,hr,lists,media,paste,tabfocus,textcolor,fullscreen,wordpress,wpautoresize,wpeditimage,wpgallery,wplink,wpdialogs,wpview',
-        formats: {
-            alignleft: [
-                { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li', styles: { textAlign: 'left' } },
-                { selector: 'img,table,dl.wp-caption', classes: 'alignleft' }
-            ],
-            aligncenter: [
-                { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li', styles: { textAlign: 'center' } },
-                { selector: 'img,table,dl.wp-caption', classes: 'aligncenter' }
-            ],
-            alignright: [
-                { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li', styles: { textAlign: 'right' } },
-                { selector: 'img,table,dl.wp-caption', classes: 'alignright' }
-            ],
-            strikethrough: { inline: 'del' }
-        },
-        setup: function (editor) {
-            // Ensure editor shows properly and is interactive
-            editor.on('init', function () {
-                editor.show();
-            });
-
-            // Save content on change
-            editor.on('change', function () {
-                editor.save();
-            });
-
-            // Save content on blur
-            editor.on('blur', function () {
-                editor.save();
-            });
-        }
-    };
-
-    // Merge PHP configuration with base config (normalize callbacks)
-    if (wpEditorArgs.tinymce) {
-        const phpTiny = Object.assign({}, wpEditorArgs.tinymce);
-        // Normalize callback fields that TinyMCE expects to be functions
-        if (typeof phpTiny.setup === 'string') {
-            const parsedSetup = awmStringToFunction(phpTiny.setup);
-            if (parsedSetup) {
-                phpTiny.setup = parsedSetup;
-            } else {
-                delete phpTiny.setup; // fallback to baseConfig.setup
-            }
-        }
-        Object.assign(baseConfig, phpTiny);
-    }
-
-    // Apply other wp_editor settings
-    if (wpEditorArgs.wpautop !== undefined) {
-        baseConfig.wpautop = wpEditorArgs.wpautop;
-    }
-
-    return baseConfig;
-}
-
-/**
- * Initialize wp-editor in repeater context
- * Handles TinyMCE editor setup for cloned repeater fields
- * 
- * @param {string} editorId - The ID of the wp-editor textarea
- */
-function awm_initialize_repeater_wp_editor(editorId) {
-    // Immediate check to prevent multiple simultaneous inits
-    if (window.awmEditorInitializing && window.awmEditorInitializing[editorId]) {
-        return; // Already initializing this editor
-    }
-    
-    // Mark as initializing globally
-    if (!window.awmEditorInitializing) window.awmEditorInitializing = {};
-    window.awmEditorInitializing[editorId] = true;
-    
-    // CRITICAL: Preserve textarea content before any operations
-    var textarea = document.getElementById(editorId);
-    var preservedContent = '';
-    if (textarea) {
-        preservedContent = textarea.value || '';
-        EWPDynamicAssetLoader.log('[AWM Editor Init] Preserving content for', editorId, '- Length:', preservedContent.length);
-    }
-
-    // Wait longer to ensure any other init processes complete first
-    setTimeout(() => {
-        // First, properly destroy any existing editor instance
-        if (typeof tinymce !== 'undefined') {
-            // Ensure wrapper is in a clean state and hidden during init to avoid UI glitches
-            var wrap = document.getElementById('wp-' + editorId + '-wrap');
-            var container = document.getElementById('wp-' + editorId + '-editor-container');
-            if (wrap) {
-                wrap.classList.remove('html-active');
-                wrap.classList.add('tmce-active');
-                // Hide visually but keep layout to prevent jumps
-                wrap.style.visibility = 'hidden';
-            }
-            // Remove any existing QuickTags toolbar for this cloned editor to prevent duplicates
-            var qtToolbar = document.getElementById('qt_' + editorId + '_toolbar');
-            if (qtToolbar && qtToolbar.parentNode) {
-                qtToolbar.parentNode.removeChild(qtToolbar);
-            }
-            // Check if there's an existing editor instance
-            if (tinymce.get(editorId)) {
-                // Save content to textarea before removing
-                tinymce.get(editorId).save();
-                // Backup content again in case save modified it
-                if (textarea && textarea.value) {
-                    preservedContent = textarea.value;
-                }
-                // Remove the editor instance
-                tinymce.remove('#' + editorId);
-            }
-
-            // RESTORE content to textarea after cleanup
-            if (textarea && preservedContent) {
-                textarea.value = preservedContent;
-                EWPDynamicAssetLoader.log('[AWM Editor Init] Restored content to textarea:', editorId);
-            }
-
-            // Nuclear cleanup: remove ALL TinyMCE instances related to this editor
-            if (container) {
-                // First pass: remove all TinyMCE containers
-                const mceContainers = container.querySelectorAll('.mce-tinymce, .mce-container');
-                mceContainers.forEach(function(el) { el.remove(); });
-                
-                // Second pass: remove any remaining non-textarea, non-quicktags children
-                Array.prototype.slice.call(container.children).forEach(function(child) {
-                    if (child.tagName && child.tagName.toLowerCase() === 'textarea') return;
-                    if (child.id && child.id.indexOf('qt_') === 0) return; // Keep QuickTags
-                    child.remove();
-                });
-            }
-            
-            // Global cleanup: find and remove any orphaned TinyMCE instances
-            document.querySelectorAll('.mce-tinymce').forEach(function(mceEl) {
-                // Check if this belongs to our editor by iframe ID or container proximity
-                const iframe = mceEl.querySelector('iframe');
-                if (iframe && iframe.id) {
-                    const baseId = editorId.replace(/template/g, '').replace(/__/g, '_').replace(/_+/g, '_');
-                    if (iframe.id.indexOf(baseId) !== -1 || iframe.id.indexOf(editorId) !== -1) {
-                        mceEl.remove();
-                    }
-                }
-            });
-
-            // Force remove any existing TinyMCE instances by all possible ID variations
-            const possibleIds = [
-                editorId,
-                editorId.replace(/_/g, '__'), // double underscore variant
-                editorId.replace(/template/g, '0'), // template replacement variant
-            ];
-            possibleIds.forEach(function(id) {
-                if (tinymce.get(id)) {
-                    tinymce.remove('#' + id);
-                }
-            });
-
-            // Get our custom TinyMCE configuration
-            const tinymceConfig = awm_get_tinymce_args(editorId);
-
-            // Initialize the new editor instance with custom configuration
-            tinymce.init(tinymceConfig);
-            // After init, ensure Visual is active and editor is interactive (Safari-safe)
-            if (window.AWMEditorUtil) {
-                window.AWMEditorUtil.waitForEditor(editorId, function (editor) {
-                    // CRITICAL: Force content sync from textarea to TinyMCE
-                    if (preservedContent && textarea) {
-                        // Ensure textarea has the content
-                        textarea.value = preservedContent;
-                        // Force TinyMCE to load content from textarea
-                        try {
-                            editor.setContent(preservedContent);
-                            editor.save(); // Sync back to textarea
-                            var syncPreview = preservedContent.substring(0, 50) + (preservedContent.length > 50 ? '...' : '');
-                            EWPDynamicAssetLoader.log('[AWM Editor Init] Content synced to TinyMCE:', editorId, 'Content:', syncPreview);
-                        } catch (e) {
-                            console.warn('[AWM Editor Init] Error setting content:', e);
-                        }
-                    }
-
-                    window.AWMEditorUtil.activateVisual(editorId, editor);
-                    // Reveal wrapper now that TinyMCE is ready
-                    if (wrap) {
-                        // Prefer reveal on skin loaded for stable UI
-                        var reveal = function(){
-                            try { editor.execCommand('mceRepaint'); } catch (e) {}
-                            wrap.style.visibility = '';
-                            // Clear the global init flag
-                            if (window.awmEditorInitializing) {
-                                delete window.awmEditorInitializing[editorId];
-                            }
-                            // Verify content is visible
-                            var editorContent = editor.getContent();
-                            if (editorContent && editorContent.length > 0) {
-                                EWPDynamicAssetLoader.log('[AWM Editor Init] SUCCESS - Content visible in visual mode:', editorId);
-                            } else if (preservedContent && preservedContent.length > 0) {
-                                console.warn('[AWM Editor Init] WARNING - Content not visible, retrying...', editorId);
-                                // Retry setting content
-                                try {
-                                    editor.setContent(preservedContent);
-                                } catch (e) { }
-                            }
-                        };
-                        try {
-                            editor.once('SkinLoaded', reveal);
-                            // Fallback in case event doesn't fire
-                            setTimeout(reveal, 300);
-                        } catch (e) { setTimeout(reveal, 300); }
-                    }
-                    // Reinitialize QuickTags toolbar once after TinyMCE is set up
-                    try {
-                        if (window.quicktags) {
-                            quicktags({ id: editorId });
-                            if (window.QTags && typeof QTags._buttonsInit === 'function') {
-                                QTags._buttonsInit();
-                            }
-                        }
-                    } catch (e) { /* noop */ }
-                });
-            }
-        }
-    }, 500); // Longer delay to prevent race conditions
-}
-
-/**
- * Helper function to swap input attributes between two repeater elements
- * 
- * @param {HTMLElement} elem1 - First repeater element
- * @param {HTMLElement} elem2 - Second repeater element
- * @param {string} repeater - Repeater ID
- * @param {number} counter1 - Original counter of first element
- * @param {number} counter2 - Original counter of second element
- */
-function swapInputAttributes(elem1, elem2, repeater, counter1, counter2) {
-    // Process all inputs in both elements
-    updateInputAttributes(elem1, repeater, counter1, counter2);
-    updateInputAttributes(elem2, repeater, counter2, counter1);
-}
-
-/**
- * Updates input attributes in a repeater element
- * 
- * @param {HTMLElement} elem - Repeater element to update
- * @param {string} repeater - Repeater ID
- * @param {number} oldCounter - Original counter value
- * @param {number} newCounter - New counter value
- */
-function updateInputAttributes(elem, repeater, oldCounter, newCounter) {
-    // CRITICAL: Save all TinyMCE content to textareas BEFORE processing
-    // AND capture content with OLD IDs before they change
-    var wpEditorContentMap = {}; // Map old ID -> content
-    var wpEditors = elem.querySelectorAll('textarea.wp-editor-area');
-    wpEditors.forEach(function (textarea) {
-        if (textarea.id && typeof tinymce !== 'undefined') {
-            var editor = tinymce.get(textarea.id);
-            if (editor) {
-                try {
-                    editor.save(); // Force save content to textarea
-                    EWPDynamicAssetLoader.log('[AWM Reorder] Saved content from TinyMCE to textarea:', textarea.id);
-                } catch (e) {
-                    EWPDynamicAssetLoader.log('[AWM Reorder] Error saving editor content:', e);
-                }
-            }
-            // Capture content with OLD ID
-            wpEditorContentMap[textarea.id] = textarea.value || '';
-            EWPDynamicAssetLoader.log('[AWM Reorder] Captured content for OLD ID:', textarea.id, 'Length:', wpEditorContentMap[textarea.id].length);
-            if (wpEditorContentMap[textarea.id].length > 0) {
-                var preview = wpEditorContentMap[textarea.id].substring(0, 100);
-                EWPDynamicAssetLoader.log('[AWM Reorder] Content preview:', preview);
-            } else {
-                EWPDynamicAssetLoader.log('[AWM Reorder] WARNING: No content captured!');
-            }
-        }
-    });
-
-    // Update all input elements
-    var inputs = elem.querySelectorAll('input, select, textarea');
-    inputs.forEach(function(input) {
-        // Update name attribute
-        if (input.name) {
-            input.name = input.name.replace(
-                new RegExp(repeater + '\\[' + oldCounter + '\\]', 'g'), 
-                repeater + '[' + newCounter + ']'
-            );
-        }
-        
-        // Update id attribute - INCLUDING wp-editor textareas
-        if (input.id) {
-            var oldId = input.id;
-            input.id = input.id.replace(
-                new RegExp(repeater + '_' + oldCounter + '_', 'g'), 
-                repeater + '_' + newCounter + '_'
-            );
-
-            // If this is a wp-editor textarea, restore content AND update wrapper IDs
-            if (input.classList.contains('wp-editor-area') && wpEditorContentMap[oldId]) {
-                input.value = wpEditorContentMap[oldId];
-                EWPDynamicAssetLoader.log('[AWM Reorder] Restored content to NEW ID:', input.id, 'from OLD ID:', oldId, 'Length:', wpEditorContentMap[oldId].length);
-                if (wpEditorContentMap[oldId].length > 0) {
-                    var restorePreview = wpEditorContentMap[oldId].substring(0, 100);
-                    EWPDynamicAssetLoader.log('[AWM Reorder] Restored content preview:', restorePreview);
-                }
-
-                // CRITICAL: Update wp-editor wrapper IDs to match new textarea ID
-                // WordPress creates wrappers like: wp-{id}-wrap, wp-{id}-editor-container, etc.
-                // But we need to find them by traversing up from the textarea since IDs might vary
-
-                // Try to find wrapper by ID first
-                var oldWrap = document.getElementById('wp-' + oldId + '-wrap');
-                var oldContainer = document.getElementById('wp-' + oldId + '-editor-container');
-                var oldToolbar = document.getElementById('wp-' + oldId + '-editor-tools');
-
-                // If not found by ID, try to find by traversing up from textarea
-                if (!oldWrap) {
-                    // Look for parent with class 'wp-editor-wrap'
-                    var parent = input.parentElement;
-                    while (parent && !parent.classList.contains('wp-editor-wrap')) {
-                        parent = parent.parentElement;
-                    }
-                    if (parent && parent.classList.contains('wp-editor-wrap')) {
-                        oldWrap = parent;
-                        EWPDynamicAssetLoader.log('[AWM Reorder] Found wrapper by traversal:', oldWrap.id || 'no-id');
-                    }
-                }
-
-                if (!oldContainer) {
-                    // Look for parent with class 'wp-editor-container'
-                    var editorContainer = input.parentElement;
-                    if (editorContainer && editorContainer.classList.contains('wp-editor-container')) {
-                        oldContainer = editorContainer;
-                    }
-                }
-
-                if (oldWrap) {
-                    oldWrap.id = 'wp-' + input.id + '-wrap';
-                    EWPDynamicAssetLoader.log('[AWM Reorder] Updated wrapper ID:', oldWrap.id);
-                } else {
-                    EWPDynamicAssetLoader.log('[AWM Reorder] WARNING: Wrapper not found for OLD ID:', 'wp-' + oldId + '-wrap');
-                }
-                if (oldContainer) {
-                    oldContainer.id = 'wp-' + input.id + '-editor-container';
-                    EWPDynamicAssetLoader.log('[AWM Reorder] Updated container ID:', oldContainer.id);
-                } else {
-                    EWPDynamicAssetLoader.log('[AWM Reorder] WARNING: Container not found for OLD ID:', 'wp-' + oldId + '-editor-container');
-                }
-                if (oldToolbar) {
-                    oldToolbar.id = 'wp-' + input.id + '-editor-tools';
-                }
-            }
-        }
-    });
-    
-    // Update data-input attributes on containers
-    var containers = elem.querySelectorAll('[data-input]');
-    containers.forEach(function(container) {
-        var dataInput = container.getAttribute('data-input');
-        if (dataInput) {
-            container.setAttribute('data-input', dataInput.replace(
-                new RegExp(repeater + '_' + oldCounter + '_', 'g'), 
-                repeater + '_' + newCounter + '_'
-            ));
-        }
-        
-        // Also update the id attribute if it contains the element prefix
-        if (container.id && container.id.includes('awm-element-')) {
-            container.id = container.id.replace(
-                new RegExp(repeater + '_' + oldCounter + '_', 'g'), 
-                repeater + '_' + newCounter + '_'
-            );
-        }
-    });
-    
-    // Update media field containers (unified image/gallery)
-    var mediaContainers = elem.querySelectorAll('.awm-media-field');
-    mediaContainers.forEach(function (container) {
-        if (container.id) {
-            container.id = container.id.replace(
-                new RegExp(repeater + '_' + oldCounter + '_', 'g'), 
-                repeater + '_' + newCounter + '_'
-            );
-        }
-        /* Reset data-awm-init so AWMMediaField re-initialises the cloned field */
-        container.removeAttribute('data-awm-init');
-    });
-
-
-    var inputs = elem.querySelectorAll('textarea.wp-editor-area');
-    if (inputs) {
-        inputs.forEach(function (input) {
-            // At this point, IDs have been updated and content restored to NEW IDs
-            var content = input.value || '';
-            var editorId = input.id; // This is the NEW ID
-
-            EWPDynamicAssetLoader.log('[AWM Reorder] Queueing editor with NEW ID for reinitialization:', editorId, 'Content length:', content.length);
-            if (content.length > 0) {
-                var queuePreview = content.substring(0, 100);
-                EWPDynamicAssetLoader.log('[AWM Reorder] Queue content preview:', queuePreview);
-            } else {
-                EWPDynamicAssetLoader.log('[AWM Reorder] WARNING: Queueing with EMPTY content!');
-            }
-
-            if (window.awmRepeaterEditorQueue) {
-                window.awmRepeaterEditorQueue.add(editorId, content);
-                // Process this single editor after a short delay
-                // Use captured values in closure to avoid stale references
-                setTimeout(function () {
-                    window.awmRepeaterEditorQueue.initEditor(editorId, content);
-                }, 300);
-            } else {
-                // Fallback to direct initialization if queue not available
-                awm_initialize_repeater_wp_editor(editorId);
-            }
-        });
-    }
-
-}
-function ewp_repeater_clone_row(elem) {
-    // Find the repeater content div that contains this element
-    const repeater_div = elem.closest('.awm-repeater-content');
-
-    // Find the parent repeater that contains this element
-    const repeater_parent = elem.closest('.repeater');
-
-    if (!repeater_div || !repeater_parent) return false;
-
-    // Get the repeater ID from the repeater content div
-    const repeaterId = repeater_div.getAttribute('data-id');
-
-    // Store all input values from the current row
-    const originalValues = {};
-    const inputs = repeater_div.querySelectorAll('input:not([disabled]), select:not([disabled]), textarea:not([disabled])');
-
-    // Create a map of all input values by their input-key attribute
-    inputs.forEach(function (input) {
-        const key = input.getAttribute('input-key');
-        if (key) {
-            if (input.type === 'checkbox' || input.type === 'radio') {
-                originalValues[key] = input.checked;
-            } else {
-                originalValues[key] = input.value;
-            }
-        }
-    });
-
-    // Find the template source for this specific repeater
-    const templateSource = repeater_parent.querySelector(`.awm-repeater-content.temp-source[data-id="${repeaterId}"]`);
-    if (!templateSource) return false;
-    console.log(templateSource);
-    // Call the repeater function with the add button from the template source
-    const addButton = templateSource.querySelector(`.awm-repeater-add[data-id="${repeaterId}"] .awm-add`);
-    console.log(addButton);
-    if (addButton) {
-        repeater(addButton, originalValues);
-    }
-}
-/**
- * 
- * @param domobject elem 
- */
-function repeater(elem, prePopulated = []) {
-    var repeater_div = elem.closest('.awm-repeater');
-
-    var maxRows = repeater_div.getAttribute('maxrows') ? parseInt(repeater_div.getAttribute('maxrows')) : 0;
-    var repeater = repeater_div.getAttribute('data-id');
-
-    var clicked_element = elem.closest('.awm-repeater[data-id="' + repeater + '"] .awm-repeater-content[data-id="' + repeater + '"]');
-    var add = false;
-    if (elem.classList.contains('awm-add')) {
-        add = true;
-        var last_element = document.querySelectorAll('.awm-repeater[data-id="' + repeater + '"] .awm-repeater-content:not(.temp-source)[data-id="' + repeater + '"]');
-        var old_counter = last_element.length - 1;
-        switch (last_element.length) {
-            case 1:
-                old_counter = 0;
-                break;
-            case 0:
-                old_counter = -1;
-                break;
-        }
-        var new_counter = old_counter + 1;
-        if (maxRows == 0 || new_counter < maxRows) {
-            var template = document.querySelector('.awm-repeater[data-id="' + repeater + '"] .awm-repeater-content.temp-source[data-id="' + repeater + '"]');
-            var cloned = template.cloneNode(true);
-            cloned.classList.add('cloned');
-            cloned.classList.remove('temp-source');
-
-            var inner = cloned.innerHTML;
-            var res = inner.replace(/template/g, new_counter);
-            cloned.innerHTML = res;
-
-            var selects = cloned.querySelectorAll('.ss-main');
-            if (selects) {
-                selects.forEach(function (select) {
-                    select.innerHTML = '';
-                });
-            }
-            var inputs = cloned.querySelectorAll('input,select,textarea');
-            if (inputs) {
-                inputs.forEach(function (input) {
-                    input.removeAttribute('disabled');
-                    input.removeAttribute('readonly');
-                    input.classList.remove('hasDatepicker');
-                    input.classList.remove('awm-callback-checked');
-                    input.removeAttribute('data-id');
-                    input.removeAttribute('style');
-                    input.removeAttribute('checked');
-                });
-            }
-            cloned = awm_repeater_clone(cloned, new_counter, repeater);
-            cloned.querySelector(':scope > .awm-actions .awm-repeater-add').innerHTML = '';
-            cloned.querySelector('input[input-key="awm_key"]').value = new Date().getTime() + new_counter;
-            jQuery('.awm-repeater[data-id="' + repeater + '"] .awm-repeater-content.temp-source[data-id="' + repeater + '"]').before(cloned);
-            cloned.classList.remove('cloned');
-            template.parentNode.insertBefore(cloned, template);
-            var template_inputs = template.querySelectorAll('input,select,textarea');
-            if (template_inputs) {
-                template_inputs.forEach(function (input) {
-                    input.setAttribute('disabled', true);
-                    input.setAttribute('readonly', true);
-                });
-            }
-            awm_init_inputs();
-
-            /* Re-initialise AWMMediaField instances inside the cloned row */
-            var mediaFields = cloned.querySelectorAll('.awm-media-field');
-            if (mediaFields.length > 0) {
-                mediaFields.forEach(function (mf) {
-                    mf.removeAttribute('data-awm-init');
-                });
-                if (typeof AWMMediaField !== 'undefined') {
-                    AWMMediaField.init();
-                }
-            }
-
-            var inputs = cloned.querySelectorAll('input,select,textarea');
-
-            if (inputs) {
-                inputs.forEach(function (input) {
-                    if (input.classList.contains('wp-editor-area')) {
-                        // Queue the editor for delayed initialization to preserve content
-                        var content = input.value || '';
-                        if (window.awmRepeaterEditorQueue) {
-                            window.awmRepeaterEditorQueue.add(input.id, content);
-                            // Process this single editor after a short delay
-                            setTimeout(function () {
-                                window.awmRepeaterEditorQueue.initEditor(input.id, content);
-                            }, 300);
-                        } else {
-                        // Fallback to direct initialization if queue not available
-                            awm_initialize_repeater_wp_editor(input.id);
-                        }
-                    }
-                    var inputKey = input.getAttribute('input-key') || '';
-                    if (inputKey && prePopulated[inputKey]) {
-                        input.value = prePopulated[inputKey];
-                        input.dispatchEvent(new Event('change'));
-                    }
-                });
-            }
-
-        }
-    } else {
-        var rep_wrapper = elem.closest('.awm-repeater[data-id="' + repeater + '"] .awm-repeater-content[data-id="' + repeater + '"]');
-        rep_wrapper.querySelectorAll('input,select,textarea').forEach(function (input) {
-            input.value = 0;
-            input.dispatchEvent(new Event('change'));
-        });
-        elem.closest('.awm-repeater[data-id="' + repeater + '"] .awm-repeater-content[data-id="' + repeater + '"]').outerHTML = '';
-    }
-    var elements = document.querySelectorAll('.awm-repeater[data-id="' + repeater + '"] > input:last-child,.awm-repeater[data-id="' + repeater + '"] > select:last-child,.awm-repeater[data-id="' + repeater + '"] > textarea:last-child');
-    var data = { repeater_id: repeater, add: add, elem: clicked_element };
-    var event = new CustomEvent("awm_repeater_change_row", { detail: data });
-    document.dispatchEvent(event);
-    if (elements.length > 0) {
-        var last = elements[elements.length - 1];
-        last.dispatchEvent(new Event('change'));
-    }
-    return true;
-
-
-}
-
-
-function awm_repeater_clone(cloned, new_counter, repeater) {
-    cloned.setAttribute('data-counter', new_counter);
-    // Replace the problematic :scope selector with direct children selection
-    var inputsAll = cloned.querySelectorAll('input,select,textarea');
-
-    if (inputsAll && inputsAll.length > 0) {
-        inputsAll.forEach(function (input) {
-            var old_id = input.getAttribute('id');
-            var label = cloned.querySelector('label[for="' + old_id + '"]');
-            var namee, id;
-            if (input.name) {
-                // Get input-name and input-key attributes with fallbacks
-                var inputName = input.getAttribute("input-name") || repeater;
-                var inputKey = input.getAttribute("input-key") || '';
-                
-                // For wp-editor fields, if input-key is missing, try to get it from the label
-                if (input.classList.contains('wp-editor-area') && (!inputKey || inputKey === '')) {
-                    // Find the editor container
-                    var editorContainer = input.closest('.awm-wp-editor');
-                    if (editorContainer) {
-                        // Try to get key from label text
-                        var editorLabel = editorContainer.querySelector('.awm-input-label span');
-                        if (editorLabel && editorLabel.textContent) {
-                            inputKey = editorLabel.textContent.toLowerCase().trim();
-                            // Update the input-key attribute for future reference
-                            input.setAttribute('input-key', inputKey);
-                        }
-                    }
-                }
-                
-                // Create proper name and id attributes
-                namee = inputName + "[" + new_counter + "]" + "[" + inputKey + "]";
-                id = namee.replace(/\[/g, '_').replace(/\]/g, '_');
-                input.setAttribute("name", namee);
-                input.setAttribute("id", id);
-            }
-            if (label) {
-                label.setAttribute('for', id);
-            }
-            var image_input = input.closest('.awm-meta-field');
-            if (image_input && image_input.classList.contains('awm-custom-image-meta')) {
-                // Handle the main image container
-                var imageContainer = image_input;
-                if (imageContainer) {
-                    // Get the label text to use as key if needed
-                    var imageLabel = imageContainer.querySelector('.awm-input-label');
-                    var labelText = '';
-                    if (imageLabel) {
-                        labelText = imageLabel.textContent.toLowerCase().trim();
-                    }
-                    
-                    // Update data-input attribute
-                    imageContainer.setAttribute('data-input', id);
-                    
-                    // Update media field container (unified image/gallery)
-                    var mediaField = imageContainer.querySelector('.awm-media-field');
-                    if (mediaField) {
-                        mediaField.setAttribute('id', id + '-field');
-                        mediaField.setAttribute('data-id', id);
-                        /* Reset init flag so AWMMediaField re-initialises */
-                        mediaField.removeAttribute('data-awm-init');
-                        
-                        // Find and update hidden input fields
-                        var hiddenInputs = mediaField.querySelectorAll('input[type="hidden"]');
-                        hiddenInputs.forEach(function (hiddenInput) {
-                            // If input-key is missing or empty, use the label text
-                            if (!hiddenInput.getAttribute('input-key') || hiddenInput.getAttribute('input-key') === '') {
-                                hiddenInput.setAttribute('input-key', labelText);
-                            }
-                            // Update name and id attributes
-                            var inputName = hiddenInput.getAttribute('input-name') || repeater;
-                            var inputKey = hiddenInput.getAttribute('input-key') || labelText;
-                            var isSingle = mediaField.getAttribute('data-max') === '1';
-                            var newName = inputName + '[' + new_counter + '][' + inputKey + ']' + (isSingle ? '' : '[]');
-                            var newId = newName.replace(/\[/g, '_').replace(/\]/g, '_');
-                            hiddenInput.setAttribute('name', newName);
-                            hiddenInput.setAttribute('id', newId);
-                        });
-
-                        // Update the button data-id
-                        var mediaBtn = mediaField.querySelector('.awm-media-field-button');
-                        if (mediaBtn) {
-                            mediaBtn.setAttribute('data-id', id);
-                        }
-                    }
-                }
-            }
-
-        });
-    }
-    cloned.setAttribute('id', 'awm-' + repeater + '-' + new_counter);
-    cloned.setAttribute('data-id', repeater);
-    return cloned;
-}
-
-
 function awm_serialize_data(obj, prefix) {
 
     var str = [],
@@ -1554,9 +115,8 @@ function awm_serialize_data(obj, prefix) {
         }
     }
     return str.join("&");
-
-
 }
+
 /**
  * AJAX Call Function
  * 
@@ -1733,13 +293,6 @@ function awm_ajax_call(options) {
 
         /**
          * Handle error responses
-         * 
-         * Processes failed requests and calls error callback if provided.
-         * Specifically handles 4xx client errors with callback support.
-         * 
-         * @param {number} status HTTP status code
-         * @param {string} responseText Response text or error message
-         * @return {void}
          */
         function handleError(status, responseText) {
             try {
@@ -1818,79 +371,184 @@ function awm_ajax_call(options) {
     }
 }
 
-function awmMultipleCheckBox() {
-    var elems = document.querySelectorAll('.checkbox_multiple.awm-meta-field');
-    if (elems) {
-        elems.forEach(function (elem) {
-            inputs = elem.querySelectorAll('input[type="checkbox"]');
-
-            if (inputs) {
-                inputs.forEach(function (input) {
-                    var dataValue = input.getAttribute('data-value');
-                    if (dataValue == 'awm_apply_all') {
-                        input.addEventListener('change', function (e) {
-                            var checked = input.checked;
-                            var text = input.getAttribute('data-extra');
-
-                            elem.querySelectorAll('input[type="checkbox"]').forEach(function (checkbox) {
-                                if (checkbox.value != '') {
-                                    checkbox.checked = checked;
-                                }
-                            });
-                            var element_to_change = document.querySelector('#label_' + input.id + ' span');
-                            input.setAttribute('data-extra', element_to_change.innerText);
-                            element_to_change.innerText = text;
-                        });
-                    }
-                });
-            }
-        });
+/**
+ * Open tab functionality
+ */
+function awm_open_tab(evt, div) {
+    var i, awm_tabcontent, awm_tablinks;
+    div = div.trim();
+    awm_tabcontent = document.getElementsByClassName("awm_tabcontent");
+    for (i = 0; i < awm_tabcontent.length; i++) {
+        awm_tabcontent[i].style.display = "none";
     }
+    awm_tablinks = document.getElementsByClassName("awm_tablinks");
+
+    for (i = 0; i < awm_tablinks.length; i++) {
+        awm_tablinks[i].className = awm_tablinks[i].className.replace(" active", "");
+    }
+    document.getElementById(div + '_content_tab').style.display = "block";
+    evt.currentTarget.className += " active";
 }
 
 /**
- * Detect and queue all repeater wp_editor fields on page load
- * Prevents premature initialization that causes blank visual mode
+ * Legacy AJAX GET call - redirects to awm_ajax_call
+ * 
+ * @deprecated Use awm_ajax_call() directly with method: 'GET'
+ * @param {string} url Target URL for the GET request
+ * @param {string} js_callback Callback function name to execute on success
+ * @return {boolean} Returns true if request was initiated
  */
-function awm_queue_repeater_editors_on_load() {
-    // Find all wp-editor textareas inside repeater content (not templates)
-    var repeaterEditors = document.querySelectorAll('.awm-repeater-content:not(.temp-source) textarea.wp-editor-area');
-
-    if (!repeaterEditors || repeaterEditors.length === 0) {
-        EWPDynamicAssetLoader.log('[AWM Editor Queue] No repeater editors found on page load');
-        return;
-    }
-
-    EWPDynamicAssetLoader.log('[AWM Editor Queue] Found', repeaterEditors.length, 'repeater editors on page load');
-
-    repeaterEditors.forEach(function (textarea) {
-        if (textarea.id) {
-            var content = textarea.value || '';
-
-            // Only queue if there's content to preserve
-            if (content.trim().length > 0) {
-                window.awmRepeaterEditorQueue.add(textarea.id, content);
-
-                // Prevent WordPress from auto-initializing this editor
-                // by temporarily hiding it from TinyMCE's auto-init
-                textarea.setAttribute('data-awm-queued', 'true');
-            }
-        }
+function awm_js_ajax_call(url, js_callback) {
+    return awm_ajax_call({
+        method: 'GET',
+        url: url,
+        callback: js_callback
     });
 }
 
-/**
- * Page load handler to initialize queued repeater editors
- * Waits for all WordPress scripts to load before processing
- */
-window.addEventListener('load', function () {
-    // First, queue any existing repeater editors
-    awm_queue_repeater_editors_on_load();
+// Initialize custom image uploader if present
+if (document.getElementsByClassName("awm_custom_image_image_uploader_field-show").length) {
+    var clickables = document.getElementsByClassName("awm-tab-show");
+    clickables[0].click()
+}
 
-    // Then process the queue after a delay
-    setTimeout(function () {
-        if (window.awmRepeaterEditorQueue && typeof window.awmRepeaterEditorQueue.process === 'function') {
-            window.awmRepeaterEditorQueue.process();
+/**
+ * Smart initialization function
+ * Detects which features are needed and dynamically imports modules
+ */
+async function awm_init_inputs() {
+    const modules = [];
+    const modulePromises = [];
+
+    // Check for calendar fields
+    if (document.querySelector('.awm_cl_date')) {
+        modulePromises.push(
+            import('../modules/awm-inputs-module.js').then(m => {
+                // Expose module functions globally for backwards compatibility
+                window.awm_create_calendar = m.awm_create_calendar;
+                window.awmMultipleCheckBox = m.awmMultipleCheckBox;
+                window.awmSelectrBoxes = m.awmSelectrBoxes;
+                window.awm_selectr_box = m.awm_selectr_box;
+                window.awmCallbacks = m.awmCallbacks;
+                window.awmShowInputs = m.awmShowInputs;
+                window.awm_auto_fill_inputs = m.awm_auto_fill_inputs;
+                window.awm_toggle_password = m.awm_toggle_password;
+                window.awm_ensure_disabled_inputs = m.awm_ensure_disabled_inputs;
+                window.awm_timestamp = m.awm_timestamp;
+
+                m.awm_create_calendar();
+                m.awmMultipleCheckBox();
+                m.awmSelectrBoxes();
+                m.awmCallbacks();
+                m.awmShowInputs();
+                m.awm_auto_fill_inputs();
+                m.awm_toggle_password();
+                m.awm_ensure_disabled_inputs();
+            }).catch(err => console.error('[AWM] Error loading inputs module:', err))
+        );
+    }
+
+    // Check for multiple checkboxes
+    if (document.querySelector('.checkbox_multiple.awm-meta-field')) {
+        if (!modulePromises.some(p => p.toString().includes('awm-inputs-module'))) {
+            modulePromises.push(
+                import('./modules/awm-inputs-module.js').then(m => {
+                    m.awmMultipleCheckBox();
+                }).catch(err => console.error('[AWM] Error loading inputs module:', err))
+            );
         }
-    }, 300);
+    }
+
+    // Check for select boxes
+    if (document.querySelector('.awm-meta-field select,.awm-term-input select,.awm-user-input select')) {
+        if (!modulePromises.some(p => p.toString().includes('awm-inputs-module'))) {
+            modulePromises.push(
+                import('../modules/awm-inputs-module.js').then(m => {
+                    m.awmSelectrBoxes();
+                }).catch(err => console.error('[AWM] Error loading inputs module:', err))
+            );
+        }
+    }
+
+    // Check for repeaters
+    if (document.querySelector('.awm-repeater')) {
+        modulePromises.push(
+            import('../modules/awm-repeater-module.js').then(m => {
+                // Expose module functions globally for backwards compatibility
+                window.repeater = m.repeater;
+                window.ewp_repeater_clone_row = m.ewp_repeater_clone_row;
+                window.awm_repeater_order = m.awm_repeater_order;
+            }).catch(err => console.error('[AWM] Error loading repeater module:', err))
+        );
+    }
+
+    // Check for TinyMCE editors
+    if (document.querySelector('textarea.wp-editor-area')) {
+        modulePromises.push(
+            import('../modules/awm-tinymce-module.js').then(m => {
+                // Expose module functions globally for backwards compatibility
+                window.awm_initialize_repeater_wp_editor = m.awm_initialize_repeater_wp_editor;
+                window.awm_get_tinymce_args = m.awm_get_tinymce_args;
+                m.initTinyMCEEditors();
+            }).catch(err => console.error('[AWM] Error loading TinyMCE module:', err))
+        );
+    }
+
+    // Check for forms with validation
+    if (document.querySelector('form .awm-needed')) {
+        modulePromises.push(
+            import('../modules/awm-forms-module.js').then(m => {
+                // Expose module functions globally for backwards compatibility
+                window.awmInitForms = m.awmInitForms;
+                window.awmCheckValidation = m.awmCheckValidation;
+                window.awmShowError = m.awmShowError;
+                m.awmInitForms();
+            }).catch(err => console.error('[AWM] Error loading forms module:', err))
+        );
+    }
+
+    // Check for conditional fields
+    if (document.querySelector('[show-when]')) {
+        if (!modulePromises.some(p => p.toString().includes('awm-inputs-module'))) {
+            modulePromises.push(
+                import('../modules/awm-inputs-module.js').then(m => {
+                    m.awmShowInputs();
+                }).catch(err => console.error('[AWM] Error loading inputs module:', err))
+            );
+        }
+    }
+
+    // Check for callbacks
+    if (document.querySelector('[data-callback]')) {
+        if (!modulePromises.some(p => p.toString().includes('awm-inputs-module'))) {
+            modulePromises.push(
+                import('../modules/awm-inputs-module.js').then(m => {
+                    m.awmCallbacks();
+                }).catch(err => console.error('[AWM] Error loading inputs module:', err))
+            );
+        }
+    }
+
+    // Wait for all needed modules to load and initialize
+    if (modulePromises.length > 0) {
+        await Promise.all(modulePromises);
+    }
+}
+
+// Initialize on page load
+window.addEventListener('load', function () {
+    awm_init_inputs();
 });
+
+// Re-initialize when widgets are sorted (for admin)
+jQuery('div.widgets-sortables').bind('sortstop', function (event, ui) {
+    awm_init_inputs();
+});
+
+// Expose critical functions globally for admin scripts and backwards compatibility
+window.ewp_jsVanillaSerialize = ewp_jsVanillaSerialize;
+window.awm_serialize_data = awm_serialize_data;
+window.awm_ajax_call = awm_ajax_call;
+window.awm_open_tab = awm_open_tab;
+window.awm_js_ajax_call = awm_js_ajax_call;
+window.jsVanillaSerialize = jsVanillaSerialize;

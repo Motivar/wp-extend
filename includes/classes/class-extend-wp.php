@@ -195,7 +195,6 @@ class AWM_Meta
         }
         wp_enqueue_style('awm-global-style');
         wp_enqueue_script('awm-global-script');
-        wp_enqueue_script('awm-public-script');
     }
 
     /**
@@ -269,7 +268,7 @@ class AWM_Meta
         wp_register_style('awm-admin-style', awm_url . 'assets/css/admin/awm-admin-style.min.css', false, $version);
 
         wp_register_script('awm-global-script', awm_url . 'assets/js/global/awm-global-script.js', array(), $version, true);
-        wp_register_script('awm-public-script', awm_url . 'assets/js/public/awm-public-script.js', array(), $version, true);
+
         // Get wp_editor args for JavaScript use
         $wp_editor_args = awm_get_wp_editor_args('', '', '');
         
@@ -283,6 +282,13 @@ class AWM_Meta
             'nonce' => wp_create_nonce('wp_rest'),
             'wpEditorArgs' => $wp_editor_args
         ));
+
+        // Register module scripts for lazy loading
+        wp_register_script('awm-tinymce-module', awm_url . 'assets/js/modules/awm-tinymce-module.js', array(), $version, true);
+        wp_register_script('awm-repeater-module', awm_url . 'assets/js/modules/awm-repeater-module.js', array(), $version, true);
+        wp_register_script('awm-forms-module', awm_url . 'assets/js/modules/awm-forms-module.js', array(), $version, true);
+        wp_register_script('awm-inputs-module', awm_url . 'assets/js/modules/awm-inputs-module.js', array(), $version, true);
+
         wp_register_script('awm-admin-script', awm_url . 'assets/js/admin/awm-admin-script.js', array('awm-global-script'), $version, true);
         wp_register_script('awm-slim-lib-script', awm_url . 'assets/js/global/slimselect.min.js', array(), $version, true);
         wp_register_style('jquery-ui-awm', awm_url . 'assets/css/global/jquery-ui.min.css');
