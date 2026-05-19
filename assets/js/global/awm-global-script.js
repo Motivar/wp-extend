@@ -5,6 +5,93 @@
  */
 window.awmDeferredCallbacks = window.awmDeferredCallbacks || [];
 
+/**
+ * Repeater WP Editor Lazy Initialization Queue
+ * Prevents premature TinyMCE initialization that causes blank visual mode
+ * Queues editors for delayed initialization after page load
+ */
+window.awmRepeaterEditorQueue = window.awmRepeaterEditorQueue || {
+    editors: [],
+    processing: false,
+
+    /**
+     * Add editor to initialization queue
+     * @param {string} editorId - The textarea ID
+     * @param {string} content - The textarea content to preserve
+     */
+    add: function (editorId, content) {
+        // Check if already queued
+        var exists = this.editors.some(function (e) { return e.id === editorId; });
+        if (!exists) {
+            this.editors.push({ id: editorId, content: content || '' });
+            EWPDynamicAssetLoader.log('[AWM Editor Queue] Added:', editorId, 'Queue size:', this.editors.length);
+        }
+    },
+
+    /**
+     * Process all queued editors with staggered initialization
+     */
+    process: function () {
+        if (this.processing || this.editors.length === 0) {
+            return;
+        }
+
+        this.processing = true;
+        EWPDynamicAssetLoader.log('[AWM Editor Queue] Processing', this.editors.length, 'editors');
+
+        var self = this;
+        var index = 0;
+
+        function initNext() {
+            if (index >= self.editors.length) {
+                self.processing = false;
+                EWPDynamicAssetLoader.log('[AWM Editor Queue] All editors initialized');
+                return;
+            }
+
+            var editor = self.editors[index];
+            index++;
+
+            // Initialize this editor
+            self.initEditor(editor.id, editor.content);
+
+            // Wait before initializing next editor to avoid race conditions
+            setTimeout(initNext, 200);
+        }
+
+        // Start processing after a delay to ensure DOM is ready
+        setTimeout(initNext, 500);
+    },
+
+    /**
+     * Initialize a single editor with content preservation
+     * @param {string} editorId - The textarea ID
+     * @param {string} content - The content to set
+     */
+    initEditor: function (editorId, content) {
+        var textarea = document.getElementById(editorId);
+        if (!textarea) {
+            console.warn('[AWM Editor Queue] Textarea not found:', editorId);
+            return;
+        }
+
+        // Ensure content is preserved in textarea
+        if (content && !textarea.value) {
+            textarea.value = content;
+        } else if (!content && textarea.value) {
+            content = textarea.value;
+        }
+
+        var initPreview = content.substring(0, 50) + (content.length > 50 ? '...' : '');
+        EWPDynamicAssetLoader.log('[AWM Editor Queue] Initializing:', editorId, 'Content length:', content.length, 'Preview:', initPreview);
+
+        // Use the existing initialization function
+        if (typeof awm_initialize_repeater_wp_editor === 'function') {
+            awm_initialize_repeater_wp_editor(editorId);
+        }
+    }
+};
+
 awm_auto_fill_inputs();
 awm_toggle_password();
 awmShowInputs();
@@ -849,6 +936,14 @@ function awm_initialize_repeater_wp_editor(editorId) {
     if (!window.awmEditorInitializing) window.awmEditorInitializing = {};
     window.awmEditorInitializing[editorId] = true;
     
+    // CRITICAL: Preserve textarea content before any operations
+    var textarea = document.getElementById(editorId);
+    var preservedContent = '';
+    if (textarea) {
+        preservedContent = textarea.value || '';
+        EWPDynamicAssetLoader.log('[AWM Editor Init] Preserving content for', editorId, '- Length:', preservedContent.length);
+    }
+
     // Wait longer to ensure any other init processes complete first
     setTimeout(() => {
         // First, properly destroy any existing editor instance
@@ -871,8 +966,18 @@ function awm_initialize_repeater_wp_editor(editorId) {
             if (tinymce.get(editorId)) {
                 // Save content to textarea before removing
                 tinymce.get(editorId).save();
+                // Backup content again in case save modified it
+                if (textarea && textarea.value) {
+                    preservedContent = textarea.value;
+                }
                 // Remove the editor instance
                 tinymce.remove('#' + editorId);
+            }
+
+            // RESTORE content to textarea after cleanup
+            if (textarea && preservedContent) {
+                textarea.value = preservedContent;
+                EWPDynamicAssetLoader.log('[AWM Editor Init] Restored content to textarea:', editorId);
             }
 
             // Nuclear cleanup: remove ALL TinyMCE instances related to this editor
@@ -921,6 +1026,21 @@ function awm_initialize_repeater_wp_editor(editorId) {
             // After init, ensure Visual is active and editor is interactive (Safari-safe)
             if (window.AWMEditorUtil) {
                 window.AWMEditorUtil.waitForEditor(editorId, function (editor) {
+                    // CRITICAL: Force content sync from textarea to TinyMCE
+                    if (preservedContent && textarea) {
+                        // Ensure textarea has the content
+                        textarea.value = preservedContent;
+                        // Force TinyMCE to load content from textarea
+                        try {
+                            editor.setContent(preservedContent);
+                            editor.save(); // Sync back to textarea
+                            var syncPreview = preservedContent.substring(0, 50) + (preservedContent.length > 50 ? '...' : '');
+                            EWPDynamicAssetLoader.log('[AWM Editor Init] Content synced to TinyMCE:', editorId, 'Content:', syncPreview);
+                        } catch (e) {
+                            console.warn('[AWM Editor Init] Error setting content:', e);
+                        }
+                    }
+
                     window.AWMEditorUtil.activateVisual(editorId, editor);
                     // Reveal wrapper now that TinyMCE is ready
                     if (wrap) {
@@ -931,6 +1051,17 @@ function awm_initialize_repeater_wp_editor(editorId) {
                             // Clear the global init flag
                             if (window.awmEditorInitializing) {
                                 delete window.awmEditorInitializing[editorId];
+                            }
+                            // Verify content is visible
+                            var editorContent = editor.getContent();
+                            if (editorContent && editorContent.length > 0) {
+                                EWPDynamicAssetLoader.log('[AWM Editor Init] SUCCESS - Content visible in visual mode:', editorId);
+                            } else if (preservedContent && preservedContent.length > 0) {
+                                console.warn('[AWM Editor Init] WARNING - Content not visible, retrying...', editorId);
+                                // Retry setting content
+                                try {
+                                    editor.setContent(preservedContent);
+                                } catch (e) { }
                             }
                         };
                         try {
@@ -978,6 +1109,33 @@ function swapInputAttributes(elem1, elem2, repeater, counter1, counter2) {
  * @param {number} newCounter - New counter value
  */
 function updateInputAttributes(elem, repeater, oldCounter, newCounter) {
+    // CRITICAL: Save all TinyMCE content to textareas BEFORE processing
+    // AND capture content with OLD IDs before they change
+    var wpEditorContentMap = {}; // Map old ID -> content
+    var wpEditors = elem.querySelectorAll('textarea.wp-editor-area');
+    wpEditors.forEach(function (textarea) {
+        if (textarea.id && typeof tinymce !== 'undefined') {
+            var editor = tinymce.get(textarea.id);
+            if (editor) {
+                try {
+                    editor.save(); // Force save content to textarea
+                    EWPDynamicAssetLoader.log('[AWM Reorder] Saved content from TinyMCE to textarea:', textarea.id);
+                } catch (e) {
+                    EWPDynamicAssetLoader.log('[AWM Reorder] Error saving editor content:', e);
+                }
+            }
+            // Capture content with OLD ID
+            wpEditorContentMap[textarea.id] = textarea.value || '';
+            EWPDynamicAssetLoader.log('[AWM Reorder] Captured content for OLD ID:', textarea.id, 'Length:', wpEditorContentMap[textarea.id].length);
+            if (wpEditorContentMap[textarea.id].length > 0) {
+                var preview = wpEditorContentMap[textarea.id].substring(0, 100);
+                EWPDynamicAssetLoader.log('[AWM Reorder] Content preview:', preview);
+            } else {
+                EWPDynamicAssetLoader.log('[AWM Reorder] WARNING: No content captured!');
+            }
+        }
+    });
+
     // Update all input elements
     var inputs = elem.querySelectorAll('input, select, textarea');
     inputs.forEach(function(input) {
@@ -989,12 +1147,69 @@ function updateInputAttributes(elem, repeater, oldCounter, newCounter) {
             );
         }
         
-        // Update id attribute - but skip wp-editor textareas
-        if (input.id && !input.classList.contains('wp-editor-area')) {
+        // Update id attribute - INCLUDING wp-editor textareas
+        if (input.id) {
+            var oldId = input.id;
             input.id = input.id.replace(
                 new RegExp(repeater + '_' + oldCounter + '_', 'g'), 
                 repeater + '_' + newCounter + '_'
             );
+
+            // If this is a wp-editor textarea, restore content AND update wrapper IDs
+            if (input.classList.contains('wp-editor-area') && wpEditorContentMap[oldId]) {
+                input.value = wpEditorContentMap[oldId];
+                EWPDynamicAssetLoader.log('[AWM Reorder] Restored content to NEW ID:', input.id, 'from OLD ID:', oldId, 'Length:', wpEditorContentMap[oldId].length);
+                if (wpEditorContentMap[oldId].length > 0) {
+                    var restorePreview = wpEditorContentMap[oldId].substring(0, 100);
+                    EWPDynamicAssetLoader.log('[AWM Reorder] Restored content preview:', restorePreview);
+                }
+
+                // CRITICAL: Update wp-editor wrapper IDs to match new textarea ID
+                // WordPress creates wrappers like: wp-{id}-wrap, wp-{id}-editor-container, etc.
+                // But we need to find them by traversing up from the textarea since IDs might vary
+
+                // Try to find wrapper by ID first
+                var oldWrap = document.getElementById('wp-' + oldId + '-wrap');
+                var oldContainer = document.getElementById('wp-' + oldId + '-editor-container');
+                var oldToolbar = document.getElementById('wp-' + oldId + '-editor-tools');
+
+                // If not found by ID, try to find by traversing up from textarea
+                if (!oldWrap) {
+                    // Look for parent with class 'wp-editor-wrap'
+                    var parent = input.parentElement;
+                    while (parent && !parent.classList.contains('wp-editor-wrap')) {
+                        parent = parent.parentElement;
+                    }
+                    if (parent && parent.classList.contains('wp-editor-wrap')) {
+                        oldWrap = parent;
+                        EWPDynamicAssetLoader.log('[AWM Reorder] Found wrapper by traversal:', oldWrap.id || 'no-id');
+                    }
+                }
+
+                if (!oldContainer) {
+                    // Look for parent with class 'wp-editor-container'
+                    var editorContainer = input.parentElement;
+                    if (editorContainer && editorContainer.classList.contains('wp-editor-container')) {
+                        oldContainer = editorContainer;
+                    }
+                }
+
+                if (oldWrap) {
+                    oldWrap.id = 'wp-' + input.id + '-wrap';
+                    EWPDynamicAssetLoader.log('[AWM Reorder] Updated wrapper ID:', oldWrap.id);
+                } else {
+                    EWPDynamicAssetLoader.log('[AWM Reorder] WARNING: Wrapper not found for OLD ID:', 'wp-' + oldId + '-wrap');
+                }
+                if (oldContainer) {
+                    oldContainer.id = 'wp-' + input.id + '-editor-container';
+                    EWPDynamicAssetLoader.log('[AWM Reorder] Updated container ID:', oldContainer.id);
+                } else {
+                    EWPDynamicAssetLoader.log('[AWM Reorder] WARNING: Container not found for OLD ID:', 'wp-' + oldId + '-editor-container');
+                }
+                if (oldToolbar) {
+                    oldToolbar.id = 'wp-' + input.id + '-editor-tools';
+                }
+            }
         }
     });
     
@@ -1035,7 +1250,29 @@ function updateInputAttributes(elem, repeater, oldCounter, newCounter) {
     var inputs = elem.querySelectorAll('textarea.wp-editor-area');
     if (inputs) {
         inputs.forEach(function (input) {
-            awm_initialize_repeater_wp_editor(input.id);
+            // At this point, IDs have been updated and content restored to NEW IDs
+            var content = input.value || '';
+            var editorId = input.id; // This is the NEW ID
+
+            EWPDynamicAssetLoader.log('[AWM Reorder] Queueing editor with NEW ID for reinitialization:', editorId, 'Content length:', content.length);
+            if (content.length > 0) {
+                var queuePreview = content.substring(0, 100);
+                EWPDynamicAssetLoader.log('[AWM Reorder] Queue content preview:', queuePreview);
+            } else {
+                EWPDynamicAssetLoader.log('[AWM Reorder] WARNING: Queueing with EMPTY content!');
+            }
+
+            if (window.awmRepeaterEditorQueue) {
+                window.awmRepeaterEditorQueue.add(editorId, content);
+                // Process this single editor after a short delay
+                // Use captured values in closure to avoid stale references
+                setTimeout(function () {
+                    window.awmRepeaterEditorQueue.initEditor(editorId, content);
+                }, 300);
+            } else {
+                // Fallback to direct initialization if queue not available
+                awm_initialize_repeater_wp_editor(editorId);
+            }
         });
     }
 
@@ -1163,8 +1400,18 @@ function repeater(elem, prePopulated = []) {
             if (inputs) {
                 inputs.forEach(function (input) {
                     if (input.classList.contains('wp-editor-area')) {
-                        awm_initialize_repeater_wp_editor(input.id);
-
+                        // Queue the editor for delayed initialization to preserve content
+                        var content = input.value || '';
+                        if (window.awmRepeaterEditorQueue) {
+                            window.awmRepeaterEditorQueue.add(input.id, content);
+                            // Process this single editor after a short delay
+                            setTimeout(function () {
+                                window.awmRepeaterEditorQueue.initEditor(input.id, content);
+                            }, 300);
+                        } else {
+                        // Fallback to direct initialization if queue not available
+                            awm_initialize_repeater_wp_editor(input.id);
+                        }
                     }
                     var inputKey = input.getAttribute('input-key') || '';
                     if (inputKey && prePopulated[inputKey]) {
@@ -1600,3 +1847,50 @@ function awmMultipleCheckBox() {
         });
     }
 }
+
+/**
+ * Detect and queue all repeater wp_editor fields on page load
+ * Prevents premature initialization that causes blank visual mode
+ */
+function awm_queue_repeater_editors_on_load() {
+    // Find all wp-editor textareas inside repeater content (not templates)
+    var repeaterEditors = document.querySelectorAll('.awm-repeater-content:not(.temp-source) textarea.wp-editor-area');
+
+    if (!repeaterEditors || repeaterEditors.length === 0) {
+        EWPDynamicAssetLoader.log('[AWM Editor Queue] No repeater editors found on page load');
+        return;
+    }
+
+    EWPDynamicAssetLoader.log('[AWM Editor Queue] Found', repeaterEditors.length, 'repeater editors on page load');
+
+    repeaterEditors.forEach(function (textarea) {
+        if (textarea.id) {
+            var content = textarea.value || '';
+
+            // Only queue if there's content to preserve
+            if (content.trim().length > 0) {
+                window.awmRepeaterEditorQueue.add(textarea.id, content);
+
+                // Prevent WordPress from auto-initializing this editor
+                // by temporarily hiding it from TinyMCE's auto-init
+                textarea.setAttribute('data-awm-queued', 'true');
+            }
+        }
+    });
+}
+
+/**
+ * Page load handler to initialize queued repeater editors
+ * Waits for all WordPress scripts to load before processing
+ */
+window.addEventListener('load', function () {
+    // First, queue any existing repeater editors
+    awm_queue_repeater_editors_on_load();
+
+    // Then process the queue after a delay
+    setTimeout(function () {
+        if (window.awmRepeaterEditorQueue && typeof window.awmRepeaterEditorQueue.process === 'function') {
+            window.awmRepeaterEditorQueue.process();
+        }
+    }, 300);
+});

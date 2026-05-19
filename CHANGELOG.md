@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Repeater WP Editor Blank Visual Mode Issue** (`2026-05-19`):
+  - Fixed issue where `wp_editor` fields in repeater rows showed blank visual mode on page load and when cloning
+  - Fixed issue where newly added editors became blank when reordered (content only preserved for pre-existing rows)
+  - Content was only visible when switching to Code/Text mode, not in Visual mode
+  - Implemented lazy initialization queue system to prevent premature TinyMCE initialization
+  - Created `awmRepeaterEditorQueue` global object with `add()`, `process()`, and `initEditor()` methods
+  - Added `awm_queue_repeater_editors_on_load()` function to detect and queue existing repeater editors on page load
+  - Enhanced `awm_initialize_repeater_wp_editor()` to preserve textarea content before/after cleanup and force content sync to TinyMCE
+  - Updated `repeater()` function to queue cloned editors for delayed initialization instead of immediate init
+  - Updated `updateInputAttributes()` to:
+    - Force save TinyMCE content to textarea BEFORE ID changes (critical for newly added editors)
+    - Create content map with OLD IDs before any changes
+    - Update textarea IDs (previously skipped for wp-editor, causing content loss)
+    - Update wp-editor wrapper IDs (`wp-{id}-wrap`, `wp-{id}-editor-container`, `wp-{id}-editor-tools`) to match new textarea ID
+    - Restore content to textareas with NEW IDs using the content map
+    - Queue editors with NEW IDs for reinitialization with preserved content
+    - Fixes issue where content was lost because it was saved to old ID but editor initialized with new ID
+    - Fixes issue where TinyMCE couldn't find wrapper elements after ID change
+  - Added page load event handler to process queued editors with staggered initialization (200ms gaps)
+  - Added content verification after initialization with retry logic if content not visible
+  - Delays: 500ms after page load, 200ms between editors, 300ms for cloned/reordered editors
+  - **Affected files**: 
+    - `assets/js/global/awm-global-script.js` (queue system, initialization enhancements, reorder fix)
+  - **Backwards compatibility**: Fully compatible; existing editors continue to work, new system only affects repeater editors
+  - **Testing**: Works with initial page load, cloning rows, reordering rows (including newly added ones), and multiple repeater fields on same page
+
 ### Added
 - **EWP Log Viewer — Enhanced Per-Page Options and Raw Data Export** (`2026-05-19`):
   - Added per-page options `1000` and `2000` to the log viewer dropdown (previously capped at 500)
