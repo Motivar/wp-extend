@@ -491,10 +491,15 @@ async function awm_init_inputs() {
     }
 }
 
-// Initialize on page load
-window.addEventListener('load', function () {
+// Initialize on DOM ready (faster than 'load' event)
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+        awm_init_inputs();
+    });
+} else {
+    // DOM already loaded (e.g., script loaded after DOMContentLoaded)
     awm_init_inputs();
-});
+}
 
 // Re-initialize when widgets are sorted (for admin)
 jQuery('div.widgets-sortables').bind('sortstop', function (event, ui) {
