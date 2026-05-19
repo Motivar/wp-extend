@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **JavaScript Performance Optimization — Modular Architecture with Lazy Loading** (`2026-05-19`):
   - **Fixed**: Module import paths corrected from `./modules/` to `../modules/` for proper relative resolution
   - **Fixed**: Module functions now properly exposed globally for backwards compatibility
+  - **Fixed**: Consolidated inputs module imports to load once instead of multiple times
   - **Added**: WP Rocket compatibility filter to exclude ES6 modules from minification
   - When modules are imported, their functions are assigned to `window` object to ensure availability in admin scripts and custom code
   - Ensures `ewp_jsVanillaSerialize()`, `awm_selectr_box()`, `repeater()`, and other critical functions are accessible globally

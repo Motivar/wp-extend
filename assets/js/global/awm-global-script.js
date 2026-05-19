@@ -419,9 +419,18 @@ if (document.getElementsByClassName("awm_custom_image_image_uploader_field-show"
 async function awm_init_inputs() {
     const modules = [];
     const modulePromises = [];
+    let inputsModuleNeeded = false;
 
-    // Check for calendar fields
-    if (document.querySelector('.awm_cl_date')) {
+    // Check if any inputs-related features are needed
+    const hasCalendarFields = document.querySelector('.awm_cl_date');
+    const hasMultipleCheckboxes = document.querySelector('.checkbox_multiple.awm-meta-field');
+    const hasSelectBoxes = document.querySelector('.awm-meta-field select,.awm-term-input select,.awm-user-input select');
+    const hasConditionalFields = document.querySelector('[show-when]');
+    const hasCallbacks = document.querySelector('[data-callback]');
+
+    // Load inputs module once if any inputs feature is needed
+    if (hasCalendarFields || hasMultipleCheckboxes || hasSelectBoxes || hasConditionalFields || hasCallbacks) {
+        inputsModuleNeeded = true;
         modulePromises.push(
             import('../modules/awm-inputs-module.js').then(m => {
                 // Expose module functions globally for backwards compatibility
@@ -436,38 +445,27 @@ async function awm_init_inputs() {
                 window.awm_ensure_disabled_inputs = m.awm_ensure_disabled_inputs;
                 window.awm_timestamp = m.awm_timestamp;
 
-                m.awm_create_calendar();
-                m.awmMultipleCheckBox();
-                m.awmSelectrBoxes();
-                m.awmCallbacks();
-                m.awmShowInputs();
+                // Initialize only the features that are actually present
+                if (hasCalendarFields) {
+                    m.awm_create_calendar();
+                }
+                if (hasMultipleCheckboxes) {
+                    m.awmMultipleCheckBox();
+                }
+                if (hasSelectBoxes) {
+                    m.awmSelectrBoxes();
+                }
+                if (hasCallbacks) {
+                    m.awmCallbacks();
+                }
+                if (hasConditionalFields) {
+                    m.awmShowInputs();
+                }
                 m.awm_auto_fill_inputs();
                 m.awm_toggle_password();
                 m.awm_ensure_disabled_inputs();
             }).catch(err => console.error('[AWM] Error loading inputs module:', err))
         );
-    }
-
-    // Check for multiple checkboxes
-    if (document.querySelector('.checkbox_multiple.awm-meta-field')) {
-        if (!modulePromises.some(p => p.toString().includes('awm-inputs-module'))) {
-            modulePromises.push(
-                import('../modules/awm-inputs-module.js').then(m => {
-                    m.awmMultipleCheckBox();
-                }).catch(err => console.error('[AWM] Error loading inputs module:', err))
-            );
-        }
-    }
-
-    // Check for select boxes
-    if (document.querySelector('.awm-meta-field select,.awm-term-input select,.awm-user-input select')) {
-        if (!modulePromises.some(p => p.toString().includes('awm-inputs-module'))) {
-            modulePromises.push(
-                import('../modules/awm-inputs-module.js').then(m => {
-                    m.awmSelectrBoxes();
-                }).catch(err => console.error('[AWM] Error loading inputs module:', err))
-            );
-        }
     }
 
     // Check for repeaters
@@ -505,28 +503,6 @@ async function awm_init_inputs() {
                 m.awmInitForms();
             }).catch(err => console.error('[AWM] Error loading forms module:', err))
         );
-    }
-
-    // Check for conditional fields
-    if (document.querySelector('[show-when]')) {
-        if (!modulePromises.some(p => p.toString().includes('awm-inputs-module'))) {
-            modulePromises.push(
-                import('../modules/awm-inputs-module.js').then(m => {
-                    m.awmShowInputs();
-                }).catch(err => console.error('[AWM] Error loading inputs module:', err))
-            );
-        }
-    }
-
-    // Check for callbacks
-    if (document.querySelector('[data-callback]')) {
-        if (!modulePromises.some(p => p.toString().includes('awm-inputs-module'))) {
-            modulePromises.push(
-                import('../modules/awm-inputs-module.js').then(m => {
-                    m.awmCallbacks();
-                }).catch(err => console.error('[AWM] Error loading inputs module:', err))
-            );
-        }
     }
 
     // Wait for all needed modules to load and initialize
