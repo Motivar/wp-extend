@@ -11,9 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **JavaScript Performance Optimization — Modular Architecture with Lazy Loading** (`2026-05-19`):
   - **Fixed**: Module import paths corrected from `./modules/` to `../modules/` for proper relative resolution
   - **Fixed**: Module functions now properly exposed globally for backwards compatibility
+  - **Added**: WP Rocket compatibility filter to exclude ES6 modules from minification
   - When modules are imported, their functions are assigned to `window` object to ensure availability in admin scripts and custom code
   - Ensures `ewp_jsVanillaSerialize()`, `awm_selectr_box()`, `repeater()`, and other critical functions are accessible globally
   - Maintains full backwards compatibility with existing code that calls these functions directly
+  - Added `exclude_from_rocket_minification()` method in AWM_Meta class to prevent WP Rocket from breaking relative import paths
+  - Automatically excludes `/assets/js/global/awm-global-script.js` and `/assets/js/modules/` from WP Rocket minification
   - Restructured JavaScript codebase from monolithic to modular architecture for better performance
   - Eliminated redundant `awm-public-script.js` (only contained 2 function calls already in global script)
   - Refactored `awm-global-script.js` into smart loader with dynamic module imports based on DOM presence
