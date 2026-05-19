@@ -280,7 +280,7 @@ class EWPDynamicAssetLoader {
                         this.log('Dependency timeout', { dependency: dep });
                         resolve();
                     }
-                }, 100);
+                }, 10000);
             });
         });
 
