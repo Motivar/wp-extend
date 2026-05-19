@@ -791,38 +791,10 @@ class EWPLogViewer {
     }
 }
 
-// Auto-initialize when the script is loaded via Dynamic Asset Loader
-// Listen for the script load event to ensure full initialization
-function initEWPLogViewer() {
-    console.log('[EWP Log Viewer] Attempting initialization');
+// Auto-initialize when DOM is ready and the container exists
+document.addEventListener('DOMContentLoaded', function () {
     const container = document.querySelector('.ewp-log-viewer-wrap');
-    console.log('[EWP Log Viewer] Container found:', !!container);
-    console.log('[EWP Log Viewer] EWPLogViewer class defined:', typeof EWPLogViewer !== 'undefined');
-
-    if (container && typeof EWPLogViewer !== 'undefined') {
-        console.log('[EWP Log Viewer] Initializing viewer instance');
+    if (container) {
         new EWPLogViewer(container);
     }
-}
-
-// Listen for Dynamic Asset Loader script load event (primary method)
-document.addEventListener('ewp_dynamic_asset_loaded', function (e) {
-    console.log('[EWP Log Viewer] Asset loaded event:', e.detail);
-    if (e.detail && e.detail.handle === 'ewp-log-viewer-script') {
-        console.log('[EWP Log Viewer] Script loaded, initializing');
-        initEWPLogViewer();
-    }
 });
-
-// Fallback: Try to initialize on DOMContentLoaded
-document.addEventListener('DOMContentLoaded', function () {
-    console.log('[EWP Log Viewer] DOMContentLoaded fired');
-    // Small delay to ensure script is fully parsed
-    setTimeout(initEWPLogViewer, 100);
-});
-
-// Also try immediate initialization if DOM is already ready
-if (document.readyState !== 'loading') {
-    console.log('[EWP Log Viewer] DOM already loaded, scheduling initialization');
-    setTimeout(initEWPLogViewer, 100);
-}
