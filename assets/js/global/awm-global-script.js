@@ -446,6 +446,16 @@ async function awm_init_inputs() {
                 m.awm_ensure_disabled_inputs();
             }).catch(err => console.error('[AWM] Error loading inputs module:', err))
         );
+
+        modulePromises.push(
+            import('../modules/awm-forms-module.js').then(m => {
+                // Expose module functions globally for backwards compatibility
+                window.awmInitForms = m.awmInitForms;
+                window.awmCheckValidation = m.awmCheckValidation;
+                window.awmShowError = m.awmShowError;
+                m.awmInitForms();
+            }).catch(err => console.error('[AWM] Error loading forms module:', err))
+        );
     }
 
     // Check for repeaters
@@ -472,18 +482,6 @@ async function awm_init_inputs() {
         );
     }
 
-    // Check for forms with validation
-    if (document.querySelector('form .awm-needed')) {
-        modulePromises.push(
-            import('../modules/awm-forms-module.js').then(m => {
-                // Expose module functions globally for backwards compatibility
-                window.awmInitForms = m.awmInitForms;
-                window.awmCheckValidation = m.awmCheckValidation;
-                window.awmShowError = m.awmShowError;
-                m.awmInitForms();
-            }).catch(err => console.error('[AWM] Error loading forms module:', err))
-        );
-    }
 
     // Wait for all needed modules to load and initialize
     if (modulePromises.length > 0) {
