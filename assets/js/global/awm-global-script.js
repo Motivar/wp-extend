@@ -452,7 +452,7 @@ async function awm_init_inputs() {
     if (document.querySelector('.checkbox_multiple.awm-meta-field')) {
         if (!modulePromises.some(p => p.toString().includes('awm-inputs-module'))) {
             modulePromises.push(
-                import('./modules/awm-inputs-module.js').then(m => {
+                import('../modules/awm-inputs-module.js').then(m => {
                     m.awmMultipleCheckBox();
                 }).catch(err => console.error('[AWM] Error loading inputs module:', err))
             );
