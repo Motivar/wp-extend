@@ -347,6 +347,20 @@
     cursor: not-allowed;
 }
 
+/* --- Button Loading Animation --- */
+@keyframes ewp-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.ewp-log-btn-loading {
+    animation: ewp-spin 1s linear infinite;
+}
+
 /* --- Pagination --- */
 .ewp-log-pagination {
     margin-top: 12px;

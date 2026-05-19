@@ -79,6 +79,7 @@ class EWPLogViewer {
         this.resetBtn = this.container.querySelector('#ewp-log-filter-reset');
         this.perPageSelect = this.container.querySelector('#ewp-log-per-page');
         this.exportBtn = this.container.querySelector('#ewp-log-export-csv');
+        this.downloadBtn = this.container.querySelector('#ewp-log-download-raw');
         this.deleteBtn = this.container.querySelector('#ewp-log-delete-filtered');
         this.ownerSelect = this.pageWrap.querySelector('[name="owner[]"]');
         this.actionTypeSelect = this.pageWrap.querySelector('[name="action_type[]"]');
@@ -116,6 +117,13 @@ class EWPLogViewer {
         if (this.exportBtn) {
             this.exportBtn.addEventListener('click', () => {
                 this.exportCsv();
+            });
+        }
+
+        // Download raw data (JSON with unlimited pagination)
+        if (this.downloadBtn) {
+            this.downloadBtn.addEventListener('click', () => {
+                this.downloadRawData();
             });
         }
 
@@ -728,6 +736,166 @@ class EWPLogViewer {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+    }
+
+    /**
+     * Download all filtered entries as raw JSON data with unlimited pagination.
+     *
+     * Fetches all matching entries across all pages and saves as a single JSON file.
+     * Uses recursive pagination to gather all data without limit.
+     *
+     * @returns {void}
+     */
+    downloadRawData() {
+        const filters = this.getFilters();
+
+        this.downloadBtn.disabled = true;
+        this.downloadBtn.classList.add('ewp-log-btn-loading');
+        this.downloadBtn.textContent = '⟳ Downloading...';
+
+        this.fetchAllRawData(filters, 1, [], (allEntries) => {
+            if (!allEntries.length) {
+                alert('No entries to download.');
+                this.downloadBtn.disabled = false;
+                this.downloadBtn.classList.remove('ewp-log-btn-loading');
+                this.downloadBtn.textContent = 'Download Raw Data';
+                return;
+            }
+
+            this.saveRawDataFile(allEntries, filters);
+            this.downloadBtn.disabled = false;
+            this.downloadBtn.classList.remove('ewp-log-btn-loading');
+            this.downloadBtn.textContent = 'Download Raw Data';
+        });
+    }
+
+    /**
+     * Recursively fetch all filtered entries across all pages.
+     *
+     * Fetches entries page by page with per_page=10000 until all data is retrieved.
+     *
+     * @param {Object}   filters      - Filter parameters.
+     * @param {number}   page         - Current page number.
+     * @param {Array}    accumulated  - Accumulated entries from previous pages.
+     * @param {Function} callback     - Callback with final accumulated entries.
+     * @returns {void}
+     */
+    fetchAllRawData(filters, page, accumulated, callback) {
+        awm_ajax_call({
+            method: 'get',
+            url: this.restUrl + '/logs',
+            data: Object.assign({}, filters, {
+                page: page,
+                per_page: 10000,
+            }),
+            callback: (json) => {
+                const entries = json.data || [];
+                const newAccumulated = accumulated.concat(entries);
+
+                // Check if there are more pages
+                const total = json.total || 0;
+                const perPage = json.per_page || 10000;
+                const totalPages = Math.ceil(total / perPage);
+
+                if (page < totalPages) {
+                    // Fetch next page recursively
+                    this.fetchAllRawData(filters, page + 1, newAccumulated, callback);
+                } else {
+                    // All pages fetched, call callback with accumulated data
+                    callback(newAccumulated);
+                }
+            },
+            errorCallback: () => {
+                alert('Failed to download raw data.');
+                this.downloadBtn.disabled = false;
+                this.downloadBtn.classList.remove('ewp-log-btn-loading');
+                this.downloadBtn.textContent = 'Download Raw Data';
+            },
+        });
+    }
+
+    /**
+     * Save raw log data as a JSON file and trigger download.
+     *
+     * Generates filename based on active filters for better organization.
+     * Format: ewp-logs-raw-[filter-tags]-YYYY-MM-DD.json
+     *
+     * @param {Array}  entries - Array of log entry objects.
+     * @param {Object} filters - Active filter parameters.
+     * @returns {void}
+     */
+    saveRawDataFile(entries, filters) {
+        const data = {
+            exported_at: new Date().toISOString(),
+            total_entries: entries.length,
+            filters: filters,
+            entries: entries,
+        };
+
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        // Generate filename based on active filters
+        const filename = this.generateRawDataFilename(filters);
+
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+
+    /**
+     * Generate a descriptive filename based on active filters.
+     *
+     * Includes date range, metabox, and filter tags for owner, action_type, object_type, behaviour, level.
+     * Format: ewp-logs-[date_from]-[date_to]-[metabox]-[filter-tags].json
+     *
+     * @param {Object} filters - Active filter parameters.
+     * @returns {string} Generated filename.
+     */
+    generateRawDataFilename(filters) {
+        const parts = ['ewp-logs'];
+
+        // Add date range if available
+        if (filters.date_from) {
+            parts.push(filters.date_from);
+        }
+        if (filters.date_to) {
+            parts.push(filters.date_to);
+        }
+
+        // Add metabox if available
+        if (filters.awm_metabox) {
+            parts.push(filters.awm_metabox);
+        }
+
+        // Map filter keys to short tags
+        const filterTags = {
+            owner: 'owner',
+            action_type: 'action',
+            object_type: 'obj',
+            behaviour: 'behaviour',
+            level: 'level',
+        };
+
+        // Build filter tags from active filters
+        for (const [key, tag] of Object.entries(filterTags)) {
+            if (filters[key]) {
+                const value = filters[key];
+                // Convert comma-separated values to abbreviated form
+                const values = typeof value === 'string' ? value.split(',').map((v) => v.trim().substring(0, 3)) : [];
+                if (values.length) {
+                    parts.push(`${tag}-${values.join('_')}`);
+                }
+            }
+        }
+
+        return parts.join('-') + '.json';
     }
 
     /**

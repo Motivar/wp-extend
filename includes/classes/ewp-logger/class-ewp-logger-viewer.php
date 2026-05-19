@@ -299,11 +299,18 @@ class EWP_Logger_Viewer
                         <option value="100">100</option>
                         <option value="200">200</option>
                         <option value="500">500</option>
+                        <option value="1000">1000</option>
+                        <option value="2000">2000</option>
                     </select>
 
                     <button type="button" id="ewp-log-export-csv" class="button"
                         title="<?php esc_attr_e('Export filtered entries as CSV', 'extend-wp'); ?>">
                         <?php esc_html_e('Export CSV', 'extend-wp'); ?>
+                    </button>
+
+                    <button type="button" id="ewp-log-download-raw" class="button"
+                        title="<?php esc_attr_e('Download all filtered entries as JSON (unlimited pagination)', 'extend-wp'); ?>">
+                        <?php esc_html_e('Download Raw Data', 'extend-wp'); ?>
                     </button>
 
                     <button type="button" id="ewp-log-delete-filtered" class="button ewp-log-btn-danger"

@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **EWP Log Viewer — Enhanced Per-Page Options and Raw Data Export** (`2026-05-19`):
+  - Added per-page options `1000` and `2000` to the log viewer dropdown (previously capped at 500)
+  - Implemented "Download Raw Data" button to export all filtered log entries as JSON with unlimited pagination
+  - Created `downloadRawData()` method that recursively fetches all matching entries across all pages
+  - Created `fetchAllRawData()` method for recursive pagination with 10000 entries per request
+  - Created `saveRawDataFile()` method to generate JSON file with export metadata (timestamp, total count, filters)
+  - Created `generateRawDataFilename()` method to generate descriptive filenames based on active filters
+  - JSON export includes: `exported_at`, `total_entries`, `filters` (active filter parameters), and complete `entries` array with all fields
+  - Dynamic filename format: `ewp-logs-[date_from]-[date_to]-[metabox]-[filter-tags].json` (e.g., `ewp-logs-11-05-2026-15-05-2026-ewp-log-viewer-owner-sys-action-con.json`)
+  - Filename includes: date range (if filtered), metabox name, and abbreviated filter tags for readability
+  - Filter tags abbreviated: owner, action, obj (object_type), behaviour, level
+  - Respects all active filters (date range, owner, action type, object type, behaviour, level)
+  - Button shows "⟳ Downloading..." state with smooth spinning animation during multi-page fetch operations
+  - Added `ewp-spin` CSS keyframe animation (360° rotation, 1s linear infinite) for minimal visual feedback
+  - **Affected files**: 
+    - `includes/classes/ewp-logger/class-ewp-logger-viewer.php` (HTML template)
+    - `assets/js/admin/class-ewp-log-viewer.js` (JavaScript implementation)
+    - `assets/css/admin/ewp-log-viewer.css` (Loading animation styles)
+  - **Backwards compatibility**: Fully compatible; new features are additive
+  - **Performance**: Efficient recursive pagination with 10000 entries per request for large datasets
+
 ### Fixed
 - **EWP Log Viewer Cache Busting Issue** (`2026-05-19`):
   - Fixed hardcoded version string (`1.0.0`) in log viewer asset registration causing browser cache issues
