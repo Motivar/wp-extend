@@ -12,6 +12,66 @@
 window.awmDeferredCallbacks = window.awmDeferredCallbacks || [];
 
 /**
+ * Pre-expose critical functions as stubs for external plugin compatibility
+ * Prevents "Can't find variable" errors when external plugins call AWM functions
+ * before dynamic modules load. Queues calls until real implementations are ready.
+ * 
+ * @since 1.0.0
+ */
+(function () {
+    const pendingCalls = {
+        awm_selectr_box: [],
+        awm_create_calendar: [],
+        awmMultipleCheckBox: [],
+        awmSelectrBoxes: [],
+        awmCallbacks: [],
+        awmShowInputs: [],
+        awm_auto_fill_inputs: [],
+        awm_toggle_password: [],
+        awm_ensure_disabled_inputs: [],
+        awm_timestamp: [],
+        repeater: [],
+        ewp_repeater_clone_row: [],
+        awm_repeater_order: [],
+        awm_initialize_repeater_wp_editor: [],
+        awm_get_tinymce_args: [],
+        awmInitForms: [],
+        awmCheckValidation: [],
+        awmShowError: []
+    };
+
+    Object.keys(pendingCalls).forEach(function (fnName) {
+        window[fnName] = function () {
+            const args = Array.from(arguments);
+            const realFn = window[fnName + '_real'];
+
+            if (typeof realFn === 'function') {
+                return realFn.apply(this, args);
+            }
+
+            console.warn('[AWM] Function ' + fnName + ' called before module loaded, queueing call...');
+            pendingCalls[fnName].push({ context: this, args: args });
+            return null;
+        };
+    });
+
+    window.awm_process_pending_calls = function (fnName, realFn) {
+        window[fnName + '_real'] = realFn;
+        window[fnName] = realFn;
+
+        if (pendingCalls[fnName] && pendingCalls[fnName].length > 0) {
+            console.log('[AWM] Processing ' + pendingCalls[fnName].length + ' queued call(s) for ' + fnName);
+            pendingCalls[fnName].forEach(function (call) {
+                realFn.apply(call.context, call.args);
+            });
+            pendingCalls[fnName] = [];
+        }
+    };
+
+    window.awm_is_ready = false;
+})();
+
+/**
  * Serialize all form data into a query string or object
  * (c) 2018 Chris Ferdinandi, MIT License, https://gomakethings.com
  * @param  {Node}    form           The form to serialize
@@ -433,17 +493,17 @@ async function awm_init_inputs() {
         inputsModuleNeeded = true;
         modulePromises.push(
             import('../modules/awm-inputs-module.js').then(m => {
-                // Expose module functions globally for backwards compatibility
-                window.awm_create_calendar = m.awm_create_calendar;
-                window.awmMultipleCheckBox = m.awmMultipleCheckBox;
-                window.awmSelectrBoxes = m.awmSelectrBoxes;
-                window.awm_selectr_box = m.awm_selectr_box;
-                window.awmCallbacks = m.awmCallbacks;
-                window.awmShowInputs = m.awmShowInputs;
-                window.awm_auto_fill_inputs = m.awm_auto_fill_inputs;
-                window.awm_toggle_password = m.awm_toggle_password;
-                window.awm_ensure_disabled_inputs = m.awm_ensure_disabled_inputs;
-                window.awm_timestamp = m.awm_timestamp;
+                // Replace stubs with real implementations
+                awm_process_pending_calls('awm_create_calendar', m.awm_create_calendar);
+                awm_process_pending_calls('awmMultipleCheckBox', m.awmMultipleCheckBox);
+                awm_process_pending_calls('awmSelectrBoxes', m.awmSelectrBoxes);
+                awm_process_pending_calls('awm_selectr_box', m.awm_selectr_box);
+                awm_process_pending_calls('awmCallbacks', m.awmCallbacks);
+                awm_process_pending_calls('awmShowInputs', m.awmShowInputs);
+                awm_process_pending_calls('awm_auto_fill_inputs', m.awm_auto_fill_inputs);
+                awm_process_pending_calls('awm_toggle_password', m.awm_toggle_password);
+                awm_process_pending_calls('awm_ensure_disabled_inputs', m.awm_ensure_disabled_inputs);
+                awm_process_pending_calls('awm_timestamp', m.awm_timestamp);
 
                 // Initialize only the features that are actually present
                 if (hasCalendarFields) {
@@ -472,10 +532,10 @@ async function awm_init_inputs() {
     if (document.querySelector('.awm-repeater')) {
         modulePromises.push(
             import('../modules/awm-repeater-module.js').then(m => {
-                // Expose module functions globally for backwards compatibility
-                window.repeater = m.repeater;
-                window.ewp_repeater_clone_row = m.ewp_repeater_clone_row;
-                window.awm_repeater_order = m.awm_repeater_order;
+                // Replace stubs with real implementations
+                awm_process_pending_calls('repeater', m.repeater);
+                awm_process_pending_calls('ewp_repeater_clone_row', m.ewp_repeater_clone_row);
+                awm_process_pending_calls('awm_repeater_order', m.awm_repeater_order);
             }).catch(err => console.error('[AWM] Error loading repeater module:', err))
         );
     }
@@ -484,9 +544,9 @@ async function awm_init_inputs() {
     if (document.querySelector('textarea.wp-editor-area')) {
         modulePromises.push(
             import('../modules/awm-tinymce-module.js').then(m => {
-                // Expose module functions globally for backwards compatibility
-                window.awm_initialize_repeater_wp_editor = m.awm_initialize_repeater_wp_editor;
-                window.awm_get_tinymce_args = m.awm_get_tinymce_args;
+                // Replace stubs with real implementations
+                awm_process_pending_calls('awm_initialize_repeater_wp_editor', m.awm_initialize_repeater_wp_editor);
+                awm_process_pending_calls('awm_get_tinymce_args', m.awm_get_tinymce_args);
                 m.initTinyMCEEditors();
             }).catch(err => console.error('[AWM] Error loading TinyMCE module:', err))
         );
@@ -496,10 +556,10 @@ async function awm_init_inputs() {
     if (document.querySelector('form .awm-needed')) {
         modulePromises.push(
             import('../modules/awm-forms-module.js').then(m => {
-                // Expose module functions globally for backwards compatibility
-                window.awmInitForms = m.awmInitForms;
-                window.awmCheckValidation = m.awmCheckValidation;
-                window.awmShowError = m.awmShowError;
+                // Replace stubs with real implementations
+                awm_process_pending_calls('awmInitForms', m.awmInitForms);
+                awm_process_pending_calls('awmCheckValidation', m.awmCheckValidation);
+                awm_process_pending_calls('awmShowError', m.awmShowError);
                 m.awmInitForms();
             }).catch(err => console.error('[AWM] Error loading forms module:', err))
         );
@@ -508,6 +568,9 @@ async function awm_init_inputs() {
     // Wait for all needed modules to load and initialize
     if (modulePromises.length > 0) {
         await Promise.all(modulePromises);
+        window.awm_is_ready = true;
+        document.dispatchEvent(new CustomEvent('awm_ready'));
+        console.log('[AWM] All modules loaded and ready');
     }
 }
 
