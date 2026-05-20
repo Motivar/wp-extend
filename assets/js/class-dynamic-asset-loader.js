@@ -239,6 +239,12 @@ class EWPDynamicAssetLoader {
      */
     loadStyle(asset) {
         this.loadDependencies(asset.dependencies || []).then(() => {
+            // Check if inline CSS should be injected instead
+            if (asset.inline_css && asset.inline_css.trim() !== '') {
+                this.injectInlineStyle(asset);
+                return;
+            }
+
             const link = document.createElement('link');
             link.id = asset.handle;
             link.rel = 'stylesheet';
@@ -270,6 +276,41 @@ class EWPDynamicAssetLoader {
         }).catch(error => {
             this.log('Failed to load style dependencies', { handle: asset.handle, error });
         });
+    }
+
+    /**
+     * Inject inline CSS into the page
+     * 
+     * @param {Object} asset Style configuration with inline_css
+     * @return {void}
+     */
+    injectInlineStyle(asset) {
+        const existingStyle = document.getElementById(asset.handle);
+        if (existingStyle) {
+            this.log(`Inline style already exists: ${asset.handle}`);
+            return;
+        }
+
+        const style = document.createElement('style');
+        style.id = asset.handle;
+        style.textContent = asset.inline_css;
+
+        if (asset.media && asset.media !== 'all') {
+            style.media = asset.media;
+        }
+
+        if (asset.critical) {
+            style.setAttribute('data-critical', 'true');
+        }
+
+        style.setAttribute('data-inline', 'true');
+
+        this.markPerformance(asset.handle, 'start');
+        document.head.appendChild(style);
+
+        this.log(`Inline style injected: ${asset.handle}`);
+        this.markPerformance(asset.handle, 'loaded');
+        this.dispatchAssetLoadedEvent(asset, true);
     }
 
     /**

@@ -52,7 +52,7 @@ class Dynamic_Asset_Loader
      * 
      * @var string
      */
-    private const VERSION = '1.0.5';
+    private const VERSION = '1.0.6';
 
     /**
      * Get singleton instance
@@ -257,6 +257,10 @@ class Dynamic_Asset_Loader
          * - lazy (bool, optional): Use Intersection Observer for lazy loading
          * - critical (bool, optional): Mark as critical (loads immediately)
          * - critical_css (string, optional): Inline critical CSS content (styles only)
+         * - critical_src (string, optional): URL to external critical CSS file to inline (styles only)
+         * - critical_conditions (array, optional): Conditions for when to inline critical CSS (styles only)
+         * - minify_critical (bool, optional): Minify critical CSS (styles only, default: true)
+         * - inline_css (string, optional): Inline CSS to inject dynamically (styles only)
          * - resource_hints (array, optional): Array of resource hints (preconnect, dns-prefetch)
          */
         $assets = apply_filters('ewp_register_dynamic_assets', array());
@@ -370,6 +374,24 @@ class Dynamic_Asset_Loader
             if (isset($asset['critical_css']) && !empty($asset['critical_css'])) {
                 $sanitized['critical_css'] = wp_strip_all_tags($asset['critical_css']);
             }
+
+            // Support critical CSS from external file
+            if (isset($asset['critical_src']) && !empty($asset['critical_src'])) {
+                $sanitized['critical_src'] = esc_url($asset['critical_src']);
+            }
+
+            // Support inline CSS injection
+            if (isset($asset['inline_css']) && !empty($asset['inline_css'])) {
+                $sanitized['inline_css'] = wp_strip_all_tags($asset['inline_css']);
+            }
+
+            // Critical CSS conditions (when to inline)
+            if (isset($asset['critical_conditions']) && is_array($asset['critical_conditions'])) {
+                $sanitized['critical_conditions'] = $this->sanitize_critical_conditions($asset['critical_conditions']);
+            }
+
+            // Minify critical CSS option
+            $sanitized['minify_critical'] = isset($asset['minify_critical']) ? (bool) $asset['minify_critical'] : true;
         }
 
         $sanitized['preload'] = isset($asset['preload']) ? (bool) $asset['preload'] : false;
@@ -409,6 +431,51 @@ class Dynamic_Asset_Loader
             'objectName' => sanitize_text_field($localize['objectName']),
             'data' => $this->sanitize_localize_data_recursive($localize['data'])
         );
+    }
+
+    /**
+     * Sanitize critical CSS conditions
+     * 
+     * @param array $conditions Raw conditions array
+     * @return array Sanitized conditions
+     */
+    private function sanitize_critical_conditions($conditions)
+    {
+        $sanitized = array();
+
+        if (isset($conditions['post_types']) && is_array($conditions['post_types'])) {
+            $sanitized['post_types'] = array_map('sanitize_key', $conditions['post_types']);
+        }
+
+        if (isset($conditions['page_templates']) && is_array($conditions['page_templates'])) {
+            $sanitized['page_templates'] = array_map('sanitize_text_field', $conditions['page_templates']);
+        }
+
+        if (isset($conditions['is_front_page'])) {
+            $sanitized['is_front_page'] = (bool) $conditions['is_front_page'];
+        }
+
+        if (isset($conditions['is_home'])) {
+            $sanitized['is_home'] = (bool) $conditions['is_home'];
+        }
+
+        if (isset($conditions['is_archive'])) {
+            $sanitized['is_archive'] = (bool) $conditions['is_archive'];
+        }
+
+        if (isset($conditions['is_singular'])) {
+            $sanitized['is_singular'] = (bool) $conditions['is_singular'];
+        }
+
+        if (isset($conditions['post_ids']) && is_array($conditions['post_ids'])) {
+            $sanitized['post_ids'] = array_map('absint', $conditions['post_ids']);
+        }
+
+        if (isset($conditions['callback']) && is_callable($conditions['callback'])) {
+            $sanitized['callback'] = $conditions['callback'];
+        }
+
+        return $sanitized;
     }
 
     /**
@@ -584,12 +651,50 @@ class Dynamic_Asset_Loader
         $critical_css = array();
 
         foreach ($assets as $asset) {
-            if ($asset['type'] === 'style' && isset($asset['critical_css']) && !empty($asset['critical_css'])) {
-                $critical_css[$asset['handle']] = $asset['critical_css'];
+            if ($asset['type'] !== 'style') {
+                continue;
             }
+
+            // Check critical conditions if specified
+            if (isset($asset['critical_conditions']) && !$this->should_load_critical_css($asset['critical_conditions'])) {
+                continue;
+            }
+
+            $css = '';
+
+            // Load critical CSS from external file if specified
+            if (isset($asset['critical_src']) && !empty($asset['critical_src'])) {
+                $css = $this->load_critical_css_file($asset['critical_src']);
+                if ($css === false) {
+                    continue;
+                }
+            }
+
+            // Use inline critical CSS if provided (takes precedence)
+            if (isset($asset['critical_css']) && !empty($asset['critical_css'])) {
+                $css = $asset['critical_css'];
+            }
+
+            // Skip if no critical CSS available
+            if (empty($css)) {
+                continue;
+            }
+
+            // Minify if enabled
+            if (isset($asset['minify_critical']) && $asset['minify_critical']) {
+                $css = $this->minify_css($css);
+            }
+
+            $critical_css[$asset['handle']] = $css;
         }
 
-        $critical_css = apply_filters('ewp_dynamic_assets_critical_css', $critical_css);
+        /**
+         * Filter critical CSS before output
+         * 
+         * @param array $critical_css Array of critical CSS keyed by handle
+         * @param array $assets All registered assets
+         */
+        $critical_css = apply_filters('ewp_dynamic_assets_critical_css', $critical_css, $assets);
 
         if (empty($critical_css)) {
             return;
@@ -601,6 +706,142 @@ class Dynamic_Asset_Loader
             echo $css . "\n";
         }
         echo '</style>' . "\n";
+
+        /**
+         * Action after critical CSS is output
+         * 
+         * @param array $critical_css Array of critical CSS keyed by handle
+         */
+        do_action('ewp_dynamic_assets_critical_css_output', $critical_css);
+    }
+
+    /**
+     * Check if critical CSS should be loaded based on conditions
+     * 
+     * @param array $conditions Conditions array
+     * @return bool True if should load
+     */
+    private function should_load_critical_css($conditions)
+    {
+        if (empty($conditions)) {
+            return true;
+        }
+
+        // Check post types
+        if (isset($conditions['post_types']) && !empty($conditions['post_types'])) {
+            $current_post_type = get_post_type();
+            if ($current_post_type && !in_array($current_post_type, $conditions['post_types'], true)) {
+                return false;
+            }
+        }
+
+        // Check page templates
+        if (isset($conditions['page_templates']) && !empty($conditions['page_templates'])) {
+            $current_template = get_page_template_slug();
+            if ($current_template && !in_array($current_template, $conditions['page_templates'], true)) {
+                return false;
+            }
+        }
+
+        // Check WordPress conditional tags
+        if (isset($conditions['is_front_page']) && $conditions['is_front_page'] !== is_front_page()) {
+            return false;
+        }
+
+        if (isset($conditions['is_home']) && $conditions['is_home'] !== is_home()) {
+            return false;
+        }
+
+        if (isset($conditions['is_archive']) && $conditions['is_archive'] !== is_archive()) {
+            return false;
+        }
+
+        if (isset($conditions['is_singular']) && $conditions['is_singular'] !== is_singular()) {
+            return false;
+        }
+
+        // Check specific post IDs
+        if (isset($conditions['post_ids']) && !empty($conditions['post_ids'])) {
+            $current_post_id = get_the_ID();
+            if ($current_post_id && !in_array($current_post_id, $conditions['post_ids'], true)) {
+                return false;
+            }
+        }
+
+        // Check custom callback
+        if (isset($conditions['callback']) && is_callable($conditions['callback'])) {
+            if (!call_user_func($conditions['callback'])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Load critical CSS from external file
+     * 
+     * @param string $url URL to the critical CSS file
+     * @return string|false CSS content or false on failure
+     */
+    private function load_critical_css_file($url)
+    {
+        // Convert URL to local path if it's a local file
+        $parsed_url = wp_parse_url($url);
+        $home_url = wp_parse_url(home_url());
+
+        if (isset($parsed_url['host']) && isset($home_url['host']) && $parsed_url['host'] === $home_url['host']) {
+            // Local file - convert to file path
+            $file_path = str_replace(
+                array(content_url(), plugins_url(), get_template_directory_uri(), get_stylesheet_directory_uri()),
+                array(WP_CONTENT_DIR, WP_PLUGIN_DIR, get_template_directory(), get_stylesheet_directory()),
+                $url
+            );
+
+            // Try to read local file
+            if (file_exists($file_path) && is_readable($file_path)) {
+                $css = file_get_contents($file_path);
+                if ($css !== false) {
+                    return $css;
+                }
+            }
+        }
+
+        // Fallback to remote request for external files or if local read failed
+        $response = wp_remote_get($url, array(
+            'timeout' => 5,
+            'sslverify' => true
+        ));
+
+        if (is_wp_error($response)) {
+            return false;
+        }
+
+        $css = wp_remote_retrieve_body($response);
+        return !empty($css) ? $css : false;
+    }
+
+    /**
+     * Minify CSS by removing comments, whitespace, and line breaks
+     * 
+     * @param string $css CSS to minify
+     * @return string Minified CSS
+     */
+    private function minify_css($css)
+    {
+        // Remove comments
+        $css = preg_replace('!/\*[^*]*\*+([^/][^*]*\*+)*/!', '', $css);
+
+        // Remove whitespace
+        $css = str_replace(array("\r\n", "\r", "\n", "\t"), '', $css);
+
+        // Remove multiple spaces
+        $css = preg_replace('/\s+/', ' ', $css);
+
+        // Remove spaces around certain characters
+        $css = str_replace(array(' {', '{ ', ' }', '} ', ' :', ': ', ' ;', '; ', ' ,', ', '), array('{', '{', '}', '}', ':', ':', ';', ';', ',', ','), $css);
+
+        return trim($css);
     }
 }
 

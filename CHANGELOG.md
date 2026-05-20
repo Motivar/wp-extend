@@ -8,6 +8,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Dynamic Asset Loader: Enhanced Critical CSS Support** (`2026-05-20`):
+  - **Question/Prompt**: "Enhance EWP Dynamic Asset Loader to support inline critical CSS"
+  - **Summary**: Comprehensive critical CSS system with conditional loading, automatic minification, and inline style injection
+  - **PHP Enhancements** (`class-dynamic-asset-loader.php` v1.0.6):
+    - Added `critical_src` parameter to load critical CSS from external file and inline it automatically
+    - Added `load_critical_css_file()` method to read local files or fetch remote URLs
+    - Supports both local files (faster, uses `file_get_contents()`) and remote URLs (uses `wp_remote_get()`)
+    - If both `critical_css` and `critical_src` are provided, `critical_css` takes precedence
+    - Added `inline_css` parameter for dynamic inline style injection via JavaScript
+    - Added `critical_conditions` parameter with support for:
+      - Post types (`post_types` array)
+      - Page templates (`page_templates` array)
+      - WordPress conditionals (`is_front_page`, `is_home`, `is_archive`, `is_singular`)
+      - Specific post IDs (`post_ids` array)
+      - Custom callbacks (`callback` callable)
+    - Added `minify_critical` parameter (default: true) for automatic CSS minification
+    - Added `should_load_critical_css()` method to evaluate conditional loading rules
+    - Added `minify_css()` method for automatic CSS minification (removes comments, whitespace, line breaks)
+    - Added `sanitize_critical_conditions()` method for secure condition validation
+    - Enhanced `add_critical_css()` method with conditional loading and minification support
+    - Added `ewp_dynamic_assets_critical_css_output` action hook after CSS output
+    - Enhanced `ewp_dynamic_assets_critical_css` filter with $assets parameter
+  - **JavaScript Enhancements** (`class-dynamic-asset-loader.js`):
+    - Added `injectInlineStyle()` method for dynamic inline CSS injection
+    - Enhanced `loadStyle()` to check for `inline_css` parameter and inject styles instead of loading external files
+    - Inline styles marked with `data-inline="true"` attribute for identification
+    - Supports media queries and critical flags for inline styles
+  - **Documentation**: Created comprehensive `CRITICAL-CSS-GUIDE.md` with 10 detailed examples covering:
+    - Basic critical CSS usage
+    - Conditional loading by post type, template, WordPress conditionals, post IDs, and custom callbacks
+    - Combined conditions
+    - Dynamic inline CSS injection
+    - Performance optimization with preload and resource hints
+    - Filters, hooks, and debugging
+    - Complete e-commerce example
+  - **Use Cases**:
+    - Load critical CSS from external file (`critical_src`) for easier maintenance
+    - Load critical hero section CSS only on homepage
+    - Inject product page styles only on WooCommerce products
+    - Conditional landing page styles based on templates
+    - Inline tooltip CSS when tooltips are detected
+    - Custom conditions (e.g., logged-in users, specific days)
+  - **Performance Impact**: Improves PageSpeed scores by inlining above-the-fold CSS, reducing render-blocking resources, and conditionally loading styles only where needed
+  - **Affected files**: `includes/classes/class-dynamic-asset-loader.php`, `assets/js/class-dynamic-asset-loader.js`, `includes/classes/CRITICAL-CSS-GUIDE.md`
+  - **Backwards Compatibility**: Fully compatible; all new parameters are optional; existing critical_css usage unchanged
 - **Dynamic Asset Loader: Export Localized Settings as Globals, Multiple Selectors & Handle+Type Tracking** (`2026-05-20`):
   - Added `exportLocalizeSettingsAsGlobals(asset)` method to `EWPDynamicAssetLoader` class that exports localized data as window globals only for scripts being loaded
   - Localized data is exported in `loadAsset()` before the asset loads, ensuring globals are available when the script executes
