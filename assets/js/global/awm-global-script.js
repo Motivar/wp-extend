@@ -486,6 +486,10 @@ async function awm_init_inputs() {
     // Wait for all needed modules to load and initialize
     if (modulePromises.length > 0) {
         await Promise.all(modulePromises);
+        // Execute any callbacks queued by external plugins
+        if (typeof window.awmExecuteReadyCallbacks === 'function') {
+            window.awmExecuteReadyCallbacks();
+        }
     }
 }
 
@@ -505,3 +509,73 @@ window.awm_ajax_call = awm_ajax_call;
 window.awm_open_tab = awm_open_tab;
 window.awm_js_ajax_call = awm_js_ajax_call;
 window.jsVanillaSerialize = jsVanillaSerialize;
+window.awm_init_inputs = awm_init_inputs;
+
+/**
+ * Wait for a module function to be available on the window object
+ * Useful for external plugins that need to use AWM functions
+ * 
+ * @param {string} functionName - Name of the function to wait for
+ * @param {number} timeout - Maximum time to wait in milliseconds (default: 5000)
+ * @returns {Promise} Resolves when function is available, rejects on timeout
+ */
+window.awmWaitForFunction = function (functionName, timeout = 5000) {
+    return new Promise((resolve, reject) => {
+        const startTime = Date.now();
+        const checkInterval = 50;
+
+        const check = () => {
+            if (typeof window[functionName] === 'function') {
+                resolve(window[functionName]);
+                return;
+            }
+
+            if (Date.now() - startTime > timeout) {
+                reject(new Error(`Function "${functionName}" not available after ${timeout}ms`));
+                return;
+            }
+
+            setTimeout(check, checkInterval);
+        };
+
+        check();
+    });
+};
+
+/**
+ * Queue for external plugin code that needs to run after AWM modules load
+ * External plugins can use: window.awmOnReady(callback)
+ */
+window.awmReadyCallbacks = [];
+window.awmOnReady = function (callback) {
+    if (typeof callback !== 'function') {
+        console.error('[AWM] awmOnReady: callback must be a function');
+        return;
+    }
+
+    // Check if critical functions are already loaded
+    if (typeof window.awm_selectr_box === 'function' &&
+        typeof window.repeater === 'function' &&
+        typeof window.awm_create_calendar === 'function') {
+        // Functions already loaded, execute immediately
+        callback();
+    } else {
+        // Queue for later execution
+        window.awmReadyCallbacks.push(callback);
+    }
+};
+
+/**
+ * Execute all queued callbacks when modules are ready
+ * Called internally after all modules load
+ */
+window.awmExecuteReadyCallbacks = function () {
+    while (window.awmReadyCallbacks.length > 0) {
+        const callback = window.awmReadyCallbacks.shift();
+        try {
+            callback();
+        } catch (error) {
+            console.error('[AWM] Error in awmOnReady callback:', error);
+        }
+    }
+};

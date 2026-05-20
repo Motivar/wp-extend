@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Maps module is lazy-loaded only when `.awm_map` elements are present on the page
   - Reduces initial JavaScript payload by deferring maps code until needed
   - Exported functions: `awm_add_map()`, `awm_call_maps_api()`, `awmInitMap()`, `removeMarkers()`, `placeMarker()`, `noenter()`
+- **External Plugin API for AWM Functions** (`2026-05-20`):
+  - Added `window.awmWaitForFunction(functionName, timeout)` — Promise-based wait for any AWM function to be available
+  - Added `window.awmOnReady(callback)` — Queue callback to execute after all AWM modules load
+  - Added `window.awmExecuteReadyCallbacks()` — Internal function to execute queued callbacks
+  - Enables external plugins to safely use AWM functions without timing issues
+  - Example usage: `window.awmOnReady(() => { window.awm_selectr_box(element); })`
 
 ### Changed
 - **Bundled JavaScript & Removed WP Rocket Exclusions** (`2026-05-20`):
@@ -36,6 +42,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `exclude_from_rocket_minification()` method from `AWM_Meta` class (WP Rocket can now safely minify bundled artifacts)
 
 ### Fixed
+- **Admin Script Promise Rejection Error** (`2026-05-20`):
+  - **Issue**: "ReferenceError: Can't find variable: awm_init_inputs" when admin script tried to call `awm_init_inputs()`
+  - **Root Cause**: `awm_init_inputs()` was defined in global script but not exposed to `window` object, making it inaccessible to bundled admin script
+  - **Solution**: Added `window.awm_init_inputs = awm_init_inputs;` to global script exports
+  - **Impact**: Admin script now properly awaits and calls the global initialization function without errors
+  - **Affected files**: `assets/js/global/awm-global-script.js`
 - **Dynamic Asset Loader — Dependency Loading Performance** (`2026-05-19`):
   - **Issue**: Scripts with dependencies (e.g., `'dependencies' => array('awm-global-script')`) were waiting up to 5 seconds before loading, causing significant delays for small libraries
   - **Root Cause**: `isDependencyLoaded()` method couldn't detect WordPress-enqueued scripts properly, causing full timeout on every dependency check

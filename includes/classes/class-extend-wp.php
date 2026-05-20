@@ -158,10 +158,8 @@ class AWM_Meta
     {
         wp_enqueue_script('jquery-ui-datepicker');
         wp_enqueue_style('jquery-ui-awm');
-        wp_enqueue_style('awm-slim-lib-style');
         wp_enqueue_style('awm-admin-style');
         wp_enqueue_style('awm-global-style');
-        wp_enqueue_script('awm-slim-lib-script');
         wp_enqueue_script('awm-global-script');
         wp_enqueue_script('awm-admin-script');
         wp_enqueue_script('awm-dynamic-block-events');
