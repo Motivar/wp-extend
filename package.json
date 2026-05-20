@@ -13,6 +13,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "dependencies": {
+    "slim-select": "^2.4.0"
+  },
   "devDependencies": {
     "@wordpress/scripts": "^30.7.0"
   }

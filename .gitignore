@@ -5,13 +5,11 @@ sftp-config.json
 .idea
 vendor/
 **node_modules
-package.json
 package-lock.json
 */node_modules/*
 /node_modules
 .DS_Store
 .phpdoc
-build
 reference
 *.DS_Store
 *.*.DS_Store

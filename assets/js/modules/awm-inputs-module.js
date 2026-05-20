@@ -4,6 +4,9 @@
  * Lazy-loaded only when these field types are present
  */
 
+import SlimSelect from 'slim-select';
+import 'slim-select/styles';
+
 /**
  * Parse select with SlimSelect
  */

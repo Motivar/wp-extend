@@ -18,9 +18,6 @@ class AWM_Meta
         // Register modal field assets early (before Dynamic Asset Loader collects at init priority 1)
         add_filter('ewp_register_dynamic_assets', array($this, 'register_modal_field_assets'));
 
-        // Exclude ES6 modules from WP Rocket minification to preserve relative import paths
-        add_filter('rocket_exclude_js', array($this, 'exclude_from_rocket_minification'));
-
         add_action('init', array($this, 'awm_init'), 10);
         add_action('wp_enqueue_scripts', array($this, 'enqueue_styles_script'), 10);
         add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_styles_scripts'), 10);
@@ -238,31 +235,6 @@ class AWM_Meta
     }
 
     /**
-     * Exclude ES6 modules from WP Rocket minification
-     * 
-     * Prevents WP Rocket from moving minified JS files to cache directory,
-     * which would break relative import paths in ES6 modules.
-     * 
-     * @param array $excluded_js Array of JS patterns to exclude from minification
-     * @return array Modified array with module paths excluded
-     */
-    public function exclude_from_rocket_minification($excluded_js)
-    {
-        // Ensure $excluded_js is an array
-        if (!is_array($excluded_js)) {
-            $excluded_js = array();
-        }
-
-        // Exclude the global script that contains dynamic imports
-        $excluded_js[] = '/assets/js/global/awm-global-script.js';
-
-        // Exclude all module files to preserve relative import paths
-        $excluded_js[] = '/assets/js/modules/';
-
-        return $excluded_js;
-    }
-
-    /**
      * init function
      */
     public function awm_init()
@@ -291,11 +263,10 @@ class AWM_Meta
     private function register_script_styles()
     {
         $version = 0.28;
-        wp_register_style('awm-slim-lib-style', awm_url . 'assets/css/global/slimselect.min.css', false, $version);
         wp_register_style('awm-global-style', awm_url . 'assets/css/global/awm-global-style.min.css', false, $version);
         wp_register_style('awm-admin-style', awm_url . 'assets/css/admin/awm-admin-style.min.css', false, $version);
 
-        wp_register_script('awm-global-script', awm_url . 'assets/js/global/awm-global-script.js', array(), $version, true);
+        wp_register_script('awm-global-script', awm_url . 'build/global/awm-global-script.js', array(), $version, true);
 
         // Get wp_editor args for JavaScript use
         $wp_editor_args = awm_get_wp_editor_args('', '', '');
@@ -311,14 +282,13 @@ class AWM_Meta
             'wpEditorArgs' => $wp_editor_args
         ));
 
-        // Register module scripts for lazy loading
-        wp_register_script('awm-tinymce-module', awm_url . 'assets/js/modules/awm-tinymce-module.js', array(), $version, true);
-        wp_register_script('awm-repeater-module', awm_url . 'assets/js/modules/awm-repeater-module.js', array(), $version, true);
-        wp_register_script('awm-forms-module', awm_url . 'assets/js/modules/awm-forms-module.js', array(), $version, true);
-        wp_register_script('awm-inputs-module', awm_url . 'assets/js/modules/awm-inputs-module.js', array(), $version, true);
+        // Register module scripts for lazy loading (bundled via webpack)
+        wp_register_script('awm-tinymce-module', awm_url . 'build/modules/awm-tinymce-module.js', array(), $version, true);
+        wp_register_script('awm-repeater-module', awm_url . 'build/modules/awm-repeater-module.js', array(), $version, true);
+        wp_register_script('awm-forms-module', awm_url . 'build/modules/awm-forms-module.js', array(), $version, true);
+        wp_register_script('awm-inputs-module', awm_url . 'build/modules/awm-inputs-module.js', array(), $version, true);
 
         wp_register_script('awm-admin-script', awm_url . 'assets/js/admin/awm-admin-script.js', array('awm-global-script'), $version, true);
-        wp_register_script('awm-slim-lib-script', awm_url . 'assets/js/global/slimselect.min.js', array(), $version, true);
         wp_register_style('jquery-ui-awm', awm_url . 'assets/css/global/jquery-ui.min.css');
         // Enqueue delete confirmation script for admin pages
         wp_register_script(

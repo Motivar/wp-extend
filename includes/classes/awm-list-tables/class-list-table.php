@@ -105,15 +105,15 @@ class AWM_List_Table extends WP_List_Table
     public function extra_tablenav($which)
     {
         if (!empty($this->list_filters) && $which == 'top') { ?>
-            <div class="alignleft actions">
-                <div style="display: inline-block;">
-                    <?php echo awm_show_content($this->list_filters, 0, 'restrict_manage_posts'); ?>
-                </div>
-                <input type="hidden" name="awm_restict_custom_list" id="awm_restict_custom_list" value="<?php echo $this->page_id; ?>"
-                    class="">
-                <?php submit_button(__('Filter', 'extend-wp'), 'secondary', 'action', false); ?>
-            </div>
-        <?php
+<div class="alignleft actions">
+ <div style="display: inline-block;">
+  <?php echo awm_show_content($this->list_filters, 0, 'restrict_manage_posts'); ?>
+ </div>
+ <input type="hidden" name="awm_restict_custom_list" id="awm_restict_custom_list" value="<?php echo $this->page_id; ?>"
+  class="">
+ <?php submit_button(__('Filter', 'extend-wp'), 'secondary', 'action', false); ?>
+</div>
+<?php
         }
     }
 
@@ -126,21 +126,21 @@ class AWM_List_Table extends WP_List_Table
         }
         if ('top' === $which) {
         ?><div class="ewp-top-actions">
-                <?php
+ <?php
                 $this->views();
                 $this->search_box(sprintf(__('Search %s', 'extend-wp'), $this->_args['plural']), $this->_args['ewp_custom_args']['id'] . '-search-box');
                 wp_nonce_field('bulk-' . $this->_args['plural']);
                 ?>
-            </div>
-        <?php
+</div>
+<?php
         } ?>
-        <div class="tablenav <?php echo esc_attr($which); ?>">
+<div class="tablenav <?php echo esc_attr($which); ?>">
 
-            <?php if ($this->has_items()) : ?>
-                <div class="alignleft actions bulkactions">
-                    <?php $this->bulk_actions($which); ?>
-                </div>
-            <?php
+ <?php if ($this->has_items()) : ?>
+ <div class="alignleft actions bulkactions">
+  <?php $this->bulk_actions($which); ?>
+ </div>
+ <?php
             endif;
 
             $this->extra_tablenav($which);
@@ -148,9 +148,9 @@ class AWM_List_Table extends WP_List_Table
 
             ?>
 
-            <br class="clear" />
-        </div>
-    <?php
+ <br class="clear" />
+</div>
+<?php
     }
 
     public function search_box($text, $input_id)
@@ -171,13 +171,13 @@ class AWM_List_Table extends WP_List_Table
         }*/
 
     ?>
-        <div class="ewp-search-box">
-            <div class="search-box">
-                <label class="screen-reader-text" for="<?php echo esc_attr($input_id); ?>"><?php echo $text; ?></label>
-                <input type="search" id="<?php echo esc_attr($input_id); ?>" name="s" value="<?php _admin_search_query(); ?>" />
-                <?php submit_button($text, '', '', false, array('id' => 'search-submit')); ?>
-            </div>
-        </div>
+<div class="ewp-search-box-admin">
+ <div class="search-box">
+  <label class="screen-reader-text" for="<?php echo esc_attr($input_id); ?>"><?php echo $text; ?></label>
+  <input type="search" id="<?php echo esc_attr($input_id); ?>" name="s" value="<?php _admin_search_query(); ?>" />
+  <?php submit_button($text, '', '', false, array('id' => 'search-submit')); ?>
+ </div>
+</div>
 <?php
     }
 
