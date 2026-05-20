@@ -34,6 +34,7 @@ module.exports = {
   index: path.resolve(__dirname, 'src/index.js'),
   ...buildEntries('assets/js/modules', 'modules'),
   'global/awm-global-script': path.resolve(__dirname, 'assets/js/global/awm-global-script.js'),
+   'admin/awm-admin-script': path.resolve(__dirname, 'assets/js/admin/awm-admin-script.js'),
  },
  output: {
   ...defaultConfig.output,

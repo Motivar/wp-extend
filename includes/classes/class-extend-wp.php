@@ -288,7 +288,7 @@ class AWM_Meta
         wp_register_script('awm-forms-module', awm_url . 'build/modules/awm-forms-module.js', array(), $version, true);
         wp_register_script('awm-inputs-module', awm_url . 'build/modules/awm-inputs-module.js', array(), $version, true);
 
-        wp_register_script('awm-admin-script', awm_url . 'assets/js/admin/awm-admin-script.js', array('awm-global-script'), $version, true);
+        wp_register_script('awm-admin-script', awm_url . 'build/admin/awm-admin-script.js', array('awm-global-script'), $version, true);
         wp_register_style('jquery-ui-awm', awm_url . 'assets/css/global/jquery-ui.min.css');
         // Enqueue delete confirmation script for admin pages
         wp_register_script(

@@ -9,20 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Webpack Bundling for Module Scripts & npm Dependencies** (`2026-05-20`):
-  - Configured webpack to dynamically discover and bundle all module scripts (`assets/js/modules/*.js`) and the global orchestrator script (`assets/js/global/awm-global-script.js`)
+  - Configured webpack to dynamically discover and bundle all module scripts (`assets/js/modules/*.js`), the global orchestrator script (`assets/js/global/awm-global-script.js`), and the admin script (`assets/js/admin/awm-admin-script.js`)
   - Added `slim-select` as an npm dependency; now imported directly in `awm-inputs-module.js` instead of vendored `slimselect.min.js`
   - Webpack configuration uses dynamic entry discovery via `buildEntries()` function — new modules in `assets/js/modules/` are automatically bundled without config changes
   - Build artifacts output to `build/` directory with minification, tree-shaking, and sourcemaps enabled
-  - **Affected files**: `webpack.config.js`, `package.json`, `assets/js/modules/awm-inputs-module.js`, `includes/classes/class-extend-wp.php`, `.gitignore`
+  - **Affected files**: `webpack.config.js`, `package.json`, `assets/js/modules/awm-inputs-module.js`, `assets/js/modules/awm-maps-module.js`, `assets/js/admin/awm-admin-script.js`, `includes/classes/class-extend-wp.php`, `.gitignore`
+- **Maps Module Extraction** (`2026-05-20`):
+  - Created `awm-maps-module.js` to isolate Google Maps functionality (initialization, marker management, search box)
+  - Maps module is lazy-loaded only when `.awm_map` elements are present on the page
+  - Reduces initial JavaScript payload by deferring maps code until needed
+  - Exported functions: `awm_add_map()`, `awm_call_maps_api()`, `awmInitMap()`, `removeMarkers()`, `placeMarker()`, `noenter()`
 
 ### Changed
 - **Bundled JavaScript & Removed WP Rocket Exclusions** (`2026-05-20`):
   - Module scripts now load from `build/modules/` instead of `assets/js/modules/` (webpack artifacts)
   - Global script now loads from `build/global/awm-global-script.js` (webpack artifact)
+  - Admin script now loads from `build/admin/awm-admin-script.js` (webpack artifact) — fixes promise rejection error with `awm_init_inputs()`
   - Removed `exclude_from_rocket_minification()` method and `rocket_exclude_js` filter — no longer needed since webpack handles minification
   - Removed vendored `slimselect.min.js` and `slimselect.min.css` registrations; slim-select CSS now bundled with inputs module
   - Build artifacts are now committed to git (removed `build` from `.gitignore`) for ready-to-use plugin distribution
-  - **Backwards Compatibility**: Script handles (`awm-global-script`, `awm-inputs-module`, etc.) remain unchanged; only URLs differ
+  - **Backwards Compatibility**: Script handles (`awm-global-script`, `awm-inputs-module`, `awm-admin-script`, etc.) remain unchanged; only URLs differ. Map functions remain globally accessible via `window.*`
   - **Performance**: Minified bundles + tree-shaking provide ~30–60% size reduction for module scripts; small PageSpeed improvement on "Minify JavaScript" and "Reduce unused JavaScript" audits
 
 ### Removed
