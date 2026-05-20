@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Dynamic Asset Loader Class
  * 
@@ -63,7 +64,7 @@ class Dynamic_Asset_Loader
         if (self::$instance === null) {
             self::$instance = new self();
         }
-        
+
         return self::$instance;
     }
 
@@ -155,14 +156,14 @@ class Dynamic_Asset_Loader
     {
         wp_enqueue_script(self::LOADER_HANDLE);
         $assets = $this->get_registered_assets();
-        
+
         if (empty($assets)) {
             return;
         }
 
         // Filter assets based on current context
         $current_context = is_admin() ? 'admin' : 'frontend';
-        $filtered_assets = array_filter($assets, function($asset) use ($current_context) {
+        $filtered_assets = array_filter($assets, function ($asset) use ($current_context) {
             return $asset['context'] === 'both' || $asset['context'] === $current_context;
         });
 
@@ -302,7 +303,7 @@ class Dynamic_Asset_Loader
         }
 
         $required_keys = array('handle', 'selector', 'type', 'src');
-        
+
         foreach ($required_keys as $key) {
             if (!isset($asset[$key]) || empty($asset[$key])) {
                 return false;
@@ -324,29 +325,37 @@ class Dynamic_Asset_Loader
      */
     private function sanitize_asset($asset)
     {
+        // Handle selector - can be string or array of strings
+        $selector = $asset['selector'];
+        if (is_array($selector)) {
+            $selector = array_map('sanitize_text_field', $selector);
+        } else {
+            $selector = sanitize_text_field($selector);
+        }
+
         $sanitized = array(
             'handle' => sanitize_key($asset['handle']),
-            'selector' => sanitize_text_field($asset['selector']),
+            'selector' => $selector,
             'type' => sanitize_key($asset['type']),
             'src' => esc_url($asset['src']),
             'version' => isset($asset['version']) ? sanitize_text_field($asset['version']) : self::VERSION,
             'context' => isset($asset['context']) ? sanitize_key($asset['context']) : 'both',
         );
-        
+
         if (!in_array($sanitized['context'], array('frontend', 'admin', 'both'), true)) {
             $sanitized['context'] = 'both';
         }
 
         if ($asset['type'] === 'script') {
-            $sanitized['dependencies'] = isset($asset['dependencies']) && is_array($asset['dependencies']) 
-                ? array_map('sanitize_key', $asset['dependencies']) 
+            $sanitized['dependencies'] = isset($asset['dependencies']) && is_array($asset['dependencies'])
+                ? array_map('sanitize_key', $asset['dependencies'])
                 : array();
-            
+
             $sanitized['in_footer'] = isset($asset['in_footer']) ? (bool) $asset['in_footer'] : true;
             $sanitized['module'] = isset($asset['module']) ? (bool) $asset['module'] : false;
             $sanitized['async'] = isset($asset['async']) ? (bool) $asset['async'] : false;
             $sanitized['defer'] = isset($asset['defer']) ? (bool) $asset['defer'] : false;
-            
+
             if (isset($asset['localize']) && is_array($asset['localize'])) {
                 $sanitized['localize'] = $this->sanitize_localize_data($asset['localize']);
             }
@@ -354,8 +363,8 @@ class Dynamic_Asset_Loader
 
         if ($asset['type'] === 'style') {
             $sanitized['media'] = isset($asset['media']) ? sanitize_text_field($asset['media']) : 'all';
-            $sanitized['dependencies'] = isset($asset['dependencies']) && is_array($asset['dependencies']) 
-                ? array_map('sanitize_key', $asset['dependencies']) 
+            $sanitized['dependencies'] = isset($asset['dependencies']) && is_array($asset['dependencies'])
+                ? array_map('sanitize_key', $asset['dependencies'])
                 : array();
 
             if (isset($asset['critical_css']) && !empty($asset['critical_css'])) {
@@ -366,7 +375,7 @@ class Dynamic_Asset_Loader
         $sanitized['preload'] = isset($asset['preload']) ? (bool) $asset['preload'] : false;
         $sanitized['lazy'] = isset($asset['lazy']) ? (bool) $asset['lazy'] : false;
         $sanitized['critical'] = isset($asset['critical']) ? (bool) $asset['critical'] : false;
-        
+
         if (isset($asset['resource_hints']) && is_array($asset['resource_hints'])) {
             $sanitized['resource_hints'] = array();
             foreach ($asset['resource_hints'] as $hint_type => $domains) {
@@ -536,7 +545,7 @@ class Dynamic_Asset_Loader
         foreach ($preload_assets as $asset) {
             $as = $asset['type'] === 'script' ? 'script' : 'style';
             $crossorigin = $this->is_external_url($asset['src']) ? ' crossorigin' : '';
-            
+
             echo '<link rel="preload" href="' . esc_url($asset['src']) . '" as="' . esc_attr($as) . '"' . $crossorigin . '>' . "\n";
         }
     }
@@ -551,11 +560,11 @@ class Dynamic_Asset_Loader
     {
         $parsed_url = wp_parse_url($url);
         $home_url = wp_parse_url(home_url());
-        
+
         if (!isset($parsed_url['host'])) {
             return false;
         }
-        
+
         return $parsed_url['host'] !== $home_url['host'];
     }
 
