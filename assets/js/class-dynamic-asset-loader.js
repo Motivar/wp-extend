@@ -95,7 +95,7 @@ class EWPDynamicAssetLoader {
         this.log('Checking DOM for assets');
 
         this.assets.forEach(asset => {
-            if (this.loadedAssets.has(asset.handle)) {
+            if (this.isAssetLoaded(asset)) {
                 return;
             }
 
@@ -104,7 +104,7 @@ class EWPDynamicAssetLoader {
             }
 
             if (this.selectorExists(asset.selector)) {
-                this.log(`Selector found: ${asset.selector}`, { handle: asset.handle });
+                this.log(`Selector found: ${asset.selector}`, { handle: asset.handle, type: asset.type });
                 this.loadAsset(asset);
             }
         });
@@ -153,7 +153,7 @@ class EWPDynamicAssetLoader {
      * @return {void}
      */
     loadAsset(asset) {
-        if (this.loadedAssets.has(asset.handle)) {
+        if (this.isAssetLoaded(asset)) {
             return;
         }
 
@@ -167,7 +167,7 @@ class EWPDynamicAssetLoader {
             this.loadStyle(asset);
         }
 
-        this.loadedAssets.add(asset.handle);
+        this.markAssetAsLoaded(asset);
         
         this.dispatchLoadEvent(asset);
     }
@@ -509,13 +509,41 @@ class EWPDynamicAssetLoader {
     }
 
     /**
-     * Check if specific asset is loaded
+     * Generate composite key for asset (handle + type)
+     * Allows same handle with different types (e.g., my-asset as script and style)
      * 
-     * @param {string} handle Asset handle
+     * @param {Object|string} asset Asset object or handle string
+     * @param {string} type Asset type (script or style) - only used if asset is string
+     * @return {string} Composite key
+     */
+    getAssetKey(asset, type = null) {
+        if (typeof asset === 'string') {
+            return `${asset}:${type}`;
+        }
+        return `${asset.handle}:${asset.type}`;
+    }
+
+    /**
+     * Check if specific asset is loaded by handle and type
+     * 
+     * @param {Object|string} asset Asset object or handle string
+     * @param {string} type Asset type (script or style) - only used if asset is string
      * @return {boolean} True if loaded
      */
-    isAssetLoaded(handle) {
-        return this.loadedAssets.has(handle);
+    isAssetLoaded(asset, type = null) {
+        const key = this.getAssetKey(asset, type);
+        return this.loadedAssets.has(key);
+    }
+
+    /**
+     * Mark asset as loaded using composite key
+     * 
+     * @param {Object} asset Asset configuration
+     * @return {void}
+     */
+    markAssetAsLoaded(asset) {
+        const key = this.getAssetKey(asset);
+        this.loadedAssets.add(key);
     }
 
     /**
@@ -573,17 +601,23 @@ class EWPDynamicAssetLoader {
      * @param {string} handle Asset handle to check and load
      * @return {boolean} True if asset was loaded, false otherwise
      */
-    loadAssetByHandle(handle) {
-        this.log(`Manual load requested: ${handle}`);
-        const asset = this.assets.find(a => a.handle === handle);
+    loadAssetByHandle(handle, type = null) {
+        this.log(`Manual load requested: ${handle}`, { type });
+
+        let asset;
+        if (type) {
+            asset = this.assets.find(a => a.handle === handle && a.type === type);
+        } else {
+            asset = this.assets.find(a => a.handle === handle);
+        }
 
         if (!asset) {
-            this.log('Asset not found', { handle });
+            this.log('Asset not found', { handle, type });
             return false;
         }
 
-        if (this.loadedAssets.has(handle)) {
-            this.log(`Asset already loaded: ${handle}`);
+        if (this.isAssetLoaded(asset)) {
+            this.log(`Asset already loaded: ${handle}`, { type: asset.type });
             return false;
         }
 
@@ -592,7 +626,7 @@ class EWPDynamicAssetLoader {
             return true;
         }
 
-        this.log('Selector not found for asset', { handle, selector: asset.selector });
+        this.log('Selector not found for asset', { handle, type: asset.type, selector: asset.selector });
         return false;
     }
 
@@ -603,17 +637,23 @@ class EWPDynamicAssetLoader {
      * @param {string} handle Asset handle to force load
      * @return {boolean} True if asset was loaded, false otherwise
      */
-    forceLoadAsset(handle) {
-        this.log(`Force load requested: ${handle}`);
-        const asset = this.assets.find(a => a.handle === handle);
+    forceLoadAsset(handle, type = null) {
+        this.log(`Force load requested: ${handle}`, { type });
+
+        let asset;
+        if (type) {
+            asset = this.assets.find(a => a.handle === handle && a.type === type);
+        } else {
+            asset = this.assets.find(a => a.handle === handle);
+        }
 
         if (!asset) {
-            this.log('Asset not found', { handle });
+            this.log('Asset not found', { handle, type });
             return false;
         }
 
-        if (this.loadedAssets.has(handle)) {
-            this.log(`Asset already loaded: ${handle}`);
+        if (this.isAssetLoaded(asset)) {
+            this.log(`Asset already loaded: ${handle}`, { type: asset.type });
             return false;
         }
 

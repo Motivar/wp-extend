@@ -8,14 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Dynamic Asset Loader: Export Localized Settings as Globals & Multiple Selector Support** (`2026-05-20`):
+- **Dynamic Asset Loader: Export Localized Settings as Globals, Multiple Selectors & Handle+Type Tracking** (`2026-05-20`):
   - Added `exportLocalizeSettingsAsGlobals(asset)` method to `EWPDynamicAssetLoader` class that exports localized data as window globals only for scripts being loaded
   - Localized data is exported in `loadAsset()` before the asset loads, ensuring globals are available when the script executes
   - Only exports localized data for assets that will actually load (critical assets or assets with matching selectors), avoiding global scope pollution
   - Added `selectorExists(selector)` method supporting both single selector (string) and multiple selectors (array); uses OR logic to load asset if ANY selector exists
-  - Improves developer experience by providing centralized access to localized configuration and flexible selector matching
+  - **Fixed**: Assets with same handle but different types (e.g., `my-asset` as both script and style) now load independently using composite key (handle:type)
+  - Added `getAssetKey(asset, type)`, `isAssetLoaded(asset, type)`, and `markAssetAsLoaded(asset)` methods for proper asset tracking
+  - Updated `loadAssetByHandle(handle, type)` and `forceLoadAsset(handle, type)` to support optional type parameter for disambiguation
+  - Improves developer experience by providing centralized access to localized configuration, flexible selector matching, and proper multi-type asset handling
   - **Affected files**: `assets/js/class-dynamic-asset-loader.js`
-  - **Backwards Compatibility**: Fully backward compatible; `elementExists()` now delegates to `selectorExists()` for legacy support
+  - **Backwards Compatibility**: Fully backward compatible; `elementExists()` now delegates to `selectorExists()` for legacy support; type parameter is optional in public APIs
 - **Webpack Bundling for Module Scripts & npm Dependencies** (`2026-05-20`):
   - Configured webpack to dynamically discover and bundle all module scripts (`assets/js/modules/*.js`), the global orchestrator script (`assets/js/global/awm-global-script.js`), and the admin script (`assets/js/admin/awm-admin-script.js`)
   - Added `slim-select` as an npm dependency; now imported directly in `awm-inputs-module.js` instead of vendored `slimselect.min.js`
