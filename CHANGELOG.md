@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Dynamic Asset Loader: Export Localized Settings as Globals** (`2026-05-20`):
+  - Added `exportLocalizeSettingsAsGlobals(asset)` method to `EWPDynamicAssetLoader` class that exports localized data as window globals only for scripts being loaded
+  - Localized data is exported in `loadAsset()` before the asset loads, ensuring globals are available when the script executes
+  - Only exports localized data for assets that will actually load (critical assets or assets with matching selectors), avoiding global scope pollution
+  - Improves developer experience by providing centralized access to localized configuration without unnecessary globals
+  - **Affected files**: `assets/js/class-dynamic-asset-loader.js`
+  - **Backwards Compatibility**: Fully backward compatible; existing per-script localization still works as before
 - **Webpack Bundling for Module Scripts & npm Dependencies** (`2026-05-20`):
   - Configured webpack to dynamically discover and bundle all module scripts (`assets/js/modules/*.js`), the global orchestrator script (`assets/js/global/awm-global-script.js`), and the admin script (`assets/js/admin/awm-admin-script.js`)
   - Added `slim-select` as an npm dependency; now imported directly in `awm-inputs-module.js` instead of vendored `slimselect.min.js`

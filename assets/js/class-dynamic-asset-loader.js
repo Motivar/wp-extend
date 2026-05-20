@@ -138,6 +138,8 @@ class EWPDynamicAssetLoader {
 
         this.log(`Loading asset: ${asset.handle}`, { type: asset.type, src: asset.src });
 
+        this.exportLocalizeSettingsAsGlobals(asset);
+
         if (asset.type === 'script') {
             this.loadScript(asset);
         } else if (asset.type === 'style') {
@@ -352,6 +354,33 @@ class EWPDynamicAssetLoader {
             this.log(`Localized script data set: ${localize.objectName}`, { data: localize.data });
         } catch (error) {
             this.log('Failed to localize script', { objectName: localize.objectName, error });
+        }
+    }
+
+    /**
+     * Export localized settings as globals for assets being loaded
+     * Only exports localized data for scripts that will actually be loaded
+     * 
+     * @param {Object} asset Asset configuration
+     * @return {void}
+     */
+    exportLocalizeSettingsAsGlobals(asset) {
+        if (!asset || !asset.localize || !asset.localize.objectName || !asset.localize.data) {
+            return;
+        }
+
+        try {
+            window[asset.localize.objectName] = asset.localize.data;
+            this.log(`Global localized data exported: ${asset.localize.objectName}`, {
+                handle: asset.handle,
+                data: asset.localize.data
+            });
+        } catch (error) {
+            this.log('Failed to export global localized data', {
+                handle: asset.handle,
+                objectName: asset.localize.objectName,
+                error
+            });
         }
     }
 
