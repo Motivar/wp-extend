@@ -103,7 +103,7 @@ class EWPDynamicAssetLoader {
                 return;
             }
 
-            if (this.elementExists(asset.selector)) {
+            if (this.selectorExists(asset.selector)) {
                 this.log(`Selector found: ${asset.selector}`, { handle: asset.handle });
                 this.loadAsset(asset);
             }
@@ -112,17 +112,38 @@ class EWPDynamicAssetLoader {
 
     /**
      * Check if element exists in DOM
+     * Supports both single selector (string) and multiple selectors (array)
+     * For multiple selectors, returns true if ANY selector exists (OR logic)
+     * 
+     * @param {string|Array} selector CSS selector(s) - string or array of strings
+     * @return {boolean} True if element exists
+     */
+    selectorExists(selector) {
+        if (!selector) {
+            return false;
+        }
+
+        const selectors = Array.isArray(selector) ? selector : [selector];
+
+        return selectors.some(sel => {
+            try {
+                return document.querySelector(sel) !== null;
+            } catch (error) {
+                this.log('Invalid selector', { selector: sel, error });
+                return false;
+            }
+        });
+    }
+
+    /**
+     * Check if element exists in DOM (legacy method for backward compatibility)
      * 
      * @param {string} selector CSS selector
      * @return {boolean} True if element exists
+     * @deprecated Use selectorExists() instead
      */
     elementExists(selector) {
-        try {
-            return document.querySelector(selector) !== null;
-        } catch (error) {
-            this.log('Invalid selector', { selector, error });
-            return false;
-        }
+        return this.selectorExists(selector);
     }
 
     /**
@@ -566,7 +587,7 @@ class EWPDynamicAssetLoader {
             return false;
         }
 
-        if (this.elementExists(asset.selector)) {
+        if (this.selectorExists(asset.selector)) {
             this.loadAsset(asset);
             return true;
         }
