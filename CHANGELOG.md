@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Repeater Callback Functions Not Exposed** (`2026-05-25`):
+  - **Question/Prompt**: "I get this with repeater? I think is regarding @[conversation:"Fixing awm_init_inputs Error"]"
+  - **Summary**: Fixed missing function exposures in admin script after webpack bundling migration. Functions called via `data-callback` attributes and `onclick` handlers were not accessible on window object, causing "function does not exist" errors in repeater fields.
+  - **Changes**: Exposed all callback functions to window object in `awm-admin-script.js`:
+    - `awm_get_case_fields`, `awm_show_field_details`
+    - `awm_get_position_settings`, `awm_show_position_settings`
+    - `awm_get_query_fields`, `awm_show_query_details`
+    - `ewp_get_php_code`, `awm_show_php_code`
+    - `awmSelectrBoxes`, `awm_options_rest_call`, `awm_rest_options_callback`
+  - **Affected Files**: `assets/js/admin/awm-admin-script.js`
+  - **Backwards Compatibility**: No breaking changes; ensures repeater fields work correctly with webpack bundled scripts
+
 ### Added
 - **Dynamic Asset Loader: Enhanced Critical CSS Support** (`2026-05-20`):
   - **Question/Prompt**: "Enhance EWP Dynamic Asset Loader to support inline critical CSS"

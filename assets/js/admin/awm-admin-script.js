@@ -195,3 +195,19 @@ function awm_rest_options_callback(data) {
 
 
 /* Gallery and image upload logic now handled by AWMMediaField class (class-awm-media-field.js) */
+
+/**
+ * Expose callback functions globally for data-callback attributes and onclick handlers
+ * These functions are called from HTML attributes and need to be accessible on the window object
+ */
+window.awm_get_case_fields = awm_get_case_fields;
+window.awm_show_field_details = awm_show_field_details;
+window.awm_get_position_settings = awm_get_position_settings;
+window.awm_show_position_settings = awm_show_position_settings;
+window.awm_get_query_fields = awm_get_query_fields;
+window.awm_show_query_details = awm_show_query_details;
+window.ewp_get_php_code = ewp_get_php_code;
+window.awm_show_php_code = awm_show_php_code;
+window.awmSelectrBoxes = awmSelectrBoxes;
+window.awm_options_rest_call = awm_options_rest_call;
+window.awm_rest_options_callback = awm_rest_options_callback;
