@@ -42,4 +42,11 @@ module.exports = {
   filename: '[name].js',
    chunkFilename: '[name].chunk.js',
  },
+  resolve: {
+    ...defaultConfig.resolve,
+    alias: {
+      ...defaultConfig.resolve?.alias,
+      '@modules': path.resolve(__dirname, 'assets/js/modules'),
+    },
+  },
 };

@@ -422,7 +422,7 @@ async function awm_init_inputs() {
     // Load inputs module if form content exists (selects, checkboxes, callbacks, etc.)
     if (document.querySelector('.awm-show-content')) {
         modulePromises.push(
-            import(/* webpackChunkName: "awm-inputs-module" */ '../modules/awm-inputs-module.js').then(m => {
+            import(/* webpackChunkName: "awm-inputs-module" */ '@modules/awm-inputs-module.js').then(m => {
                 // Expose all input module functions globally for backwards compatibility
                 window.awm_create_calendar = m.awm_create_calendar;
                 window.awmMultipleCheckBox = m.awmMultipleCheckBox;
@@ -448,7 +448,7 @@ async function awm_init_inputs() {
         );
 
         modulePromises.push(
-            import(/* webpackChunkName: "awm-forms-module" */ '../modules/awm-forms-module.js').then(m => {
+            import(/* webpackChunkName: "awm-forms-module" */ '@modules/awm-forms-module.js').then(m => {
                 // Expose module functions globally for backwards compatibility
                 window.awmInitForms = m.awmInitForms;
                 window.awmCheckValidation = m.awmCheckValidation;
@@ -461,7 +461,7 @@ async function awm_init_inputs() {
     // Check for repeaters
     if (document.querySelector('.awm-repeater')) {
         modulePromises.push(
-            import(/* webpackChunkName: "awm-repeater-module" */ '../modules/awm-repeater-module.js').then(m => {
+            import(/* webpackChunkName: "awm-repeater-module" */ '@modules/awm-repeater-module.js').then(m => {
                 // Expose module functions globally for backwards compatibility
                 window.repeater = m.repeater;
                 window.ewp_repeater_clone_row = m.ewp_repeater_clone_row;
@@ -473,7 +473,7 @@ async function awm_init_inputs() {
     // Check for TinyMCE editors
     if (document.querySelector('textarea.wp-editor-area')) {
         modulePromises.push(
-            import(/* webpackChunkName: "awm-tinymce-module" */ '../modules/awm-tinymce-module.js').then(m => {
+            import(/* webpackChunkName: "awm-tinymce-module" */ '@modules/awm-tinymce-module.js').then(m => {
                 // Expose module functions globally for backwards compatibility
                 window.awm_initialize_repeater_wp_editor = m.awm_initialize_repeater_wp_editor;
                 window.awm_get_tinymce_args = m.awm_get_tinymce_args;
