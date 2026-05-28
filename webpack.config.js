@@ -41,6 +41,7 @@ module.exports = {
   path: path.resolve(__dirname, 'build'),
   filename: '[name].js',
    chunkFilename: '[name].chunk.js',
+   publicPath: 'auto',
  },
   resolve: {
     ...defaultConfig.resolve,
