@@ -25,6 +25,7 @@ class EWP_WP_Rocket
 	 */
 	private static $default_exclusions = array(
 		'class-dynamic-asset-loader.js',
+		'.chunk.js',
 	);
 
 	/**
