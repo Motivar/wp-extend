@@ -50,4 +50,9 @@ module.exports = {
       '@modules': path.resolve(__dirname, 'assets/js/modules'),
     },
   },
+  optimization: {
+    ...defaultConfig.optimization,
+    chunkIds: 'named',
+    moduleIds: 'named',
+  },
 };
