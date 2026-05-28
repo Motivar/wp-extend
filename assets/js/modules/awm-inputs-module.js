@@ -388,7 +388,7 @@ function awmMultipleCheckBox() {
     var elems = document.querySelectorAll('.checkbox_multiple.awm-meta-field');
     if (elems) {
         elems.forEach(function (elem) {
-            inputs = elem.querySelectorAll('input[type="checkbox"]');
+            var inputs = elem.querySelectorAll('input[type="checkbox"]');
 
             if (inputs) {
                 inputs.forEach(function (input) {

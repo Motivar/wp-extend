@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **JavaScript Syntax Error in Inputs Module** (`2026-05-28`):
+  - **Question/Prompt**: "why on a page with awm_tab I get this issue? [Error] SyntaxError: Unexpected token '{'. Expected ')' to end a compound expression. ReferenceError: Can't find variable: inputs"
+  - **Summary**: Fixed missing variable declaration in `awmMultipleCheckBox()` function causing syntax errors in built JavaScript files
+  - **Changes**: Added `var` declaration for `inputs` variable at line 391 in `awm-inputs-module.js`
+  - **Affected Files**: `assets/js/modules/awm-inputs-module.js`
+  - **Backwards Compatibility**: No breaking changes; fixes JavaScript errors on pages with `awm_tab` and checkbox fields
 - **Repeater Callback Functions Not Exposed** (`2026-05-25`):
   - **Question/Prompt**: "I get this with repeater? I think is regarding @[conversation:"Fixing awm_init_inputs Error"]"
   - **Summary**: Fixed missing function exposures in admin script after webpack bundling migration. Functions called via `data-callback` attributes and `onclick` handlers were not accessible on window object, causing "function does not exist" errors in repeater fields.
