@@ -5,6 +5,18 @@
  */
 
 /**
+ * Set webpack public path dynamically based on the script's location
+ * This ensures chunks are loaded from the correct path regardless of where the plugin is installed
+ */
+if (typeof __webpack_public_path__ !== 'undefined') {
+    const scriptTag = document.currentScript || document.querySelector('script[src*="awm-global-script"]');
+    if (scriptTag && scriptTag.src) {
+        const scriptUrl = new URL(scriptTag.src);
+        __webpack_public_path__ = scriptUrl.href.substring(0, scriptUrl.href.lastIndexOf('/') + 1);
+    }
+}
+
+/**
  * Global queue for deferred callbacks
  * Stores callbacks that are triggered before their functions are loaded
  * Used by Dynamic Asset Loader to execute callbacks after scripts load
