@@ -7,12 +7,15 @@
 /**
  * Set webpack public path dynamically based on the script's location
  * This ensures chunks are loaded from the correct path regardless of where the plugin is installed
+ * Chunks are in /build/ directory, script is in /build/global/, so we need to go up one level
  */
 if (typeof __webpack_public_path__ !== 'undefined') {
     const scriptTag = document.currentScript || document.querySelector('script[src*="awm-global-script"]');
     if (scriptTag && scriptTag.src) {
         const scriptUrl = new URL(scriptTag.src);
-        __webpack_public_path__ = scriptUrl.href.substring(0, scriptUrl.href.lastIndexOf('/') + 1);
+        // Get path up to /build/global/, then remove /global/ to get /build/
+        const scriptPath = scriptUrl.href.substring(0, scriptUrl.href.lastIndexOf('/') + 1);
+        __webpack_public_path__ = scriptPath.replace(/\/global\/$/, '/');
     }
 }
 
