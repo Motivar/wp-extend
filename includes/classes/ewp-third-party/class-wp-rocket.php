@@ -7,8 +7,11 @@ if (!defined('ABSPATH')) {
 /**
  * WP Rocket compatibility class
  *
- * Automatically excludes critical EWP scripts from WP Rocket's
- * JavaScript optimizations (delay, defer, minify/combine).
+ * Keeps the EWP dynamic asset loader out of WP Rocket's JavaScript
+ * optimizations (delay, defer, minify/combine), so it stays available to
+ * bootstrap module loading. Webpack chunks resolve via a server-provided
+ * publicPath (awmGlobals.buildUrl) and are injected at runtime, so they are
+ * never seen by WP Rocket and need no exclusion.
  *
  * Works regardless of the plugin's install path — the exclusion
  * pattern uses filename matching, so it applies whether extend-wp
@@ -25,7 +28,6 @@ class EWP_WP_Rocket
 	 */
 	private static $default_exclusions = array(
 		'class-dynamic-asset-loader.js',
-		'.chunk.js',
 	);
 
 	/**

@@ -15,6 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Backwards Compatibility**: No breaking changes; `AWM_ASSET_VERSION` falls back to `'1.0.0'` if `build/version.php` doesn't exist yet.
 
 ### Fixed
+- **Webpack chunks 404 under WP Rocket minify/combine** (`2026-05-29`):
+  - **Question/Prompt**: "this happens when we have wp-rocket minification on... what we want to achieve is even if all wp-rocket options are enabled to full load correct the modules. Can we make it work without excluding it from wp-rocket? we need this to be transparent for users."
+  - **Summary**: Lazy-loaded webpack chunks (inputs/forms/repeater modules, slim-select vendor chunk, inputs CSS chunk) 404'd because their base URL (`publicPath`) was derived from the entry script's served URL. With WP Rocket minify/combine on, the entry script is served from `/wp-content/cache/min/...`, so chunks were requested from the cache dir where they don't exist (and under Combine JS the derivation collapsed entirely). Fixed by anchoring `publicPath` to a server-known absolute URL.
+  - **Changes**:
+    - Localized `buildUrl` (`awm_url . 'build/'`) into the `awmGlobals` object so PHP provides the real build directory URL.
+    - `awm-global-script.js` now sets `__webpack_public_path__` from `awmGlobals.buildUrl`, keeping the previous script-URL derivation only as a fallback.
+    - Removed the now-redundant `.chunk.js` pattern from the WP Rocket exclusion class (runtime-injected chunks are never in the HTML); kept `class-dynamic-asset-loader.js` excluded.
+  - **Affected Files**: `includes/classes/class-extend-wp.php`, `assets/js/global/awm-global-script.js`, `includes/classes/ewp-third-party/class-wp-rocket.php`, `package.json`, rebuilt `build/`
+  - **Backwards Compatibility**: No breaking changes. `awm_url` is derived from the plugin's actual location, so it resolves correctly standalone or when bundled inside another plugin (e.g. filox). No per-site WP Rocket exclusions required.
 - **JavaScript Syntax Error in awm_tab onclick Handler** (`2026-05-28`):
   - **Question/Prompt**: "why on a page with awm_tab I get this issue? [Error] SyntaxError: Unexpected token '{'. Expected ')' to end a compound expression."
   - **Summary**: Fixed invalid JavaScript syntax in generated `onclick` attribute for tab navigation. Extra space after escaped quote was breaking the function call.

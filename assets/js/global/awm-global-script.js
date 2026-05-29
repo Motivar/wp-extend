@@ -10,12 +10,17 @@
  * Chunks are in /build/ directory, script is in /build/global/, so we need to go up one level
  */
 if (typeof __webpack_public_path__ !== 'undefined') {
-    const scriptTag = document.currentScript || document.querySelector('script[src*="awm-global-script"]');
-    if (scriptTag && scriptTag.src) {
-        const scriptUrl = new URL(scriptTag.src);
-        // Get path up to /build/global/, then remove /global/ to get /build/
-        const scriptPath = scriptUrl.href.substring(0, scriptUrl.href.lastIndexOf('/') + 1);
-        __webpack_public_path__ = scriptPath.replace(/\/global\/$/, '/');
+    // Prefer the server-provided absolute build URL. Robust against WP Rocket
+    // minify/combine, which rewrites the entry script URL into the cache dir.
+    if (typeof awmGlobals !== 'undefined' && awmGlobals.buildUrl) {
+        __webpack_public_path__ = awmGlobals.buildUrl;
+    } else {
+        const scriptTag = document.currentScript || document.querySelector('script[src*="awm-global-script"]');
+        if (scriptTag && scriptTag.src) {
+            const scriptUrl = new URL(scriptTag.src);
+            const scriptPath = scriptUrl.href.substring(0, scriptUrl.href.lastIndexOf('/') + 1);
+            __webpack_public_path__ = scriptPath.replace(/\/global\/$/, '/');
+        }
     }
 }
 

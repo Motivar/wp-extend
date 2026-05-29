@@ -275,8 +275,9 @@ class AWM_Meta
                 'noResults' => __('No results', 'extend-wp'), 
                 'searchText' => __('Search', 'extend-wp')
             ), 
-            'url' => esc_url(home_url()), 
+            'url' => esc_url(home_url()),
             'nonce' => wp_create_nonce('wp_rest'),
+            'buildUrl' => esc_url(awm_url . 'build/'),
             'wpEditorArgs' => $wp_editor_args
         ));
 
