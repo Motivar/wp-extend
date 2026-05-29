@@ -35,30 +35,17 @@ class EWP_WP_Rocket
 	);
 
 	/**
-	 * Constructor — defers filter registration to plugins_loaded.
+	 * Constructor — registers WP Rocket exclusion filters.
+	 *
+	 * No WP_ROCKET_VERSION guard: these hooks only ever fire when WP Rocket is
+	 * running, so the filters are harmless no-ops otherwise. (A guard here would
+	 * also be wrong — this class is instantiated at plugin-load time, before
+	 * wp-rocket defines its constant, since EWP loads first alphabetically.)
 	 *
 	 * @return void
 	 */
 	public function __construct()
 	{
-		// Register on plugins_loaded, not here: this class is instantiated at
-		// plugin-load time, and EWP loads before wp-rocket alphabetically (and
-		// when bundled inside another plugin). Checking WP_ROCKET_VERSION in the
-		// constructor would always fail, so the exclusions would never register.
-		add_action('plugins_loaded', array($this, 'register_filters'));
-	}
-
-	/**
-	 * Register WP Rocket exclusion filters once all plugins are loaded.
-	 *
-	 * @return void
-	 */
-	public function register_filters()
-	{
-		if (!defined('WP_ROCKET_VERSION')) {
-			return;
-		}
-
 		add_filter('rocket_delay_js_exclusions', array($this, 'exclude_from_delay_js'));
 		add_filter('rocket_exclude_js', array($this, 'exclude_from_minify_combine'));
 		add_filter('rocket_defer_js_exclusions', array($this, 'exclude_from_defer'));
