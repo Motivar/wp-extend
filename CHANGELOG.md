@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Backwards Compatibility**: No breaking changes; `AWM_ASSET_VERSION` falls back to `'1.0.0'` if `build/version.php` doesn't exist yet.
 
 ### Fixed
+- **Scripts never run under WP Rocket Delay JavaScript execution** (`2026-05-29`):
+  - **Question/Prompt**: "if we have all wp-rocket settings enabled both dynamic-asset-loader and global script did not get triggered. how to fix this?"
+  - **Summary**: With WP Rocket's *Delay JavaScript execution* enabled, neither `awm-global-script.js` nor `class-dynamic-asset-loader.js` loaded, so no modules initialized. Two root causes:
+    1. **Exclusion filters never registered.** `EWP_WP_Rocket` is instantiated at plugin-load time and bailed out if `WP_ROCKET_VERSION` was undefined. EWP loads before `wp-rocket` alphabetically (and when bundled inside filox), so the constant was never defined yet and the `rocket_*` exclusion filters were never added. Moved registration to the `plugins_loaded` hook, which fires after every plugin's main file has run.
+    2. **Entry script not excluded from delay.** Only the dynamic loader was in the exclusion list. Added the `awm-global-script` pattern, which (matched against the full script tag for delay, and the URL path for minify) covers both the external entry script and its inline `awmGlobals` localize tag (`awm-global-script-js-extra`) — so the localized data is not delayed out from under the script.
+  - **Why delay differs from minify**: minify only relocates a script (the publicPath fix handles that), but delay prevents execution until user interaction — the only way for these critical scripts to run on page load is to exclude them. This stays transparent: the plugin does it automatically via filters, no user configuration.
+  - **Affected Files**: `includes/classes/ewp-third-party/class-wp-rocket.php`, `package.json`, rebuilt `build/`
+  - **Backwards Compatibility**: No breaking changes. Filters still only apply when WP Rocket is active.
 - **Webpack chunks 404 under WP Rocket minify/combine** (`2026-05-29`):
   - **Question/Prompt**: "this happens when we have wp-rocket minification on... what we want to achieve is even if all wp-rocket options are enabled to full load correct the modules. Can we make it work without excluding it from wp-rocket? we need this to be transparent for users."
   - **Summary**: Lazy-loaded webpack chunks (inputs/forms/repeater modules, slim-select vendor chunk, inputs CSS chunk) 404'd because their base URL (`publicPath`) was derived from the entry script's served URL. With WP Rocket minify/combine on, the entry script is served from `/wp-content/cache/min/...`, so chunks were requested from the cache dir where they don't exist (and under Combine JS the derivation collapsed entirely). Fixed by anchoring `publicPath` to a server-known absolute URL.
