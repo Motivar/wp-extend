@@ -7,13 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Auto-sync asset version from package.json** (`2026-05-29`):
+  - **Question/Prompt**: "Can we when we build the script also change the version of register_script_styles?"
+  - **Summary**: Added `EmitVersionPhpPlugin` to `webpack.config.js` that writes `build/version.php` on every build containing the version from `package.json`. Defined `AWM_ASSET_VERSION` constant in `extend-wp.php` reading from that file. Replaced hardcoded `$version = 0.29` in `register_script_styles` with `AWM_ASSET_VERSION`.
+  - **Affected Files**: `webpack.config.js`, `extend-wp.php`, `includes/classes/class-extend-wp.php`
+  - **Backwards Compatibility**: No breaking changes; `AWM_ASSET_VERSION` falls back to `'1.0.0'` if `build/version.php` doesn't exist yet.
+
 ### Fixed
-- **JavaScript Syntax Error in Inputs Module** (`2026-05-28`):
-  - **Question/Prompt**: "why on a page with awm_tab I get this issue? [Error] SyntaxError: Unexpected token '{'. Expected ')' to end a compound expression. ReferenceError: Can't find variable: inputs"
-  - **Summary**: Fixed missing variable declaration in `awmMultipleCheckBox()` function causing syntax errors in built JavaScript files
+- **JavaScript Syntax Error in awm_tab onclick Handler** (`2026-05-28`):
+  - **Question/Prompt**: "why on a page with awm_tab I get this issue? [Error] SyntaxError: Unexpected token '{'. Expected ')' to end a compound expression."
+  - **Summary**: Fixed invalid JavaScript syntax in generated `onclick` attribute for tab navigation. Extra space after escaped quote was breaking the function call.
+  - **Changes**: Removed space in `onclick="awm_open_tab(event,\' ' . $tab_id . '\')` to `onclick="awm_open_tab(event,\'' . $tab_id . '\')"` at line 1160
+  - **Root Cause**: Generated HTML had `onclick="awm_open_tab(event,' tab_id')"` with invalid space before parameter
+  - **Affected Files**: `includes/functions/library.php`
+  - **Backwards Compatibility**: No breaking changes; fixes JavaScript syntax errors on pages with `awm_tab` fields
+- **JavaScript Missing Variable Declaration in Inputs Module** (`2026-05-28`):
+  - **Summary**: Fixed missing variable declaration in `awmMultipleCheckBox()` function
   - **Changes**: Added `var` declaration for `inputs` variable at line 391 in `awm-inputs-module.js`
   - **Affected Files**: `assets/js/modules/awm-inputs-module.js`
-  - **Backwards Compatibility**: No breaking changes; fixes JavaScript errors on pages with `awm_tab` and checkbox fields
+  - **Backwards Compatibility**: No breaking changes; prevents ReferenceError in checkbox handling
 - **Repeater Callback Functions Not Exposed** (`2026-05-25`):
   - **Question/Prompt**: "I get this with repeater? I think is regarding @[conversation:"Fixing awm_init_inputs Error"]"
   - **Summary**: Fixed missing function exposures in admin script after webpack bundling migration. Functions called via `data-callback` attributes and `onclick` handlers were not accessible on window object, causing "function does not exist" errors in repeater fields.

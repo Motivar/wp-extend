@@ -1157,7 +1157,7 @@ if (!function_exists('awm_show_content')) {
                                     ++$first_visit;
                                     $show = $first_visit == 1 ? 'awm-tab-show active' : '';
                                     $style = $first_visit == 1 ? 'style="display: block;"' : '';
-                                    $tabs .= '<div id="' . $tab_id . '_tab" class="awm_tablinks ' . $show . '" onclick="awm_open_tab(event,\' ' . $tab_id . '\')">' . $tab_intro['label'] . '</div>';
+                                    $tabs .= '<div id="' . $tab_id . '_tab" class="awm_tablinks ' . $show . '" onclick="awm_open_tab(event,\'' . $tab_id . '\')">' . $tab_intro['label'] . '</div>';
                                     $tab_contents .= '<div id="' . $tab_id . '_content_tab" class="awm_tabcontent" ' . $style . '>';
                                     $tab_meta = array();
                                     if (isset($tab_intro['callback'])) {

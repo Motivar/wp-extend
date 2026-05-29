@@ -8,6 +8,27 @@
 const path = require('path');
 const fs = require('fs');
 const defaultConfig = require("@wordpress/scripts/config/webpack.config");
+const { version } = require('./package.json');
+
+/**
+ * Webpack plugin that emits build/version.php during every build.
+ * Allows PHP to read the asset version from a single source of truth (package.json).
+ */
+class EmitVersionPhpPlugin {
+  apply(compiler) {
+    compiler.hooks.emit.tapAsync('EmitVersionPhpPlugin', (compilation, callback) => {
+      const content = `<?php return '${version}';`;
+      const buffer = Buffer.from(content, 'utf8');
+
+      compilation.assets['version.php'] = {
+        source: () => buffer,
+        size: () => buffer.length,
+      };
+
+      callback();
+    });
+  }
+}
 
 /**
  * Build an entries object by scanning a folder.
@@ -30,6 +51,10 @@ const buildEntries = (folder, prefix) => {
 
 module.exports = {
  ...defaultConfig,
+  plugins: [
+    ...(defaultConfig.plugins || []),
+    new EmitVersionPhpPlugin(),
+  ],
  entry: {
   index: path.resolve(__dirname, 'src/index.js'),
   ...buildEntries('assets/js/modules', 'modules'),
