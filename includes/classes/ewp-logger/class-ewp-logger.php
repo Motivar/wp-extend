@@ -196,6 +196,24 @@ class EWP_Logger
         $viewer = new EWP_Logger_Viewer();
         $viewer->init();
 
+        // Register built-in action types and fire the initialized action regardless of
+        // enabled state — the viewer needs owner/type metadata even when logging is off.
+        // Priority 20 ensures this runs after load_plugin_textdomain (priority 10).
+        add_action('init', function () {
+            $this->register_builtin_types();
+        }, 20);
+
+        /**
+         * Fires after the EWP Logger system is fully initialized.
+         *
+         * Use this hook to register custom action types or configure the logger.
+         *
+         * @param EWP_Logger $logger The logger singleton instance.
+         *
+         * @since 1.0.0
+         */
+        do_action('ewp_logger_initialized', $this);
+
         // Everything else only when logging is enabled
         if (!self::$enabled) {
             return;
@@ -214,25 +232,8 @@ class EWP_Logger
         // One-time migration: drop legacy ewp_logs DB table if it exists
         $this->maybe_drop_legacy_db_table();
 
-        // Register built-in action types after init to prevent early translation loading
-        // Priority 20 ensures this runs after load_plugin_textdomain (priority 10)
-        add_action('init', function () {
-            $this->register_builtin_types();
-        }, 20);
-
         // Hook into existing EWP actions for auto-logging
         $this->register_auto_hooks();
-
-        /**
-         * Fires after the EWP Logger system is fully initialized.
-         *
-         * Use this hook to register custom action types or configure the logger.
-         *
-         * @param EWP_Logger $logger The logger singleton instance.
-         *
-         * @since 1.0.0
-         */
-        do_action('ewp_logger_initialized', $this);
     }
 
     /**
