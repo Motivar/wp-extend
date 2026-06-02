@@ -123,6 +123,13 @@ class EWP_Logger_Viewer
             'exclude_meta' => true,
         ];
 
+        // Object ID filter — type selector + dynamic ID search (object_id_filter field type)
+        $fields['object_filter'] = [
+            'case'         => 'object_id_filter',
+            'label'        => __('Object', 'extend-wp'),
+            'exclude_meta' => true,
+        ];
+
         // Behaviour filter (success / warning / error)
         $fields['behaviour'] = [
             'case'         => 'select',

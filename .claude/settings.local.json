@@ -15,7 +15,15 @@
       "Bash(ls -la /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/includes/classes/ewp-ai-content/class-ewp-ai-content.php*)",
       "Bash(/tmp/verification_summary.md:*)",
       "Read(//tmp/**)",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Bash(grep -n \"jQuery\\\\|^\\\\s*\\\\$\\(\" /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/assets/js/modules/awm-inputs-module.js)",
+      "Bash(grep -n \"jQuery\\\\|^\\\\s*\\\\$\\(\" /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/assets/js/modules/awm-repeater-module.js)",
+      "Bash(grep -n \"jQuery\\\\|^\\\\s*\\\\$\\(\" /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/assets/js/modules/awm-forms-module.js)",
+      "Bash(grep -n \"jQuery\\\\|^\\\\s*\\\\$\\(\" /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/assets/js/modules/awm-tinymce-module.js)",
+      "Bash(grep -n \"jQuery\\\\|^\\\\s*\\\\$\\(\" /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/assets/js/class-dynamic-asset-loader.js)",
+      "Bash(find /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-rocket -type f -name \"*.php\" | grep -i \"delay\\\\|safe\" | head -20)",
+      "Bash(grep -v ':0$')",
+      "Bash(sort -t: -k2 -rn)"
     ]
   }
 }

@@ -514,6 +514,14 @@ class EWP_Logger_File extends EWP_Logger_Storage
             return false;
         }
 
+        if (!empty($args['object_id'])) {
+            $entry_object_id = absint($entry['object_id'] ?? 0);
+            $allowed         = array_map('absint', (array) $args['object_id']);
+            if (!in_array($entry_object_id, $allowed, true)) {
+                return false;
+            }
+        }
+
         return true;
     }
 

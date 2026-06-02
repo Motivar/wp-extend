@@ -345,6 +345,8 @@ class EWP_Logger_API
             'owner',
             'action_type',
             'object_type',
+            'object_filter',
+            'object_filter_ids',
             'behaviour',
             'level',
             'user_id',
@@ -396,6 +398,26 @@ class EWP_Logger_API
             // Convert date formats (d-m-Y → Y-m-d) for date fields
             if (in_array($param, ['date_from', 'date_to'], true)) {
                 $value = $this->convert_date_format($value);
+            }
+
+            // Map object_id_filter fields to storage query args.
+            if ($param === 'object_filter') {
+                // Extract the group portion (e.g. "custom_content" from "custom_content:ewp_fields")
+                // and apply it as an object_type constraint so entries are scoped even when no
+                // specific IDs are selected. The explicit object_type multi-select takes precedence.
+                $parts = explode(':', $value, 2);
+                $group = !empty($parts[0]) ? sanitize_key($parts[0]) : '';
+                if (!empty($group) && !isset($args['object_type'])) {
+                    $args['object_type'] = $group;
+                }
+                continue;
+            }
+            if ($param === 'object_filter_ids') {
+                $ids = array_values(array_filter(array_map('absint', (array) $value)));
+                if (!empty($ids)) {
+                    $args['object_id'] = $ids;
+                }
+                continue;
             }
 
             $args[$param] = $value;
