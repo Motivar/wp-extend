@@ -81,25 +81,28 @@ class EWP_Logger_Viewer
         /* add date restricitons*/
         // Date From filter
         $fields['date_from'] = [
-            'case' => 'date',
-            'attributes' => array('data-change' => 'date_to', 'value' => $week),
+            'case'         => 'date',
+            'attributes'   => array('data-change' => 'date_to', 'value' => $week),
             'label'        => __('From', 'extend-wp'),
+            'explanation'  => __('Start of the date range.', 'extend-wp'),
             'exclude_meta' => true,
-            'date-params' => array('maxDate' => $maxDate, 'minDate' => $minDate),
+            'date-params'  => array('maxDate' => $maxDate, 'minDate' => $minDate),
         ];
         // Date To filter
         $fields['date_to'] = [
-            'case' => 'date',
+            'case'         => 'date',
             'label'        => __('To', 'extend-wp'),
+            'explanation'  => __('End of the date range.', 'extend-wp'),
             'attributes'   => ['value' => $today],
             'exclude_meta' => true,
-            'date-params' => array('maxDate' => $maxDate, 'minDate' => $minDate),
+            'date-params'  => array('maxDate' => $maxDate, 'minDate' => $minDate),
         ];
 
         // Owner filter
         $fields['owner'] = [
             'case'         => 'select',
             'label'        => __('Owner', 'extend-wp'),
+            'explanation'  => __('The plugin or component that wrote the log entry.', 'extend-wp'),
             'options'      => $this->build_owner_options(),
             'attributes'   => ['multiple' => true],
             'exclude_meta' => true,
@@ -109,6 +112,7 @@ class EWP_Logger_Viewer
         $fields['action_type'] = [
             'case'         => 'select',
             'label'        => __('Action Type', 'extend-wp'),
+            'explanation'  => __('The specific action that triggered the log entry.', 'extend-wp'),
             'options'      => $this->build_action_type_options(),
             'attributes'   => ['multiple' => true],
             'exclude_meta' => true,
@@ -118,6 +122,7 @@ class EWP_Logger_Viewer
         $fields['object_type'] = [
             'case'         => 'select',
             'label'        => __('Object Type', 'extend-wp'),
+            'explanation'  => __('Broad category of the logged object (post type, taxonomy, user…).', 'extend-wp'),
             'options'      => $this->build_object_type_options(),
             'attributes'   => ['multiple' => true],
             'exclude_meta' => true,
@@ -127,6 +132,7 @@ class EWP_Logger_Viewer
         $fields['object_filter'] = [
             'case'         => 'object_id_filter',
             'label'        => __('Object', 'extend-wp'),
+            'explanation'  => __('Filter by specific objects. Select a type first, then search by name.', 'extend-wp'),
             'exclude_meta' => true,
         ];
 
@@ -134,6 +140,7 @@ class EWP_Logger_Viewer
         $fields['behaviour'] = [
             'case'         => 'select',
             'label'        => __('Behaviour', 'extend-wp'),
+            'explanation'  => __('Outcome of the logged action.', 'extend-wp'),
             'options'      => [
                 '1' => ['label' => __('Success', 'extend-wp')],
                 '2' => ['label' => __('Warning', 'extend-wp')],
@@ -147,6 +154,7 @@ class EWP_Logger_Viewer
         $fields['level'] = [
             'case'         => 'select',
             'label'        => __('Level', 'extend-wp'),
+            'explanation'  => __('Audience the log entry is intended for.', 'extend-wp'),
             'options'      => [
                 'editor'    => ['label' => __('Editor', 'extend-wp')],
                 'developer' => ['label' => __('Developer', 'extend-wp')],
