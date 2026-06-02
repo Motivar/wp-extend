@@ -44,6 +44,7 @@ class Setup
   require_once 'ewp-search-filter/class-wp-search.php';
   require_once 'awm-api/class-awm-api.php';
   require_once 'awm-api/class-awm-dynamic-api.php';
+  require_once 'awm-api/class-awm-object-search-api.php';
   require_once 'awm-content-db-api/init.php';
   require_once 'class-extend-wp.php';
   require_once 'awm-db/class-db-creator.php';

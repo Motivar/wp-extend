@@ -502,6 +502,16 @@ async function awm_init_inputs() {
         );
     }
 
+    // Check for object_id_filter fields
+    if (document.querySelector('.awm-object-id-filter-wrap')) {
+        modulePromises.push(
+            import(/* webpackChunkName: "awm-object-id-filter-module" */ '@modules/awm-object-id-filter-module.js').then(m => {
+                window.initObjectIdFilters = m.initObjectIdFilters;
+                m.initObjectIdFilters();
+            }).catch(err => console.error('[AWM] Error loading object ID filter module:', err))
+        );
+    }
+
 
     // Wait for all needed modules to load and initialize
     if (modulePromises.length > 0) {

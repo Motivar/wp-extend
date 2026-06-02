@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Reusable `object_id_filter` field type** (`2026-06-02`):
+  - **Question/Prompt**: "Create a fully reusable `object_id_filter` field type for awm_show_content that allows dynamic object selection without loading all IDs at once… can you revise this, check for bottlenecks…"
+  - **Summary**: New `awm_show_content` field type that pairs a content-type selector (post types / taxonomies / custom content, grouped via optgroups) with a SlimSelect multi-select that searches matching object IDs on demand through a global REST endpoint — never loading all IDs up front. Stores **two flat meta keys** (`{field}` = the chosen `group:slug`, and `{field}_ids` / configurable `id_field_name` = the selected IDs) so both persist through the standard `awm_custom_meta[]` save pipeline. Already-selected values are **preloaded server-side** at render time (no preload round-trip). Fully configurable per field: `allowed_types`, `post_types`, `taxonomies`, `custom_content`, `id_field_name`, `min_search_chars`, `max_results`, `search_meta`.
+  - **Scope decisions**: field + REST search API + JS/CSS only (no logger integration this round); top-level fields only (not repeater rows); search covers title/name **plus meta** by default (`search_meta` opt-out per field).
+  - **REST**: `GET extend-wp/v1/objects/search` (`object_type`, `search`, `exclude`, `limit`, `search_meta`); capability `manage_options` (filterable via `awm_object_search_capability`), `X-WP-Nonce` verified.
+  - **Reuses**: `get_post_types`/`get_taxonomies`, `AWM_Content_DB::get_content_types()`, `get_posts`/`get_terms`/`awm_get_db_content()`, the existing optgroup `select` markup + global SlimSelect, and the `awm-global-script.js` dynamic-import module pattern (SlimSelect webpack-bundled into the chunk).
+  - **Filters**: `awm_object_type_options`, `awm_object_type_options_{$field}`, `awm_object_search_capability`, `awm_object_search_query_args`, `awm_object_search_results`.
+  - **New Files**: `includes/classes/awm-api/class-awm-object-search-api.php`, `assets/js/modules/awm-object-id-filter-module.js`, `assets/css/admin/awm-object-id-filter.css`.
+  - **Affected Files**: `includes/functions/library.php` (`awm_object_id_filter_config()`, `awm_get_object_type_options()`, `awm_object_search_query()`, `object_id_filter` render case), `includes/classes/Setup.php`, `includes/classes/class-extend-wp.php` (route registration + dynamic CSS asset), `assets/js/global/awm-global-script.js`, `examples/field-examples.php`, rebuilt `build/`.
+  - **Backwards Compatibility**: Additive only — new field type and endpoint; no changes to existing field behavior.
+
 - **Auto-sync asset version from package.json** (`2026-05-29`):
   - **Question/Prompt**: "Can we when we build the script also change the version of register_script_styles?"
   - **Summary**: Added `EmitVersionPhpPlugin` to `webpack.config.js` that writes `build/version.php` on every build containing the version from `package.json`. Defined `AWM_ASSET_VERSION` constant in `extend-wp.php` reading from that file. Replaced hardcoded `$version = 0.29` in `register_script_styles` with `AWM_ASSET_VERSION`.

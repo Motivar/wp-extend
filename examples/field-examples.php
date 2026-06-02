@@ -714,6 +714,74 @@ class AWM_Field_Examples {
         // Display the fields
         return awm_show_content($fields, $user_id, 'user');
     }
+
+    /**
+     * Example of the reusable `object_id_filter` field type.
+     *
+     * Each instance renders TWO connected inputs (a type selector + a remote
+     * search multi-select) and stores TWO flat meta keys:
+     *   - {field_name}            => the chosen type, e.g. "post_type:page"
+     *   - {field_name}_ids (or id_field_name) => array of selected object IDs
+     *
+     * Full configuration reference:
+     *   'case'             => 'object_id_filter',   // required
+     *   'label'            => 'Select objects',     // type-selector label
+     *   'allowed_types'    => ['post_types','taxonomies','custom_content'], // default: all
+     *   'post_types'       => ['page','post'],      // default: all public
+     *   'taxonomies'       => ['category'],         // default: all public
+     *   'custom_content'   => ['flx_booking'],      // default: all registered
+     *   'id_field_name'    => 'my_ids',             // default: {field_name}_ids
+     *   'min_search_chars' => 2,                     // default: 2
+     *   'max_results'      => 20,                     // default: 20
+     *   'search_meta'      => true,                  // default: true (search meta too)
+     *
+     * @param int $post_id The post ID.
+     * @return string The HTML output of the fields.
+     * @since 1.4.0
+     */
+    public static function object_id_filter_example($post_id = 0) {
+        $fields = array(
+            // 1) All types, default config.
+            'any_object' => array(
+                'case'  => 'object_id_filter',
+                'label' => 'Any object (all types)',
+                'order' => 10,
+            ),
+
+            // 2) Post types only, restricted to pages + posts.
+            'related_pages' => array(
+                'case'          => 'object_id_filter',
+                'label'         => 'Related pages/posts',
+                'allowed_types' => array('post_types'),
+                'post_types'    => array('page', 'post'),
+                'order'         => 20,
+            ),
+
+            // 3) Custom content only, with a custom IDs meta key.
+            'booking_filter' => array(
+                'case'           => 'object_id_filter',
+                'label'          => 'Bookings (custom content)',
+                'allowed_types'  => array('custom_content'),
+                'id_field_name'  => 'booking_ids',
+                'order'          => 30,
+            ),
+
+            // 4) Tuned search: title only, 3-char minimum, more results.
+            'taxonomy_filter' => array(
+                'case'             => 'object_id_filter',
+                'label'            => 'Taxonomy terms (title-only search)',
+                'allowed_types'    => array('taxonomies'),
+                'min_search_chars' => 3,
+                'max_results'      => 50,
+                'search_meta'      => false,
+                'order'            => 40,
+            ),
+        );
+
+        $fields['awm-id'] = 'object-id-filter-example';
+
+        return awm_show_content($fields, $post_id, 'post');
+    }
 }
 
 /**
@@ -798,3 +866,23 @@ function awm_example_save_user_meta($user_id) {
 }
 add_action('personal_options_update', 'awm_example_save_user_meta');
 add_action('edit_user_profile_update', 'awm_example_save_user_meta');
+
+// Example 5: object_id_filter field type in a metabox.
+// No new save code needed — each field emits two awm_custom_meta[] keys
+// ({field} and {field}_ids), so the existing awm_example_save_post_meta hook
+// above persists both automatically.
+function awm_example_object_id_filter_metabox() {
+    add_meta_box(
+        'awm_example_object_id_filter',
+        'Object ID Filter Example',
+        'awm_example_object_id_filter_callback',
+        'post',
+        'normal',
+        'default'
+    );
+}
+add_action('add_meta_boxes', 'awm_example_object_id_filter_metabox');
+
+function awm_example_object_id_filter_callback($post) {
+    echo AWM_Field_Examples::object_id_filter_example($post->ID);
+}

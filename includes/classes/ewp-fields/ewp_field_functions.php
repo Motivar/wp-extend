@@ -470,6 +470,11 @@ if (!function_exists('awm_dev_notes')) {
   function awm_dev_notes()
   {
     return array(
+      'any_object' => array(
+        'case'  => 'object_id_filter',
+        'label' => 'Any object (all types)',
+        'order' => 10,
+      ),
       'html' => array(
         'case' => 'html',
         'label' => __('How to get variables', 'extend-wp'),

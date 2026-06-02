@@ -666,6 +666,325 @@ if (!function_exists('awm_prepare_field')) {
 }
 
 
+if (!function_exists('awm_object_id_filter_config')) {
+    /**
+     * Normalize the configuration of an `object_id_filter` field.
+     *
+     * Reads the developer-supplied field array and fills in defaults so the
+     * rest of the pipeline (render case, server-side preload, JS module) can
+     * rely on a consistent shape.
+     *
+     * @param array  $a             The field definition.
+     * @param string $original_meta The meta key the field is registered under.
+     * @return array {
+     *     @type array  $allowed_types  Subset of post_types|taxonomies|custom_content.
+     *     @type array  $post_types     Explicit post type slugs (empty = all public).
+     *     @type array  $taxonomies     Explicit taxonomy slugs (empty = all public).
+     *     @type array  $custom_content Explicit custom content slugs (empty = all).
+     *     @type string $id_field_name  Meta key for the selected IDs.
+     *     @type int    $min_search_chars
+     *     @type int    $max_results
+     *     @type bool   $search_meta
+     * }
+     * @since 1.4.0
+     */
+    function awm_object_id_filter_config($a, $original_meta)
+    {
+        return array(
+            'allowed_types'    => isset($a['allowed_types']) && is_array($a['allowed_types']) ? $a['allowed_types'] : array('post_types', 'taxonomies', 'custom_content'),
+            'post_types'       => isset($a['post_types']) && is_array($a['post_types']) ? $a['post_types'] : array(),
+            'taxonomies'       => isset($a['taxonomies']) && is_array($a['taxonomies']) ? $a['taxonomies'] : array(),
+            'custom_content'   => isset($a['custom_content']) && is_array($a['custom_content']) ? $a['custom_content'] : array(),
+            'id_field_name'    => isset($a['id_field_name']) && !empty($a['id_field_name']) ? $a['id_field_name'] : $original_meta . '_ids',
+            'min_search_chars' => isset($a['min_search_chars']) ? absint($a['min_search_chars']) : 2,
+            'max_results'      => isset($a['max_results']) ? absint($a['max_results']) : 20,
+            'search_meta'      => isset($a['search_meta']) ? (bool) $a['search_meta'] : true,
+        );
+    }
+}
+
+
+if (!function_exists('awm_get_object_type_options')) {
+    /**
+     * Build the optgroup option structure for an `object_id_filter` type selector.
+     *
+     * Returns options keyed by `"{group}:{slug}"` plus an `optgroups` definition,
+     * matching the structure the standard `select` case expects
+     * (see awm_show_content() select rendering).
+     *
+     * Honors the field config: `allowed_types` limits the visible groups and the
+     * per-group slug arrays (`post_types`, `taxonomies`, `custom_content`) limit
+     * which entries appear inside each group. Results are cached per-config for
+     * the current request.
+     *
+     * @param array  $config     Normalized config (see awm_object_id_filter_config()).
+     * @param string $field_name Field name, used for the per-field filter hook.
+     * @return array Options array including an `optgroups` entry.
+     * @since 1.4.0
+     */
+    function awm_get_object_type_options($config, $field_name = '')
+    {
+        static $cache = array();
+        $cache_key = md5(serialize($config));
+        if (isset($cache[$cache_key])) {
+            $options = $cache[$cache_key];
+        } else {
+            $options   = array();
+            $optgroups = array();
+
+            $allowed = $config['allowed_types'];
+
+            if (in_array('post_types', $allowed, true)) {
+                $optgroups['post_type'] = array('label' => __('Post Types', 'extend-wp'));
+                $post_types = get_post_types(array('public' => true), 'objects');
+                foreach ($post_types as $slug => $obj) {
+                    if (!empty($config['post_types']) && !in_array($slug, $config['post_types'], true)) {
+                        continue;
+                    }
+                    $options['post_type:' . $slug] = array(
+                        'label'    => sprintf('%s (%s)', $obj->labels->singular_name, $slug),
+                        'optgroup' => 'post_type',
+                    );
+                }
+            }
+
+            if (in_array('taxonomies', $allowed, true)) {
+                $optgroups['taxonomy'] = array('label' => __('Taxonomies', 'extend-wp'));
+                $taxonomies = get_taxonomies(array('public' => true), 'objects');
+                foreach ($taxonomies as $slug => $obj) {
+                    if (!empty($config['taxonomies']) && !in_array($slug, $config['taxonomies'], true)) {
+                        continue;
+                    }
+                    $options['taxonomy:' . $slug] = array(
+                        'label'    => sprintf('%s (%s)', $obj->labels->singular_name, $slug),
+                        'optgroup' => 'taxonomy',
+                    );
+                }
+            }
+
+            if (in_array('custom_content', $allowed, true) && class_exists('AWM_Content_DB')) {
+                $optgroups['custom_content'] = array('label' => __('Custom Content', 'extend-wp'));
+                $content_types = AWM_Content_DB::get_instance()->get_content_types();
+                if (is_array($content_types)) {
+                    foreach ($content_types as $slug => $data) {
+                        if (!empty($config['custom_content']) && !in_array($slug, $config['custom_content'], true)) {
+                            continue;
+                        }
+                        $label = is_array($data) && isset($data['label']) ? $data['label'] : $slug;
+                        $options['custom_content:' . $slug] = array(
+                            'label'    => sprintf('%s (%s)', $label, $slug),
+                            'optgroup' => 'custom_content',
+                        );
+                    }
+                }
+            }
+
+            // Drop empty optgroups so the selector stays tidy.
+            foreach (array_keys($optgroups) as $group_id) {
+                $has_option = false;
+                foreach ($options as $opt) {
+                    if (isset($opt['optgroup']) && $opt['optgroup'] === $group_id) {
+                        $has_option = true;
+                        break;
+                    }
+                }
+                if (!$has_option) {
+                    unset($optgroups[$group_id]);
+                }
+            }
+
+            $options['optgroups'] = $optgroups;
+            $cache[$cache_key]    = $options;
+        }
+
+        $options = apply_filters('awm_object_type_options', $options, $config, $field_name);
+        if (!empty($field_name)) {
+            $options = apply_filters('awm_object_type_options_' . $field_name, $options, $config);
+        }
+        return $options;
+    }
+}
+
+
+
+
+if (!function_exists('awm_object_search_query')) {
+    /**
+     * Shared lookup for `object_id_filter` objects.
+     *
+     * Used both by the REST search endpoint and by the server-side preload that
+     * renders already-selected options on edit screens. When `include` is passed
+     * it fetches exactly those IDs (preload); otherwise it searches by title/name
+     * (and meta when `search_meta` is true).
+     *
+     * @param string $group One of post_type|taxonomy|custom_content.
+     * @param string $slug  The object slug (e.g. page, category, flx_booking).
+     * @param string $search Search term (ignored when `include` is set).
+     * @param array  $args {
+     *     @type int   $limit       Max results. Default 20.
+     *     @type bool  $search_meta Whether to also search meta values. Default true.
+     *     @type array $exclude     IDs to exclude from search results.
+     *     @type array $include     IDs to fetch directly (preload mode).
+     * }
+     * @return array List of `array('id' => int, 'label' => string, 'type' => "{group}:{slug}")`.
+     * @since 1.4.0
+     */
+    function awm_object_search_query($group, $slug, $search, $args = array())
+    {
+        global $wpdb;
+
+        $defaults = array(
+            'limit'       => 20,
+            'search_meta' => true,
+            'exclude'     => array(),
+            'include'     => array(),
+        );
+        $args = array_merge($defaults, $args);
+
+        $args        = apply_filters('awm_object_search_query_args', $args, $group, $slug, $search);
+        $limit       = max(1, absint($args['limit']));
+        $exclude     = array_filter(array_map('absint', (array) $args['exclude']));
+        $include     = array_filter(array_map('absint', (array) $args['include']));
+        $search_meta = (bool) $args['search_meta'];
+        $type        = $group . ':' . $slug;
+        $results     = array();
+
+        switch ($group) {
+            case 'post_type':
+                if (!post_type_exists($slug)) {
+                    break;
+                }
+                $ids = array();
+                if (!empty($include)) {
+                    $ids = $include;
+                } else {
+                    $ids = get_posts(array(
+                        'post_type'        => $slug,
+                        's'                => $search,
+                        'posts_per_page'   => $limit,
+                        'post__not_in'     => $exclude,
+                        'fields'           => 'ids',
+                        'post_status'      => 'any',
+                        'suppress_filters' => false,
+                    ));
+                    if ($search_meta && count($ids) < $limit) {
+                        $like     = '%' . $wpdb->esc_like($search) . '%';
+                        $meta_ids = $wpdb->get_col($wpdb->prepare(
+                            "SELECT DISTINCT pm.post_id FROM {$wpdb->postmeta} pm
+                             INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+                             WHERE p.post_type = %s AND p.post_status NOT IN ('trash','auto-draft')
+                             AND pm.meta_value LIKE %s LIMIT %d",
+                            $slug,
+                            $like,
+                            $limit
+                        ));
+                        $ids = array_merge($ids, array_map('absint', $meta_ids));
+                    }
+                    $ids = array_diff(array_unique($ids), $exclude);
+                    $ids = array_slice($ids, 0, $limit);
+                }
+                foreach ($ids as $pid) {
+                    $title = get_the_title($pid);
+                    $results[] = array(
+                        'id'    => absint($pid),
+                        'label' => $title !== '' ? $title : sprintf(__('#%d (no title)', 'extend-wp'), $pid),
+                        'type'  => $type,
+                    );
+                }
+                break;
+
+            case 'taxonomy':
+                if (!taxonomy_exists($slug)) {
+                    break;
+                }
+                $term_args = array(
+                    'taxonomy'   => $slug,
+                    'hide_empty' => false,
+                    'number'     => $limit,
+                    'exclude'    => $exclude,
+                );
+                if (!empty($include)) {
+                    $term_args['include'] = $include;
+                    unset($term_args['exclude']);
+                } else {
+                    $term_args['search'] = $search;
+                }
+                $terms = get_terms($term_args);
+                if (is_array($terms)) {
+                    foreach ($terms as $term) {
+                        $results[absint($term->term_id)] = array(
+                            'id'    => absint($term->term_id),
+                            'label' => $term->name,
+                            'type'  => $type,
+                        );
+                    }
+                }
+                if (empty($include) && $search_meta && count($results) < $limit) {
+                    $like     = '%' . $wpdb->esc_like($search) . '%';
+                    $meta_ids = $wpdb->get_col($wpdb->prepare(
+                        "SELECT DISTINCT tm.term_id FROM {$wpdb->termmeta} tm
+                         INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_id = tm.term_id
+                         WHERE tt.taxonomy = %s AND tm.meta_value LIKE %s LIMIT %d",
+                        $slug,
+                        $like,
+                        $limit
+                    ));
+                    foreach ($meta_ids as $tid) {
+                        $tid = absint($tid);
+                        if (isset($results[$tid]) || in_array($tid, $exclude, true)) {
+                            continue;
+                        }
+                        $term = get_term($tid, $slug);
+                        if ($term && !is_wp_error($term)) {
+                            $results[$tid] = array('id' => $tid, 'label' => $term->name, 'type' => $type);
+                        }
+                    }
+                }
+                $results = array_slice(array_values($results), 0, $limit);
+                break;
+
+            case 'custom_content':
+                if (!function_exists('awm_get_db_content')) {
+                    break;
+                }
+                $rows = array();
+                if (!empty($include)) {
+                    $rows = awm_get_db_content($slug, array('include' => $include));
+                } else {
+                    $rows = awm_get_db_content($slug, array('title' => $search, 'limit' => $limit));
+                    if ($search_meta && count($rows) < $limit) {
+                        $like     = '%' . $wpdb->esc_like($search) . '%';
+                        $data_tbl = $wpdb->prefix . $slug . '_data';
+                        $meta_ids = $wpdb->get_col($wpdb->prepare(
+                            "SELECT DISTINCT content_id FROM `{$data_tbl}` WHERE meta_value LIKE %s LIMIT %d",
+                            $like,
+                            $limit
+                        ));
+                        $meta_ids = array_filter(array_map('absint', (array) $meta_ids));
+                        if (!empty($meta_ids)) {
+                            $rows = array_merge($rows, awm_get_db_content($slug, array('include' => $meta_ids)));
+                        }
+                    }
+                }
+                $seen = array();
+                foreach ((array) $rows as $row) {
+                    $cid = isset($row['content_id']) ? absint($row['content_id']) : 0;
+                    if (!$cid || isset($seen[$cid]) || in_array($cid, $exclude, true)) {
+                        continue;
+                    }
+                    $seen[$cid] = true;
+                    $label = isset($row['content_title']) && $row['content_title'] !== '' ? $row['content_title'] : sprintf(__('#%d', 'extend-wp'), $cid);
+                    $results[] = array('id' => $cid, 'label' => $label, 'type' => $type);
+                }
+                $results = array_slice($results, 0, $limit);
+                break;
+        }
+
+        return apply_filters('awm_object_search_results', $results, $group, $slug, $search, $args);
+    }
+}
+
+
 if (!function_exists('awm_show_content')) {
     /**
      * this is the function which is responsible to display the custom inputs for metaboxes/options
@@ -1275,6 +1594,96 @@ if (!function_exists('awm_show_content')) {
                                 $ins .= '>' . esc_html($button_label) . '</button>';
                                 $ins .= '</div>';
                             }
+                            break;
+                        case 'object_id_filter':
+                            /**
+                             * Reusable object picker: a type selector (post type /
+                             * taxonomy / custom content) plus a remote-search multi-select
+                             * of object IDs. Stores TWO flat meta keys — the selected type
+                             * ({field}) and the selected IDs ({field}_ids by default).
+                             *
+                             * @since 1.4.0
+                             */
+                            $oif_config   = awm_object_id_filter_config($a, $original_meta);
+                            $id_field     = $oif_config['id_field_name'];
+                            $type_options = awm_get_object_type_options($oif_config, $original_meta);
+                            $type_optgroups = isset($type_options['optgroups']) ? $type_options['optgroups'] : array();
+                            unset($type_options['optgroups']);
+
+                            // Saved values (server-side preload, no extra REST round-trip).
+                            $saved_type = is_array($val) ? reset($val) : $val;
+                            $saved_ids  = awm_get_field_value($view, $a, $id, $id_field);
+                            $saved_ids  = !empty($saved_ids) ? array_filter(array_map('absint', (array) $saved_ids)) : array();
+
+                            // JS config carried per-instance on the wrapper.
+                            $js_config = array(
+                                'restUrl'        => esc_url_raw(rest_url('extend-wp/v1')),
+                                'minSearchChars' => $oif_config['min_search_chars'],
+                                'maxResults'     => $oif_config['max_results'],
+                                'searchMeta'     => $oif_config['search_meta'],
+                                'typeFieldName'  => $original_meta,
+                                'idFieldName'    => $id_field,
+                            );
+
+                            $ins .= '<div class="awm-object-id-filter-wrap" data-config="' . str_replace('"', '\'', json_encode($js_config)) . '">';
+
+                            // --- Type selector (reuses the standard optgroup select markup) ---
+                            $ins .= '<div class="awm-object-type-field">';
+                            $ins .= '<label for="' . $original_meta_id . '" class="awm-input-label"><span>' . $label . '</span></label>' . $explanation;
+                            $ins .= '<select name="' . $original_meta . '" id="' . $original_meta_id . '" class="awm-object-type-select" awm-skip-selectr="1">';
+                            $ins .= '<option value="" data-placeholder="true">' . __('— Select type —', 'extend-wp') . '</option>';
+                            foreach ($type_optgroups as $group_id => $group_data) {
+                                $ins .= '<optgroup label="' . esc_attr($group_data['label']) . '">';
+                                foreach ($type_options as $opt_key => $opt_data) {
+                                    if (!isset($opt_data['optgroup']) || $opt_data['optgroup'] !== $group_id) {
+                                        continue;
+                                    }
+                                    $selected = ($saved_type !== '' && $saved_type === $opt_key) ? ' selected' : '';
+                                    $opt_label = isset($opt_data['label']) ? $opt_data['label'] : $opt_key;
+                                    $ins .= '<option value="' . esc_attr($opt_key) . '"' . $selected . '>' . esc_html($opt_label) . '</option>';
+                                }
+                                $ins .= '</optgroup>';
+                            }
+                            $ins .= '</select></div>';
+
+                            // --- Object IDs multi-select (initialized by the JS module) ---
+                            $disabled = empty($saved_type) ? ' disabled' : '';
+                            $ins .= '<div class="awm-object-id-field">';
+                            $ins .= '<label for="' . esc_attr($id_field) . '" class="awm-input-label"><span>' . __('Select objects', 'extend-wp') . '</span></label>';
+                            $ins .= '<span class="awm-explanation">' . sprintf(
+                                /* translators: %d: minimum number of characters before search triggers */
+                                _n('Type at least %d character to search.', 'Type at least %d characters to search.', $oif_config['min_search_chars'], 'extend-wp'),
+                                $oif_config['min_search_chars']
+                            ) . '</span>';
+                            $ins .= '<select name="' . esc_attr($id_field) . '[]" id="' . esc_attr($id_field) . '" multiple class="awm-object-id-search" awm-skip-selectr="1"' . $disabled . ' data-object-type-target="' . $original_meta_id . '" data-min-chars="' . $oif_config['min_search_chars'] . '">';
+                            $saved_ids = array_values($saved_ids);
+
+                            if (!empty($saved_type) && !empty($saved_ids)) {
+                                $parts = explode(':', $saved_type, 2);
+                                if (count($parts) === 2) {
+                                    $preloaded = awm_object_search_query($parts[0], $parts[1], '', array('include' => $saved_ids, 'limit' => count($saved_ids)));
+                                    // Keep the developer's original ordering of saved IDs.
+                                    $by_id = array();
+                                    foreach ($preloaded as $row) {
+                                        $by_id[$row['id']] = $row['label'];
+                                    }
+                                    foreach ($saved_ids as $sid) {
+                                        $opt_label = isset($by_id[$sid]) ? $by_id[$sid] : sprintf(__('#%d', 'extend-wp'), $sid);
+                                        $ins .= '<option value="' . absint($sid) . '" selected>' . esc_html($opt_label) . '</option>';
+                                    }
+                                }
+                            }
+                            $ins .= '</select></div>';
+                            $ins .= '</div>';
+
+                            // Persist BOTH keys via the standard save pipeline; suppress the
+                            // single auto hidden input below and emit our own pair.
+                            $a['exclude_meta'] = true;
+                            if ($view != 'none') {
+                                $ins .= '<input type="hidden" name="awm_custom_meta[]" value="' . esc_attr($original_meta) . '"/>';
+                                $ins .= '<input type="hidden" name="awm_custom_meta[]" value="' . esc_attr($id_field) . '"/>';
+                            }
+
                             break;
                         default:
                             break;

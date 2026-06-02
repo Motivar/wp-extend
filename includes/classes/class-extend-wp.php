@@ -97,6 +97,10 @@ class AWM_Meta
     {
         $api = new AWM_API();
         $api->register_routes();
+
+        // Global object search endpoint powering the `object_id_filter` field type.
+        $object_search_api = new AWM_Object_Search_API();
+        $object_search_api->register_routes();
     }
 
     public function awm_admin_post_columns()
@@ -354,6 +358,17 @@ class AWM_Meta
             'type'     => 'style',
             'src'      => awm_url . 'assets/css/admin/awm-modal-field.css',
             'version'  => $version,
+            'context'  => 'admin',
+        );
+
+        // Object ID Filter — CSS (JS is dynamically imported by awm-global-script.js
+        // so SlimSelect can be webpack-bundled into the chunk).
+        $assets[] = array(
+            'handle'   => 'awm-object-id-filter-style',
+            'selector' => '.awm-object-id-filter-wrap',
+            'type'     => 'style',
+            'src'      => awm_url . 'assets/css/admin/awm-object-id-filter.css',
+            'version'  => defined('AWM_ASSET_VERSION') ? AWM_ASSET_VERSION : $version,
             'context'  => 'admin',
         );
 

@@ -1,0 +1,51 @@
+/**
+ * Object ID Filter field styling.
+ *
+ * Layout for the type selector + remote-search multi-select used by the
+ * `object_id_filter` field type. SlimSelect base styles are bundled via JS.
+ *
+ * @since 1.4.0
+ */
+
+.awm-object-id-filter-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.awm-object-id-filter-wrap .awm-object-type-field,
+.awm-object-id-filter-wrap .awm-object-id-field {
+    flex: 1 1 220px;
+    min-width: 200px;
+}
+
+.awm-object-id-filter-wrap .awm-input-label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+/* Disabled IDs select (no type chosen yet). */
+.awm-object-id-filter-wrap .awm-object-id-search:disabled,
+.awm-object-id-filter-wrap .ss-main.ss-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Loading state hook (added/removed by the module if needed). */
+.awm-object-id-filter-wrap.is-loading .ss-main {
+    background-image: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.04), transparent);
+    background-size: 200% 100%;
+    animation: awm-oif-loading 1.2s ease-in-out infinite;
+}
+
+@keyframes awm-oif-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Ensure SlimSelect fills the field width. */
+.awm-object-id-filter-wrap .ss-main {
+    width: 100%;
+}
