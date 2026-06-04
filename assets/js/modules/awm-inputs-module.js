@@ -172,6 +172,10 @@ function awm_toggle_password() {
     document.querySelectorAll('[data-toggle="password"]').forEach(function (el) {
         el.addEventListener("click", function (e) {
             var target = document.getElementById(el.getAttribute('data-id'));
+            if (target === null) {
+                console.warn('[AWM] Password toggle target not found:', el.getAttribute('data-id'));
+                return;
+            }
             var type = target.getAttribute('type') === 'password' ? 'text' : 'password';
             target.setAttribute('type', type);
         });
