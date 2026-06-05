@@ -272,7 +272,13 @@ class AWM_Meta
 
         // Get wp_editor args for JavaScript use
         $wp_editor_args = awm_get_wp_editor_args('', '', '');
-        
+
+        // Spinner HTML template - filterable for customization
+        $spinner_html = apply_filters(
+            'awm_spinner_html',
+            '<div class="awm-ajax-spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>'
+        );
+
         wp_localize_script('awm-global-script', 'awmGlobals', array(
             'strings' => array(
                 'placeholderText' => __('Select Value', 'extend-wp'), 
@@ -282,7 +288,8 @@ class AWM_Meta
             'url' => esc_url(home_url()),
             'nonce' => wp_create_nonce('wp_rest'),
             'buildUrl' => esc_url(awm_url . 'build/'),
-            'wpEditorArgs' => $wp_editor_args
+            'wpEditorArgs' => $wp_editor_args,
+            'spinnerHtml' => $spinner_html
         ));
 
         // Register module scripts for lazy loading (bundled via webpack)

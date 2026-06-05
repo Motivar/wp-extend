@@ -1,0 +1,57 @@
+/* AWM AJAX Loading Spinner */
+
+// Variables
+$spinner-margin-top: 100px;
+$spinner-width: 70px;
+$spinner-dot-size: 18px;
+$spinner-color: #333;
+$spinner-duration: 1.4s;
+$bounce1-delay: -0.32s;
+$bounce2-delay: -0.16s;
+
+.awm-ajax-spinner {
+    margin: $spinner-margin-top auto 0;
+    width: $spinner-width;
+    text-align: center;
+
+    > div {
+        width: $spinner-dot-size;
+        height: $spinner-dot-size;
+        background-color: $spinner-color;
+        border-radius: 100%;
+        display: inline-block;
+        -webkit-animation: awm-spinner-bounce $spinner-duration infinite ease-in-out both;
+        animation: awm-spinner-bounce $spinner-duration infinite ease-in-out both;
+    }
+
+    .bounce1 {
+        -webkit-animation-delay: $bounce1-delay;
+        animation-delay: $bounce1-delay;
+    }
+
+    .bounce2 {
+        -webkit-animation-delay: $bounce2-delay;
+        animation-delay: $bounce2-delay;
+    }
+
+    .bounce3 {
+        -webkit-animation-delay: 0s;
+        animation-delay: 0s;
+    }
+}
+
+@-webkit-keyframes awm-spinner-bounce {
+    0%, 80%, 100% { -webkit-transform: scale(0); }
+    40% { -webkit-transform: scale(1.0); }
+}
+
+@keyframes awm-spinner-bounce {
+    0%, 80%, 100% {
+        -webkit-transform: scale(0);
+        transform: scale(0);
+    }
+    40% {
+        -webkit-transform: scale(1.0);
+        transform: scale(1.0);
+    }
+}

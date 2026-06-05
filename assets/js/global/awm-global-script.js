@@ -138,6 +138,54 @@ function awm_serialize_data(obj, prefix) {
 }
 
 /**
+ * Show loading spinner in target element
+ * 
+ * @param {string} selector - CSS selector for target element
+ * @since 1.0.0
+ */
+function awm_show_loading(selector) {
+    if (!selector) return;
+
+    // Get spinner HTML from localized data with fallback
+    const spinnerHtml = (typeof awmGlobals !== 'undefined' && awmGlobals.spinnerHtml)
+        ? awmGlobals.spinnerHtml
+        : '<div class="awm-ajax-spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>';
+
+    const elements = document.querySelectorAll(selector);
+    elements.forEach(function (element) {
+        element.innerHTML = spinnerHtml;
+        element.style.display = 'block';
+        // Fade in effect
+        element.style.opacity = '0';
+        setTimeout(function () {
+            element.style.transition = 'opacity 0.3s';
+            element.style.opacity = '1';
+        }, 10);
+    });
+}
+
+/**
+ * Hide loading spinner from target element
+ * 
+ * @param {string} selector - CSS selector for target element
+ * @since 1.0.0
+ */
+function awm_hide_loading(selector) {
+    if (!selector) return;
+
+    const elements = document.querySelectorAll(selector);
+    elements.forEach(function (element) {
+        // Fade out effect
+        element.style.transition = 'opacity 0.3s';
+        element.style.opacity = '0';
+        setTimeout(function () {
+            element.style.display = 'none';
+            element.innerHTML = '';
+        }, 300);
+    });
+}
+
+/**
  * AJAX Call Function
  * 
  * Performs AJAX requests with WordPress REST API integration.
@@ -152,6 +200,8 @@ function awm_serialize_data(obj, prefix) {
  * @param {string|Function} options.errorCallback Error callback function name or function reference (called on 4xx errors)
  * @param {boolean} options.log Enable console logging for debugging
  * @param {HTMLElement|string} options.element Element to pass to callback
+ * @param {string|boolean} options.loading CSS selector for loading element (false to disable)
+ * @param {boolean} options.loadingAutoHide Auto-hide loading spinner on success/error (default: false)
  * @return {boolean} Returns true if request was initiated
  * 
  * @since 1.0.0
@@ -170,17 +220,33 @@ function awm_ajax_call(options) {
             callback: false,
             errorCallback: false,
             log: false,
-            element: false
+            element: false,
+            loading: false,
+            loadingAutoHide: false
         };
 
         // Merge user options with defaults
         const Options = { ...defaults, ...options };
 
+        // Add 'awm-ajax-started' class to body
+        document.body.classList.add('awm-ajax-started');
+
+        // Dispatch started event
+        const startedEvent = new CustomEvent('awm_ajax_started', { detail: { options: Options } });
+        document.dispatchEvent(startedEvent);
+
+        // Show loading spinner if selector provided
+        if (Options.loading) {
+            awm_show_loading(Options.loading);
+        }
+
         EWPDynamicAssetLoader.log('Initializing AJAX request', {
             method: Options.method,
             url: Options.url,
             hasCallback: !!Options.callback,
-            hasErrorCallback: !!Options.errorCallback
+            hasErrorCallback: !!Options.errorCallback,
+            hasLoading: !!Options.loading,
+            loadingAutoHide: Options.loadingAutoHide
         });
 
         // Handle GET request data serialization
@@ -223,6 +289,16 @@ function awm_ajax_call(options) {
         // Create XMLHttpRequest instance
         var request = new XMLHttpRequest();
         
+        // Add 'awm-ajax-processing' class when request starts
+        request.addEventListener('loadstart', function () {
+            document.body.classList.remove('awm-ajax-started');
+            document.body.classList.add('awm-ajax-processing');
+
+            // Dispatch processing event
+            const processingEvent = new CustomEvent('awm_ajax_processing', { detail: { options: Options } });
+            document.dispatchEvent(processingEvent);
+        });
+
         try {
             request.open(Options.method, Options.url, true);
             EWPDynamicAssetLoader.log('Request opened', { method: Options.method, url: Options.url });
@@ -253,6 +329,15 @@ function awm_ajax_call(options) {
                     if (request.status >= 200 && request.status < 300) {
                         EWPDynamicAssetLoader.log('Request successful', { status: request.status });
                         
+                        // Remove processing class, add succeeded class
+                        document.body.classList.remove('awm-ajax-processing');
+                        document.body.classList.add('awm-ajax-succeeded');
+
+                        // Hide loading spinner on success if auto-hide is enabled
+                        if (Options.loading && Options.loadingAutoHide) {
+                            awm_hide_loading(Options.loading);
+                        }
+
                         try {
                             // Parse JSON response
                             var responseData = JSON.parse(request.responseText);
@@ -289,6 +374,11 @@ function awm_ajax_call(options) {
                                 const event = new CustomEvent("awm_ajax_call_callback", { detail: data });
                                 document.dispatchEvent(event);
                                 EWPDynamicAssetLoader.log('Success event dispatched');
+
+                                // Remove succeeded class after a short delay
+                                setTimeout(function () {
+                                    document.body.classList.remove('awm-ajax-succeeded');
+                                }, 300);
                             } catch (e) {
                                 console.error('[AWM AJAX] Error dispatching success event:', e);
                             }
@@ -315,6 +405,15 @@ function awm_ajax_call(options) {
          * Handle error responses
          */
         function handleError(status, responseText) {
+            // Remove processing class, add failed class
+            document.body.classList.remove('awm-ajax-started', 'awm-ajax-processing');
+            document.body.classList.add('awm-ajax-failed');
+
+            // Hide loading spinner on error if auto-hide is enabled
+            if (Options.loading && Options.loadingAutoHide) {
+                awm_hide_loading(Options.loading);
+            }
+
             try {
                 // Log error using consistent logging pattern
                 console.error('[AWM AJAX] Request failed with status: ' + status);
@@ -360,6 +459,11 @@ function awm_ajax_call(options) {
                     const errorEvent = new CustomEvent("awm_ajax_call_error", { detail: errorEventData });
                     document.dispatchEvent(errorEvent);
                     EWPDynamicAssetLoader.log('Error event dispatched', { status: status });
+
+                    // Remove failed class after a short delay
+                    setTimeout(function () {
+                        document.body.classList.remove('awm-ajax-failed');
+                    }, 300);
                 } catch (e) {
                     console.error('[AWM AJAX] Error dispatching error event:', e);
                 }
