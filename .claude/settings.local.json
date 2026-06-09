@@ -23,7 +23,10 @@
       "Bash(grep -n \"jQuery\\\\|^\\\\s*\\\\$\\(\" /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-extend/assets/js/class-dynamic-asset-loader.js)",
       "Bash(find /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/wp-rocket -type f -name \"*.php\" | grep -i \"delay\\\\|safe\" | head -20)",
       "Bash(grep -v ':0$')",
-      "Bash(sort -t: -k2 -rn)"
+      "Bash(sort -t: -k2 -rn)",
+      "Bash(grep -E \"\\\\.php$\")",
+      "Bash(ls -la /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/)",
+      "Bash(ls -la /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/uploads/ 2>/dev/null | head -20)"
     ]
   }
 }
