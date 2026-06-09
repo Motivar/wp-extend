@@ -361,6 +361,7 @@ class EWP_REST_Health_Discovery
             'methods'             => $methods,
             'permission_callback' => $perm_cb,
             'controller_class'    => $controller,
+            'callback_name'       => $this->resolve_callback_name($handlers),
             'args'                => $args,
             'url_params'          => $this->extract_url_params($route),
         ];
@@ -503,6 +504,41 @@ class EWP_REST_Health_Discovery
             }
             if (is_string($callback[0]) && class_exists($callback[0])) {
                 return $callback[0];
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Build a human-readable callback string for the first handler that has one.
+     *
+     * Examples:
+     *   [AWM_API, 'get_case_fields']  → 'AWM_API::get_case_fields'
+     *   'my_function'                 → 'my_function'
+     *   Closure                       → 'Closure'
+     *   __return_true                 → '__return_true'
+     *
+     * @param  array $handlers Raw handler array from WP REST server.
+     * @return string|null
+     */
+    private function resolve_callback_name(array $handlers): ?string
+    {
+        foreach ($handlers as $handler) {
+            if (empty($handler['callback'])) {
+                continue;
+            }
+            $cb = $handler['callback'];
+
+            if ($cb instanceof Closure) {
+                return 'Closure';
+            }
+            if (is_array($cb) && isset($cb[0], $cb[1])) {
+                $class  = is_object($cb[0]) ? get_class($cb[0]) : (string) $cb[0];
+                $method = (string) $cb[1];
+                return $class . '::' . $method;
+            }
+            if (is_string($cb) && $cb !== '') {
+                return $cb;
             }
         }
         return null;

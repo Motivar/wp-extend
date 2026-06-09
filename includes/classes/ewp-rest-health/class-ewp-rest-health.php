@@ -200,9 +200,12 @@ class EWP_REST_Health
     {
         $pages['ewp-rest-health'] = [
             'title'       => __('REST API Health', 'extend-wp'),
-            'parent'      => 'extend-wp',   // submenu under Extend WP
+            'parent'      => 'ewp-log-viewer',  // sub-item under EWP Logger
             'cap'         => 'manage_options',
-            'order'       => 900,
+            // Must be > EWP Logger's order (1000000000000) so AWM processes
+            // add_menu_page('ewp-log-viewer') BEFORE add_submenu_page('ewp-log-viewer').
+            // WordPress only auto-links the parent entry when submenu is added after parent.
+            'order'       => 1000000000001,
             'hide_submit' => true,
             'callback'    => [$this, 'get_page_fields'],
         ];

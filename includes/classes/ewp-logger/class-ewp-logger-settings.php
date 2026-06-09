@@ -118,6 +118,7 @@ class EWP_Logger_Settings
                 'label'       => __('Enable REST API Logs', 'extend-wp'),
                 'case'        => 'input',
                 'type'        => 'checkbox',
+                'show-when' => array('enabled' => array('values' => true)),
                 'explanation' => __('Expose REST API endpoints for reading log entries (/extend-wp/v1/logs). Required for the log viewer. Disable to block external access to log data.', 'extend-wp'),
             ],
             'retention_months' => [

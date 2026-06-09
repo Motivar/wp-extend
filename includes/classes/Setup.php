@@ -58,11 +58,7 @@ class Setup
   require_once 'class-dynamic-asset-loader.php';
   require_once 'ewp-logger/class-ewp-logger.php';
   require_once 'ewp-options-portability/class-options-portability.php';
-  require_once 'ewp-ai-content/class-ewp-ai-content.php';
-  require_once 'ewp-rest-health/class-ewp-rest-health-discovery.php';
-  require_once 'ewp-rest-health/class-ewp-rest-health-runner.php';
-  require_once 'ewp-rest-health/class-ewp-rest-health-openapi.php';
-  require_once 'ewp-rest-health/class-ewp-rest-health-controller.php';
-  require_once 'ewp-rest-health/class-ewp-rest-health.php';
+  //require_once 'ewp-ai-content/class-ewp-ai-content.php';
+
  }
 }

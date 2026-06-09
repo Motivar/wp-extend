@@ -132,14 +132,18 @@ class EWP_REST_Health_OpenAPI
             ],
         ];
 
-        // Description from permission callback / controller
+        // Description: permission callback + controller + handler
         $cb = $meta['permission_callback'] ?? [];
         if (!empty($cb['name'])) {
-            $cb_label              = $cb['valid'] ? '✓' : '⚠ not callable';
-            $operation['description'] = 'Permission: `' . $cb['name'] . '` ' . $cb_label;
+            $cb_label = $cb['valid'] ? '✓' : '⚠ not callable';
+            $parts    = ['Permission: `' . $cb['name'] . '` ' . $cb_label];
             if (!empty($meta['controller_class'])) {
-                $operation['description'] .= ' | Controller: `' . $meta['controller_class'] . '`';
+                $parts[] = 'Controller: `' . $meta['controller_class'] . '`';
             }
+            if (!empty($meta['callback_name'])) {
+                $parts[] = 'Callback: `' . $meta['callback_name'] . '`';
+            }
+            $operation['description'] = implode(' | ', $parts);
         }
 
         // Parameters
