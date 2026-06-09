@@ -63,9 +63,17 @@ class EWP_REST_Health
     {
         $route = $request->get_route();
 
-        // Never capture our own endpoints
-        if (str_contains($route, '/rest-health/')) {
-            return $result;
+        // Routes that should never be captured.
+        // Filterable so external code can add its own exclusions.
+        $excluded = apply_filters('ewp_rest_health_monitor_exclude_routes', [
+            '/rest-health/',   // this tool's own endpoints
+            '/extend-wp/v1/logs', // EWP Logger — internal/noisy
+        ]);
+
+        foreach ($excluded as $prefix) {
+            if (str_contains($route, $prefix)) {
+                return $result;
+            }
         }
 
         // Auto-stop after 10 minutes
@@ -192,8 +200,7 @@ class EWP_REST_Health
     {
         $pages['ewp-rest-health'] = [
             'title'       => __('REST API Health', 'extend-wp'),
-            'parent'      => false,                // top-level standalone menu
-            'icon'        => 'dashicons-rest-api',
+            'parent'      => 'extend-wp',   // submenu under Extend WP
             'cap'         => 'manage_options',
             'order'       => 900,
             'hide_submit' => true,
@@ -432,5 +439,8 @@ class EWP_REST_Health
     }
 }
 
-/* Initialize */
-new EWP_REST_Health();
+/* Initialize only when "Enable REST API Logs" is on in Logger Settings.
+ * EWP_Logger_Settings is already loaded via class-ewp-logger.php (loaded earlier in Setup.php). */
+if (!empty(\EWP\Logger\EWP_Logger_Settings::get_settings()['rest_api_enabled'])) {
+    new EWP_REST_Health();
+}

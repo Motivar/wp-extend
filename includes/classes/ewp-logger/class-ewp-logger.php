@@ -188,9 +188,12 @@ class EWP_Logger
         // Initialize storage backend (always needed for viewer/API to read logs)
         $this->storage = $this->resolve_storage_backend();
 
-        // Initialize REST API (always needed for viewer to fetch logs)
-        $api = new EWP_Logger_API($this->storage);
-        $api->init();
+        // Initialize REST API only when the setting is enabled.
+        // The viewer falls back to a notice when the API is off.
+        if (!empty($settings['rest_api_enabled'])) {
+            $api = new EWP_Logger_API($this->storage);
+            $api->init();
+        }
 
         // Initialize log viewer admin page (always available to view existing logs)
         $viewer = new EWP_Logger_Viewer();

@@ -79,7 +79,8 @@ class EWP_Logger_Settings
     private static function get_field_defaults()
     {
         return [
-            'enabled' => '',
+            'enabled'          => '',
+            'rest_api_enabled' => '',
             'retention_months' => 6,
         ];
     }
@@ -112,6 +113,12 @@ class EWP_Logger_Settings
                 'case'        => 'input',
                 'type'        => 'checkbox',
                 'explanation' => __('Enable or disable the EWP logging system globally.', 'extend-wp'),
+            ],
+            'rest_api_enabled' => [
+                'label'       => __('Enable REST API Logs', 'extend-wp'),
+                'case'        => 'input',
+                'type'        => 'checkbox',
+                'explanation' => __('Expose REST API endpoints for reading log entries (/extend-wp/v1/logs). Required for the log viewer. Disable to block external access to log data.', 'extend-wp'),
             ],
             'retention_months' => [
                 'label'       => __('Retention Period (months)', 'extend-wp'),
