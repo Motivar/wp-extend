@@ -91,11 +91,18 @@ class EWP_REST_Health
         }
 
         $method  = $request->get_method();
+
+        // get_body_params()  → application/x-www-form-urlencoded and multipart
+        // get_json_params()  → application/json (the common REST API content type)
+        // Merge both so PUT/POST/PATCH/DELETE payloads are always captured.
+        $body_params = (array) ($request->get_body_params() ?: []);
+        $json_params = (array) ($request->get_json_params() ?: []);
+
         $payload = [
             'route'        => $route,
             'method'       => $method,
             'query_params' => $request->get_query_params(),
-            'body_params'  => $request->get_body_params(),
+            'body_params'  => array_merge($body_params, $json_params),
             'url_params'   => $request->get_url_params(),
             'status'       => $result->get_status(),
             'response'     => $this->truncate_response($result->get_data()),
