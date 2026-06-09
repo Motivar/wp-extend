@@ -54,8 +54,10 @@
             this.$payloadsClear = wrap.querySelector('.ewp-rh-payloads-clear');
 
             // Plugin select + method CBs are sibling PHP-rendered fields
-            this.$plugins   = document.getElementById('ewp-rh-plugin-select');
-            this.$methodCbs = Array.from(wrap.querySelectorAll('.ewp-rh-method-cb'));
+            this.$plugins        = document.getElementById('ewp-rh-plugin-select');
+            this.$methodCbs      = Array.from(wrap.querySelectorAll('.ewp-rh-method-cb'));
+            this.capturedPayloads = []; // kept in memory to pre-fill inline textareas
+            this.swaggerObserver  = null;
 
             this.bindEvents();
             this.restoreAndInit();
@@ -178,10 +180,10 @@
                     return req;
                 },
                 onComplete: () => {
-                    // Re-apply any active search after spec finishes rendering
                     if (this.$search && this.$search.value.trim()) {
                         this.filterSwaggerOps(this.$search.value.trim());
                     }
+                    this.setupSwaggerInjection();
                 },
             });
         }
@@ -208,6 +210,119 @@
                     .some(op => op.style.display !== 'none');
                 section.style.display = (!q || visible) ? '' : 'none';
             });
+        }
+
+        // -------------------------------------------------------------------------
+        // Swagger inline test injection
+        // -------------------------------------------------------------------------
+
+        setupSwaggerInjection() {
+            if (this.swaggerObserver) this.swaggerObserver.disconnect();
+
+            const panel = document.querySelector('#ewp-rh-swagger-panel');
+            if (!panel) return;
+
+            // Initial pass — inject into already-open operations
+            panel.querySelectorAll('.opblock-body').forEach(b => this.injectTestArea(b));
+
+            // Watch for operations being expanded by the user
+            this.swaggerObserver = new MutationObserver(mutations => {
+                mutations.forEach(m => {
+                    m.addedNodes.forEach(node => {
+                        if (!(node instanceof HTMLElement)) return;
+                        if (node.classList.contains('opblock-body')) {
+                            this.injectTestArea(node);
+                        }
+                        node.querySelectorAll?.('.opblock-body').forEach(b => this.injectTestArea(b));
+                    });
+                });
+            });
+
+            this.swaggerObserver.observe(panel, { childList: true, subtree: true });
+        }
+
+        injectTestArea(body) {
+            if (!body || body.querySelector('.ewp-rh-inline-test')) return;
+
+            const opblock = body.closest('.opblock');
+            if (!opblock) return;
+
+            const rawRoute = (opblock.querySelector('.opblock-summary-path')?.textContent || '').trim();
+            const method   = (opblock.querySelector('.opblock-summary-method')?.textContent || '').trim().toUpperCase();
+            if (!rawRoute || !method) return;
+
+            // Pre-fill with captured payload if available
+            const captured = this.capturedPayloads.find(p => p.route === rawRoute && p.method === method);
+            const params   = captured
+                ? Object.assign({}, captured.url_params || {}, captured.query_params || {}, captured.body_params || {})
+                : {};
+            ['_wpnonce', 'context'].forEach(k => delete params[k]);
+            const prefill = Object.keys(params).length ? JSON.stringify(params, null, 2) : '{}';
+
+            const section = document.createElement('div');
+            section.className = 'ewp-rh-inline-test';
+            section.innerHTML =
+                '<div class="ewp-rh-inline-header">Quick Test'
+                + (captured ? ' <span class="ewp-rh-inline-badge">● captured params</span>' : '')
+                + '</div>'
+                + '<textarea class="ewp-rh-pl-textarea ewp-rh-inline-ta" rows="4">'
+                + e(prefill) + '</textarea>'
+                + '<div class="ewp-rh-pl-btn-row">'
+                + '<button class="button button-primary ewp-rh-inline-exec" type="button">▶ Execute</button>'
+                + '<button class="button-secondary ewp-rh-inline-fmt" type="button" title="Format JSON">{ }</button>'
+                + '</div>'
+                + '<div class="ewp-rh-pl-result" hidden></div>';
+
+            body.appendChild(section);
+
+            const ta      = section.querySelector('.ewp-rh-inline-ta');
+            const execBtn = section.querySelector('.ewp-rh-inline-exec');
+            const fmtBtn  = section.querySelector('.ewp-rh-inline-fmt');
+            const result  = section.querySelector('.ewp-rh-pl-result');
+
+            fmtBtn.addEventListener('click', () => {
+                try { ta.value = JSON.stringify(JSON.parse(ta.value), null, 2); } catch (_) {}
+            });
+
+            execBtn.addEventListener('click', () => {
+                let p = {};
+                try { p = JSON.parse(ta.value || '{}'); } catch (_) {
+                    result.hidden    = false;
+                    result.className = 'ewp-rh-pl-result ewp-rh-pl-result-err';
+                    result.textContent = 'Invalid JSON in textarea';
+                    return;
+                }
+                this.executeInlineTest(rawRoute, method, p, result, execBtn);
+            });
+        }
+
+        async executeInlineTest(route, method, params, resultEl, btn) {
+            const orig = btn.textContent;
+            btn.disabled     = true;
+            btn.textContent  = '…';
+            resultEl.hidden  = false;
+            resultEl.className = 'ewp-rh-pl-result ewp-rh-pl-result-loading';
+            resultEl.textContent = 'Executing…';
+
+            try {
+                const data = await this.post('test', { route, method, params });
+                const ok   = data.status >= 200 && data.status < 300;
+                resultEl.className = 'ewp-rh-pl-result ' + (ok ? 'ewp-rh-pl-result-ok' : 'ewp-rh-pl-result-err');
+                resultEl.innerHTML =
+                    '<span class="ewp-rh-res-status">' + e(data.status) + ' · ' + e(data.duration_ms) + 'ms</span>'
+                    + '<button class="button-link ewp-rh-res-copy" type="button" style="float:right" '
+                    +   'data-json="' + e(JSON.stringify(data.response, null, 2)) + '">Copy</button>'
+                    + '<pre class="ewp-rh-pl-code" style="margin-top:6px;max-height:200px">'
+                    + e(JSON.stringify(data.response, null, 2)) + '</pre>';
+                resultEl.querySelector('.ewp-rh-res-copy')
+                    ?.addEventListener('click', ev => this.copyToClipboard(ev.currentTarget));
+            } catch (_) {
+                resultEl.className  = 'ewp-rh-pl-result ewp-rh-pl-result-err';
+                resultEl.textContent = 'Request failed';
+            } finally {
+                btn.disabled    = false;
+                btn.textContent = orig;
+            }
         }
 
         // -------------------------------------------------------------------------
@@ -335,6 +450,7 @@
         async loadPayloads() {
             try {
                 const payloads = await this.get('monitor/payloads');
+                this.capturedPayloads = payloads || [];
                 this.renderPayloads(payloads);
             } catch (_) {}
         }
@@ -349,50 +465,182 @@
 
             this.$payloadsPanel.hidden = false;
             this.$payloadsList.innerHTML = payloads.map((p, idx) => {
-                const id      = 'ewp-rh-pl-' + idx;
-                const params  = Object.assign({}, p.query_params || {}, p.body_params || {}, p.url_params || {});
-                const json    = JSON.stringify(params, null, 2);
-                const status  = p.status >= 400 ? 'ewp-rh-pl-err' : 'ewp-rh-pl-ok';
-                const icon    = p.status >= 400 ? '✗' : '✓';
+                const id       = 'ewp-rh-pl-' + idx;
+                const idResp   = 'ewp-rh-resp-' + idx;
+                const idResult = 'ewp-rh-res-' + idx;
+                const params   = Object.assign({}, p.url_params || {}, p.query_params || {}, p.body_params || {});
+                ['_wpnonce', 'context'].forEach(k => delete params[k]);
+                const paramsJson = JSON.stringify(params, null, 2);
+                const respJson   = JSON.stringify(p.response ?? null, null, 2);
+                const hasResp    = p.response !== null && p.response !== undefined;
+                const errCls     = p.status >= 400 ? 'ewp-rh-pl-err' : 'ewp-rh-pl-ok';
+                const icon       = p.status >= 400 ? '✗' : '✓';
+                const emptyParams = Object.keys(params).length === 0;
 
-                return '<div class="ewp-rh-payload-row">'
-                    + '<div class="ewp-rh-pl-header" data-target="' + id + '">'
-                    + '<span class="ewp-rh-pl-icon ' + status + '">' + icon + '</span>'
+                return '<div class="ewp-rh-payload-row" data-idx="' + idx + '">'
+                    // Header
+                    + '<div class="ewp-rh-pl-header">'
+                    + '<span class="ewp-rh-pl-icon ' + errCls + '">' + icon + '</span>'
                     + '<span class="ewp-rh-pl-method">' + e(p.method) + '</span>'
                     + '<span class="ewp-rh-pl-route" title="' + e(p.route) + '">' + e(p.route) + '</span>'
                     + '<span class="ewp-rh-pl-status">' + e(p.status) + '</span>'
                     + '<span class="ewp-rh-pl-time">' + e(p.timestamp) + '</span>'
-                    + '<button class="button-link ewp-rh-pl-toggle" type="button" aria-expanded="false" aria-controls="' + id + '">'
-                    + 'Show test data ▾</button>'
+                    + '<span class="ewp-rh-pl-actions">'
+                    + '<button class="button-link ewp-rh-pl-toggle" type="button" '
+                    +   'aria-expanded="false" aria-controls="' + id + '">Show test data ▾</button>'
+                    + '</span>'
                     + '</div>'
+
+                    // Expandable body
                     + '<div class="ewp-rh-pl-body" id="' + id + '" hidden>'
-                    + '<pre class="ewp-rh-pl-code">' + e(json) + '</pre>'
-                    + '<button class="button-secondary ewp-rh-pl-copy" type="button" data-json="' + e(json) + '">'
-                    + 'Copy params</button>'
+
+                    // ── Editable test params textarea
+                    + '<p class="ewp-rh-pl-section-label">Test parameters <small>(edit freely)</small></p>'
+                    + '<textarea class="ewp-rh-pl-textarea" rows="' + (emptyParams ? 3 : Math.min(12, paramsJson.split('\n').length + 1)) + '">'
+                    + (emptyParams ? '{}' : e(paramsJson))
+                    + '</textarea>'
+                    + '<div class="ewp-rh-pl-btn-row">'
+                    + '<button class="button ewp-rh-pl-use-swagger" type="button" '
+                    +   'data-route="' + e(p.route) + '" data-method="' + e(p.method) + '">⬆ Try in Swagger</button>'
+                    + '<button class="button-secondary ewp-rh-pl-copy" type="button" '
+                    +   'data-json="' + e(paramsJson) + '">Copy</button>'
                     + '</div>'
-                    + '</div>';
+
+                    // Captured response (collapsible)
+                    + (hasResp
+                        ? '<p class="ewp-rh-pl-section-label">Captured response '
+                          + '<button class="button-link ewp-rh-resp-toggle" aria-expanded="false" aria-controls="' + idResp + '">Show ▾</button></p>'
+                          + '<div id="' + idResp + '" hidden>'
+                          + '<pre class="ewp-rh-pl-code ewp-rh-pl-resp">' + e(respJson) + '</pre>'
+                          + '<button class="button-secondary ewp-rh-pl-copy" type="button" data-json="' + e(respJson) + '">Copy response</button>'
+                          + '</div>'
+                        : '')
+                    + '</div></div>';
             }).join('');
 
-            // Wire toggle + copy buttons
-            this.$payloadsList.querySelectorAll('.ewp-rh-pl-toggle').forEach(btn => {
+            // Wire events
+            this.$payloadsList.querySelectorAll('.ewp-rh-pl-toggle').forEach(btn =>
+                btn.addEventListener('click', () => this.toggleBlock(btn))
+            );
+            this.$payloadsList.querySelectorAll('.ewp-rh-resp-toggle').forEach(btn =>
+                btn.addEventListener('click', () => this.toggleBlock(btn))
+            );
+            this.$payloadsList.querySelectorAll('.ewp-rh-pl-copy').forEach(btn =>
+                btn.addEventListener('click', () => this.copyToClipboard(btn))
+            );
+            this.$payloadsList.querySelectorAll('.ewp-rh-pl-use-swagger').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    const body     = document.getElementById(btn.getAttribute('aria-controls'));
-                    const expanded = btn.getAttribute('aria-expanded') === 'true';
-                    btn.setAttribute('aria-expanded', String(!expanded));
-                    btn.textContent = expanded ? 'Show test data ▾' : 'Hide test data ▴';
-                    if (body) body.hidden = expanded;
+                    const row = btn.closest('.ewp-rh-payload-row');
+                    const ta  = row?.querySelector('.ewp-rh-pl-textarea');
+                    let params = {};
+                    try { params = JSON.parse(ta?.value || '{}'); } catch (_) {}
+                    this.useInSwagger(btn.dataset.route, btn.dataset.method, params, btn);
                 });
+            });
+        }
+
+        // ── Toggle a collapsible block
+        toggleBlock(btn) {
+            const target   = document.getElementById(btn.getAttribute('aria-controls'));
+            const expanded = btn.getAttribute('aria-expanded') === 'true';
+            btn.setAttribute('aria-expanded', String(!expanded));
+            const label = btn.textContent.replace(/\s*[▾▴]\s*$/, '').trim();
+            btn.textContent = label + (expanded ? ' ▾' : ' ▴');
+            if (target) target.hidden = expanded;
+        }
+
+        copyToClipboard(btn) {
+            navigator.clipboard.writeText(btn.dataset.json || '').then(() => {
+                const orig = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                setTimeout(() => { btn.textContent = orig; }, 1500);
+            });
+        }
+
+        // ── Try in Swagger:
+        //   1. Find + scroll to the operation
+        //   2. Expand it via Swagger UI's own layoutActions (most reliable) or summary-control click
+        //   3. Once expanded, our MutationObserver has already injected the Quick Test section
+        //   4. Pre-fill that textarea + auto-click our own Execute button (plain button, not React)
+        useInSwagger(route, method, params, triggerBtn) {
+            const panel = document.querySelector('#ewp-rh-swagger-panel');
+            if (!panel) return;
+
+            // 1. Find the operation block by method + path text
+            let block = null;
+            const norm = route.replace(/\(\?P<[^>]+>[^)]+\)/g, '{$1}');
+            panel.querySelectorAll('.opblock').forEach(op => {
+                if (block) return;
+                const path = (op.querySelector('.opblock-summary-path')?.textContent || '').trim();
+                const meth = (op.querySelector('.opblock-summary-method')?.textContent || '').trim().toUpperCase();
+                if (meth === method.toUpperCase() && (path === route || path === norm)) block = op;
             });
 
-            this.$payloadsList.querySelectorAll('.ewp-rh-pl-copy').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    navigator.clipboard.writeText(btn.dataset.json || '').then(() => {
-                        const orig = btn.textContent;
-                        btn.textContent = 'Copied!';
-                        setTimeout(() => { btn.textContent = orig; }, 1500);
-                    });
-                });
-            });
+            if (!block) {
+                alert('Endpoint not found in Swagger UI.\nMake sure the plugin is selected and spec is loaded.');
+                return;
+            }
+
+            const orig = triggerBtn.textContent;
+            triggerBtn.disabled = true;
+
+            // 2. Scroll
+            block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // 3. Expand the operation.
+            //    Swagger UI 5 uses an inner <button class="opblock-summary-control"> as the
+            //    actual expand trigger — NOT the outer .opblock-summary div.
+            //    We also try Swagger UI's own layoutActions API as a secondary method.
+            const alreadyOpen = block.classList.contains('is-open');
+            if (!alreadyOpen) {
+                // Primary: click the correct inner control button
+                const ctrl = block.querySelector('button.opblock-summary-control')
+                          || block.querySelector('.opblock-summary');
+                ctrl?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+
+                // Secondary: use Swagger UI's internal layoutActions if available
+                try {
+                    const sys = this.swaggerUi?.getSystem?.();
+                    if (sys) {
+                        const blockId = block.id || ''; // "operations-{tag}-{opId}"
+                        const m = blockId.match(/^operations-(.+?)-(.+)$/);
+                        if (m) sys.layoutActions.show(['operations', m[1], m[2]], true);
+                    }
+                } catch (_) {}
+            }
+
+            // 4. After expansion, fill our Quick Test textarea and click our Execute button.
+            //    We target OUR injected elements (plain DOM, not React) — no event simulation needed.
+            const fillAndRun = () => {
+                // If Quick Test section not injected yet (race), inject it now
+                if (!block.querySelector('.ewp-rh-inline-test')) {
+                    const body = block.querySelector('.opblock-body');
+                    if (body) this.injectTestArea(body);
+                }
+
+                const ta      = block.querySelector('.ewp-rh-inline-ta');
+                const execBtn = block.querySelector('.ewp-rh-inline-exec');
+
+                if (ta) {
+                    ta.value = JSON.stringify(params, null, 2);
+                }
+
+                if (execBtn) {
+                    execBtn.click(); // our plain button — always works
+                } else {
+                    // opblock didn't expand — show a clear message
+                    alert('Could not expand the endpoint. Click it manually in Swagger UI first, then try again.');
+                }
+
+                triggerBtn.textContent = execBtn ? '✓ Executed' : '⚠ Expand manually';
+                setTimeout(() => {
+                    triggerBtn.textContent = orig;
+                    triggerBtn.disabled    = false;
+                }, 2500);
+            };
+
+            // Wait for expansion + MutationObserver injection (longer if we triggered expand)
+            setTimeout(fillAndRun, alreadyOpen ? 50 : 700);
         }
 
         async clearPayloads() {

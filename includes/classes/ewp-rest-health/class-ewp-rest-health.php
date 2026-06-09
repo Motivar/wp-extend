@@ -90,6 +90,7 @@ class EWP_REST_Health
             'body_params'  => $request->get_body_params(),
             'url_params'   => $request->get_url_params(),
             'status'       => $result->get_status(),
+            'response'     => $this->truncate_response($result->get_data()),
             'timestamp'    => current_time('mysql'),
         ];
 
@@ -115,6 +116,24 @@ class EWP_REST_Health
         update_option('ewp_rh_monitor_count', ((int) get_option('ewp_rh_monitor_count', 0)) + 1, false);
 
         return $result;
+    }
+
+    /**
+     * Truncate a response body so stored payloads don't bloat wp_options.
+     * Arrays are capped at 50 top-level items; strings at 4KB.
+     */
+    private function truncate_response($data)
+    {
+        if (is_array($data)) {
+            if (count($data) > 50) {
+                return array_slice($data, 0, 50, true) + ['_truncated' => true, '_original_count' => count($data)];
+            }
+            return $data;
+        }
+        if (is_string($data) && strlen($data) > 4096) {
+            return substr($data, 0, 4096) . '…[truncated]';
+        }
+        return $data;
     }
 
     /** Extract a REST namespace from a route path (e.g. /filox/v1/rates → filox/v1). */

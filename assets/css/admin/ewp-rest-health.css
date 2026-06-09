@@ -141,11 +141,24 @@
 .ewp-rh-pl-time    { color: #646970; font-size: 11px; min-width: 130px; }
 .ewp-rh-pl-toggle  { margin-left: auto; white-space: nowrap; }
 
+.ewp-rh-pl-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
 .ewp-rh-pl-body {
-    padding: 8px 12px 12px;
+    padding: 10px 14px 14px;
     background: #f6f7f7;
     border-top: 1px solid #f0f0f1;
 }
+
+.ewp-rh-pl-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #646970;
+    margin: 10px 0 4px;
+}
+.ewp-rh-pl-section-label:first-child { margin-top: 0; }
+.ewp-rh-pl-section-label .button-link { text-transform: none; letter-spacing: 0; font-weight: normal; }
 
 .ewp-rh-pl-code {
     font-family: monospace;
@@ -157,7 +170,37 @@
     overflow-x: auto;
     margin: 0 0 8px;
     white-space: pre;
+    max-height: 220px;
+    overflow-y: auto;
 }
+
+.ewp-rh-pl-resp { background: #0f1117; color: #a6e3a1; } /* different tint for response */
+
+.ewp-rh-pl-btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+
+/* Editable params textarea */
+.ewp-rh-pl-textarea {
+    width: 100%;
+    font-family: monospace;
+    font-size: 12px;
+    padding: 8px 10px;
+    border: 1px solid #c3c4c7;
+    border-radius: 3px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    resize: vertical;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+}
+.ewp-rh-pl-textarea:focus { outline: none; border-color: #2271b1; }
+
+/* Execute result panel */
+.ewp-rh-pl-result         { margin: 6px 0 4px; padding: 8px 10px; border-radius: 3px; font-size: 12px; }
+.ewp-rh-pl-result-loading { background: #f0f6fc; color: #646970; }
+.ewp-rh-pl-result-ok      { background: #e6f4ea; }
+.ewp-rh-pl-result-err     { background: #fce8e6; }
+.ewp-rh-pl-result .ewp-rh-pl-code { max-height: 180px; margin: 0; }
+.ewp-rh-res-status        { font-weight: 700; font-size: 12px; }
 
 /* ── Swagger UI wrapper ─────────────────────────────────────────────── */
 
@@ -165,12 +208,19 @@
     background: #fff;
     border: 1px solid #c3c4c7;
     border-radius: 4px;
-    overflow: hidden;
+    /* NO overflow:hidden — it clips Swagger's absolutely-positioned arrow SVGs */
 }
 
 /* Hide Swagger's own topbar and built-in filter (we supply our own above) */
-.ewp-rh-swagger-wrap .swagger-ui .topbar         { display: none !important; }
+.ewp-rh-swagger-wrap .swagger-ui .topbar           { display: none !important; }
 .ewp-rh-swagger-wrap .swagger-ui .filter-container { display: none !important; }
+
+/* Hide ALL expand/collapse arrows in Swagger UI — entire panel is still clickable */
+.ewp-rh-swagger-wrap .swagger-ui .arrow,
+.ewp-rh-swagger-wrap .swagger-ui svg.arrow,
+.ewp-rh-swagger-wrap .swagger-ui .opblock-summary-control svg,
+.ewp-rh-swagger-wrap .swagger-ui .expand-methods svg,
+.ewp-rh-swagger-wrap .swagger-ui .model-toggle::after { display: none !important; }
 
 .ewp-rh-swagger-wrap .swagger-ui,
 .ewp-rh-swagger-wrap .swagger-ui * {
@@ -182,4 +232,36 @@
     color: #646970;
     font-style: italic;
     margin: 0;
+}
+
+/* ── Inline Quick Test section (injected into each Swagger opblock-body) ── */
+
+.ewp-rh-inline-test {
+    margin: 0;
+    padding: 10px 16px 14px;
+    border-top: 2px solid #2271b1;
+    background: #f0f6fc;
+}
+
+.ewp-rh-inline-header {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #2271b1;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ewp-rh-inline-badge {
+    font-size: 10px;
+    font-weight: 600;
+    background: #e6f4ea;
+    color: #1a6633;
+    padding: 1px 6px;
+    border-radius: 8px;
+    text-transform: none;
+    letter-spacing: 0;
 }
