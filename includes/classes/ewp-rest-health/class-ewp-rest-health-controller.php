@@ -109,6 +109,11 @@ class EWP_REST_Health_Controller extends WP_REST_Controller
 
     public function get_plugins(WP_REST_Request $request): WP_REST_Response
     {
+        // Refresh button always clears the scan cache so re-scanning happens
+        if ($request->get_param('refresh')) {
+            $this->discovery->clear_map_cache();
+        }
+
         $plugins = $this->discovery->get_active_plugins();
         $ns_map  = $this->discovery->build_namespace_plugin_map();
         $result  = [];

@@ -44,6 +44,7 @@
             this.$search        = wrap.querySelector('#ewp-rh-search');
             this.$swaggerPanel  = wrap.querySelector('#ewp-rh-swagger-panel');
             this.$refreshBtn    = wrap.querySelector('.ewp-rh-refresh');
+            this.$exportBtn     = wrap.querySelector('.ewp-rh-export-spec');
             this.$monitorStart  = wrap.querySelector('.ewp-rh-monitor-start');
             this.$monitorStop   = wrap.querySelector('.ewp-rh-monitor-stop');
             this.$monitorStatus = wrap.querySelector('.ewp-rh-monitor-status');
@@ -88,10 +89,11 @@
                 this.initSwagger();
             }));
 
-            // Refresh → force spec reload
+            // Refresh → clear server scan cache + force spec reload
             if (this.$refreshBtn) {
-                this.$refreshBtn.addEventListener('click', () => {
+                this.$refreshBtn.addEventListener('click', async () => {
                     this.currentSpecUrl = null;
+                    try { await this.get('plugins?refresh=1'); } catch (_) {}
                     this.initSwagger();
                 });
             }
@@ -108,6 +110,7 @@
             // Clear captured payloads
             if (this.$payloadsClear)    this.$payloadsClear.addEventListener('click',    () => this.clearPayloads());
             if (this.$payloadsDownload) this.$payloadsDownload.addEventListener('click', () => this.downloadPayloads());
+            if (this.$exportBtn)        this.$exportBtn.addEventListener('click',        () => this.exportSpec());
         }
 
         // -------------------------------------------------------------------------
@@ -162,6 +165,7 @@
                     this.$swaggerPanel.innerHTML = '<p class="ewp-rh-hint">'
                         + e(this.str.selectPlugin || 'Select a plugin above.') + '</p>';
                 }
+                if (this.$exportBtn) this.$exportBtn.hidden = true;
                 return;
             }
 
@@ -183,6 +187,8 @@
 
             this.currentSpecUrl = specUrl;
             if (this.$swaggerPanel) this.$swaggerPanel.innerHTML = '';
+
+            if (this.$exportBtn) this.$exportBtn.hidden = false;
 
             const nonce = this.nonce;
             this.swaggerUi = SwaggerUIBundle({
@@ -684,6 +690,38 @@
         // -------------------------------------------------------------------------
         // Download payloads JSON
         // -------------------------------------------------------------------------
+
+        // ── Export the current OpenAPI spec as a downloadable JSON file
+        async exportSpec() {
+            if (!this.currentSpecUrl) return;
+
+            const orig = this.$exportBtn?.textContent;
+            if (this.$exportBtn) { this.$exportBtn.disabled = true; this.$exportBtn.textContent = '…'; }
+
+            try {
+                const res  = await fetch(this.currentSpecUrl, { headers: { 'X-WP-Nonce': this.nonce } });
+                const spec = await res.json();
+
+                // Build a descriptive filename from selected plugins
+                const slugs   = this.getSelected().map(p => p.split('/')[0]).join('-');
+                const date    = new Date().toISOString().slice(0, 10);
+                const filename = 'openapi-' + slugs + '-' + date + '.json';
+
+                const blob = new Blob([JSON.stringify(spec, null, 2)], { type: 'application/json' });
+                const url  = URL.createObjectURL(blob);
+                const a    = document.createElement('a');
+                a.href     = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (_) {
+                alert('Export failed. Check console.');
+            } finally {
+                if (this.$exportBtn) { this.$exportBtn.disabled = false; this.$exportBtn.textContent = orig; }
+            }
+        }
 
         downloadPayloads() {
             if (!this.capturedPayloads || !this.capturedPayloads.length) return;

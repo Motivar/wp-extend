@@ -309,6 +309,7 @@ class EWP_REST_Health
             . '</div>'
             . '<div class="ewp-rh-toolbar-actions">'
             . '<button class="button button-secondary ewp-rh-refresh" type="button">&#8635; ' . esc_html__('Refresh', 'extend-wp') . '</button>'
+            . '<button class="button button-secondary ewp-rh-export-spec" type="button" hidden>&#8659; ' . esc_html__('Export Spec', 'extend-wp') . '</button>'
             . '</div>'
             . '</div>'
 

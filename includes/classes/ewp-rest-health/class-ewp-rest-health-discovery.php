@@ -102,32 +102,72 @@ class EWP_REST_Health_Discovery
     }
 
     /**
-     * Build a map of namespace → plugin_path using token-intersection scoring.
+     * Build a map of namespace → plugin_path.
+     *
+     * Resolution order:
+     *  1. Core namespace blocklist → __wp_core__
+     *  2. Static file scan: grep each plugin's PHP files for register_rest_route()
+     *     literal namespace strings → most accurate, catches any naming convention
+     *  3. Token-intersection heuristic → fallback when scan finds nothing
+     *  4. ewp_rest_health_namespace_plugin_map filter → manual overrides
+     *
+     * Results are cached in a transient keyed by active-plugin list hash.
+     * Call clear_map_cache() (e.g., on Refresh) to force a rescan.
      *
      * @return array<string, string>  namespace => plugin path
      */
     public function build_namespace_plugin_map(): array
     {
-        $namespaces = $this->get_all_namespaces();
-        // Exclude the pseudo-plugin key so core namespaces don't compete with real plugins
         $plugins = array_filter(
             $this->get_active_plugins(),
             fn($path) => $path !== self::CORE_PLUGIN_KEY,
             ARRAY_FILTER_USE_KEY
         );
-        $map = [];
 
-        foreach ($namespaces as $namespace) {
-            // Core namespaces (wp/v2, oembed/…, etc.) always map to the pseudo key
-            if ($this->is_core_namespace($namespace)) {
-                $map[$namespace] = self::CORE_PLUGIN_KEY;
+        // Cache key changes whenever the active-plugin list changes
+        $cache_key = 'ewp_rh_ns_map_' . substr(md5(implode(',', array_keys($plugins))), 0, 12);
+        $cached    = get_transient($cache_key);
+        if (is_array($cached)) {
+            return apply_filters('ewp_rest_health_namespace_plugin_map', $cached);
+        }
+
+        $all_ns = $this->get_all_namespaces();
+        $map    = [];
+
+        // Step 1 — core namespaces
+        foreach ($all_ns as $ns) {
+            if ($this->is_core_namespace($ns)) {
+                $map[$ns] = self::CORE_PLUGIN_KEY;
+            }
+        }
+
+        // Step 2 — scan every plugin's PHP source for register_rest_route() literals
+        $scan_results = []; // namespace_slug => plugin_path  (from file scan)
+        foreach ($plugins as $path => $meta) {
+            foreach ($this->scan_plugin_namespaces($path) as $found_slug) {
+                if (!isset($scan_results[$found_slug])) {
+                    $scan_results[$found_slug] = $path;
+                }
+            }
+        }
+
+        // Step 3 — resolve each registered namespace
+        foreach ($all_ns as $ns) {
+            if (isset($map[$ns])) {
+                continue; // already mapped (core)
+            }
+
+            $ns_slug = $this->strip_version($ns);
+
+            // File-scan hit (exact slug match or namespace === scanned slug)
+            if (isset($scan_results[$ns_slug]) || isset($scan_results[$ns])) {
+                $map[$ns] = $scan_results[$ns_slug] ?? $scan_results[$ns];
                 continue;
             }
 
-            $ns_slug     = $this->strip_version($namespace);
+            // Heuristic fallback
             $best_plugin = null;
             $best_score  = 0;
-
             foreach ($plugins as $path => $meta) {
                 $score = $this->match_score($ns_slug, $meta['dir'], $meta['name']);
                 if ($score > $best_score) {
@@ -135,13 +175,123 @@ class EWP_REST_Health_Discovery
                     $best_plugin = $path;
                 }
             }
-
             if ($best_plugin && $best_score > 0) {
-                $map[$namespace] = $best_plugin;
+                $map[$ns] = $best_plugin;
             }
         }
 
+        set_transient($cache_key, $map, HOUR_IN_SECONDS);
+
         return apply_filters('ewp_rest_health_namespace_plugin_map', $map);
+    }
+
+    /**
+     * Invalidate the namespace map cache (called by the Refresh button).
+     * Deletes all ewp_rh_ns_map_* transients.
+     */
+    public function clear_map_cache(): void
+    {
+        global $wpdb;
+        $wpdb->query(
+            "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_ewp_rh_ns_map_%'"
+        );
+    }
+
+    /**
+     * Scan a plugin's PHP files for register_rest_route() calls and return
+     * every namespace string literal found.
+     *
+     * Handles the two most common patterns:
+     *   register_rest_route( 'namespace/v1', '/path', ... )
+     *   protected $namespace = 'namespace/v1';
+     *
+     * Does NOT trace variables or constants — a best-effort static analysis.
+     * Results are usable for the vast majority of plugins.
+     *
+     * @param  string   $plugin_path  e.g. 'sync/sync.php'
+     * @return string[] Unique namespace slugs found (version stripped)
+     */
+    public function scan_plugin_namespaces(string $plugin_path): array
+    {
+        $plugin_dir = WP_PLUGIN_DIR . '/' . dirname($plugin_path);
+        if (!is_dir($plugin_dir)) {
+            return [];
+        }
+
+        $found   = [];
+        $counter = 0;
+        $files   = $this->collect_php_files($plugin_dir, 0, $counter);
+
+        foreach ($files as $file) {
+            $src = @file_get_contents($file);
+            if (!$src) {
+                continue;
+            }
+
+            // Pattern 1: register_rest_route( 'namespace/v1', ...
+            preg_match_all(
+                '/register_rest_route\s*\(\s*[\'"]([a-zA-Z0-9][a-zA-Z0-9_\-\/\.]*)[\'"]/',
+                $src,
+                $m1
+            );
+
+            // Pattern 2: $namespace = 'value';  or  $rest_namespace = 'value';
+            preg_match_all(
+                '/\$(?:namespace|rest_namespace|rest_base)\s*=\s*[\'"]([a-zA-Z0-9][a-zA-Z0-9_\-\/\.]*)[\'"]/',
+                $src,
+                $m2
+            );
+
+            foreach (array_merge($m1[1] ?? [], $m2[1] ?? []) as $raw) {
+                $slug = $this->strip_version($raw);
+                if ($slug && strlen($slug) > 1) {
+                    $found[$slug] = true;
+                    $found[$raw]  = true; // also store with version suffix
+                }
+            }
+        }
+
+        return array_keys($found);
+    }
+
+    /**
+     * Recursively collect PHP files in a directory.
+     * Skips common non-source directories and caps at 300 files to stay fast.
+     *
+     * @param string $dir
+     * @param int    $depth   Current recursion depth (max 6)
+     * @param int    &$count  Running file count (stops at 300)
+     * @return string[]
+     */
+    private function collect_php_files(string $dir, int $depth, int &$count): array
+    {
+        static $skip_dirs = ['node_modules', 'vendor', 'build', 'dist', 'assets', 'tests', 'test', '.git'];
+
+        if ($depth > 6 || $count >= 300) {
+            return [];
+        }
+
+        $files = [];
+        $items = @scandir($dir);
+        if (!$items) {
+            return [];
+        }
+
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+            $path = $dir . '/' . $item;
+
+            if (is_file($path) && str_ends_with($item, '.php') && $count < 300) {
+                $files[] = $path;
+                $count++;
+            } elseif (is_dir($path) && !in_array($item, $skip_dirs, true)) {
+                $files = array_merge($files, $this->collect_php_files($path, $depth + 1, $count));
+            }
+        }
+
+        return $files;
     }
 
     /**
@@ -279,21 +429,24 @@ class EWP_REST_Health_Discovery
     /**
      * Compute a match score between a namespace slug and a plugin.
      *
-     * Priority (highest first):
-     *  10 — exact string match (ns_slug === plugin_dir)
-     *   5 — one is a prefix of the other
-     *   3 — one is a substring of the other
-     *   N — token intersection ≥ 2  (N = number of shared tokens)
-     *   0 — single-token match only → rejected (avoids "wp" false positives)
+     * Two rules only — no prefix/substring checks (they cause false positives
+     * like 'filox-sync' being attributed to 'filox' because it starts with 'filox'):
+     *
+     *  10 — exact string match  (ns_slug === plugin_dir)
+     *   N — token intersection ≥ 2  (N = shared token count; uses dir + plugin name)
+     *   0 — anything else (single shared token is too ambiguous)
+     *
+     * Examples:
+     *   filox/v1      vs filox         → exact 10  ✓
+     *   filox-sync/v1 vs sync (Filox Rates Sync) → tokens ['filox','sync'] ∩ ['sync','filox','rates'] = 2 ✓
+     *   filox-sync/v1 vs filox         → tokens ['filox','sync'] ∩ ['filox'] = 1 → 0 ✓
+     *   extend-wp/v1  vs wp-extend     → tokens ['extend','wp'] ∩ ['wp','extend'] = 2 ✓
      */
     private function match_score(string $ns_slug, string $plugin_dir, string $plugin_name): int
     {
-        $ns  = strtolower($ns_slug);
-        $dir = strtolower($plugin_dir);
-
-        if ($ns === $dir) return 10;
-        if (str_starts_with($ns, $dir) || str_starts_with($dir, $ns)) return 5;
-        if (str_contains($dir, $ns)    || str_contains($ns, $dir))    return 3;
+        if (strtolower($ns_slug) === strtolower($plugin_dir)) {
+            return 10;
+        }
 
         $ns_tokens     = $this->tokenize($ns_slug);
         $plugin_tokens = array_unique(array_merge(
@@ -302,7 +455,6 @@ class EWP_REST_Health_Discovery
         ));
         $shared = count(array_intersect($ns_tokens, $plugin_tokens));
 
-        // Single shared token (e.g. 'wp') is too ambiguous — require at least 2
         return $shared >= 2 ? $shared : 0;
     }
 
