@@ -119,6 +119,8 @@
     font-size: 13px;
 }
 
+.ewp-rh-payloads-actions { display: flex; gap: 12px; }
+
 .ewp-rh-payload-row { border-bottom: 1px solid #f0f0f1; }
 .ewp-rh-payload-row:last-child { border-bottom: none; }
 
@@ -126,12 +128,17 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 12px;
-    cursor: default;
+    padding: 7px 12px;
+    cursor: pointer;
     font-size: 12px;
-    flex-wrap: wrap;
+    user-select: none;
+    transition: background .15s;
 }
 
+.ewp-rh-pl-header:hover  { background: #f0f6fc; }
+.ewp-rh-pl-header:focus  { outline: 2px solid #2271b1; outline-offset: -2px; }
+
+.ewp-rh-pl-arrow   { color: #646970; font-size: 10px; flex-shrink: 0; min-width: 12px; }
 .ewp-rh-pl-icon    { font-weight: 700; min-width: 14px; }
 .ewp-rh-pl-ok      { color: #34a853; }
 .ewp-rh-pl-err     { color: #ea4335; }
@@ -139,7 +146,6 @@
 .ewp-rh-pl-route   { flex: 1; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ewp-rh-pl-status  { color: #646970; min-width: 36px; }
 .ewp-rh-pl-time    { color: #646970; font-size: 11px; min-width: 130px; }
-.ewp-rh-pl-toggle  { margin-left: auto; white-space: nowrap; }
 
 .ewp-rh-pl-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 

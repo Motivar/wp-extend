@@ -87,6 +87,11 @@ class EWP_REST_Health_Controller extends WP_REST_Controller
             ['methods' => WP_REST_Server::READABLE,  'callback' => [$this, 'get_payloads'],   'permission_callback' => $perm],
             ['methods' => WP_REST_Server::DELETABLE, 'callback' => [$this, 'clear_payloads'], 'permission_callback' => $perm],
         ]);
+
+        register_rest_route($this->namespace, $base . '/preferences', [
+            ['methods' => WP_REST_Server::READABLE,  'callback' => [$this, 'get_preferences'],  'permission_callback' => $perm],
+            ['methods' => WP_REST_Server::CREATABLE, 'callback' => [$this, 'save_preferences'], 'permission_callback' => $perm],
+        ]);
     }
 
     // -------------------------------------------------------------------------
@@ -251,14 +256,32 @@ class EWP_REST_Health_Controller extends WP_REST_Controller
 
     public function get_payloads(WP_REST_Request $request): WP_REST_Response
     {
-        $all = (array) get_option('ewp_rh_captured_payloads', []);
-        return rest_ensure_response(array_values($all));
+        return rest_ensure_response(EWP_REST_Health::read_payloads());
     }
 
     public function clear_payloads(WP_REST_Request $request): WP_REST_Response
     {
-        update_option('ewp_rh_captured_payloads', [], false);
-        update_option('ewp_rh_monitor_count',     0,  false);
+        $path = EWP_REST_Health::get_payloads_path();
+        if (file_exists($path)) {
+            @unlink($path);
+        }
+        update_option('ewp_rh_monitor_count', 0, false);
         return rest_ensure_response(['cleared' => true]);
+    }
+
+    // ── User preferences (plugins + methods) — stored in user meta ───────────
+
+    public function get_preferences(WP_REST_Request $request): WP_REST_Response
+    {
+        $prefs = get_user_meta(get_current_user_id(), 'ewp_rh_preferences', true);
+        return rest_ensure_response(is_array($prefs) ? $prefs : []);
+    }
+
+    public function save_preferences(WP_REST_Request $request): WP_REST_Response
+    {
+        $plugins = array_map('sanitize_text_field', (array) ($request->get_param('plugins') ?? []));
+        $methods = array_map('sanitize_text_field', (array) ($request->get_param('methods') ?? []));
+        update_user_meta(get_current_user_id(), 'ewp_rh_preferences', compact('plugins', 'methods'));
+        return rest_ensure_response(['saved' => true]);
     }
 }

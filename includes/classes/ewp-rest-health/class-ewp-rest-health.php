@@ -107,10 +107,11 @@ class EWP_REST_Health
             );
         }
 
-        // Store last captured payload per route+method (overwrites previous)
-        $all                             = (array) get_option('ewp_rh_captured_payloads', []);
-        $all[$route . ':' . $method]     = $payload;
-        update_option('ewp_rh_captured_payloads', $all, false);
+        // Store last captured payload per route+method — deduplicated, newest first, in JSON file
+        $all    = self::read_payloads();
+        $all    = array_values(array_filter($all, fn($p) => !($p['route'] === $route && $p['method'] === $method)));
+        array_unshift($all, $payload);
+        self::write_payloads($all);
 
         // Increment counter for UI feedback
         update_option('ewp_rh_monitor_count', ((int) get_option('ewp_rh_monitor_count', 0)) + 1, false);
@@ -134,6 +135,39 @@ class EWP_REST_Health
             return substr($data, 0, 4096) . '…[truncated]';
         }
         return $data;
+    }
+
+    // -------------------------------------------------------------------------
+    // Static: captured payloads JSON file
+    // -------------------------------------------------------------------------
+
+    public static function get_payloads_path(): string
+    {
+        return wp_upload_dir()['basedir'] . '/ewp-rest-health/payloads.json';
+    }
+
+    /** @return array[] Indexed array of payload objects, newest first. */
+    public static function read_payloads(): array
+    {
+        $path = self::get_payloads_path();
+        if (!file_exists($path)) {
+            return [];
+        }
+        $json = @file_get_contents($path);
+        $data = $json ? json_decode($json, true) : null;
+        return is_array($data) ? $data : [];
+    }
+
+    public static function write_payloads(array $payloads): void
+    {
+        $path = self::get_payloads_path();
+        $dir  = dirname($path);
+        if (!is_dir($dir)) {
+            wp_mkdir_p($dir);
+            @file_put_contents($dir . '/.htaccess', 'Deny from all');
+            @file_put_contents($dir . '/index.php', '<?php exit;');
+        }
+        file_put_contents($path, wp_json_encode(array_values($payloads), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX);
     }
 
     /** Extract a REST namespace from a route path (e.g. /filox/v1/rates → filox/v1). */
@@ -293,8 +327,10 @@ class EWP_REST_Health
             . '<div class="ewp-rh-payloads-panel" hidden>'
             . '<div class="ewp-rh-payloads-header">'
             . '<strong>' . esc_html__('Captured Payloads', 'extend-wp') . '</strong>'
-            . '<button class="button-link ewp-rh-payloads-clear" type="button">'
-            . esc_html__('Clear all', 'extend-wp') . '</button>'
+            . '<span class="ewp-rh-payloads-actions">'
+            . '<button class="button-link ewp-rh-payloads-download" type="button">' . esc_html__('Download', 'extend-wp') . '</button>'
+            . '<button class="button-link ewp-rh-payloads-clear" type="button">' . esc_html__('Clear all', 'extend-wp') . '</button>'
+            . '</span>'
             . '</div>'
             . '<div class="ewp-rh-payloads-list"></div>'
             . '</div>'

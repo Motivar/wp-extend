@@ -17,9 +17,8 @@
 (function () {
     'use strict';
 
-    const cfg          = window.ewpRestHealth || {};
-    const STORAGE_KEY  = 'ewp_rh_selected_plugins';
-    const POLL_MS      = 4000;   // poll interval while monitoring is active
+    const cfg     = window.ewpRestHealth || {};
+    const POLL_MS = 4000;
 
     document.addEventListener('DOMContentLoaded', () => {
         const wrap = document.querySelector('.ewp-rest-health-wrap');
@@ -51,7 +50,8 @@
             this.$countdown     = wrap.querySelector('.ewp-rh-monitor-countdown');
             this.$payloadsPanel = wrap.querySelector('.ewp-rh-payloads-panel');
             this.$payloadsList  = wrap.querySelector('.ewp-rh-payloads-list');
-            this.$payloadsClear = wrap.querySelector('.ewp-rh-payloads-clear');
+            this.$payloadsClear    = wrap.querySelector('.ewp-rh-payloads-clear');
+            this.$payloadsDownload = wrap.querySelector('.ewp-rh-payloads-download');
 
             // Plugin select + method CBs are sibling PHP-rendered fields
             this.$plugins        = document.getElementById('ewp-rh-plugin-select');
@@ -60,7 +60,7 @@
             this.swaggerObserver  = null;
 
             this.bindEvents();
-            this.restoreAndInit();
+            this.loadPreferences(); // loads from user meta, then inits swagger
             this.loadMonitorStatus();
             this.loadPayloads();
         }
@@ -74,16 +74,19 @@
             const form = this.wrap.closest('form');
             if (form) form.addEventListener('submit', ev => ev.preventDefault());
 
-            // Plugin selection → reload spec
+            // Plugin selection → save preferences + reload spec
             if (this.$plugins) {
                 this.$plugins.addEventListener('change', () => {
-                    this.saveSelection(this.getSelected());
+                    this.savePreferences();
                     this.initSwagger();
                 });
             }
 
-            // Method checkboxes → reload spec
-            this.$methodCbs.forEach(cb => cb.addEventListener('change', () => this.initSwagger()));
+            // Method checkboxes → save preferences + reload spec
+            this.$methodCbs.forEach(cb => cb.addEventListener('change', () => {
+                this.savePreferences();
+                this.initSwagger();
+            }));
 
             // Refresh → force spec reload
             if (this.$refreshBtn) {
@@ -103,22 +106,37 @@
             if (this.$monitorStop)  this.$monitorStop.addEventListener('click',  () => this.stopMonitor());
 
             // Clear captured payloads
-            if (this.$payloadsClear) this.$payloadsClear.addEventListener('click', () => this.clearPayloads());
+            if (this.$payloadsClear)    this.$payloadsClear.addEventListener('click',    () => this.clearPayloads());
+            if (this.$payloadsDownload) this.$payloadsDownload.addEventListener('click', () => this.downloadPayloads());
         }
 
         // -------------------------------------------------------------------------
-        // Restore selection and boot Swagger UI
+        // User preferences — stored in user meta via REST
         // -------------------------------------------------------------------------
 
-        restoreAndInit() {
-            if (!this.$plugins) return;
-            const saved = this.restoreSelection();
-            if (saved.length) {
-                Array.from(this.$plugins.options).forEach(opt => {
-                    opt.selected = saved.includes(opt.value);
-                });
-                this.initSwagger();
-            }
+        async loadPreferences() {
+            try {
+                const prefs = await this.get('preferences');
+                if (this.$plugins && Array.isArray(prefs.plugins) && prefs.plugins.length) {
+                    Array.from(this.$plugins.options).forEach(opt => {
+                        opt.selected = prefs.plugins.includes(opt.value);
+                    });
+                }
+                if (Array.isArray(prefs.methods) && prefs.methods.length) {
+                    this.$methodCbs.forEach(cb => {
+                        cb.checked = prefs.methods.includes(cb.value);
+                    });
+                }
+                if (this.getSelected().length) this.initSwagger();
+            } catch (_) {}
+        }
+
+        savePreferences() {
+            // Fire-and-forget — don't await, UI shouldn't wait for this
+            this.post('preferences', {
+                plugins: this.getSelected(),
+                methods: this.getSelectedMethods(),
+            }).catch(() => {});
         }
 
         getSelected()   {
@@ -478,17 +496,15 @@
                 const emptyParams = Object.keys(params).length === 0;
 
                 return '<div class="ewp-rh-payload-row" data-idx="' + idx + '">'
-                    // Header
-                    + '<div class="ewp-rh-pl-header">'
+                    // Header — entire row is the toggle (no separate button)
+                    + '<div class="ewp-rh-pl-header ewp-rh-pl-toggle" role="button" tabindex="0" '
+                    +   'aria-expanded="false" aria-controls="' + id + '">'
+                    + '<span class="ewp-rh-pl-arrow">▸</span>'
                     + '<span class="ewp-rh-pl-icon ' + errCls + '">' + icon + '</span>'
                     + '<span class="ewp-rh-pl-method">' + e(p.method) + '</span>'
                     + '<span class="ewp-rh-pl-route" title="' + e(p.route) + '">' + e(p.route) + '</span>'
                     + '<span class="ewp-rh-pl-status">' + e(p.status) + '</span>'
                     + '<span class="ewp-rh-pl-time">' + e(p.timestamp) + '</span>'
-                    + '<span class="ewp-rh-pl-actions">'
-                    + '<button class="button-link ewp-rh-pl-toggle" type="button" '
-                    +   'aria-expanded="false" aria-controls="' + id + '">Show test data ▾</button>'
-                    + '</span>'
                     + '</div>'
 
                     // Expandable body
@@ -518,10 +534,13 @@
                     + '</div></div>';
             }).join('');
 
-            // Wire events
-            this.$payloadsList.querySelectorAll('.ewp-rh-pl-toggle').forEach(btn =>
-                btn.addEventListener('click', () => this.toggleBlock(btn))
-            );
+            // Wire events — headers ARE the toggles
+            this.$payloadsList.querySelectorAll('.ewp-rh-pl-toggle').forEach(el => {
+                el.addEventListener('click', () => this.toggleBlock(el));
+                el.addEventListener('keydown', ev => {
+                    if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); this.toggleBlock(el); }
+                });
+            });
             this.$payloadsList.querySelectorAll('.ewp-rh-resp-toggle').forEach(btn =>
                 btn.addEventListener('click', () => this.toggleBlock(btn))
             );
@@ -540,13 +559,21 @@
         }
 
         // ── Toggle a collapsible block
-        toggleBlock(btn) {
-            const target   = document.getElementById(btn.getAttribute('aria-controls'));
-            const expanded = btn.getAttribute('aria-expanded') === 'true';
-            btn.setAttribute('aria-expanded', String(!expanded));
-            const label = btn.textContent.replace(/\s*[▾▴]\s*$/, '').trim();
-            btn.textContent = label + (expanded ? ' ▾' : ' ▴');
+        toggleBlock(el) {
+            const target   = document.getElementById(el.getAttribute('aria-controls'));
+            const expanded = el.getAttribute('aria-expanded') === 'true';
+            el.setAttribute('aria-expanded', String(!expanded));
             if (target) target.hidden = expanded;
+
+            // Rotate the ▸ arrow if this is a header row
+            const arrow = el.querySelector('.ewp-rh-pl-arrow');
+            if (arrow) arrow.textContent = expanded ? '▸' : '▾';
+
+            // Response toggles (inside body) still use text-swap
+            if (!arrow) {
+                const label = el.textContent.replace(/\s*[▾▴]\s*$/, '').trim();
+                el.textContent = label + (expanded ? ' ▾' : ' ▴');
+            }
         }
 
         copyToClipboard(btn) {
@@ -655,17 +682,21 @@
         }
 
         // -------------------------------------------------------------------------
-        // localStorage
+        // Download payloads JSON
         // -------------------------------------------------------------------------
 
-        restoreSelection() {
-            try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-            catch (_) { return []; }
-        }
-
-        saveSelection(sel) {
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(sel)); }
-            catch (_) {}
+        downloadPayloads() {
+            if (!this.capturedPayloads || !this.capturedPayloads.length) return;
+            const json = JSON.stringify(this.capturedPayloads, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href     = url;
+            a.download = 'ewp-rest-payloads-' + new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-') + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         // -------------------------------------------------------------------------
