@@ -357,6 +357,11 @@
             try {
                 const data = await this.get('monitor');
                 this.applyMonitorState(data);
+                // If monitoring was already running when the page loaded, resume polling
+                // without requiring the user to click Start again.
+                if (data.active && !this.monitorPoller) {
+                    this.startPolling();
+                }
             } catch (_) {}
         }
 
@@ -385,12 +390,17 @@
 
         startPolling() {
             this.stopPolling();
+            this._lastCapturedCount = -1; // track count to avoid redundant payload fetches
             this.monitorPoller = setInterval(async () => {
                 try {
                     const data = await this.get('monitor');
                     this.applyMonitorState(data);
-                    // Also refresh payloads while active
-                    await this.loadPayloads();
+                    // Only reload payloads when the captured count actually increases
+                    const count = data.captured_count || 0;
+                    if (count !== this._lastCapturedCount) {
+                        this._lastCapturedCount = count;
+                        await this.loadPayloads();
+                    }
                     if (!data.active) this.stopPolling();
                 } catch (_) {}
             }, POLL_MS);
@@ -423,19 +433,23 @@
                     + (active ? 'ewp-rh-monitor-on' : 'ewp-rh-monitor-off');
             }
 
-            // Countdown timer
+            // Countdown — only start a new timer if one isn't already running.
+            // The poller calls applyMonitorState every 4s; without this guard it would
+            // restart the countdown on every tick, preventing it from counting down.
             if (this.$countdown) {
                 if (active && remaining > 0) {
                     this.$countdown.hidden = false;
-                    this.runCountdown(remaining);
+                    if (!this.countdownTimer) {
+                        this.runCountdown(remaining);
+                    }
                 } else {
-                    this.$countdown.hidden   = true;
+                    this.$countdown.hidden      = true;
                     this.$countdown.textContent = '';
                     this.stopCountdown();
                 }
             }
 
-            // If auto-stopped, reload payloads
+            // If auto-stopped while the poller was running, clean up + reload payloads once
             if (!active && this.monitorPoller) {
                 this.stopPolling();
                 this.loadPayloads();
