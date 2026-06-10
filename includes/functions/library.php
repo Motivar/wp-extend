@@ -1799,7 +1799,15 @@ function awm_repeater_content($i, $original_meta, $a, $original_meta_id, $val)
         if (!is_int($i) && $i == 'template') {
             $action .= '<div class="awm-repeater-add" data-id="' . $original_meta_id . '"><span class="awm_action awm-add" onclick="repeater(this)">' . __('Add', 'extend-wp') . ' ' . $item . '</span></div>';
         }
-        $html .= '<div class="awm-actions">' . $action . '</div>';
+        $html .= '<div class="awm-actions">' . apply_filters(
+            'awm_show_actions_html',
+            $action,
+            $i,
+            $original_meta,
+            $a,
+            $original_meta_id,
+            $val
+        ) . '</div>';
     }
 
     $html .= '</div>';
