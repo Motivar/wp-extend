@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Logger REST API endpoints not available when logging enabled** (`2026-06-10`):
+  - **Question/Prompt**: "Why am I getting 404 on /extend-wp/v1/logs endpoint on filox site while it works in ddev? The endpoint should be available when 'enabled' is true and only to logged-in users."
+  - **Summary**: Fixed REST API initialization logic in `class-ewp-logger.php` to use the main `enabled` setting instead of the redundant `rest_api_enabled` setting. The API already has proper authentication via `check_permission()` which restricts access to logged-in users with the viewer capability (default: `manage_options`). Removed the `rest_api_enabled` field from logger settings as it was redundant and caused confusion. Now when logging is enabled, the REST API endpoints are automatically available to authorized users.
+  - **Affected Files**: `includes/classes/ewp-logger/class-ewp-logger.php`, `includes/classes/ewp-logger/class-ewp-logger-settings.php`
+  - **Backwards Compatibility**: Sites with only `enabled` checked will now have working REST API endpoints (previously required both `enabled` and `rest_api_enabled`). The `rest_api_enabled` setting is removed but existing stored values are ignored gracefully.
+
 - **EWP_Encryption class not found error** (`2026-06-10`):
   - **Question/Prompt**: "Uncaught Error: Class 'EWP_Encryption' not found in library.php on line 1122 when using encrypted fields in repeater content."
   - **Summary**: The `EWP_Encryption` class was not being autoloaded because it's a non-namespaced class in `includes/classes/class-encryption.php` but wasn't included in Composer's autoload files array. Added `includes/classes/class-encryption.php` to the `files` array in `composer.json` to ensure the class is loaded automatically. Ran `composer dump-autoload` to regenerate autoload files.

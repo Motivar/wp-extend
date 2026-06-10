@@ -193,9 +193,9 @@ class EWP_Logger
         // Initialize storage backend (always needed for viewer/API to read logs)
         $this->storage = $this->resolve_storage_backend();
 
-        // Initialize REST API only when the setting is enabled.
-        // The viewer falls back to a notice when the API is off.
-        if (!empty($settings['rest_api_enabled'])) {
+        // Initialize REST API when logging is enabled.
+        // Authentication is handled by check_permission() in the API class (logged-in users only).
+        if (self::$enabled) {
             $api = new EWP_Logger_API($this->storage);
             $api->init();
         }

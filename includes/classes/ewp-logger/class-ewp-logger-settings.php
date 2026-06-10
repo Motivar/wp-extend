@@ -80,7 +80,6 @@ class EWP_Logger_Settings
     {
         return [
             'enabled'          => '',
-            'rest_api_enabled' => '',
             'retention_months' => 6,
         ];
     }
@@ -112,14 +111,7 @@ class EWP_Logger_Settings
                 'label'       => __('Enable Logging', 'extend-wp'),
                 'case'        => 'input',
                 'type'        => 'checkbox',
-                'explanation' => __('Enable or disable the EWP logging system globally.', 'extend-wp'),
-            ],
-            'rest_api_enabled' => [
-                'label'       => __('Enable REST API Logs', 'extend-wp'),
-                'case'        => 'input',
-                'type'        => 'checkbox',
-                'show-when' => array('enabled' => array('values' => true)),
-                'explanation' => __('Expose REST API endpoints for reading log entries (/extend-wp/v1/logs). Required for the log viewer. Disable to block external access to log data.', 'extend-wp'),
+                'explanation' => __('Enable or disable the EWP logging system globally. REST API endpoints are available to logged-in administrators when enabled.', 'extend-wp'),
             ],
             'retention_months' => [
                 'label'       => __('Retention Period (months)', 'extend-wp'),
