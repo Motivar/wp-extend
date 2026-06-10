@@ -23,7 +23,8 @@
             "EWP\\": "includes/classes/"
         },
         "files": [
-            "includes/functions/init.php"
+            "includes/functions/init.php",
+            "includes/classes/class-encryption.php"
         ]
     }
 }

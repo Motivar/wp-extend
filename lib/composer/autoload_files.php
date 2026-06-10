@@ -7,4 +7,5 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'e047688227bba2aaf0f5b41ce3995e34' => $baseDir . '/includes/functions/init.php',
+    '3d8cee44d66267b5f3478a6d3904910f' => $baseDir . '/includes/classes/class-encryption.php',
 );

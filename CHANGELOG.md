@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **EWP_Encryption class not found error** (`2026-06-10`):
+  - **Question/Prompt**: "Uncaught Error: Class 'EWP_Encryption' not found in library.php on line 1122 when using encrypted fields in repeater content."
+  - **Summary**: The `EWP_Encryption` class was not being autoloaded because it's a non-namespaced class in `includes/classes/class-encryption.php` but wasn't included in Composer's autoload files array. Added `includes/classes/class-encryption.php` to the `files` array in `composer.json` to ensure the class is loaded automatically. Ran `composer dump-autoload` to regenerate autoload files.
+  - **Affected Files**: `composer.json`
+  - **Backwards Compatibility**: No breaking changes; fixes fatal error when using encrypted fields.
+
 ### Added
 - **EWP REST API Health Check Page** (`2026-06-08`):
   - **Summary**: Super-admin-only page under Extend WP → REST API Health. Combines route discovery (`rest_get_server()->get_routes()`), OpenAPI 3.0 spec generation, and Swagger UI (CDN, loaded via Dynamic Asset Loader) for interactive endpoint testing across all active plugins. Swagger "Try it out" forms are pre-filled from the user's own test history (last successful params per endpoint). All test runs logged via `ewp_log()` (owner: `ewp-rest-health`) — visible and downloadable in the EWP Logger viewer. Per-user history stored as JSON files under `uploads/ewp-rest-health/history/`. Batch testing with confirmation dialog before mutating methods.

@@ -8,17 +8,18 @@ class ComposerStaticInitfb3118450273b47d95f6da240d881eb0
 {
     public static $files = array (
         'e047688227bba2aaf0f5b41ce3995e34' => __DIR__ . '/../..' . '/includes/functions/init.php',
+        '3d8cee44d66267b5f3478a6d3904910f' => __DIR__ . '/../..' . '/includes/classes/class-encryption.php',
     );
 
     public static $prefixLengthsPsr4 = array (
-        'E' => 
+        'E' =>
         array (
             'EWP\\' => 4,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'EWP\\' => 
+        'EWP\\' =>
         array (
             0 => __DIR__ . '/../..' . '/includes/classes',
         ),
