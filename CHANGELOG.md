@@ -9,10 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Logger REST API endpoints not available when logging enabled** (`2026-06-10`):
-  - **Question/Prompt**: "Why am I getting 404 on /extend-wp/v1/logs endpoint on filox site while it works in ddev? The endpoint should be available when 'enabled' is true and only to logged-in users."
-  - **Summary**: Fixed REST API initialization logic in `class-ewp-logger.php` to use the main `enabled` setting instead of the redundant `rest_api_enabled` setting. The API already has proper authentication via `check_permission()` which restricts access to logged-in users with the viewer capability (default: `manage_options`). Removed the `rest_api_enabled` field from logger settings as it was redundant and caused confusion. Now when logging is enabled, the REST API endpoints are automatically available to authorized users.
+  - **Question/Prompt**: "Why am I getting 404 on /extend-wp/v1/logs endpoint on filox site while it works in ddev? The endpoint should be available when 'enabled' is true and only to logged-in users. We need rest_api_enabled to control REST Health feature loading."
+  - **Summary**: Fixed logger REST API initialization to be available whenever logging is enabled (`enabled` setting). Clarified that the `rest_api_enabled` setting **only** controls the REST Health monitoring page (`includes/classes/ewp-rest-health/`), not the logger REST API endpoints. Updated field label to "Enable REST Health Monitoring" with clearer explanation. Logger REST API endpoints (`/extend-wp/v1/logs`) are now available when `enabled` is checked, with authentication enforced via `check_permission()` (logged-in administrators only).
   - **Affected Files**: `includes/classes/ewp-logger/class-ewp-logger.php`, `includes/classes/ewp-logger/class-ewp-logger-settings.php`
-  - **Backwards Compatibility**: Sites with only `enabled` checked will now have working REST API endpoints (previously required both `enabled` and `rest_api_enabled`). The `rest_api_enabled` setting is removed but existing stored values are ignored gracefully.
+  - **Backwards Compatibility**: Sites with only `enabled` checked now have working logger REST API endpoints. REST Health feature requires both `enabled` and `rest_api_enabled` to be checked.
 
 - **EWP_Encryption class not found error** (`2026-06-10`):
   - **Question/Prompt**: "Uncaught Error: Class 'EWP_Encryption' not found in library.php on line 1122 when using encrypted fields in repeater content."

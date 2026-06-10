@@ -80,6 +80,7 @@ class EWP_Logger_Settings
     {
         return [
             'enabled'          => '',
+            'rest_api_enabled' => '',
             'retention_months' => 6,
         ];
     }
@@ -111,7 +112,14 @@ class EWP_Logger_Settings
                 'label'       => __('Enable Logging', 'extend-wp'),
                 'case'        => 'input',
                 'type'        => 'checkbox',
-                'explanation' => __('Enable or disable the EWP logging system globally. REST API endpoints are available to logged-in administrators when enabled.', 'extend-wp'),
+                'explanation' => __('Enable or disable the EWP logging system globally.', 'extend-wp'),
+            ],
+            'rest_api_enabled' => [
+                'label'       => __('Enable REST Health Monitoring', 'extend-wp'),
+                'case'        => 'input',
+                'type'        => 'checkbox',
+                'show-when'   => ['enabled' => ['values' => true]],
+                'explanation' => __('Enable the REST API Health monitoring page for testing and debugging REST endpoints. Restricted to super-admin users only.', 'extend-wp'),
             ],
             'retention_months' => [
                 'label'       => __('Retention Period (months)', 'extend-wp'),
