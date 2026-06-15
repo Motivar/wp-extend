@@ -633,14 +633,32 @@ class EWP_WP_Content_Installer
         if (isset($type['custom_status']) && !empty($type['custom_status'])) {
 
           foreach ($type['custom_status'] as $k => $v) {
-            register_post_status($k, array(
-              'label' => __($k, $type['post']),
-              'public' => true,
-              'exclude_from_search' => false,
-              'show_in_admin_all_list' => true,
-              'show_in_admin_status_list' => true,
-              'label_count' => _n_noop($v['label'] . '  <span class="count">(%s)</span>', $v['label'] . ' <span class="count">(%s)</span>', 'extend-wp'),
-            ));
+            // Build status args with defaults that can be overridden
+            $status_args = array(
+              'label' => isset($v['label']) ? __($v['label'], 'extend-wp') : __($k, 'extend-wp'),
+              'public' => isset($v['public']) ? $v['public'] : true,
+              'exclude_from_search' => isset($v['exclude_from_search']) ? $v['exclude_from_search'] : false,
+              'show_in_admin_all_list' => isset($v['show_in_admin_all_list']) ? $v['show_in_admin_all_list'] : true,
+              'show_in_admin_status_list' => isset($v['show_in_admin_status_list']) ? $v['show_in_admin_status_list'] : true,
+              'show_in_metabox_dropdown' => isset($v['show_in_metabox_dropdown']) ? $v['show_in_metabox_dropdown'] : true,
+              'show_in_inline_dropdown' => isset($v['show_in_inline_dropdown']) ? $v['show_in_inline_dropdown'] : true,
+              'show_in_rest' => isset($v['show_in_rest']) ? $v['show_in_rest'] : true,
+            );
+
+            // Add label_count if label is provided
+            if (isset($v['label'])) {
+              $status_args['label_count'] = _n_noop(
+                $v['label'] . ' <span class="count">(%s)</span>',
+                $v['label'] . ' <span class="count">(%s)</span>',
+                'extend-wp'
+              );
+            }
+
+            // Allow developers to filter status args per status
+            $status_args = apply_filters('ewp_custom_post_status_args', $status_args, $k, $type['post']);
+            $status_args = apply_filters('ewp_custom_post_status_args_' . $k, $status_args, $type['post']);
+
+            register_post_status($k, $status_args);
           }
         }
         do_action('ewp_register_post_type_action', $type, $args);
