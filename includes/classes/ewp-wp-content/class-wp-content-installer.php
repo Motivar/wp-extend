@@ -48,6 +48,7 @@ class EWP_WP_Content_Installer
     add_action('admin_enqueue_scripts', [$this, 'enqueue_custom_status_scripts']);
     add_filter('display_post_states', [$this, 'display_custom_status_label'], 10, 2);
     add_filter('wp_insert_post_data', [$this, 'fix_custom_status_save'], 10, 2);
+    add_action('admin_footer-edit.php', [$this, 'fix_custom_status_column_display']);
   }
 
 
@@ -467,6 +468,64 @@ class EWP_WP_Content_Installer
   }
 
   /**
+   * Fix custom status display in the status column on list pages
+   * Outputs JavaScript to replace status text with custom labels
+   */
+  public function fix_custom_status_column_display()
+  {
+    global $typenow;
+
+    if (!$typenow) {
+      return;
+    }
+
+    $types = $this->post_types;
+    if (empty($types)) {
+      return;
+    }
+
+    // Find custom statuses for current post type
+    $custom_statuses = [];
+    foreach ($types as $type) {
+      if ($type['post'] === $typenow && isset($type['custom_status']) && !empty($type['custom_status'])) {
+        $custom_statuses = $type['custom_status'];
+        break;
+      }
+    }
+
+    if (empty($custom_statuses)) {
+      return;
+    }
+
+    // Output JavaScript to replace status text in the status column
+?>
+    <script type="text/javascript">
+      jQuery(document).ready(function($) {
+        var customStatuses = <?php echo json_encode($custom_statuses); ?>;
+
+        // Replace status text in status column
+        $('.column-status').each(function() {
+          var $this = $(this);
+          var currentText = $this.text().trim();
+
+          // Check if current text matches a custom status key
+          Object.keys(customStatuses).forEach(function(statusKey) {
+            // WordPress might display the status key as-is or formatted
+            var formattedKey = statusKey.replace(/_/g, ' ');
+
+            if (currentText.toLowerCase() === statusKey.toLowerCase() ||
+              currentText.toLowerCase() === formattedKey.toLowerCase()) {
+              var label = customStatuses[statusKey].label || statusKey;
+              $this.html('<strong>' + label + '</strong>');
+            }
+          });
+        });
+      });
+    </script>
+<?php
+  }
+
+  /**
    * Prevent WordPress from resetting custom statuses to 'draft'
    * Validates that the status belongs to the post type
    * 
@@ -509,10 +568,10 @@ class EWP_WP_Content_Installer
   {
     $this->post_types = $this->post_types();
     $types = $this->post_types;
-    
+
     if (!empty($types)) {
       foreach ($types as $type) {
-        
+
         $extra_sl = isset($type['extra_slug']) ? '/%' . $type['extra_slug'] . '%' : '';
         $extra_sl = apply_filters('flx_extra_slug_filter', $extra_sl);
         $general_slug = isset($type['slug']) ? $type['slug'] : Slug_Manager::get_slug($type['post'], $type['post']);
