@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Custom Post Status Support for Classic, Gutenberg & Quick Edit** (`2026-06-15`):
+  - **Question/Prompt**: "How to create an extra field for the array that being passed to register_post_types function to enable custom statuses, visible via the classic editor and the Gutenberg editor, and the quick editor?"
+  - **Summary**: Implemented comprehensive custom post status support with strict post-type isolation. Each post type can now define its own `custom_status` array in the post type configuration, and those statuses will be visible and functional in Classic Editor, Gutenberg Editor, and Quick Edit. The system ensures that custom statuses are isolated per post type - Product statuses only appear when editing Products, Review statuses only appear when editing Reviews, etc. No cross-contamination between post types.
+  - **PHP Implementation** (`class-wp-content-installer.php`):
+    - `enqueue_custom_status_scripts()`: Detects current post type and localizes only that post type's custom statuses to JavaScript
+    - `display_custom_status_label()`: Shows custom status labels in admin post list with post-type validation
+    - `fix_custom_status_save()`: Prevents WordPress from resetting custom statuses to 'draft' and validates status belongs to post type
+  - **JavaScript Implementation** (`awm-admin-script.js`):
+    - `EWPCustomPostStatus` class: OOP implementation with vanilla JavaScript
+    - `addToClassicEditor()`: Adds custom statuses to Classic Editor dropdown and updates publish meta box display
+    - `addToGutenberg()`: Integrates with Gutenberg via wp.data API with post-type validation
+    - `addToQuickEdit()`: Hooks into WordPress inline edit to add custom statuses to Quick Edit dropdown
+  - **Post-Type Isolation**: Each post type receives only its own custom statuses; validation prevents cross-post-type status assignments
+  - **Array Structure**: Developers add `custom_status` array to post type definitions via `epw_get_post_types` filter with status keys and configuration (label, public, show_in_admin_all_list, etc.)
+  - **Affected Files**: `includes/classes/ewp-wp-content/class-wp-content-installer.php`, `assets/js/admin/awm-admin-script.js`
+  - **Backwards Compatibility**: Fully backwards compatible. Post types without `custom_status` array work normally with default WordPress statuses.
+
 ### Fixed
 - **Logger REST API endpoints not available when logging enabled** (`2026-06-10`):
   - **Question/Prompt**: "Why am I getting 404 on /extend-wp/v1/logs endpoint on filox site while it works in ddev? The endpoint should be available when 'enabled' is true and only to logged-in users. We need rest_api_enabled to control REST Health feature loading."

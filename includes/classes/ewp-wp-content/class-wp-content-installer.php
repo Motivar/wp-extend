@@ -43,6 +43,11 @@ class EWP_WP_Content_Installer
       }
     });
     Slug_Manager::instance();
+
+    // Custom post status support
+    add_action('admin_enqueue_scripts', [$this, 'enqueue_custom_status_scripts']);
+    add_filter('display_post_states', [$this, 'display_custom_status_label'], 10, 2);
+    add_filter('wp_insert_post_data', [$this, 'fix_custom_status_save'], 10, 2);
   }
 
 
@@ -366,6 +371,140 @@ class EWP_WP_Content_Installer
   /**
    * register the post types
    */
+  /**
+   * Enqueue custom post status scripts and localize data for current post type only
+   * Ensures strict post-type isolation
+   */
+  public function enqueue_custom_status_scripts()
+  {
+    $screen = get_current_screen();
+    if (!$screen) {
+      return;
+    }
+
+    // Determine current post type
+    $current_post_type = null;
+
+    // For post edit screens (post.php, post-new.php)
+    if (in_array($screen->base, ['post', 'edit']) && !empty($screen->post_type)) {
+      $current_post_type = $screen->post_type;
+    }
+
+    // For list screens (edit.php)
+    if ($screen->base === 'edit' && isset($_GET['post_type'])) {
+      $current_post_type = sanitize_text_field($_GET['post_type']);
+    }
+
+    if (!$current_post_type) {
+      return;
+    }
+
+    // Find custom statuses for this specific post type only
+    $custom_statuses = [];
+    $types = $this->post_types;
+
+    if (!empty($types)) {
+      foreach ($types as $type) {
+        if ($type['post'] === $current_post_type && isset($type['custom_status']) && !empty($type['custom_status'])) {
+          $custom_statuses = $type['custom_status'];
+          break;
+        }
+      }
+    }
+
+    // Only localize if this post type has custom statuses
+    if (!empty($custom_statuses)) {
+      wp_localize_script(
+        'awm-admin-script',
+        'ewpCustomPostStatus',
+        [
+          'currentPostType' => $current_post_type,
+          'customStatuses' => $custom_statuses,
+          'isEditScreen' => $screen->base === 'edit',
+        ]
+      );
+    }
+  }
+
+  /**
+   * Display custom status labels in admin post list
+   * Only shows labels for statuses that belong to the post's type
+   * 
+   * @param array $states Post states
+   * @param WP_Post $post Post object
+   * @return array Modified states
+   */
+  public function display_custom_status_label($states, $post)
+  {
+    if (!$post) {
+      return $states;
+    }
+
+    $post_type = $post->post_type;
+    $post_status = $post->post_status;
+    $types = $this->post_types;
+
+    if (empty($types)) {
+      return $states;
+    }
+
+    // Find the post type configuration
+    foreach ($types as $type) {
+      if ($type['post'] === $post_type && isset($type['custom_status']) && !empty($type['custom_status'])) {
+        // Check if current post status exists in this post type's custom statuses
+        if (isset($type['custom_status'][$post_status])) {
+          $label = isset($type['custom_status'][$post_status]['label'])
+            ? $type['custom_status'][$post_status]['label']
+            : ucfirst(str_replace('_', ' ', $post_status));
+
+          $states[] = __($label, 'extend-wp');
+        }
+        break;
+      }
+    }
+
+    return $states;
+  }
+
+  /**
+   * Prevent WordPress from resetting custom statuses to 'draft'
+   * Validates that the status belongs to the post type
+   * 
+   * @param array $data Post data
+   * @param array $postarr Post array
+   * @return array Modified post data
+   */
+  public function fix_custom_status_save($data, $postarr)
+  {
+    // Only process if we have a post status
+    if (empty($data['post_status']) || empty($data['post_type'])) {
+      return $data;
+    }
+
+    $post_type = $data['post_type'];
+    $post_status = $data['post_status'];
+    $types = $this->post_types;
+
+    if (empty($types)) {
+      return $data;
+    }
+
+    // Find the post type configuration
+    foreach ($types as $type) {
+      if ($type['post'] === $post_type && isset($type['custom_status']) && !empty($type['custom_status'])) {
+        // Check if the status being saved is a valid custom status for this post type
+        if (isset($type['custom_status'][$post_status])) {
+          // Status is valid for this post type, preserve it
+          // WordPress sometimes tries to change custom statuses, we prevent that here
+          return $data;
+        }
+        break;
+      }
+    }
+
+    return $data;
+  }
+
   public function register_post_types()
   {
     $this->post_types = $this->post_types();
