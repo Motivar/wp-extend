@@ -49,6 +49,7 @@ class EWP_WP_Content_Installer
     add_filter('display_post_states', [$this, 'display_custom_status_label'], 10, 2);
     add_filter('wp_insert_post_data', [$this, 'fix_custom_status_save'], 10, 2);
     add_action('admin_footer-edit.php', [$this, 'fix_custom_status_column_display']);
+    add_action('init', [$this, 'add_custom_status_to_gutenberg'], 20);
   }
 
 
@@ -468,6 +469,124 @@ class EWP_WP_Content_Installer
   }
 
   /**
+   * Add custom statuses to Gutenberg editor via REST API schema
+   * This makes custom statuses visible in the Gutenberg status dropdown
+   */
+  public function add_custom_status_to_gutenberg()
+  {
+    $types = $this->post_types;
+    if (empty($types)) {
+      return;
+    }
+
+    foreach ($types as $type) {
+      if (isset($type['custom_status']) && !empty($type['custom_status'])) {
+        $post_type = $type['post'];
+
+        // Add filter to modify REST API schema for this post type
+        add_filter('rest_prepare_' . $post_type, function ($response, $post, $request) use ($type) {
+          // Add custom statuses to the response
+          $custom_statuses = $type['custom_status'];
+          if (!empty($custom_statuses)) {
+            $response->data['custom_statuses'] = $custom_statuses;
+          }
+          return $response;
+        }, 10, 3);
+
+        // Modify the REST schema to include custom statuses
+        add_filter('rest_' . $post_type . '_collection_params', function ($params) use ($type) {
+          if (isset($params['status'])) {
+            $custom_statuses = array_keys($type['custom_status']);
+            if (!empty($custom_statuses)) {
+              // Add custom statuses to allowed status values
+              if (isset($params['status']['items']['enum'])) {
+                $params['status']['items']['enum'] = array_merge(
+                  $params['status']['items']['enum'],
+                  $custom_statuses
+                );
+              }
+            }
+          }
+          return $params;
+        }, 10, 1);
+
+        // Add custom statuses to Gutenberg via JavaScript
+        add_action('enqueue_block_editor_assets', function () use ($type, $post_type) {
+          global $typenow, $post;
+
+          // Only run for the correct post type
+          if ($typenow !== $post_type && (!$post || $post->post_type !== $post_type)) {
+            return;
+          }
+
+          $custom_statuses = $type['custom_status'];
+
+          // Build status objects for Gutenberg
+          $status_list = [];
+          foreach ($custom_statuses as $status_key => $status_data) {
+            $status_list[$status_key] = [
+              'name' => $status_key,
+              'slug' => $status_key,
+              'label' => isset($status_data['label']) ? $status_data['label'] : ucfirst(str_replace('_', ' ', $status_key)),
+            ];
+          }
+?>
+          <script type="text/javascript">
+            (function(wp) {
+              if (!wp || !wp.data) return;
+
+              var customStatuses = <?php echo json_encode($status_list); ?>;
+              var postType = '<?php echo esc_js($post_type); ?>';
+
+              // Wait for editor to be fully ready
+              wp.domReady(function() {
+                var checkInterval = setInterval(function() {
+                  var editor = wp.data.select('core/editor');
+                  if (!editor) return;
+
+                  var currentPost = editor.getCurrentPost();
+                  if (!currentPost || currentPost.type !== postType) return;
+
+                  // Stop checking
+                  clearInterval(checkInterval);
+
+                  // Get existing statuses
+                  var existingStatuses = wp.data.select('core').getPostStatuses() || {};
+
+                  // Add our custom statuses to the store
+                  Object.keys(customStatuses).forEach(function(statusKey) {
+                    var statusData = customStatuses[statusKey];
+
+                    // Add to core data store
+                    existingStatuses[statusKey] = {
+                      name: statusData.label,
+                      slug: statusKey,
+                      _links: {}
+                    };
+                  });
+
+                  // Force update the statuses in the store
+                  wp.data.dispatch('core').receiveEntityRecords(
+                    'root',
+                    'status',
+                    Object.values(existingStatuses)
+                  );
+                }, 100);
+
+                // Stop after 10 seconds
+                setTimeout(function() {
+                  clearInterval(checkInterval);
+                }, 10000);
+              });
+            })(window.wp);
+          </script>
+    <?php
+        });
+      }
+    }
+  }
+
+  /**
    * Fix custom status display in the status column on list pages
    * Outputs JavaScript to replace status text with custom labels
    */
@@ -498,7 +617,7 @@ class EWP_WP_Content_Installer
     }
 
     // Output JavaScript to replace status text in the status column
-?>
+    ?>
     <script type="text/javascript">
       jQuery(document).ready(function($) {
         var customStatuses = <?php echo json_encode($custom_statuses); ?>;
