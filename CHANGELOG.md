@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Logger Search Field** (`2026-06-24`):
+  - **Question/Prompt**: "I need to add a plain text field to search in the logger view. I need to filter the data based on all filters and the search text, which can be anything in the log."
+  - **Summary**: Added a plain text search field to the EWP Logger viewer that filters log entries across all text fields using case-insensitive matching with AND logic alongside existing filters. The search field is positioned after date filters and searches across: message, owner, action_type, object_type, request_context, data payload (JSON), user display name, user login, and user email. Search works in combination with all existing filters (date range, owner, action type, behaviour, level, etc.) to progressively narrow down results.
+  - **Affected Modules**:
+    - `class-ewp-logger-viewer.php`: Added `search_text` field to viewer UI
+    - `class-ewp-logger-api.php`: Registered `search_text` parameter in REST API
+    - `class-ewp-logger-storage.php`: Added `search_text` to query defaults and sanitization
+    - `class-ewp-logger-file.php`: Implemented search logic in `entry_matches_filters()` method
+  - **Backwards Compatibility**: Fully backwards compatible. Search parameter is optional; empty search text is ignored (no filtering applied). No JavaScript changes required as existing form serialization handles the new field automatically.
+
+### Added
 - **Custom Post Status Support for Classic, Gutenberg & Quick Edit** (`2026-06-15`):
   - **Question/Prompt**: "How to create an extra field for the array that being passed to register_post_types function to enable custom statuses, visible via the classic editor and the Gutenberg editor, and the quick editor?"
   - **Summary**: Implemented comprehensive custom post status support with strict post-type isolation. Each post type can now define its own `custom_status` array in the post type configuration, and those statuses will be visible and functional in Classic Editor, Gutenberg Editor, and Quick Edit. The system ensures that custom statuses are isolated per post type - Product statuses only appear when editing Products, Review statuses only appear when editing Reviews, etc. No cross-contamination between post types.

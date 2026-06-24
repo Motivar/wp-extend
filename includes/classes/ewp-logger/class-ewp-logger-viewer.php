@@ -98,6 +98,15 @@ class EWP_Logger_Viewer
             'date-params'  => array('maxDate' => $maxDate, 'minDate' => $minDate),
         ];
 
+        // Search text filter
+        $fields['search_text'] = [
+            'case'         => 'text',
+            'label'        => __('Search', 'extend-wp'),
+            'explanation'  => __('Search across all log fields (message, owner, action, data, user, etc.)', 'extend-wp'),
+            'attributes'   => ['placeholder' => __('Type to search...', 'extend-wp')],
+            'exclude_meta' => true,
+        ];
+
         // Owner filter
         $fields['owner'] = [
             'case'         => 'select',

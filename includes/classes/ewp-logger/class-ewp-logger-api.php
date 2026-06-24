@@ -353,6 +353,7 @@ class EWP_Logger_API
             'date_from',
             'date_to',
             'request_id',
+            'search_text',
         ];
 
         /**

@@ -132,6 +132,7 @@ abstract class EWP_Logger_Storage
             'date_from'   => '',
             'date_to'     => '',
             'request_id'  => '',
+            'search_text' => '',
             'limit'       => 50,
             'offset'      => 0,
             'order'       => 'DESC',
@@ -146,6 +147,7 @@ abstract class EWP_Logger_Storage
         $args['level']       = in_array($args['level'], ['editor', 'developer'], true) ? $args['level'] : '';
         $args['user_id']     = absint($args['user_id']);
         $args['request_id']  = sanitize_text_field($args['request_id']);
+        $args['search_text'] = sanitize_text_field($args['search_text']);
         $args['limit']       = max(1, min(10000, absint($args['limit'])));
         $args['offset']      = max(0, absint($args['offset']));
         $args['order']       = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC';

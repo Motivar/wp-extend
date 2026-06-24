@@ -522,6 +522,46 @@ class EWP_Logger_File extends EWP_Logger_Storage
             }
         }
 
+        if (!empty($args['search_text'])) {
+            $search = strtolower($args['search_text']);
+            $searchable_fields = [
+                $entry['message'] ?? '',
+                $entry['owner'] ?? '',
+                $entry['action_type'] ?? '',
+                $entry['object_type'] ?? '',
+                $entry['request_context'] ?? '',
+            ];
+
+            // Add data payload (handle JSON/serialized)
+            if (!empty($entry['data'])) {
+                $data_str = is_string($entry['data']) ? $entry['data'] : wp_json_encode($entry['data']);
+                $searchable_fields[] = $data_str;
+            }
+
+            // Add user display name if user_id exists
+            if (!empty($entry['user_id'])) {
+                $user = get_userdata(absint($entry['user_id']));
+                if ($user) {
+                    $searchable_fields[] = $user->display_name;
+                    $searchable_fields[] = $user->user_login;
+                    $searchable_fields[] = $user->user_email;
+                }
+            }
+
+            // Check if search term appears in any field (case-insensitive)
+            $found = false;
+            foreach ($searchable_fields as $field) {
+                if (stripos($field, $search) !== false) {
+                    $found = true;
+                    break;
+                }
+            }
+
+            if (!$found) {
+                return false;
+            }
+        }
+
         return true;
     }
 
