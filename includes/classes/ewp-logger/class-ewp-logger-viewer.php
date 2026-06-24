@@ -100,7 +100,8 @@ class EWP_Logger_Viewer
 
         // Search text filter
         $fields['search_text'] = [
-            'case'         => 'text',
+            'case'         => 'input',
+            'type'         => 'text',
             'label'        => __('Search', 'extend-wp'),
             'explanation'  => __('Search across all log fields (message, owner, action, data, user, etc.)', 'extend-wp'),
             'attributes'   => ['placeholder' => __('Type to search...', 'extend-wp')],
