@@ -644,6 +644,8 @@ window.awm_open_tab = awm_open_tab;
 window.awm_js_ajax_call = awm_js_ajax_call;
 window.jsVanillaSerialize = jsVanillaSerialize;
 window.awm_init_inputs = awm_init_inputs;
+window.awm_show_loading = awm_show_loading;
+window.awm_hide_loading = awm_hide_loading;
 
 /**
  * Wait for a module function to be available on the window object
