@@ -631,10 +631,7 @@ async function awm_init_inputs() {
     // DOM already loaded (e.g., script loaded after DOMContentLoaded)
 awm_init_inputs();
 
-// Re-initialize when widgets are sorted (for admin)
-jQuery('div.widgets-sortables').bind('sortstop', function (event, ui) {
-    awm_init_inputs();
-});
+
 
 // Expose critical functions globally for admin scripts and backwards compatibility
 window.ewp_jsVanillaSerialize = ewp_jsVanillaSerialize;
