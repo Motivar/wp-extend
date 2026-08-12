@@ -29,7 +29,32 @@ class EWP_Template_Resolver
   */
  public static function locate($source, $context = self::CONTEXT_ARCHIVE)
  {
+  $parts = self::parse($source);
+  if (empty($parts)) {
+   return '';
+  }
   $candidates = self::candidates($source, $context);
+
+  /**
+   * Short circuit the lookup so the plugin owning the source object can point at
+   * its own template. Needed whenever templates do not live in the theme root
+   * under the core naming convention, ie filox keeps them in `flx_templates/`
+   * inside its own plugin folder.
+   *
+   * Return an absolute, existing file path to win; anything else falls through
+   * to the theme lookup below.
+   *
+   * @param string $path       empty by default
+   * @param string $type       self::SOURCE_POST_TYPE or self::SOURCE_TAXONOMY
+   * @param string $slug       the post type / taxonomy name
+   * @param string $context    self::CONTEXT_ARCHIVE or self::CONTEXT_SINGLE
+   * @param array  $candidates the theme file names that would otherwise be used
+   */
+  $path = apply_filters('ewp_template_source_path', '', $parts['type'], $parts['slug'], $context, $candidates);
+  if (!empty($path) && is_string($path) && file_exists($path)) {
+   return $path;
+  }
+
   if (empty($candidates)) {
    return '';
   }
