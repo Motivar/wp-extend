@@ -176,6 +176,48 @@ When the custom content type is registered, a new menu item will appear in the W
 
 ---
 
+## Template Sources & Meta Inheritance
+
+When several post types behave alike, they no longer need duplicated theme files or repeated field-library edits.
+
+### Reusing another object's template
+
+The *Post type configuration* screen offers **Archive template from** and **Single template from**; the *Taxonomy configuration* screen offers **Archive template from**. Each lists the public post types and taxonomies, and stores a token (`post_type:{slug}` / `taxonomy:{slug}`).
+
+Resolution order, highest first:
+
+1. The object's own theme file — `archive-{post_type}.php`, `{post_type}.php`, `taxonomy-{taxonomy}.php`
+2. The configured source, resolved through `EWP_Template_Resolver::locate()`
+3. The legacy free-text `template` path (taxonomies only)
+4. The WordPress default
+
+Leaving the select empty keeps the previous behaviour exactly.
+
+```php
+/*add your own sources, or point a token at different files*/
+add_filter('ewp_template_source_options_filter', function ($options) { return $options; });
+add_filter('ewp_template_source_candidates', function ($candidates, $source, $context) {
+    return $candidates; /*$context is 'archive' or 'single'*/
+}, 10, 3);
+```
+
+### Inheriting meta boxes
+
+**Inherit meta boxes from post types** / **Inherit meta boxes from taxonomies** make every meta box attached to the selected objects render on the current one too. Nothing is copied: `EWP_Meta_Inheritance` extends each box's `postTypes` / `taxonomies` array at runtime, so the admin screen, list-table columns, the REST API and saving all follow automatically, and edits on the source apply instantly.
+
+Chains are resolved transitively (A inherits B, B inherits C ⇒ A also gets C's boxes). Self-references are ignored and cycles are guarded, so a misconfiguration cannot hang the admin.
+
+```php
+/*inspect or override the resolved target => sources map*/
+add_filter('ewp_meta_inheritance_map_filter', function ($map, $case) {
+    return $map; /*$case is 'post_type' or 'taxonomy'*/
+}, 10, 2);
+```
+
+> Both features read from the transient-cached post type/taxonomy settings, so run `wp ewp delete-cache` (or load any page with `?ewp_delete_trans`) if a change does not show up.
+
+---
+
 ## Example Use Cases
 1. **Product Catalog:**
    - Store product details and specifications in the main table while keeping additional attributes like color, size, or ratings in the data table.

@@ -38,7 +38,10 @@ class Setup
   require_once 'adminMessages/class-adminMessages.php';
   require_once 'ewp-gallery/class-ewp-gallery.php';
   require_once 'ewp-fields/class-field.php';
+  require_once 'ewp-wp-content/class-template-resolver.php';
   require_once 'ewp-wp-content/class-wp-content.php';
+  /*must stay after ewp-fields, both hook at PHP_INT_MAX and equal priorities fire in registration order*/
+  require_once 'ewp-wp-content/class-meta-inheritance.php';
   require_once 'ewp-wp-content/class-slug-manager.php';
   require_once 'ewp-wp-content/class-wp-content-installer.php';
   require_once 'ewp-search-filter/class-wp-search.php';

@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Template sources & meta box inheritance for post types and taxonomies** (`2026-08-12`):
+  - **Question/Prompt**: "Can we add for both post type configuration and taxonomy configuration a select box which templates to use for archive & singles based on other post types/taxonomies? What is more, can we enhance to inherit the metas of other post types automatically?"
+  - **Summary**: Post types and taxonomies created through the UI can now reuse another object's archive/single template instead of duplicating theme files, and can inherit another object's meta boxes live (no copying, source edits propagate instantly). Both are opt-in and default to empty, so existing content types behave exactly as before.
+  - **New fields — Post type configuration**: `archive_template_source`, `single_template_source` (grouped selects listing public post types and taxonomies as `post_type:{slug}` / `taxonomy:{slug}` tokens) and `inherit_metas` (multi-select of post types).
+  - **New fields — Taxonomy configuration**: `template_source` (same select) and `inherit_metas` (multi-select of taxonomies). The legacy free-text `template` path field is kept as a lower-priority fallback.
+  - **Template precedence**: the object's own conventional theme file (`archive-{type}.php` / `{type}.php` / `taxonomy-{tax}.php`) → configured source → legacy path → WordPress default. Nothing existing is overridden.
+  - **Meta inheritance**: implemented by extending each box's `postTypes` / `taxonomies` array on `awm_add_meta_boxes_filter` / `awm_add_term_meta_boxes_filter`, so rendering, admin list columns, the REST API and saving all follow automatically. Inheritance chains are resolved transitively with a cycle guard; self-references are ignored.
+  - **New filters**: `ewp_template_source_options_filter`, `ewp_template_source_candidates`, `ewp_meta_inheritance_map_filter`.
+  - **Affected Files**: `includes/classes/ewp-wp-content/class-wp-content.php`, `includes/classes/ewp-wp-content/ewp_wp_functions.php`, `includes/classes/ewp-wp-content/class-wp-content-installer.php`, `includes/classes/Setup.php`, new `includes/classes/ewp-wp-content/class-template-resolver.php`, new `includes/classes/ewp-wp-content/class-meta-inheritance.php`.
+  - **Backwards Compatibility**: Fully backwards compatible. Content types with the new fields empty are unaffected; saved legacy taxonomy `template` paths still resolve. Post types registered from PHP (rather than the UI) never carry the new keys and are `isset()`-guarded throughout. No content type `version` bump is needed: the new fields are meta rows in the key/value `_data` table, so no table schema changes.
+
+### Fixed
+- **Select fields with optgroups preselected their first option** (`2026-08-12`):
+  - **Question/Prompt**: "We don't want to have pre-defined the choices for archive and single templates."
+  - **Summary**: In `awm_show_content()` the empty placeholder `<option>` was merged into the option list *after* the optgroup block, so it ended up last in the markup and browsers auto-selected the first real option. Any grouped select therefore looked pre-filled on a blank form. The placeholder is now always emitted first.
+  - **Affected Files**: `includes/functions/library.php`
+  - **Backwards Compatibility**: Fully backwards compatible. Ungrouped selects are unchanged, `removeEmpty` still suppresses the placeholder, and saved values are still marked `selected`. Also fixes the same latent issue for the `object_id_filter` field type.
+
+### Added
 - **Logger Search Field** (`2026-06-24`):
   - **Question/Prompt**: "I need to add a plain text field to search in the logger view. I need to filter the data based on all filters and the search text, which can be anything in the log."
   - **Summary**: Added a plain text search field to the EWP Logger viewer that filters log entries across all text fields using case-insensitive matching with AND logic alongside existing filters. The search field is positioned after date filters and searches across: message, owner, action_type, object_type, request_context, data payload (JSON), user display name, user login, and user email. Search works in combination with all existing filters (date range, owner, action type, behaviour, level, etc.) to progressively narrow down results.

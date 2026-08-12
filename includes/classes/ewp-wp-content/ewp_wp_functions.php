@@ -56,3 +56,57 @@ if (!function_exists('ewp_roles_access')) {
   return apply_filters('ewp_roles_access_filter', $connections);
  }
 }
+
+
+if (!function_exists('ewp_template_source_options')) {
+ /**
+  * Build the option list for the "template from" selects of the post type and
+  * taxonomy configuration screens.
+  *
+  * Values are namespaced tokens (`post_type:{slug}` / `taxonomy:{slug}`) so a
+  * post type and a taxonomy sharing a slug stay distinguishable. The returned
+  * array carries the `optgroups` entry the standard `select` renderer expects
+  * (see awm_show_content() in includes/functions/library.php).
+  *
+  * Used as a field `callback`, resolved at render time by awm_prepare_field().
+  *
+  * @return array Options array including an `optgroups` entry.
+  */
+ function ewp_template_source_options()
+ {
+  $options = $optgroups = array();
+  $groups = array(
+   EWP_Template_Resolver::SOURCE_POST_TYPE => array(
+    'label' => __('Post types', 'extend-wp'),
+    'objects' => get_post_types(array('public' => true), 'objects'),
+   ),
+   EWP_Template_Resolver::SOURCE_TAXONOMY => array(
+    'label' => __('Taxonomies', 'extend-wp'),
+    'objects' => get_taxonomies(array('public' => true), 'objects'),
+   ),
+  );
+
+  foreach ($groups as $group_id => $group) {
+   if (empty($group['objects'])) {
+    /*an empty optgroup would still print a closing tag, so skip it*/
+    continue;
+   }
+   $optgroups[$group_id] = array('label' => $group['label']);
+   foreach ($group['objects'] as $slug => $object) {
+    $options[$group_id . ':' . $slug] = array(
+     'label' => sprintf('%s (%s)', $object->label, $slug),
+     'optgroup' => $group_id,
+    );
+   }
+  }
+
+  $options['optgroups'] = $optgroups;
+
+  /**
+   * Filter the available template sources.
+   *
+   * @param array $options Options array including the `optgroups` entry.
+   */
+  return apply_filters('ewp_template_source_options_filter', $options);
+ }
+}

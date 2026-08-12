@@ -38,6 +38,8 @@ class Extend_WP_WP_Content
      'custom-slug' => true,
      'post_types' => isset($metas['post_types']) ? $metas['post_types'] : array(),
      'template' => isset($metas['template']) ? $metas['template'] : '',
+     'template_source' => isset($metas['template_source']) ? $metas['template_source'] : '',
+     'inherit_metas' => isset($metas['inherit_metas']) ? (array) $metas['inherit_metas'] : array(),
      'show_admin_column' => isset($metas['show_admin_column']) ? $metas['show_admin_column'] : false,
     );
    }
@@ -79,6 +81,9 @@ class Extend_WP_WP_Content
       'description' => isset($metas['description']) ? $metas['description'] : '',
       'hierarchical' => isset($metas['hierarchical']) ? $metas['hierarchical'] : false,
       'flx_custom_template' => isset($metas['custom_template']) ? $metas['custom_template'] : false,
+      'archive_template_source' => isset($metas['archive_template_source']) ? $metas['archive_template_source'] : '',
+      'single_template_source' => isset($metas['single_template_source']) ? $metas['single_template_source'] : '',
+      'inherit_metas' => isset($metas['inherit_metas']) ? (array) $metas['inherit_metas'] : array(),
       'admin_access' => array(
        'fullAccess' => array('administrator'),
        'semiAccess' => array(),
@@ -282,6 +287,24 @@ class Extend_WP_WP_Content
      'case' => 'input',
      'type' => 'text',
     ),
+    'archive_template_source' => array(
+     'label' => __('Archive template from', 'extend-wp'),
+     'case' => 'select',
+     'callback' => 'ewp_template_source_options',
+     'explanation' => __('Reuse the archive template of another post type or taxonomy. A theme file named archive-{post_type}.php always wins over this.', 'extend-wp'),
+    ),
+    'single_template_source' => array(
+     'label' => __('Single template from', 'extend-wp'),
+     'case' => 'select',
+     'callback' => 'ewp_template_source_options',
+     'explanation' => __('Reuse the single template of another post type. A theme file named {post_type}.php always wins over this.', 'extend-wp'),
+    ),
+    'inherit_metas' => array(
+     'label' => __('Inherit meta boxes from post types', 'extend-wp'),
+     'case' => 'post_types',
+     'attributes' => array('multiple' => 1),
+     'explanation' => __('Every meta box attached to the selected post types also shows up here, no need to edit each field library. Changes on the source apply instantly.', 'extend-wp'),
+    ),
     'description' => array(
      'label' => __('Desription', 'extend-wp'),
      'case' => 'textarea',
@@ -331,11 +354,23 @@ class Extend_WP_WP_Content
      'label_class' => array('awm-needed'),
      'admin_list' => true
     ),
+    'template_source' => array(
+     'label' => __('Archive template from', 'extend-wp'),
+     'case' => 'select',
+     'callback' => 'ewp_template_source_options',
+     'explanation' => __('Reuse the archive template of another post type or taxonomy. A theme file named taxonomy-{taxonomy_name}.php always wins over this.', 'extend-wp'),
+    ),
     'template' => array(
      'label' => __('Template path', 'extend-wp'),
      'case' => 'input',
      'type' => 'text',
      'explanation' => __('if you create ewp_{taxonomy_name}.php it will be used. Otherwise use path (from plugins/ or themes/). If none archive.php will be used.', 'extend-wp'),
+    ),
+    'inherit_metas' => array(
+     'label' => __('Inherit meta boxes from taxonomies', 'extend-wp'),
+     'case' => 'taxonomies',
+     'attributes' => array('multiple' => 1),
+     'explanation' => __('Every meta box attached to the selected taxonomies also shows up here, no need to edit each field library. Changes on the source apply instantly.', 'extend-wp'),
     ),
     'show_admin_column' => array(
      'label' => __('Show in admin list', 'extend-wp'),

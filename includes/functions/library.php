@@ -1329,9 +1329,10 @@ if (!function_exists('awm_show_content')) {
                             $optgroups = isset($a['optgroups']) ? $a['optgroups'] : array();
                             $optgroups_assigned = 0;
                             $select_options = array();
+                            $placeholder_option = '';
                             if (!empty($a['options'])) {
                                 if (!(isset($a['removeEmpty']) && $a['removeEmpty'])) {
-                                    $select_options[] = '<option value="" data-html="' . str_replace('"', "'", json_encode(htmlspecialchars($a['label']))) . '" data-placeholder="true">' . $a['label'] . '</option>';
+                                    $placeholder_option = '<option value="" data-html="' . str_replace('"', "'", json_encode(htmlspecialchars($a['label']))) . '" data-placeholder="true">' . $a['label'] . '</option>';
                                 }
 
                                 foreach ($a['options'] as $vv => $vvv) {
@@ -1368,7 +1369,8 @@ if (!function_exists('awm_show_content')) {
                                 }
                                 $select_options = $optgroup_options + $select_options;
                             }
-                            $ins .= implode('', $select_options) . '</select>';
+                            /*the empty placeholder has to stay first, otherwise the browser preselects the first real option*/
+                            $ins .= $placeholder_option . implode('', $select_options) . '</select>';
 
                             break;
                         case 'image':

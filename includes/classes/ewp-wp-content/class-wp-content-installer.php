@@ -35,6 +35,7 @@ class EWP_WP_Content_Installer
     add_filter('gallery_meta_box_post_types', array($this, 'gallery'));
     add_filter('template_include', array($this, 'taxonomy_page_redirect'), 90);
     add_filter('single_template', [$this, 'set_single'], 10);
+    add_filter('archive_template', [$this, 'set_archive'], 10);
     add_filter('use_block_editor_for_post_type', [$this, 'disable_gutenburg'], 10, 2);
     add_action('plugins_loaded', function () {
       if (isset($_REQUEST['ewp_delete_trans'])) {
@@ -73,7 +74,7 @@ class EWP_WP_Content_Installer
   {
     global $post;
     $types = $this->post_types;
-    if (empty($types)) {
+    if (empty($types) || empty($post)) {
       return $single;
     }
     foreach ($types as $n) {
@@ -82,11 +83,50 @@ class EWP_WP_Content_Installer
         if ($default != '') {
           return $default;
         }
+        /*fall back to the single template of the post type this one borrows from*/
+        $inherited = EWP_Template_Resolver::locate(
+          isset($n['single_template_source']) ? $n['single_template_source'] : '',
+          EWP_Template_Resolver::CONTEXT_SINGLE
+        );
+        if ($inherited != '') {
+          return $inherited;
+        }
       }
     }
 
 
     return $single;
+  }
+
+  /**
+   * use the archive template of the post type/taxonomy this one borrows from
+   *
+   * @param string $archive the template wordpress resolved
+   * @return string
+   */
+  public function set_archive($archive)
+  {
+    $types = $this->post_types;
+    if (empty($types)) {
+      return $archive;
+    }
+    foreach ($types as $n) {
+      if (!is_post_type_archive($n['post'])) {
+        continue;
+      }
+      /*a dedicated theme file for this post type always wins*/
+      if (locate_template(array('archive-' . $n['post'] . '.php')) != '') {
+        return $archive;
+      }
+      $inherited = EWP_Template_Resolver::locate(
+        isset($n['archive_template_source']) ? $n['archive_template_source'] : '',
+        EWP_Template_Resolver::CONTEXT_ARCHIVE
+      );
+      if ($inherited != '') {
+        return $inherited;
+      }
+    }
+    return $archive;
   }
 
 
@@ -122,6 +162,15 @@ class EWP_WP_Content_Installer
 
         if ($default != '') {
           return $default;
+        }
+
+        /*fall back to the archive template of the object this taxonomy borrows from*/
+        $inherited = EWP_Template_Resolver::locate(
+          isset($taxonomy['template_source']) ? $taxonomy['template_source'] : '',
+          EWP_Template_Resolver::CONTEXT_ARCHIVE
+        );
+        if ($inherited != '') {
+          return $inherited;
         }
 
         $file_path = (!empty($taxonomy['template']) && file_exists(WP_CONTENT_DIR . '/' . $taxonomy['template'])) ? WP_CONTENT_DIR . '/' . $taxonomy['template'] :  '';
