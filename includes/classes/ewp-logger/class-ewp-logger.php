@@ -11,7 +11,10 @@ require_once __DIR__ . '/class-ewp-logger-file.php';
 require_once __DIR__ . '/class-ewp-logger-queue.php';
 require_once __DIR__ . '/class-ewp-logger-settings.php';
 require_once __DIR__ . '/class-ewp-logger-cleanup.php';
+require_once __DIR__ . '/class-ewp-logger-formatter.php';
 require_once __DIR__ . '/class-ewp-logger-api.php';
+require_once __DIR__ . '/class-ewp-logger-abilities.php';
+require_once __DIR__ . '/class-ewp-logger-diagnose.php';
 require_once __DIR__ . '/class-ewp-logger-viewer.php';
 require_once __DIR__ . '/class-ewp-logger-cli.php';
 require_once __DIR__ . '/logger-functions.php';
@@ -198,6 +201,20 @@ class EWP_Logger
         if (self::$enabled) {
             $api = new EWP_Logger_API($this->storage);
             $api->init();
+        }
+
+        // Register read-only log abilities with the WordPress Abilities API
+        // (core 6.9+). Every ability enforces the viewer capability, so this
+        // exposes nothing a user could not already read in the log viewer.
+        // These back the in-admin diagnose box and any MCP consumer.
+        if (self::$enabled && function_exists('wp_register_ability') && EWP_Logger_Settings::is_ai_enabled()) {
+            $abilities = new EWP_Logger_Abilities();
+            $abilities->init();
+
+            // In-admin diagnosis reuses the same ability handlers, so the
+            // model sees exactly what an external AI agent would see.
+            $diagnose = new EWP_Logger_Diagnose($abilities);
+            $diagnose->init();
         }
 
         // Initialize log viewer admin page (always available to view existing logs)

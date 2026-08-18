@@ -562,7 +562,21 @@ class EWP_Logger_File extends EWP_Logger_Storage
             }
         }
 
-        return true;
+        /**
+         * Filter whether a log entry matches the current query arguments.
+         *
+         * Runs after all built-in filters have passed. Plugins that register
+         * extra filter fields (via `ewp_logger_filter_params`) use this to
+         * apply them, since the built-in matcher only understands core args.
+         * Return false to exclude the entry.
+         *
+         * @param bool  $matches True when the entry passed all built-in filters.
+         * @param array $entry   The log entry being tested.
+         * @param array $args    Normalized query arguments.
+         *
+         * @since 1.3.0
+         */
+        return (bool) apply_filters('ewp_logger_entry_matches_filters', true, $entry, $args);
     }
 
     /**

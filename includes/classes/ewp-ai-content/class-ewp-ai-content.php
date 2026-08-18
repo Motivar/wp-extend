@@ -2078,7 +2078,8 @@ JS;
 	}
 }
 
-// Only instantiate if AI integration is enabled in general settings
-if (Extend_WP_Default_Content::get_general_settings('ewp_enable_ai_integration')) {
-	new EWP_AI_Content();
-}
+// Loading this file is itself the switch: it is required from Setup.php only
+// when the AI content module is wanted. The former 'ewp_enable_ai_integration'
+// general setting was removed, so gating on it here would leave the module
+// permanently dead once the require is re-enabled.
+new EWP_AI_Content();

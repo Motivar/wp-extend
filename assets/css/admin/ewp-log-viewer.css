@@ -401,3 +401,95 @@
         display: none;
     }
 }
+
+/* ---------------------------------------------------------------------------
+   AI diagnose box
+   --------------------------------------------------------------------------- */
+
+.ewp-log-diagnose {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-left: 4px solid #2271b1;
+    border-radius: 4px;
+    padding: 16px;
+    margin: 0 0 20px;
+}
+
+.ewp-log-diagnose-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 4px;
+}
+
+.ewp-log-diagnose-help {
+    margin: 0 0 10px;
+    color: #646970;
+    font-size: 13px;
+}
+
+.ewp-log-diagnose-input {
+    width: 100%;
+    max-width: 720px;
+    display: block;
+}
+
+.ewp-log-diagnose-actions {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ewp-log-diagnose-status {
+    color: #646970;
+    font-size: 13px;
+}
+
+.ewp-log-diagnose-result {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: #f6f7f7;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    max-width: 720px;
+}
+
+.ewp-log-diagnose-result.is-error {
+    background: #fcf0f1;
+    border-color: #d63638;
+    color: #8a2424;
+}
+
+.ewp-log-diagnose-answer {
+    white-space: pre-wrap;
+    line-height: 1.6;
+}
+
+.ewp-log-diagnose-meta {
+    margin: 10px 0 0;
+    color: #646970;
+    font-size: 12px;
+}
+
+
+.ewp-log-diagnose-range-label {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.ewp-log-diagnose-range {
+    max-width: 260px;
+}
+
+@media screen and (max-width: 782px) {
+    .ewp-log-diagnose-actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .ewp-log-diagnose-range {
+        max-width: none;
+        width: 100%;
+    }
+}

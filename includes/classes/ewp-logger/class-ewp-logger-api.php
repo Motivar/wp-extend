@@ -285,48 +285,7 @@ class EWP_Logger_API
      */
     private function prepare_entry_for_output(array $entry)
     {
-        // Unserialize data payload
-        if (!empty($entry['data'])) {
-            $entry['data'] = maybe_unserialize($entry['data']);
-        }
-
-        // Owner label
-        $entry['owner_label'] = EWP_Logger::resolve_owner_label($entry['owner'] ?? '');
-
-        // Action type label (searches all registered owners)
-        $entry['action_type_label'] = EWP_Logger::resolve_action_type_label($entry['action_type'] ?? '');
-
-        // Object type label
-        $entry['object_type_label'] = EWP_Logger::resolve_object_type_label($entry['object_type'] ?? '');
-
-        // User display name
-        $user_id = absint($entry['user_id'] ?? 0);
-        $entry['user_display_name'] = '';
-        if ($user_id > 0) {
-            $user = get_userdata($user_id);
-            $entry['user_display_name'] = $user ? $user->display_name : sprintf('User #%d', $user_id);
-        }
-
-        // Cast behaviour to int and add label for JSON output
-        $behaviour_int = (int) ($entry['behaviour'] ?? 1);
-        $entry['behaviour'] = $behaviour_int;
-        $behaviour_labels = [
-            EWP_Logger::BEHAVIOUR_ERROR   => 'error',
-            EWP_Logger::BEHAVIOUR_SUCCESS => 'success',
-            EWP_Logger::BEHAVIOUR_WARNING => 'warning',
-        ];
-        $entry['behaviour_label'] = isset($behaviour_labels[$behaviour_int]) ? $behaviour_labels[$behaviour_int] : 'success';
-
-        /**
-         * Filter a single prepared log entry before REST output.
-         *
-         * Allows developers to add or modify fields on each entry.
-         *
-         * @param array $entry Prepared entry with label fields.
-         *
-         * @since 1.2.0
-         */
-        return apply_filters('ewp_logger_prepare_entry_for_output', $entry);
+        return EWP_Logger_Formatter::prepare_entry($entry);
     }
 
     /**
@@ -339,7 +298,7 @@ class EWP_Logger_API
      *
      * @since 1.2.0
      */
-    private function get_filter_params()
+    public static function get_filter_params()
     {
         $params = [
             'owner',
@@ -383,7 +342,7 @@ class EWP_Logger_API
      */
     private function extract_filter_args(\WP_REST_Request $request)
     {
-        $params     = $this->get_filter_params();
+        $params     = self::get_filter_params();
         $all_params = $request->get_params();
         $args       = [];
 
@@ -470,22 +429,7 @@ class EWP_Logger_API
      */
     private function convert_date_format($date)
     {
-        if (empty($date)) {
-            return '';
-        }
-
-        // Already in Y-m-d format
-        if (preg_match('/^\d{4}-\d{2}-\d{2}/', $date)) {
-            return $date;
-        }
-
-        // Convert d-m-Y → Y-m-d
-        $parsed = \DateTime::createFromFormat('d-m-Y', $date);
-        if ($parsed !== false) {
-            return $parsed->format('Y-m-d');
-        }
-
-        return sanitize_text_field($date);
+        return EWP_Logger_Formatter::normalize_date($date);
     }
 
     /**

@@ -193,6 +193,34 @@ class EWP_Logger_Settings
      *
      * @since 1.0.0
      */
+    /**
+     * Whether AI access to the logs is enabled.
+     *
+     * Gates registration of the logger abilities and the diagnose box.
+     * Enabled by default; use the ewp_logger_ai_enabled filter to disable.
+     *
+     * @return bool True unless filtered off.
+     *
+     * @since 1.3.0
+     */
+    public static function is_ai_enabled()
+    {
+        /**
+         * Filter whether AI access to the logs is enabled.
+         *
+         * On by default: the abilities are read-only and every one of them
+         * enforces the logger viewer capability, so registering them exposes
+         * nothing a user could not already read in the log viewer. The
+         * Diagnose box additionally requires a configured AI provider via
+         * wp_supports_ai(). Return false here to switch both off in code.
+         *
+         * @param bool $enabled True by default.
+         *
+         * @since 1.3.0
+         */
+        return (bool) apply_filters('ewp_logger_ai_enabled', true);
+    }
+
     public static function reset_cache()
     {
         self::$settings_cache = null;

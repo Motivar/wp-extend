@@ -197,11 +197,6 @@ class Extend_WP_Default_Content
               'type' => 'checkbox',
               'label' => __('Allow dashboard core widgets to non administrators', 'extend-wp'),
             ),
-            'ewp_enable_ai_integration' => array(
-              'case' => 'input',
-              'type' => 'checkbox',
-              'label' => __('Enable AI Integration', 'extend-wp'),
-            ),
           )
         ),
         
