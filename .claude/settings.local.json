@@ -26,7 +26,15 @@
       "Bash(sort -t: -k2 -rn)",
       "Bash(grep -E \"\\\\.php$\")",
       "Bash(ls -la /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/plugins/)",
-      "Bash(ls -la /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/uploads/ 2>/dev/null | head -20)"
+      "Bash(ls -la /Users/nikolaosgiannopoulos/Development/ddev/wp-filox/wp-content/uploads/ 2>/dev/null | head -20)",
+      "Read(//Users/nikolaosgiannopoulos/Development/ddev/wp-filox/**)",
+      "Bash(ddev status *)",
+      "Bash(ddev wp *)",
+      "Bash(curl -s \"https://owners.gr/wp-json/ewp-filter/1/?location=161&property_category%5B%5D=132&property_category%5B%5D=25&lang=en&paged=1\")",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git --no-pager log --oneline -3)"
     ]
   }
 }
