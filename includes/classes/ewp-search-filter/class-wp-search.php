@@ -50,6 +50,60 @@ class Extend_WP_Search_Filters
     $d_api->register_routes();
   }
 
+  /**
+   * translate the configured compare operator to a WP_Tax_Query operator
+   *
+   * @param array $constructor the query field configuration
+   * @return string IN|NOT IN
+   */
+  private function taxonomy_operator($constructor)
+  {
+    $operators = array(
+      'in' => 'IN',
+      'not_in' => 'NOT IN',
+    );
+    $compare = isset($constructor['compare_type']) ? $constructor['compare_type'] : 'in';
+    return isset($operators[$compare]) ? $operators[$compare] : 'IN';
+  }
+
+  /**
+   * build a single tax_query clause
+   *
+   * @param string $taxonomy the taxonomy to query
+   * @param array $terms the term ids to match
+   * @param string $operator the WP_Tax_Query operator
+   * @return array
+   */
+  private function taxonomy_clause($taxonomy, $terms, $operator)
+  {
+    return array(
+      'taxonomy' => $taxonomy,
+      'field' => 'term_id',
+      'terms' => $terms,
+      'operator' => $operator,
+    );
+  }
+
+  /**
+   * get the names of the terms, skipping ids that do not belong to the taxonomy
+   *
+   * @param array $terms the term ids
+   * @param string $taxonomy the taxonomy the ids belong to
+   * @return array
+   */
+  private function taxonomy_term_names($terms, $taxonomy)
+  {
+    $names = array();
+    foreach ($terms as $term) {
+      $term_object = get_term($term, $taxonomy);
+      if (!$term_object || is_wp_error($term_object)) {
+        continue;
+      }
+      $names[] = $term_object->name;
+    }
+    return $names;
+  }
+
   private function query_prepare($params, $conf)
   {
     /*constuct the query*/
@@ -75,27 +129,15 @@ class Extend_WP_Search_Filters
         $search_term = $params[$request_key];
         switch ($constructor['query_type']) {
           case 'taxonomy':
-            $search_term = array();
-            $tax_query = array(
-              'taxonomy' => $constructor['taxonomy'][0],
-              'field' => 'term_id',
-              'terms' => $search_terms,
-            );
-            foreach ($search_terms as $term) {
-              $search_term[] = get_term($term, $constructor['taxonomy'][0])->name;
-            }
+            $operator = $this->taxonomy_operator($constructor);
+            $tax_query = $this->taxonomy_clause($constructor['taxonomy'][0], $search_terms, $operator);
+            $search_term = $this->taxonomy_term_names($search_terms, $constructor['taxonomy'][0]);
             if (count($constructor['taxonomy']) > 1) {
               $tax_query = array('relation' => 'or');
               $search_term = array();
               foreach ($constructor['taxonomy'] as $taxonomy) {
-                $tax_query[] = array(
-                  'taxonomy' => $taxonomy,
-                  'field' => 'term_id',
-                  'terms' => $search_terms,
-                );
-                foreach ($search_terms as $term) {
-                  $search_term[] = get_term($term, $taxonomy)->name;
-                }
+                $tax_query[] = $this->taxonomy_clause($taxonomy, $search_terms, $operator);
+                $search_term = array_merge($search_term, $this->taxonomy_term_names($search_terms, $taxonomy));
               }
             }
             $search_term = implode(',', $search_term);
