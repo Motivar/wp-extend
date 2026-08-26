@@ -90,7 +90,9 @@ if (!function_exists('ewp_query_fields')) {
        'options' => array(
         'in' => array('label' => 'IN'),
         'not_in' => array('label' => 'NOT IN'),
+        'and' => array('label' => 'AND'),
        ),
+       'explanation' => __('How multiple selected values of this field combine: IN matches any of them, NOT IN excludes them, AND requires the post to have all of them.', 'extend-wp'),
        'label_class' => array('awm-needed'),
       ),
      ),

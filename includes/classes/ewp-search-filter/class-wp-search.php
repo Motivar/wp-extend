@@ -54,13 +54,14 @@ class Extend_WP_Search_Filters
    * translate the configured compare operator to a WP_Tax_Query operator
    *
    * @param array $constructor the query field configuration
-   * @return string IN|NOT IN
+   * @return string IN|NOT IN|AND
    */
   private function taxonomy_operator($constructor)
   {
     $operators = array(
       'in' => 'IN',
       'not_in' => 'NOT IN',
+      'and' => 'AND',
     );
     $compare = isset($constructor['compare_type']) ? $constructor['compare_type'] : 'in';
     return isset($operators[$compare]) ? $operators[$compare] : 'IN';
