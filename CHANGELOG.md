@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`CLAUDE.md` repository guide for Claude Code** (`2026-08-26`):
+  - **Question/Prompt**: "/init — analyze this codebase and create a CLAUDE.md file."
+  - **Summary**: Adds a root `CLAUDE.md` documenting the build/CLI commands and the plugin's big-picture architecture (bootstrap order in `Setup.php`, the field-library abstraction shared by meta boxes/options/customizer/blocks, the custom content DB tables, REST namespaces, the Dynamic Asset Loader timing constraint, webpack entry auto-discovery, and the prefix/template/changelog conventions).
+  - **Affected Files**: `CLAUDE.md` (new), `CHANGELOG.md`.
+  - **Backwards Compatibility**: Documentation only; no runtime code touched.
 - **AI-readable logs via the core Abilities API** (`2026-08-18`):
   - **Question/Prompt**: "How to create an mcp server to read the logs from the @includes/classes/ewp-logger ?" → "Can we create a link where we can put in ai agents describe the issue and then get answer based on the logs?" → "can we just use the native ai connectors wp module, and if we have ai and model enabled in wp to add a prompt to the ewp-logger?" → "Can we code phase 1 & phase 3? then after the test works go to phase 2"
   - **Summary**: Exposes the EWP activity log to AI tooling without writing an MCP server or an OAuth authorization server. Five read-only abilities are registered with the WordPress Abilities API (core 6.9+), and an in-admin "Diagnose" box on the log viewer sends a plain-language issue description plus log context to the core AI Client (`wp_ai_client_prompt()`, WordPress 7.0+) and renders the answer. Because the abilities are registered with core rather than bound to one transport, any future consumer — the WordPress MCP Adapter, the `ai` plugin, core features — picks them up for free. Exposing them to external agents over MCP is deferred as a follow-up.

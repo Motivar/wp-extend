@@ -37,7 +37,8 @@
       "Bash(git --no-pager log --oneline -3)",
       "Bash(git push *)",
       "Bash(curl -s \"https://owners.gr/wp-json/wp/v2/taxonomies\")",
-      "Bash(curl -s \"https://owners.gr/fractional-ownership/homes/\" -o homes.html)"
+      "Bash(curl -s \"https://owners.gr/fractional-ownership/homes/\" -o homes.html)",
+      "Bash(grep -rn 'namespace = \\\\|$namespace =' includes)"
     ]
   }
 }
