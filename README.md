@@ -55,6 +55,13 @@ The plugin provides multiple integration points:
 - Action/filter hooks for extending functionality
 - Gutenberg block integration for modern editing
 - WPML support for multilingual sites
+- WordPress Abilities API integration for AI tooling and MCP clients (WordPress 6.9+)
+
+### AI and the Abilities API
+
+On WordPress 6.9 and newer the plugin registers its functionality with the core Abilities API, so an AI agent or MCP client can read the activity log, create and edit custom field groups, custom content, post types and taxonomies, export and import options pages, and flush the caches. Every ability enforces the same capability as the matching admin screen, destructive ones require an explicit confirmation, and every write is recorded in the activity log. On older WordPress nothing is registered and the plugin behaves exactly as before.
+
+See [`docs/abilities.md`](docs/abilities.md) for the full inventory, schemas and filters.
 
 ## For Developers
 

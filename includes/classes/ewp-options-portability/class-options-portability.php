@@ -160,6 +160,17 @@ class EWP_Options_Portability
 		$keys        = array();
 		$field_count = 0;
 
+		/*
+		 * A box whose library resolves to nothing (no library, no usable
+		 * callback) comes back as an empty string, so bail before iterating.
+		 */
+		if (!is_array($library)) {
+			return array(
+				'keys'        => $keys,
+				'field_count' => $field_count,
+			);
+		}
+
 		foreach ($library as $field_key => $field_def) {
 			/* Section: the section key is the wp_option name, sub-fields are stored inside it */
 			if (isset($field_def['case']) && $field_def['case'] === 'section' && isset($field_def['include'])) {

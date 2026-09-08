@@ -83,7 +83,8 @@ Canonical namespace is `extend-wp/v1` (logger, options portability, object searc
 
 ### Other modules
 
-- `ewp-logger/` — activity log with file storage, viewer UI, REST (`extend-wp/v1/logs`), WP-CLI, and read-only WordPress Abilities API integration plus an AI "Diagnose" box (guarded by `function_exists('wp_register_ability')` / `wp_supports_ai()`).
+- `ewp-logger/` — activity log with file storage, viewer UI, REST (`extend-wp/v1/logs`), WP-CLI, and read-only WordPress Abilities API integration plus an AI "Diagnose" box (gated by `EWP\Abilities\EWP_Abilities::is_supported()` / `wp_supports_ai()`). The log *write* ability lives in `ewp-abilities/`, not here.
+- `ewp-abilities/` — registers the plugin's functionality with the core WordPress Abilities API: log writes, full CRUD over `ewp_fields`, generic custom content rows, post types and taxonomies, plus search filter reads, options export/import and cache flushing. One provider class per category extending `EWP_Abilities_Provider` (or `EWP_Abilities_Typed_Provider` for a fixed content type); persistence goes through `EWP_Abilities_Content_Service`, never the content-type REST routes (whose create/update handlers are broken). Everything is gated on WordPress 6.9+ via `EWP_Abilities::has_api_support()`. Input schemas are derived from the field libraries by `EWP_Abilities_Schema`, so do not hand-write them. Docs: `docs/abilities.md`.
 - `ewp-search-filter/` — UI-configured front-end filters, `[ewp_search id="…"]` shortcode, REST-backed; templates in `templates/frontend/search/`.
 - `ewp-wp-content/` — UI-registered post types/taxonomies, slug manager, meta inheritance, and `EWP_Template_Resolver` (a post type can reuse another object's theme template; the `ewp_template_source_path` filter lets the owning plugin supply its own path).
 - `ewp-options-portability/` — export/import options pages (REST + CLI).
@@ -94,10 +95,16 @@ Canonical namespace is `extend-wp/v1` (logger, options portability, object searc
 
 - Prefixes: `awm_` (older layer) and `ewp_` (newer). Match the surrounding module; use `ewp_` for genuinely new subsystems.
 - Every PHP file starts with an `ABSPATH` guard. Indentation is inconsistent across the codebase (tabs, 1 space, 4 spaces) — match the file.
-- All HTML output goes through template files under `templates/`; no inline CSS/JS in PHP.
+- **Always separate JS, CSS and HTML** — never inline `<style>`/`<script>` blocks, `style="…"` attributes, or `onclick="…"` handlers emitted from PHP, and no HTML strings built inside JS where a template can carry them.
+  - **HTML** → a template file under `templates/`, rendered by the PHP layer.
+  - **JS** → an ES module under `assets/js/modules/` (auto-discovered by webpack into `build/modules/*`), registered against a CSS selector through the `ewp_register_dynamic_assets` filter so it is imported lazily only on pages where its elements exist. Prefer this selector-driven module import over enqueuing a script globally. Pass data in via the registration's `localize` key (or `wp_localize_script`), and hook elements by class or `data-` attribute.
+  - **CSS** → SASS. Write `.scss` under `assets/css/**/sass/` (or the module's `.scss` next to its output) and compile; do not hand-edit the generated `.css`/`.min.css`. Colors, spacing and other tokens go through `:root` custom properties.
 - Every new extension point gets `apply_filters`/`do_action` with a documented signature; new filters belong in the module's readme/docs and the changelog.
 - User-facing strings use the `extend-wp` text domain.
-- Vanilla JS in `assets/js` (jQuery only where already present); CSS uses root custom properties.
+- Vanilla JS (jQuery only where already present in the file you are editing).
+- **Keep REST, WP-CLI, and WP Abilities API in sync.** Any functionality reachable one way should be reachable all three ways: a new REST route gets a matching WP-CLI subcommand (and vice versa) and, where it fits the Abilities API's read/act model, a registered ability (guarded by `function_exists('wp_register_ability')`, following the `ewp-logger/` pattern). When adding or changing a feature, check whether existing REST/CLI/Abilities surfaces for it now drifted out of sync and update the others in the same change.
+  - **One shared callback.** All three surfaces must call the same underlying function/method for a given piece of functionality — the REST callback, the CLI command handler, and the ability's `execute_callback` should each be a thin wrapper (auth/arg-shape only) around one shared implementation, never three parallel copies of the logic.
+  - **Document parameters thoroughly.** Every parameter on that shared function and on each surface's wrapper gets a doc comment: type, whether required/optional, default, accepted values/format, and what it does. REST route `args` need `type`/`required`/`description`/`sanitize_callback`/`validate_callback` filled in (not left to defaults), WP-CLI commands need full `@synopsis`/docblock parameter descriptions (so `wp help` is self-sufficient), and ability `input_schema`/`output_schema` need real JSON Schema `description`s per property, not just types.
 
 ## Changelog (required)
 

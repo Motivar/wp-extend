@@ -61,6 +61,8 @@ class Setup
   require_once 'class-dynamic-asset-loader.php';
   require_once 'ewp-logger/class-ewp-logger.php';
   require_once 'ewp-options-portability/class-options-portability.php';
+  /*must stay last: the abilities read the content type registry and wrap the logger and options portability*/
+  require_once 'ewp-abilities/class-ewp-abilities.php';
   //require_once 'ewp-ai-content/class-ewp-ai-content.php';
 
  }

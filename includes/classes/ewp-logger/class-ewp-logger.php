@@ -207,7 +207,11 @@ class EWP_Logger
         // (core 6.9+). Every ability enforces the viewer capability, so this
         // exposes nothing a user could not already read in the log viewer.
         // These back the in-admin diagnose box and any MCP consumer.
-        if (self::$enabled && function_exists('wp_register_ability') && EWP_Logger_Settings::is_ai_enabled()) {
+        $abilities_supported = class_exists('EWP\Abilities\EWP_Abilities')
+            ? \EWP\Abilities\EWP_Abilities::is_supported()
+            : function_exists('wp_register_ability');
+
+        if (self::$enabled && $abilities_supported && EWP_Logger_Settings::is_ai_enabled()) {
             $abilities = new EWP_Logger_Abilities();
             $abilities->init();
 
