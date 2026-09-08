@@ -60,8 +60,6 @@ class Setup
   require_once 'dev-tools/init.php';
   require_once 'class-dynamic-asset-loader.php';
   require_once 'ewp-logger/class-ewp-logger.php';
-  /*log-source discovery for mtv-probe (filter + REST + CLI + ability); loads even when logging is off*/
-  require_once 'ewp-logger/class-ewp-logger-probe.php';
   require_once 'ewp-options-portability/class-options-portability.php';
   /*must stay right before ewp-abilities: it hooks ewp_abilities_providers, which class-ewp-abilities.php applies at require time*/
   require_once 'ewp-self-test/class-ewp-self-test.php';

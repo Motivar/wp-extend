@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **mtv-probe log-source discovery module** (`2026-09-08`):
+  - **Question/Prompt**: "remove all code associated with mtv-probe".
+  - **Summary**: Removes `EWP\Logger\EWP_Logger_Probe` (`includes/classes/ewp-logger/class-ewp-logger-probe.php`) and its `require_once` in `Setup.php`. The module answered "where does this site log?" for an external read-only collector (mtv-probe) and exposed the answer on four surfaces, all now gone: the `mtv_probe_log_sources` filter (Extend WP contributed its activity-log files at priority 5), `GET /extend-wp/v1/probe/sources`, `wp ewp probe sources [--format=]`, and the `ewp-logger/probe-sources` ability. It had been committed as part of the self-test commit (`23031ed4`) but was never listed in `manifest.json`, documented, or covered by tests.
+  - **Affected Files**: `includes/classes/ewp-logger/class-ewp-logger-probe.php` (deleted), `includes/classes/Setup.php`.
+  - **Backwards Compatibility**: Breaking only for callers of the four surfaces above. Sibling plugins that `add_filter('mtv_probe_log_sources', …)` keep working (an unapplied filter is harmless) but their sources are no longer exposed anywhere by this plugin. The `ewp_logger_ability_definitions` filter the probe hooked predates it and is unchanged.
+
 ### Added
 - **Manifest-driven self-test suite: every REST route / CLI command / ability, with a WP_DEBUG-only dashboard** (`2026-09-08`):
   - **Question/Prompt**: "What we also need is to test all endpoints/clis/abilities (if we have ai configured) we need a file with all the tests, plus a UI layer if wp_debug = development in order to: 1. preview the test 2. run the test 3. get validation of each test 4. remove the test data 5. show report. We need one single point of truth for the tests like a json file or yaml to publish all 3 test layers: pre push, gitlab ci, ui. Please also update claude.md in order to always test code changes."
