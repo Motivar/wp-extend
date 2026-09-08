@@ -18,3 +18,9 @@ reference
 .ai
 .claude
 .claude/settings.local.json
+
+# PHPUnit/WordPress test toolchain (tests/composer.json) — dev-only, never
+# part of the committed lib/ vendor dir that sibling plugins consume.
+/tests/vendor/
+/tests/wordpress/
+.phpunit.result.cache

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+    bootstrap="tests/bootstrap.php"
+    backupGlobals="false"
+    colors="true"
+    convertErrorsToExceptions="true"
+    convertNoticesToExceptions="true"
+    convertWarningsToExceptions="true"
+>
+    <testsuites>
+        <testsuite name="extend-wp">
+            <directory suffix="-test.php">./tests/</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <const name="WP_TESTS_FORCE_KNOWN_BUGS" value="true"/>
+    </php>
+</phpunit>

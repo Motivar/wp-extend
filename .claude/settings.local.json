@@ -38,7 +38,9 @@
       "Bash(git push *)",
       "Bash(curl -s \"https://owners.gr/wp-json/wp/v2/taxonomies\")",
       "Bash(curl -s \"https://owners.gr/fractional-ownership/homes/\" -o homes.html)",
-      "Bash(grep -rn 'namespace = \\\\|$namespace =' includes)"
+      "Bash(grep -rn 'namespace = \\\\|$namespace =' includes)",
+      "Bash(grep -n 'private static $namespace\\\\|self::$rest_namespace *=\\\\|self::$namespace *=' includes/classes/ewp-logger/class-ewp-logger-api.php includes/classes/ewp-options-portability/class-options-portability.php includes/classes/ewp-ai-content/class-ewp-ai-content.php)",
+      "Bash(grep -n '$namespace *=\\\\|rest_base *=' includes/classes/ewp-rest-health/class-ewp-rest-health-controller.php includes/classes/ewp-logger/class-ewp-logger-diagnose.php)"
     ]
   }
 }

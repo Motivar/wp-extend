@@ -1,0 +1,94 @@
+{
+    "$comment": "Single source of truth for the Extend WP self-test suite. Every entry is one feature exercised through each surface it is exposed on (REST, WP-CLI, Abilities API). Consumed identically by the wp-admin dashboard (Tools > Self test, WP_DEBUG only), `wp ewp self-test`, the ewp-self-test/* abilities, the .githooks/pre-push hook and .gitlab-ci.yml (both via tests/run-self-test.php). Add an entry here whenever a new REST route, CLI command or ability is added; tests/test-self-test-manifest-test.php fails when an entry's class is missing or ids collide.",
+    "version": 1,
+    "cases": [
+        {
+            "id": "content-crud",
+            "label": "Custom content CRUD (generic content types)",
+            "category": "content",
+            "layers": ["rest", "cli", "ability"],
+            "class": "EWP\\SelfTest\\Cases\\Content_Crud_Case",
+            "requires": [],
+            "args": {
+                "namespace": "ewp"
+            },
+            "covers": {
+                "rest": ["{prefix}/{type}", "{prefix}/{type}/{id}", "{prefix}/{type}/create", "{prefix}/{type}/update/{id}", "{prefix}/{type}/delete"],
+                "cli": ["ewp content types", "ewp content list", "ewp content get", "ewp content create", "ewp content update", "ewp content delete"],
+                "ability": ["ewp-content/list-content-types", "ewp-content/list-items", "ewp-content/get-item", "ewp-content/create-item", "ewp-content/update-item", "ewp-content/delete-item"]
+            }
+        },
+        {
+            "id": "search-filters",
+            "label": "Search filters (read-only surfaces + filter execution)",
+            "category": "search",
+            "layers": ["rest", "cli", "ability"],
+            "class": "EWP\\SelfTest\\Cases\\Search_Filter_Case",
+            "requires": [],
+            "args": {},
+            "covers": {
+                "rest": ["ewp/search", "ewp/search/{id}", "ewp-filter/{id}"],
+                "cli": ["ewp content list --type=ewp_search", "ewp content get --type=ewp_search"],
+                "ability": ["ewp-search/list-filters", "ewp-search/get-filter"]
+            }
+        },
+        {
+            "id": "cache-flush",
+            "label": "Cache flush",
+            "category": "system",
+            "layers": ["cli", "ability"],
+            "class": "EWP\\SelfTest\\Cases\\Cache_Flush_Case",
+            "requires": [],
+            "args": {},
+            "covers": {
+                "rest": [],
+                "cli": ["ewp delete-cache"],
+                "ability": ["ewp-system/flush-cache", "ewp-system/get-site-info"]
+            }
+        },
+        {
+            "id": "logger",
+            "label": "Activity log (write + read)",
+            "category": "logger",
+            "layers": ["rest", "cli", "ability"],
+            "class": "EWP\\SelfTest\\Cases\\Logger_Case",
+            "requires": ["logger"],
+            "args": {},
+            "covers": {
+                "rest": ["extend-wp/v1/logs", "extend-wp/v1/logs/types", "extend-wp/v1/logs/owners"],
+                "cli": ["ewp log list", "ewp log stats", "ewp log types", "ewp log cleanup"],
+                "ability": ["ewp-logger/write-entry", "ewp-logger/search", "ewp-logger/get-request-trace", "ewp-logger/list-vocabulary"]
+            }
+        },
+        {
+            "id": "options-portability",
+            "label": "Options portability (list / export / dry-run import)",
+            "category": "options",
+            "layers": ["rest", "cli", "ability"],
+            "class": "EWP\\SelfTest\\Cases\\Options_Portability_Case",
+            "requires": [],
+            "args": {},
+            "covers": {
+                "rest": ["extend-wp/v1/options-portability/pages", "extend-wp/v1/options-portability/export", "extend-wp/v1/options-portability/import"],
+                "cli": ["ewp options list", "ewp options export", "ewp options import"],
+                "ability": ["ewp-options/list-pages", "ewp-options/export", "ewp-options/import"]
+            }
+        },
+        {
+            "id": "ai-abilities",
+            "label": "Abilities API registration + AI provider (when configured)",
+            "category": "ai",
+            "layers": ["ability", "rest"],
+            "class": "EWP\\SelfTest\\Cases\\Ai_Case",
+            "requires": ["abilities"],
+            "args": {
+                "expected_categories": ["ewp-content", "ewp-fields", "ewp-wp-content", "ewp-search", "ewp-options", "ewp-system", "ewp-logger", "ewp-self-test"]
+            },
+            "covers": {
+                "rest": ["extend-wp/v1/logs/diagnose"],
+                "cli": [],
+                "ability": ["ewp-* categories registered with core", "ewp-logger diagnose provider availability"]
+            }
+        }
+    ]
+}

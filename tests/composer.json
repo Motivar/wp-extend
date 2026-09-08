@@ -1,0 +1,19 @@
+{
+    "name": "motivar/extend-wp-tests",
+    "description": "Dev-only PHPUnit/WordPress test toolchain for motivar/extend-wp. Never required by consumers of the plugin package — kept out of the committed lib/ vendor directory on purpose.",
+    "type": "project",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6",
+        "yoast/phpunit-polyfills": "^2.0",
+        "wp-phpunit/wp-phpunit": "^6.4",
+        "johnpbloch/wordpress-core": "^6.4"
+    },
+    "config": {
+        "vendor-dir": "vendor"
+    }
+}
+

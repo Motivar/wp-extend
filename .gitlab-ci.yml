@@ -3,3 +3,46 @@ include:
   - project: "tools/motivar-cicd-files"
     ref: main
     file: ".gitlab-ci-mtv-plugins-wiki.yml"
+
+variables:
+  MYSQL_DATABASE: wp_extend_tests
+  MYSQL_USER: db
+  MYSQL_PASSWORD: db
+  MYSQL_ROOT_PASSWORD: root
+  WP_TESTS_DB_HOST: mariadb
+  WP_TESTS_DB_NAME: wp_extend_tests
+  WP_TESTS_DB_USER: db
+  WP_TESTS_DB_PASSWORD: db
+  # tests/composer.json (johnpbloch/wordpress-core) downloads a fresh WP
+  # core into tests/vendor/johnpbloch/wordpress-core — there is no live
+  # DDEV site to reuse here, unlike the local pre-push hook (see
+  # .githooks/pre-push), which points WP_CORE_DIR at the DDEV site's own
+  # /var/www/html instead.
+  WP_CORE_DIR: '$CI_PROJECT_DIR/tests/vendor/johnpbloch/wordpress-core'
+
+phpunit:
+  stage: test
+  image: php:8.2-cli
+  services:
+    - name: mariadb:10.4
+      alias: mariadb
+  before_script:
+    - apt-get update -yqq
+    - apt-get install -yqq git unzip libzip-dev default-mysql-client
+    - docker-php-ext-install mysqli zip >/dev/null
+    - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+    - php -l extend-wp.php
+    - 'for f in $(find includes -name "*.php"); do php -l "$f" >/dev/null || exit 1; done'
+    - cd tests && composer install --no-interaction --prefer-dist --no-progress && cd ..
+    - until mysqladmin ping -h mariadb -u root -proot --silent; do sleep 1; done
+  script:
+    # Unit/integration suite (isolated per-test transactions).
+    - tests/vendor/bin/phpunit -c phpunit.xml.dist
+    # Self-test suite: every REST route / CLI command / ability listed in
+    # includes/classes/ewp-self-test/manifest.json, run with cleanup against
+    # the same throwaway database. Same runner the wp-admin dashboard uses.
+    - php tests/self-test-runner.php
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
