@@ -89,30 +89,38 @@ class AWM_Add_Content_DB_Setup
           )
         )
       ),
-      'create' => array(
+    );
+
+    /*read-only content types (e.g. ewp_search) expose no create/update/delete routes, matching the writable:false abilities*/
+    if (!empty($this->list['writable'])) {
+      $default_rest['create'] = array(
         'endpoint' => $this->data_id . '/create/',
         'namespace' =>  $this->prefix,
         'method' => 'post',
         'php_callback' => [$class, 'insert'],
-        'permission_callback' => 'ewp_rest_check_user_is_admin'
-      ),
-      'update' => array(
+        'permission_callback' => 'ewp_rest_check_user_is_admin',
+        'args' => $this->write_args(),
+      );
+      $default_rest['update'] = array(
         'endpoint' => $this->data_id . '/update/(?P<id>\d+)',
         'namespace' =>  $this->prefix,
         'method' => 'post',
-        'args' => array(
-          'id' => array(
-            'description'       => sprintf(__('The id of the %s content object', 'ewp'), $this->data_content['list_name_singular']),
-            'type'              => 'int',
-            'default'           => 0,
-            'sanitize_callback' => 'absint',
-            'required' => true
-          )
+        'args' => array_merge(
+          array(
+            'id' => array(
+              'description'       => sprintf(__('The id of the %s content object', 'ewp'), $this->data_content['list_name_singular']),
+              'type'              => 'int',
+              'default'           => 0,
+              'sanitize_callback' => 'absint',
+              'required' => true
+            )
+          ),
+          $this->write_args(false)
         ),
         'php_callback' => [$class, 'update'],
         'permission_callback' => 'ewp_rest_check_user_is_admin'
-      ),
-      'delete_single' => array(
+      );
+      $default_rest['delete_single'] = array(
         'endpoint' => $this->data_id . '/delete/',
         'namespace' =>  $this->prefix,
         'method' => 'delete',
@@ -126,11 +134,47 @@ class AWM_Add_Content_DB_Setup
         ),
         'php_callback' => [$class, 'delete'],
         'permission_callback' => 'ewp_rest_check_user_is_admin'
-        
-      ),
-    );
+
+      );
+    }
+
     $d_api = new AWM_Dynamic_API($default_rest);
     $d_api->register_routes();
+  }
+
+  /**
+   * REST args shared by the create and update routes.
+   *
+   * @param bool $required Whether `title` is required (true for create, false for the update patch).
+   *
+   * @return array REST route `args` definition for `title`, `status` and `meta`.
+   */
+  private function write_args($required = true)
+  {
+    return array(
+      'title' => array(
+        'description'       => sprintf(__('The title of the %s item.', 'ewp'), $this->data_content['list_name_singular']),
+        'type'              => 'string',
+        'required'          => $required,
+        'sanitize_callback' => 'sanitize_text_field',
+      ),
+      'status' => array(
+        'description'       => sprintf(__('The status to assign the %s item. Defaults to the first registered status when omitted.', 'ewp'), $this->data_content['list_name_singular']),
+        'type'              => 'string',
+        'required'          => false,
+        'default'           => '',
+        'sanitize_callback' => 'sanitize_text_field',
+      ),
+      'meta' => array(
+        'description'       => sprintf(__('Meta field values for the %s item, keyed by field key.', 'ewp'), $this->data_content['list_name_singular']),
+        'type'              => 'object',
+        'required'          => false,
+        'default'           => array(),
+        'validate_callback' => function ($value) {
+          return is_array($value);
+        },
+      ),
+    );
   }
 
 
@@ -170,7 +214,9 @@ class AWM_Add_Content_DB_Setup
       'is_data_encrypted' => false,
       'capability' => isset($this->data_content['capability']) ? $this->data_content['capability'] : 'edit_posts',
       'metaboxes' => $this->get_metaboxes(),
-      'save_columns' => $this->main_table_columns()
+      'save_columns' => $this->main_table_columns(),
+      /*whether create/update/delete REST routes and abilities are registered for this content type; read-only types (e.g. ewp_search) set this to false*/
+      'writable' => isset($this->data_content['writable']) ? (bool) $this->data_content['writable'] : true,
     );
     self::$ewp_data_configuration[$this->content_id] = $this->list;
   }

@@ -64,6 +64,8 @@ class Setup
   /*must stay last: the abilities read the content type registry and wrap the logger and options portability*/
   require_once 'ewp-abilities/class-ewp-abilities.php';
   //require_once 'ewp-ai-content/class-ewp-ai-content.php';
+  /*must stay after ewp-abilities: uses EWP_Abilities_Content_Service, the shared read/write implementation also used by REST and the abilities*/
+  require_once 'awm-content-db-api/custom-content/class-content-cli.php';
 
  }
 }

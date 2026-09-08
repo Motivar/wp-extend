@@ -455,6 +455,8 @@ class Extend_WP_Search_Filters
         'disabled' => array('label' => __('Disabled', 'extend-wp')),
       ),
       'show_new' => false,
+      /*read-only via REST/CLI/abilities: filters are configured through the admin UI, not written by API consumers*/
+      'writable' => false,
       'list_name' => __('Search filters', 'extend-wp'),
       'list_name_singular' => __('Search Filter', 'extend-wp'),
       'order' => 1,

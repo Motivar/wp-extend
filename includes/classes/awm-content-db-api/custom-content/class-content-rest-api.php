@@ -13,11 +13,21 @@ class AWM_Add_Content_DB_API extends WP_REST_Controller
   private $object_type;
   private $object_defaults;
 
+  /**
+   * Shared content service also used by the WP Abilities API providers and
+   * the `wp ewp content` CLI commands, so create/update validation and
+   * persistence behave identically no matter which surface is used.
+   *
+   * @var \EWP\Abilities\EWP_Abilities_Content_Service
+   */
+  private $content_service;
+
   public function __construct($id, $args)
   {
     // Initialize values
     $this->object_type = $id;
     $this->object_defaults = $args;
+    $this->content_service = new \EWP\Abilities\EWP_Abilities_Content_Service();
   }
   /**
    * get the results
@@ -61,20 +71,78 @@ class AWM_Add_Content_DB_API extends WP_REST_Controller
   }
 
   /**
-   * insert new coupons
+   * Create a new content item.
+   *
+   * Delegates to EWP_Abilities_Content_Service::create_item(), the same
+   * implementation the `ewp-content`/`ewp-fields`/`ewp-wp-content` abilities
+   * and the `wp ewp content create` CLI command use, so validation
+   * (required fields, unknown meta keys, status) and persistence are
+   * identical across all three surfaces.
+   *
+   * @param WP_REST_Request $request The incoming REST request.
+   *
+   * @return WP_REST_Response|WP_Error The created item, or a WP_Error on validation/save failure.
    */
   public function insert($request)
   {
-    if (isset($request)) {
-      $params = $request->get_params();
-      flx_pretty_print($this->object_defaults);
-      die();
-      if (!isset($params['ids']) || empty($params['ids'])) {
-        return rest_ensure_response(new WP_REST_Response(__('No ids detected', 'ewp')), 400);
-      }
-      $ids = explode(',', $params['ids']);
-      return rest_ensure_response(new WP_REST_Response(awm_custom_content_delete($this->object_type, $ids)), 200);
+    if (!isset($request)) {
+      return rest_ensure_response(new WP_REST_Response(__('No params detected', 'ewp')), 400);
     }
-    return rest_ensure_response(new WP_REST_Response(__('No params detected', 'ewp')), 400);
+
+    $params = $request->get_params();
+    $title  = isset($params['title']) ? (string) $params['title'] : '';
+    $status = isset($params['status']) ? (string) $params['status'] : '';
+    $meta   = isset($params['meta']) && is_array($params['meta']) ? $params['meta'] : array();
+
+    $result = $this->content_service->create_item($this->object_type, $title, $status, $meta);
+
+    if (is_wp_error($result)) {
+      return $result;
+    }
+
+    $response = rest_ensure_response($result);
+    $response->set_status(201);
+    return $response;
+  }
+
+  /**
+   * Update an existing content item.
+   *
+   * Delegates to EWP_Abilities_Content_Service::update_item() (patch
+   * semantics: only the keys present in the request body are changed),
+   * the same implementation the abilities layer and the
+   * `wp ewp content update` CLI command use.
+   *
+   * @param WP_REST_Request $request The incoming REST request. Requires the `id` route param.
+   *
+   * @return WP_REST_Response|WP_Error The updated item, or a WP_Error on validation/save failure.
+   */
+  public function update($request)
+  {
+    if (!isset($request)) {
+      return rest_ensure_response(new WP_REST_Response(__('No params detected', 'ewp')), 400);
+    }
+
+    $params = $request->get_params();
+    $id     = isset($params['id']) ? absint($params['id']) : 0;
+
+    $patch = array();
+    if (array_key_exists('title', $params)) {
+      $patch['title'] = (string) $params['title'];
+    }
+    if (array_key_exists('status', $params)) {
+      $patch['status'] = (string) $params['status'];
+    }
+    if (isset($params['meta']) && is_array($params['meta'])) {
+      $patch['meta'] = $params['meta'];
+    }
+
+    $result = $this->content_service->update_item($this->object_type, $id, $patch);
+
+    if (is_wp_error($result)) {
+      return $result;
+    }
+
+    return rest_ensure_response($result);
   }
 }
