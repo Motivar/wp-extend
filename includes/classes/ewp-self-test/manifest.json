@@ -75,6 +75,7 @@
             "label": "Cache flush",
             "category": "system",
             "layers": [
+                "rest",
                 "cli",
                 "ability"
             ],
@@ -82,9 +83,13 @@
             "requires": [],
             "args": {},
             "covers": {
-                "rest": [],
+                "rest": [
+                    "extend-wp/v1/system/info",
+                    "extend-wp/v1/system/flush-cache"
+                ],
                 "cli": [
-                    "ewp delete-cache"
+                    "ewp delete-cache",
+                    "ewp system info"
                 ],
                 "ability": [
                     "ewp-system/flush-cache",

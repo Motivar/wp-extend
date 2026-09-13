@@ -7,6 +7,8 @@ use EWP\Surfaces\Resources\Content_Resource;
 use EWP\Surfaces\Resources\Content_Type_Rest_Resource;
 use EWP\Surfaces\Resources\Fields_Resource;
 use EWP\Surfaces\Resources\Logger_Resource;
+use EWP\Surfaces\Resources\Options_Resource;
+use EWP\Surfaces\Resources\System_Resource;
 use EWP\Surfaces\Resources\Search_Resource;
 use EWP\Surfaces\Resources\WP_Content_Resource;
 use Motivar\WP\Adapters\Ability_Adapter;
@@ -99,6 +101,9 @@ final class EWP_Surfaces
         require_once __DIR__ . '/resources/class-wp-content-resource.php';
         require_once __DIR__ . '/resources/class-search-resource.php';
         require_once __DIR__ . '/resources/class-logger-resource.php';
+        require_once __DIR__ . '/class-system-service.php';
+        require_once __DIR__ . '/resources/class-system-resource.php';
+        require_once __DIR__ . '/resources/class-options-resource.php';
 
         $this->service = new Content_Service();
         $this->registry = new Registry();
@@ -118,6 +123,8 @@ final class EWP_Surfaces
             'wp-content' => new WP_Content_Resource($this->service),
             'search'     => new Search_Resource($this->service),
             'logger'     => new Logger_Resource(new \EWP\Logger\EWP_Logger_Query()),
+            'options'    => new Options_Resource(),
+            'system'     => new System_Resource(new System_Service($this->service)),
         ], $this->service);
 
         foreach ($resources as $resource) {

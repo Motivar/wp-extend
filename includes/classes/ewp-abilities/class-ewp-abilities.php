@@ -10,8 +10,6 @@ require_once __DIR__ . '/class-ewp-abilities-schema.php';
 require_once __DIR__ . '/class-ewp-abilities-provider.php';
 require_once dirname(__DIR__) . '/ewp-content/class-content-service.php';
 require_once __DIR__ . '/class-ewp-abilities-audit.php';
-require_once __DIR__ . '/providers/class-ewp-abilities-options-provider.php';
-require_once __DIR__ . '/providers/class-ewp-abilities-system-provider.php';
 
 /**
  * Bootstraps the Extend WP integration with the WordPress Abilities API.
@@ -271,10 +269,12 @@ class EWP_Abilities
      */
     private function build_providers($service)
     {
-        $providers = [
-            'options'    => new EWP_Abilities_Options_Provider(),
-            'system'     => new EWP_Abilities_System_Provider($service),
-        ];
+        /*
+         * Every Extend WP ability is now declared as a kit resource in
+         * ewp-surfaces/. This filter remains for the self-test module until
+         * it moves to its own package.
+         */
+        $providers = [];
 
         /**
          * Filter the Extend WP ability providers before they are initialised.

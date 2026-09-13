@@ -63,14 +63,16 @@ class EWP_Options_Portability
 	 */
 	public function __construct()
 	{
-		add_action('rest_api_init', [$this, 'register_rest_routes']);
 		add_filter('ewp_register_dynamic_assets', [$this, 'register_dynamic_assets']);
 		add_action('ewp_logger_initialized', [$this, 'register_log_types']);
 
-		/* Bootstrap CLI commands */
+		/*
+		 * The REST routes, `wp ewp options` commands and `ewp-options/*`
+		 * abilities are generated from EWP\Surfaces\Resources\Options_Resource.
+		 * The CLI class only keeps the static callables tests invoke in-process.
+		 */
 		if (class_exists('WP_CLI')) {
 			require_once __DIR__ . '/class-options-portability-cli.php';
-			EWP_Options_Portability_CLI::init($this);
 		}
 	}
 
@@ -788,210 +790,6 @@ class EWP_Options_Portability
 
 		/* Scalars (int, float, bool, null) — return unchanged */
 		return $data;
-	}
-
-	/* =========================================================
-	 * Section: REST API
-	 * ========================================================= */
-
-	/**
-	 * Register REST API routes for options portability.
-	 *
-	 * @return void
-	 *
-	 * @hook rest_api_init
-	 * @since 1.0.0
-	 */
-	public function register_rest_routes()
-	{
-		/* GET /options-portability/pages */
-		register_rest_route(self::$rest_namespace, '/options-portability/pages', array(
-			array(
-				'methods'             => \WP_REST_Server::READABLE,
-				'callback'            => array($this, 'rest_get_pages'),
-				'permission_callback' => array($this, 'rest_check_permission'),
-			),
-		));
-
-		/* GET /options-portability/export — accepts pages via 'pages' or form field name */
-		register_rest_route(self::$rest_namespace, '/options-portability/export', array(
-			array(
-				'methods'             => \WP_REST_Server::READABLE,
-				'callback'            => array($this, 'rest_export'),
-				'permission_callback' => array($this, 'rest_check_permission'),
-			),
-		));
-
-		/* POST /options-portability/import */
-		register_rest_route(self::$rest_namespace, '/options-portability/import', array(
-			array(
-				'methods'             => \WP_REST_Server::CREATABLE,
-				'callback'            => array($this, 'rest_import'),
-				'permission_callback' => array($this, 'rest_check_permission'),
-				'args'                => array(
-					'data' => array(
-						'required' => true,
-						'type'     => 'string',
-					),
-					'dry_run' => array(
-						'required' => false,
-						'type'     => 'boolean',
-						'default'  => false,
-					),
-					'skip_url_replace' => array(
-						'required' => false,
-						'type'     => 'boolean',
-						'default'  => false,
-					),
-					'backup_file' => array(
-						'required'          => false,
-						'type'              => 'string',
-						'description'       => __('Server path to write a JSON backup of the affected options before importing.', 'extend-wp'),
-						'sanitize_callback' => 'sanitize_text_field',
-					),
-				),
-			),
-		));
-	}
-
-	/**
-	 * REST permission callback — require manage_options capability.
-	 *
-	 * @return bool True if user can manage options.
-	 *
-	 * @since 1.0.0
-	 */
-	public function rest_check_permission()
-	{
-		return current_user_can('manage_options');
-	}
-
-	/**
-	 * REST callback: list available pages.
-	 *
-	 * @param WP_REST_Request $request Request object.
-	 * @return WP_REST_Response Available pages with field counts.
-	 *
-	 * @since 1.0.0
-	 */
-	public function rest_get_pages($request)
-	{
-		$pages  = $this->get_exportable_pages();
-		$result = array();
-
-		foreach ($pages as $key => $data) {
-			$result[$key] = array(
-				'title'       => $data['title'],
-				'field_count' => count($data['fields']),
-			);
-		}
-
-		return rest_ensure_response($result);
-	}
-
-	/**
-	 * REST callback: export option pages.
-	 *
-	 * Extracts the pages array from the request. Accepts the form
-	 * field name (option_pages / option_pages[]) or the canonical
-	 * 'pages' parameter — making the endpoint resilient to field
-	 * name changes on the admin form.
-	 *
-	 * @param WP_REST_Request $request Request with pages parameter.
-	 * @return WP_REST_Response|WP_Error Export JSON or error.
-	 *
-	 * @since 1.0.0
-	 */
-	public function rest_export($request)
-	{
-		$pages = $this->extract_pages_param($request);
-
-		if (empty($pages)) {
-			return new \WP_Error(
-				'missing_pages',
-				__('Please select at least one option page.', 'extend-wp'),
-				array('status' => 400)
-			);
-		}
-
-		$data = $this->export_options($pages, 'rest');
-
-		if (is_wp_error($data)) {
-			return $data;
-		}
-
-		return rest_ensure_response($data);
-	}
-
-	/**
-	 * Extract the pages array from a REST request.
-	 *
-	 * Checks multiple possible parameter names so the endpoint works
-	 * both with the admin form serializer and direct API calls.
-	 *
-	 * @param WP_REST_Request $request Incoming request.
-	 * @return array Flat array of page keys (may be empty).
-	 *
-	 * @since 1.1.0
-	 */
-	private function extract_pages_param($request)
-	{
-		/* Direct API calls use 'pages' */
-		$pages = $request->get_param('pages');
-
-		if (!empty($pages)) {
-			return is_array($pages) ? $pages : array($pages);
-		}
-
-		/* Form serializer sends 'option_pages[]' or 'option_pages' */
-		$pages = $request->get_param('option_pages[]');
-
-		if (!empty($pages)) {
-			return is_array($pages) ? $pages : array($pages);
-		}
-
-		$pages = $request->get_param('option_pages');
-
-		if (!empty($pages)) {
-			return is_array($pages) ? $pages : array($pages);
-		}
-
-		return array();
-	}
-
-	/**
-	 * REST callback: import option pages.
-	 *
-	 * @param WP_REST_Request $request Request with 'data', 'dry_run', 'skip_url_replace'.
-	 * @return WP_REST_Response|WP_Error Import summary or error.
-	 *
-	 * @since 1.0.0
-	 */
-	public function rest_import($request)
-	{
-		$raw_data = $request->get_param('data');
-		$parsed   = json_decode($raw_data, true);
-
-		if (json_last_error() !== JSON_ERROR_NONE) {
-			return new \WP_Error('invalid_json', __('Invalid JSON in import data.', 'extend-wp'), array('status' => 400));
-		}
-
-		$backup_file = $request->get_param('backup_file');
-
-		$opts = array(
-			'dry_run'          => (bool) $request->get_param('dry_run'),
-			'skip_url_replace' => (bool) $request->get_param('skip_url_replace'),
-			'actor'            => 'rest',
-			'backup_file'      => $backup_file !== null && $backup_file !== '' ? (string) $backup_file : null,
-		);
-
-		$result = $this->import_options($parsed, $opts);
-
-		if (is_wp_error($result)) {
-			return $result;
-		}
-
-		return rest_ensure_response($result);
 	}
 
 	/* =========================================================
