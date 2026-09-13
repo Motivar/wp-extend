@@ -25,4 +25,11 @@ unset($_awm_version_file);
 
 require_once(plugin_dir_path(__FILE__) . '/lib/autoload.php');
 
+/*
+ * Motivar WP kit: version-gated, safe to bundle in several plugins.
+ * Must load after Composer and before \EWP\Setup so modules can call
+ * \Motivar\WP\Kit::on_ready() while requiring themselves.
+ */
+require_once plugin_dir_path(__FILE__) . 'includes/kit/bootstrap.php';
+
 new \EWP\Setup();

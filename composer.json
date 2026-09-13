@@ -27,6 +27,11 @@
             "includes/classes/class-encryption.php"
         ]
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Motivar\\WP\\": "includes/kit/src/"
+        }
+    },
     "scripts": {
         "post-install-cmd": [
             "git config core.hooksPath .githooks || true"

@@ -1,0 +1,21 @@
+{
+    "name": "motivar/wp-kit",
+    "description": "Declare a WordPress feature once and expose it as a REST route, a WP-CLI command and a WordPress Ability from the same definition.",
+    "version": "0.1.0",
+    "type": "library",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Motivar",
+            "email": "info@motivar.io"
+        }
+    ],
+    "require": {
+        "php": ">=7.4"
+    },
+    "autoload": {
+        "files": [
+            "bootstrap.php"
+        ]
+    }
+}
