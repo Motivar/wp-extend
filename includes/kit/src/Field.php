@@ -24,6 +24,7 @@ final class Field
     const T_OBJECT   = 'object';
     const T_INT_LIST = 'int_list';
     const T_ARRAY    = 'array';
+    const T_CUSTOM   = 'custom';
 
     /** @var string */
     private $name;
@@ -59,6 +60,10 @@ final class Field
     private $properties = [];
     /** @var string|null */
     private $cli_name = null;
+    /** @var array|null */
+    private $schema = null;
+    /** @var bool */
+    private $additional_properties = true;
 
     /**
      * @param string $name Parameter name (snake_case).
@@ -123,6 +128,25 @@ final class Field
     public static function array($name)
     {
         return new self($name, self::T_ARRAY);
+    }
+
+    /**
+     * A field described by a verbatim JSON Schema fragment.
+     *
+     * For shapes the typed factories cannot express (union types, nested
+     * repeaters derived from a field library). The schema is emitted as-is
+     * for abilities; REST takes its `type`; the CLI reads it as JSON.
+     *
+     * @param string $name   Field name.
+     * @param array  $schema JSON Schema fragment.
+     *
+     * @return Field
+     */
+    public static function custom($name, array $schema)
+    {
+        $field         = new self($name, self::T_CUSTOM);
+        $field->schema = $schema;
+        return $field;
     }
 
     /* ---------------------------------------------------------------------
@@ -240,6 +264,14 @@ final class Field
         return $clone;
     }
 
+    /** Whether an object accepts keys beyond its declared properties. @return Field */
+    public function additional_properties($allowed = true)
+    {
+        $clone                        = clone $this;
+        $clone->additional_properties = (bool) $allowed;
+        return $clone;
+    }
+
     /**
      * @param Field[] $properties Nested fields for object types.
      *
@@ -315,6 +347,18 @@ final class Field
     public function cli_name_of()
     {
         return $this->cli_name;
+    }
+
+    /** @return array|null Verbatim schema of a custom field. */
+    public function schema_of()
+    {
+        return $this->schema;
+    }
+
+    /** @return bool */
+    public function allows_additional_properties()
+    {
+        return $this->additional_properties;
     }
 
     public function items_type()
@@ -442,6 +486,8 @@ final class Field
                 return $this->coerce_list($raw, 'integer');
             case self::T_ARRAY:
                 return $this->coerce_list($raw, $this->items_type);
+            case self::T_CUSTOM:
+                return $this->coerce_custom($raw);
         }
 
         return $raw;
@@ -503,6 +549,27 @@ final class Field
         }
 
         return $items;
+    }
+
+    /**
+     * Custom fields pass through; a JSON string is decoded when the schema
+     * describes an object or a list.
+     *
+     * @param mixed $raw Raw value.
+     *
+     * @return mixed
+     */
+    private function coerce_custom($raw)
+    {
+        $types = isset($this->schema['type']) ? (array) $this->schema['type'] : [];
+        if (is_string($raw) && (in_array('object', $types, true) || in_array('array', $types, true))) {
+            $decoded = json_decode($raw, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return is_object($raw) ? (array) $raw : $raw;
     }
 
     /**

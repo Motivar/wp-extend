@@ -62,6 +62,8 @@ final class Operation
     private $args = null;
     /** @var bool */
     private $allow_extra = false;
+    /** @var object|null */
+    private $service_override = null;
 
     /**
      * @param string $kind    Operation kind.
@@ -246,6 +248,19 @@ final class Operation
     public function args(callable $mapper)
     {
         $this->args = $mapper;
+        return $this;
+    }
+
+    /**
+     * Run the handler on this object instead of the resource's service.
+     *
+     * @param object $service Service instance.
+     *
+     * @return Operation
+     */
+    public function on($service)
+    {
+        $this->service_override = is_object($service) ? $service : null;
         return $this;
     }
 
@@ -518,17 +533,24 @@ final class Operation
      */
     private function invoke(array $input, Context $ctx)
     {
-        $service = $this->resource !== null ? $this->resource->service_instance() : null;
+        $service = $this->service_override;
+        if ($service === null && $this->resource !== null) {
+            $service = $this->resource->service_instance();
+        }
         if ($service === null || !method_exists($service, $this->handler)) {
             return new \WP_Error('mwp_no_handler', sprintf('No handler "%s" for operation "%s".', $this->handler, $this->name), ['status' => 500]);
         }
 
         try {
             $args = $this->args !== null
-                ? (array) call_user_func($this->args, $input, $ctx)
+                ? call_user_func($this->args, $input, $ctx)
                 : $this->map_args($service, $input);
 
-            return call_user_func_array([$service, $this->handler], $args);
+            if ($args instanceof \WP_Error) {
+                return $args;
+            }
+
+            return call_user_func_array([$service, $this->handler], (array) $args);
         } catch (\Throwable $e) {
             return new \WP_Error('mwp_operation_failed', $e->getMessage(), ['status' => 500]);
         }

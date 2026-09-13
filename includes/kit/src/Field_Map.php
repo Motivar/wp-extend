@@ -37,7 +37,7 @@ final class Field_Map
 
         foreach ($fields as $field) {
             $arg = [
-                'type'              => self::json_type($field),
+                'type'              => self::json_type($field, true),
                 'required'          => $field->is_required(),
                 'description'       => $field->description(),
                 'sanitize_callback' => self::rest_sanitizer($field),
@@ -103,7 +103,19 @@ final class Field_Map
      */
     public static function to_json_property(Field $field)
     {
-        $property = ['type' => self::json_type($field)];
+        if ($field->type() === Field::T_CUSTOM) {
+            $property = (array) $field->schema_of();
+            if ($field->description() !== '' && !isset($property['description'])) {
+                $property['description'] = $field->description();
+            }
+            if ($field->has_default() && !isset($property['default'])) {
+                $property['default'] = $field->default_of();
+            }
+
+            return $property;
+        }
+
+        $property = ['type' => self::json_type($field, false)];
 
         if ($field->description() !== '') {
             $property['description'] = $field->description();
@@ -238,11 +250,12 @@ final class Field_Map
      * ------------------------------------------------------------------ */
 
     /**
-     * @param Field $field Field.
+     * @param Field $field    Field.
+     * @param bool  $for_rest REST also accepts comma separated strings for lists.
      *
      * @return string|string[] JSON Schema type.
      */
-    private static function json_type(Field $field)
+    private static function json_type(Field $field, $for_rest)
     {
         switch ($field->type()) {
             case Field::T_INT:
@@ -253,9 +266,15 @@ final class Field_Map
                 return 'object';
             case Field::T_INT_LIST:
             case Field::T_ARRAY:
-                return ['array', 'string'];
+                return $for_rest ? ['array', 'string'] : 'array';
             case Field::T_ENUM:
-                return $field->is_multiple() ? ['array', 'string'] : 'string';
+                if (!$field->is_multiple()) {
+                    return 'string';
+                }
+                return $for_rest ? ['array', 'string'] : 'array';
+            case Field::T_CUSTOM:
+                $schema = (array) $field->schema_of();
+                return isset($schema['type']) ? $schema['type'] : 'string';
         }
 
         return 'string';
@@ -303,13 +322,13 @@ final class Field_Map
         }
 
         if ($field->type() === Field::T_OBJECT) {
-            $out['additionalProperties'] = true;
             if ($field->properties_of() !== []) {
                 $out['properties'] = [];
                 foreach ($field->properties_of() as $child) {
                     $out['properties'][$child->name()] = self::to_json_property($child);
                 }
             }
+            $out['additionalProperties'] = $field->allows_additional_properties();
         }
 
         return $out;

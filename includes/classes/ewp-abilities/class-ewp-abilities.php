@@ -9,11 +9,7 @@ if (!defined('ABSPATH')) {
 require_once __DIR__ . '/class-ewp-abilities-schema.php';
 require_once __DIR__ . '/class-ewp-abilities-provider.php';
 require_once dirname(__DIR__) . '/ewp-content/class-content-service.php';
-require_once __DIR__ . '/class-ewp-abilities-typed-provider.php';
 require_once __DIR__ . '/class-ewp-abilities-audit.php';
-require_once __DIR__ . '/providers/class-ewp-abilities-fields-provider.php';
-require_once __DIR__ . '/providers/class-ewp-abilities-wp-content-provider.php';
-require_once __DIR__ . '/providers/class-ewp-abilities-search-provider.php';
 require_once __DIR__ . '/providers/class-ewp-abilities-options-provider.php';
 require_once __DIR__ . '/providers/class-ewp-abilities-system-provider.php';
 require_once __DIR__ . '/providers/class-ewp-abilities-logger-provider.php';
@@ -277,9 +273,6 @@ class EWP_Abilities
     private function build_providers($service)
     {
         $providers = [
-            'fields'     => new EWP_Abilities_Fields_Provider($service),
-            'wp-content' => new EWP_Abilities_WP_Content_Provider($service),
-            'search'     => new EWP_Abilities_Search_Provider($service),
             'options'    => new EWP_Abilities_Options_Provider(),
             'system'     => new EWP_Abilities_System_Provider($service),
             'logger'     => new EWP_Abilities_Logger_Provider(),

@@ -164,7 +164,7 @@ final class Content_Schema
             Field::array('status')->items('string')->describe(__('Restrict to these statuses. Omit for every status.', 'extend-wp')),
             Field::string('search')->describe(__('Match against the item title.', 'extend-wp')),
             Field::int_list('include')->describe(__('Return only these item ids.', 'extend-wp')),
-            Field::int('limit')->default_value(Content_Service::DEFAULT_LIMIT)->min(1)->max(Content_Service::MAX_LIMIT)
+            Field::int('limit')->min(1)->max(Content_Service::MAX_LIMIT)
                 ->describe(sprintf(
                     /* translators: 1: default limit, 2: maximum limit. */
                     __('How many items to return. Defaults to %1$d, maximum %2$d.', 'extend-wp'),
@@ -174,7 +174,7 @@ final class Content_Schema
             Field::object('order_by')->properties([
                 Field::string('column'),
                 Field::enum('type', ['asc', 'desc', 'ASC', 'DESC']),
-            ])->describe(__('Sort column and direction, for example {"column":"created","type":"desc"}.', 'extend-wp')),
+            ])->additional_properties(false),
             $with_meta_default ? $with_meta->default_value(true) : $with_meta,
         ];
     }

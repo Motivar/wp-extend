@@ -1,58 +1,38 @@
 <?php
 
-namespace EWP\Abilities;
+namespace EWP\Surfaces\Resources;
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
 /**
- * Abilities for the post types and taxonomies registered through the UI.
+ * Post types and taxonomies registered through the UI as `ewp-wp-content/*`.
  *
  * These rows drive `register_post_type()` and `register_taxonomy()` on the
- * next request, so creating one here really does add a post type to the site.
+ * next request, so creating one here really does add a post type.
  *
- * @package    EWP\Abilities
+ * @package    EWP\Surfaces
  * @author     Motivar
- * @version    1.0.0
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
-class EWP_Abilities_WP_Content_Provider extends EWP_Abilities_Typed_Provider
+final class WP_Content_Resource extends Typed_Content_Resource
 {
-    /**
-     * Ability category slug.
-     *
-     * @var string
-     */
-    const CATEGORY = 'ewp-wp-content';
-
-    /**
-     * Maximum length WordPress allows for a post type name.
-     *
-     * @var int
-     */
     const MAX_POST_TYPE_LENGTH = 20;
+    const MAX_TAXONOMY_LENGTH  = 32;
 
-    /**
-     * Maximum length WordPress allows for a taxonomy name.
-     *
-     * @var int
-     */
-    const MAX_TAXONOMY_LENGTH = 32;
-
-    /**
-     * {@inheritDoc}
-     */
-    public function category()
+    public function name()
     {
-        return self::CATEGORY;
+        return 'wp-content';
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function category_args()
+    public function ability_category()
+    {
+        return 'ewp-wp-content';
+    }
+
+    public function ability_category_args()
     {
         return [
             'label'       => __('EWP Post Types & Taxonomies', 'extend-wp'),
@@ -60,9 +40,6 @@ class EWP_Abilities_WP_Content_Provider extends EWP_Abilities_Typed_Provider
         ];
     }
 
-    /**
-     * {@inheritDoc}
-     */
     protected function entities()
     {
         return [
@@ -106,118 +83,61 @@ class EWP_Abilities_WP_Content_Provider extends EWP_Abilities_Typed_Provider
     /**
      * Validate the object name length and characters.
      *
-     * @param array $entity    Entity descriptor.
-     * @param array $meta      Meta payload.
-     * @param bool  $is_create Whether this is a create call.
-     *
-     * @return true|\WP_Error
-     *
-     * @since 1.4.0
+     * {@inheritDoc}
      */
     protected function validate_entity(array $entity, array $meta, $is_create)
     {
         $name_key = $entity['name_key'];
-
         if (!isset($meta[$name_key])) {
             return true;
         }
 
         $name = (string) $meta[$name_key];
-
         if ($name === '') {
-            return $this->error(
-                'ewp_abilities_invalid_object_name',
-                sprintf(
-                    /* translators: %s: meta key holding the slug. */
-                    __('%s cannot be empty.', 'extend-wp'),
-                    $name_key
-                )
-            );
+            return $this->error('ewp_abilities_invalid_object_name', sprintf(
+                /* translators: %s: meta key holding the slug. */
+                __('%s cannot be empty.', 'extend-wp'),
+                $name_key
+            ));
         }
 
         if (!preg_match('/^[a-z0-9_\- ]+$/i', $name)) {
-            return $this->error(
-                'ewp_abilities_invalid_object_name',
-                sprintf(
-                    /* translators: %s: meta key holding the slug. */
-                    __('%s may only contain letters, numbers, spaces, dashes and underscores.', 'extend-wp'),
-                    $name_key
-                )
-            );
+            return $this->error('ewp_abilities_invalid_object_name', sprintf(
+                /* translators: %s: meta key holding the slug. */
+                __('%s may only contain letters, numbers, spaces, dashes and underscores.', 'extend-wp'),
+                $name_key
+            ));
         }
 
-        return $this->validate_registered_length($entity, $meta, $name);
-    }
-
-    /**
-     * Ensure prefix plus slug fits inside the WordPress name limit.
-     *
-     * @param array  $entity Entity descriptor.
-     * @param array  $meta   Meta payload.
-     * @param string $name   Requested slug.
-     *
-     * @return true|\WP_Error
-     *
-     * @since 1.4.0
-     */
-    protected function validate_registered_length(array $entity, array $meta, $name)
-    {
         $prefix     = !empty($meta['prefix']) ? (string) $meta['prefix'] : 'ewp';
-        $registered = $this->build_registered_name($prefix, $name);
-
+        $registered = $this->registered_name($prefix, $name);
         if (strlen($registered) <= $entity['max_length']) {
             return true;
         }
 
-        return $this->error(
-            'ewp_abilities_object_name_too_long',
-            sprintf(
-                /* translators: 1: resulting registered name, 2: character limit. */
-                __('The resulting name "%1$s" is longer than the %2$d character limit WordPress allows. Use a shorter slug or prefix.', 'extend-wp'),
-                $registered,
-                (int) $entity['max_length']
-            )
-        );
-    }
-
-    /**
-     * Build the name WordPress will actually register.
-     *
-     * @param string $prefix Configured prefix.
-     * @param string $name   Configured slug.
-     *
-     * @return string
-     *
-     * @since 1.4.0
-     */
-    protected function build_registered_name($prefix, $name)
-    {
-        $clean = function_exists('awm_clean_string') ? awm_clean_string(strtolower($name)) : sanitize_key($name);
-
-        return $prefix . '_' . $clean;
+        return $this->error('ewp_abilities_object_name_too_long', sprintf(
+            /* translators: 1: resulting registered name, 2: character limit. */
+            __('The resulting name "%1$s" is longer than the %2$d character limit WordPress allows. Use a shorter slug or prefix.', 'extend-wp'),
+            $registered,
+            (int) $entity['max_length']
+        ));
     }
 
     /**
      * Add the registered name and registration state to a row.
      *
-     * @param array $entity Entity descriptor.
-     * @param array $row    Normalised row.
-     *
-     * @return array
-     *
-     * @since 1.4.0
+     * {@inheritDoc}
      */
     protected function decorate_row(array $entity, array $row)
     {
         $meta = isset($row['meta']) ? (array) $row['meta'] : [];
         $name = isset($meta[$entity['name_key']]) ? (string) $meta[$entity['name_key']] : '';
-
         if ($name === '') {
             return $row;
         }
 
         $prefix     = !empty($meta['prefix']) ? (string) $meta['prefix'] : 'ewp';
-        $registered = $this->build_registered_name($prefix, $name);
+        $registered = $this->registered_name($prefix, $name);
 
         $row['registered_name'] = $registered;
         $row['is_registered']   = $entity['content_type'] === 'ewp_post_types'
@@ -225,5 +145,20 @@ class EWP_Abilities_WP_Content_Provider extends EWP_Abilities_Typed_Provider
             : taxonomy_exists($registered);
 
         return $row;
+    }
+
+    /**
+     * The name WordPress will actually register.
+     *
+     * @param string $prefix Configured prefix.
+     * @param string $name   Configured slug.
+     *
+     * @return string
+     */
+    private function registered_name($prefix, $name)
+    {
+        $clean = function_exists('awm_clean_string') ? awm_clean_string(strtolower($name)) : sanitize_key($name);
+
+        return $prefix . '_' . $clean;
     }
 }

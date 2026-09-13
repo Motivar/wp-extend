@@ -62,7 +62,8 @@ class Test_Kit_Field_Map extends WP_UnitTestCase
     {
         $status = Field::enum('status', ['enabled', 'disabled'])->multiple();
 
-        $this->assertSame(['array', 'string'], Field_Map::to_json_property($status)['type']);
+        $this->assertSame('array', Field_Map::to_json_property($status)['type'], 'abilities receive JSON, so a list is a plain array');
+        $this->assertSame(['array', 'string'], Field_Map::to_rest_args([$status])['status']['type'], 'REST also accepts comma separated strings');
         $this->assertSame(['type' => 'string', 'enum' => ['enabled', 'disabled']], Field_Map::to_json_property($status)['items']);
         $this->assertSame(['enabled', 'disabled'], $status->normalize('enabled, disabled'));
         $this->assertTrue($status->validate(['enabled']));
@@ -114,6 +115,34 @@ class Test_Kit_Field_Map extends WP_UnitTestCase
         $this->assertWPError($title->validate('toolong'));
         $this->assertTrue(Field_Map::to_rest_args([$title])['title']['required']);
         $this->assertSame(['title'], Field_Map::to_json_schema([$title])['required']);
+    }
+
+    public function test_lists_are_plain_arrays_for_abilities_but_accept_strings_over_rest()
+    {
+        $ids = Field::int_list('ids');
+
+        $this->assertSame('array', Field_Map::to_json_property($ids)['type']);
+        $this->assertSame(['array', 'string'], Field_Map::to_rest_args([$ids])['ids']['type']);
+    }
+
+    public function test_custom_field_emits_its_schema_verbatim_and_decodes_json_input()
+    {
+        $schema = ['description' => 'Rows', 'type' => 'array', 'items' => ['type' => 'object']];
+        $rows   = Field::custom('rows', $schema);
+
+        $this->assertSame($schema, Field_Map::to_json_property($rows));
+        $this->assertSame('array', Field_Map::to_rest_args([$rows])['rows']['type']);
+        $this->assertSame([['a' => 1]], $rows->normalize('[{"a":1}]'));
+        $this->assertSame('kept', Field::custom('x', ['type' => 'string'])->normalize('kept'));
+    }
+
+    public function test_object_additional_properties_can_be_closed()
+    {
+        $closed = Field::object('order_by')->properties([Field::string('column')])->additional_properties(false);
+
+        $property = Field_Map::to_json_property($closed);
+        $this->assertFalse($property['additionalProperties']);
+        $this->assertSame(['column'], array_keys($property['properties']));
     }
 
     public function test_confirm_flag_is_appended_to_synopsis_only_when_requested()

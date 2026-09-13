@@ -37,12 +37,32 @@ class Test_Ability_Schema_Snapshot extends WP_UnitTestCase
             $this->markTestSkipped('Snapshot written to tests/fixtures/typed-ability-schemas.json; re-run to compare.');
         }
 
-        $expected = json_decode(file_get_contents($file), true);
-        $actual   = json_decode(wp_json_encode($current), true);
+        $expected = $this->canonical(json_decode(file_get_contents($file), true));
+        $actual   = $this->canonical(json_decode(wp_json_encode($current), true));
 
         $this->assertSame(array_keys($expected), array_keys($actual), 'the set of typed abilities changed');
         foreach ($expected as $name => $schemas) {
             $this->assertSame($schemas, $actual[$name], "schema drift in {$name}");
         }
+    }
+
+    /**
+     * Sort object keys recursively; JSON object key order carries no meaning,
+     * while list order (required, enum) is kept.
+     */
+    private function canonical($value)
+    {
+        if (!is_array($value)) {
+            return $value;
+        }
+        $is_list = array_keys($value) === range(0, count($value) - 1);
+        foreach ($value as $key => $item) {
+            $value[$key] = $this->canonical($item);
+        }
+        if (!$is_list) {
+            ksort($value);
+        }
+
+        return $value;
     }
 }

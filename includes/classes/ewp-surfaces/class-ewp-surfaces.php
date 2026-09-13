@@ -5,6 +5,9 @@ namespace EWP\Surfaces;
 use EWP\Content\Content_Service;
 use EWP\Surfaces\Resources\Content_Resource;
 use EWP\Surfaces\Resources\Content_Type_Rest_Resource;
+use EWP\Surfaces\Resources\Fields_Resource;
+use EWP\Surfaces\Resources\Search_Resource;
+use EWP\Surfaces\Resources\WP_Content_Resource;
 use Motivar\WP\Adapters\Ability_Adapter;
 use Motivar\WP\Adapters\Cli_Adapter;
 use Motivar\WP\Adapters\Rest_Adapter;
@@ -85,8 +88,14 @@ final class EWP_Surfaces
          * are loaded here rather than when Setup.php requires this file.
          */
         require_once __DIR__ . '/class-content-schema.php';
+        require_once __DIR__ . '/class-library-fields.php';
+        require_once __DIR__ . '/class-field-vocabulary.php';
         require_once __DIR__ . '/resources/class-content-resource.php';
         require_once __DIR__ . '/resources/class-content-type-rest-resource.php';
+        require_once __DIR__ . '/resources/class-typed-content-resource.php';
+        require_once __DIR__ . '/resources/class-fields-resource.php';
+        require_once __DIR__ . '/resources/class-wp-content-resource.php';
+        require_once __DIR__ . '/resources/class-search-resource.php';
 
         $this->service = new Content_Service();
         $this->registry = new Registry();
@@ -100,7 +109,12 @@ final class EWP_Surfaces
          *
          * @since 1.5.0
          */
-        $resources = apply_filters('ewp_surfaces_resources', ['content' => new Content_Resource($this->service)], $this->service);
+        $resources = apply_filters('ewp_surfaces_resources', [
+            'content'    => new Content_Resource($this->service),
+            'fields'     => new Fields_Resource($this->service),
+            'wp-content' => new WP_Content_Resource($this->service),
+            'search'     => new Search_Resource($this->service),
+        ], $this->service);
 
         foreach ($resources as $resource) {
             if ($resource instanceof Resource) {
