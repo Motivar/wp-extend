@@ -8,7 +8,6 @@ if (!defined('ABSPATH')) {
  * setupσ the custom content id db
  */
 
-require_once 'class-content-rest-api.php';
 class AWM_Add_Content_DB_Setup
 {
   /*
@@ -61,97 +60,26 @@ class AWM_Add_Content_DB_Setup
 
 
   /**
-   * check if we are going to disable rest otherwise contsruct the endpoints
+   * Register this content type's REST routes.
+   *
+   * The routes (`{prefix}/{type}`, `/{id}`, and for writable types
+   * `/create/`, `/update/{id}`, `/delete/`) are declared once as a kit
+   * resource (EWP\Surfaces\Resources\Content_Type_Rest_Resource) and
+   * served by the same Content_Service calls as `wp ewp content` and the
+   * `ewp-content/*` abilities. Runs on `rest_api_init`; test fixtures call
+   * it directly for types created after that action fired.
+   *
+   * @return void
    */
   public function rest_endpoints()
   {
-    $class = new AWM_Add_Content_DB_API($this->content_id, $this->data_content + $this->list);
-    /*register the default crud method*/
-    $default_rest = array(
-      'view' => array(
-        'endpoint' => $this->data_id,
-        'namespace' =>  $this->prefix,
-        'method' => 'get',
-        'php_callback' => [$class, 'get_results'],
-        'permission_callback' => [$this, 'read_permission'],
-      ),
-      'view_single' => array(
-        'endpoint' => $this->data_id . '/(?P<id>\d+)',
-        'namespace' =>  $this->prefix,
-        'method' => 'get',
-        'php_callback' => [$class, 'get_results'],
-        'permission_callback' => [$this, 'read_permission'],
-        'args' => array(
-          'id' => array(
-            'description'       => sprintf(__('The id of the %s content object', 'ewp'), $this->data_content['list_name_singular']),
-            'type'              => 'integer',
-            'default'           => 0,
-            'sanitize_callback' => 'absint',
-            'required' => true
-          )
-        )
-      ),
-    );
-
-    /*read-only content types (e.g. ewp_search) expose no create/update/delete routes, matching the writable:false abilities*/
-    if (!empty($this->list['writable'])) {
-      $default_rest['create'] = array(
-        'endpoint' => $this->data_id . '/create/',
-        'namespace' =>  $this->prefix,
-        'method' => 'post',
-        'php_callback' => [$class, 'insert'],
-        'permission_callback' => [$this, 'write_permission'],
-        'args' => $this->write_args(),
-      );
-      $default_rest['update'] = array(
-        'endpoint' => $this->data_id . '/update/(?P<id>\d+)',
-        'namespace' =>  $this->prefix,
-        'method' => 'post',
-        'args' => array_merge(
-          array(
-            'id' => array(
-              'description'       => sprintf(__('The id of the %s content object', 'ewp'), $this->data_content['list_name_singular']),
-              'type'              => 'integer',
-              'default'           => 0,
-              'sanitize_callback' => 'absint',
-              'required' => true
-            )
-          ),
-          $this->write_args(false)
-        ),
-        'php_callback' => [$class, 'update'],
-        'permission_callback' => [$this, 'write_permission']
-      );
-      $default_rest['delete_single'] = array(
-        'endpoint' => $this->data_id . '/delete/',
-        'namespace' =>  $this->prefix,
-        'method' => 'delete',
-        'args' => array(
-          'ids' => array(
-            'description'       => sprintf(__('The ids of the %s content objects to delete, comma separated.', 'ewp'), $this->data_content['list_name_singular']),
-            'type'              => 'string',
-            'sanitize_callback' => 'sanitize_text_field',
-            'default'           => 0,
-            'required' => true
-          )
-        ),
-        'php_callback' => [$class, 'delete'],
-        'permission_callback' => [$this, 'write_permission']
-
-      );
+    if (!class_exists('EWP\\Surfaces\\EWP_Surfaces')) {
+      return;
     }
 
-    $d_api = new AWM_Dynamic_API($default_rest);
-    $d_api->register_routes();
+    \EWP\Surfaces\EWP_Surfaces::instance()->register_content_type_routes($this->content_id, $this->prefix, $this->data_id);
   }
 
-  /**
-   * REST args shared by the create and update routes.
-   *
-   * @param bool $required Whether `title` is required (true for create, false for the update patch).
-   *
-   * @return array REST route `args` definition for `title`, `status` and `meta`.
-   */
   /**
    * Permission callback for the list and single read routes.
    *
@@ -171,52 +99,6 @@ class AWM_Add_Content_DB_Setup
 
     return current_user_can($this->list['capability']);
   }
-
-  /**
-   * Permission callback for the create, update and delete routes.
-   *
-   * Uses the content type's own `capability`, as wp-admin and the
-   * abilities do. Before 1.5.0 REST writes required `manage_options`
-   * for every type regardless of what the type registered.
-   *
-   * @return bool
-   *
-   * @since 1.5.0
-   */
-  public function write_permission()
-  {
-    return current_user_can($this->list['capability']);
-  }
-
-  private function write_args($required = true)
-  {
-    return array(
-      'title' => array(
-        'description'       => sprintf(__('The title of the %s item.', 'ewp'), $this->data_content['list_name_singular']),
-        'type'              => 'string',
-        'required'          => $required,
-        'sanitize_callback' => 'sanitize_text_field',
-      ),
-      'status' => array(
-        'description'       => sprintf(__('The status to assign the %s item. Defaults to the first registered status when omitted.', 'ewp'), $this->data_content['list_name_singular']),
-        'type'              => 'string',
-        'required'          => false,
-        'default'           => '',
-        'sanitize_callback' => 'sanitize_text_field',
-      ),
-      'meta' => array(
-        'description'       => sprintf(__('Meta field values for the %s item, keyed by field key.', 'ewp'), $this->data_content['list_name_singular']),
-        'type'              => 'object',
-        'required'          => false,
-        'default'           => array(),
-        'validate_callback' => function ($value) {
-          return is_array($value);
-        },
-      ),
-    );
-  }
-
-
 
   /**
    * set the basics for tables indide the class

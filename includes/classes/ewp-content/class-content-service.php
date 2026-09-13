@@ -662,6 +662,44 @@ class Content_Service
     }
 
     /**
+     * Describe every content type the current user may access.
+     *
+     * The shape every surface returns for a type inventory: the abilities
+     * expose it as `ewp-content/list-content-types`, the CLI as
+     * `wp ewp content types`.
+     *
+     * @return array{count:int,types:array} Each type: content_type, label, singular,
+     *                                       capability, statuses, fields, writable, public_read.
+     *
+     * @since 1.5.0
+     */
+    public function describe_types()
+    {
+        $types = [];
+
+        foreach ($this->list_types() as $content_type => $config) {
+            $capability = isset($config['capability']) ? $config['capability'] : 'edit_posts';
+
+            if (!current_user_can($capability)) {
+                continue;
+            }
+
+            $types[] = [
+                'content_type' => (string) $content_type,
+                'label'        => isset($config['list_name']) ? (string) $config['list_name'] : (string) $content_type,
+                'singular'     => isset($config['list_name_singular']) ? (string) $config['list_name_singular'] : '',
+                'capability'   => (string) $capability,
+                'statuses'     => $this->get_statuses($content_type),
+                'fields'       => $this->describe_library($content_type),
+                'writable'     => !isset($config['writable']) || (bool) $config['writable'],
+                'public_read'  => !empty($config['public_read']),
+            ];
+        }
+
+        return ['count' => count($types), 'types' => $types];
+    }
+
+    /**
      * Whether a content type exposes its read routes to anonymous requests.
      *
      * Opt-in through `'public_read' => true` on the `awm_register_content_db`

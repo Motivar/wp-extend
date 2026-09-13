@@ -57,6 +57,8 @@ final class Field
     private $items_type = 'string';
     /** @var Field[] */
     private $properties = [];
+    /** @var string|null */
+    private $cli_name = null;
 
     /**
      * @param string $name Parameter name (snake_case).
@@ -208,6 +210,20 @@ final class Field
         return $clone;
     }
 
+    /**
+     * CLI hint: expose the field as `--<name>` instead of the dashed field name.
+     *
+     * @param string $name Flag name without dashes.
+     *
+     * @return Field
+     */
+    public function cli_name($name)
+    {
+        $clone           = clone $this;
+        $clone->cli_name = (string) $name;
+        return $clone;
+    }
+
     /** CLI hint: consume a positional argument instead of --name. @return Field */
     public function positional($positional = true)
     {
@@ -293,6 +309,12 @@ final class Field
     public function is_positional()
     {
         return $this->positional;
+    }
+
+    /** @return string|null */
+    public function cli_name_of()
+    {
+        return $this->cli_name;
     }
 
     public function items_type()

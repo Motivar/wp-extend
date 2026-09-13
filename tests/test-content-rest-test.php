@@ -101,6 +101,44 @@ class Test_Content_Rest extends WP_UnitTestCase
         $this->assertSame(200, $response->get_status());
     }
 
+    public function test_single_item_route_returns_the_row_and_404_when_missing()
+    {
+        $create = $this->request('POST', '/create');
+        $create->set_param('title', 'Single');
+        $create->set_param('meta', ['required_field' => 'value']);
+        $created = rest_get_server()->dispatch($create)->get_data();
+
+        $get = $this->request('GET', '/' . $created['id']);
+        $get->set_url_params(['id' => $created['id']]);
+        $response = rest_get_server()->dispatch($get);
+
+        $this->assertSame(200, $response->get_status());
+        $data = $response->get_data();
+        $this->assertSame('Single', $data['title'], 'GET /{id} returns the row itself, not a one-item list');
+        $this->assertSame('value', $data['meta']->required_field ?? $data['meta']['required_field']);
+
+        $missing = $this->request('GET', '/999999');
+        $missing->set_url_params(['id' => 999999]);
+        $this->assertSame(404, rest_get_server()->dispatch($missing)->get_status());
+    }
+
+    public function test_list_route_returns_normalised_rows_with_meta()
+    {
+        $create = $this->request('POST', '/create');
+        $create->set_param('title', 'Listed');
+        $create->set_param('meta', ['required_field' => 'value']);
+        rest_get_server()->dispatch($create);
+
+        $response = rest_get_server()->dispatch($this->request('GET', ''));
+
+        $this->assertSame(200, $response->get_status());
+        $rows = $response->get_data();
+        $this->assertIsArray($rows);
+        $this->assertArrayHasKey('id', $rows[0]);
+        $this->assertArrayHasKey('title', $rows[0]);
+        $this->assertArrayHasKey('meta', $rows[0]);
+    }
+
     public function test_non_writable_content_type_exposes_no_write_routes()
     {
         $endpoint = substr(self::$read_only_type, strlen('ewp_'));

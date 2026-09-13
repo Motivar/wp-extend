@@ -86,14 +86,19 @@ final class Capability
     }
 
     /**
+     * 401 for anonymous callers, 403 for an authenticated user who lacks
+     * the capability, matching WordPress REST conventions.
+     *
      * @return \WP_Error
      */
     private static function forbidden()
     {
+        $anonymous = function_exists('is_user_logged_in') && !is_user_logged_in();
+
         return new \WP_Error(
             'mwp_forbidden',
             'You do not have permission to perform this action.',
-            ['status' => 403]
+            ['status' => $anonymous ? 401 : 403]
         );
     }
 }

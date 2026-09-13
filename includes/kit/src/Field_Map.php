@@ -228,7 +228,9 @@ final class Field_Map
      */
     public static function cli_key(Field $field)
     {
-        return str_replace('_', '-', $field->name());
+        $custom = $field->cli_name_of();
+
+        return $custom !== null && $custom !== '' ? $custom : str_replace('_', '-', $field->name());
     }
 
     /* ---------------------------------------------------------------------

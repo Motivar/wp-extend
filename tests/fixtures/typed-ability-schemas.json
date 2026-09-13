@@ -1,0 +1,2540 @@
+{
+    "ewp-fields/create-field-group": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "description": "Administrative title shown in the wp-admin list."
+                },
+                "status": {
+                    "type": "string",
+                    "description": "Item status. Defaults to the first registered status on create.",
+                    "enum": [
+                        "enabled",
+                        "disabled"
+                    ]
+                },
+                "awm_fields": {
+                    "description": "Fields Field type: repeater.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "key": {
+                                "description": "Meta key Field type: input/text.",
+                                "type": [
+                                    "string",
+                                    "integer",
+                                    "number",
+                                    "boolean",
+                                    "null"
+                                ]
+                            },
+                            "label": {
+                                "description": "Meta label Field type: input/text.",
+                                "type": [
+                                    "string",
+                                    "integer",
+                                    "number",
+                                    "boolean",
+                                    "null"
+                                ]
+                            },
+                            "case": {
+                                "description": "Field type Field type: select. Allowed values: input, select, textarea, image, awm_gallery, radio, checkbox_multiple, date, map, postType, post_types, term, taxonomies, user, ewp_content, ewp_content_types, function, html.",
+                                "type": [
+                                    "string",
+                                    "integer",
+                                    "number",
+                                    "boolean",
+                                    "null"
+                                ]
+                            },
+                            "attributes": {
+                                "description": "Attributes like min=0 / onchange=action etc Field type: repeater.",
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "label": {
+                                            "description": "Attribute label Field type: input/text.",
+                                            "type": [
+                                                "string",
+                                                "integer",
+                                                "number",
+                                                "boolean",
+                                                "null"
+                                            ]
+                                        },
+                                        "value": {
+                                            "description": "Attribute value Field type: input/text.",
+                                            "type": [
+                                                "string",
+                                                "integer",
+                                                "number",
+                                                "boolean",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "additionalProperties": true
+                                }
+                            },
+                            "not_visible_by": {
+                                "description": "Restrict visibility to roles If you select roles here, the field will not be visible to them Field type: user_roles.",
+                                "type": "array",
+                                "items": {
+                                    "type": [
+                                        "string",
+                                        "integer"
+                                    ]
+                                }
+                            },
+                            "not_editable_by": {
+                                "description": "Restrict editing to roles If you select roles here, the field will be not editable to them Field type: user_roles.",
+                                "type": "array",
+                                "items": {
+                                    "type": [
+                                        "string",
+                                        "integer"
+                                    ]
+                                }
+                            },
+                            "class": {
+                                "description": "Class Field type: input/text.",
+                                "type": [
+                                    "string",
+                                    "integer",
+                                    "number",
+                                    "boolean",
+                                    "null"
+                                ]
+                            },
+                            "required": {
+                                "description": "Required Field type: input/checkbox.",
+                                "type": [
+                                    "string",
+                                    "boolean",
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "admin_list": {
+                                "description": "Show in admin list Field type: input/checkbox.",
+                                "type": [
+                                    "string",
+                                    "boolean",
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "auto_translate": {
+                                "description": "Auto translate Field type: input/checkbox.",
+                                "type": [
+                                    "string",
+                                    "boolean",
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "order": {
+                                "description": "Order Field type: input/number.",
+                                "type": [
+                                    "number",
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "explanation": {
+                                "description": "User message Field type: input/text.",
+                                "type": [
+                                    "string",
+                                    "integer",
+                                    "number",
+                                    "boolean",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                },
+                "awm_positions": {
+                    "description": "Positions Field type: repeater.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "case": {
+                                "description": "Position Field type: select. Allowed values: post_type, taxonomy, user, options, customizer, existing_awm_fields, content_types, ewp_block.",
+                                "type": [
+                                    "string",
+                                    "integer",
+                                    "number",
+                                    "boolean",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                },
+                "awm_type": {
+                    "description": "Type of usage Field type: select. Allowed values: simple_use, repeater, section, awm_modal.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "section_key": {
+                    "description": "Section Meta key Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "section_label": {
+                    "description": "Section Meta label Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "repeater_key": {
+                    "description": "Repeater Meta key Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "repeater_item": {
+                    "description": "Repeater item Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "repeater_label": {
+                    "description": "Repeater Meta label Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "repeater_attributes": {
+                    "description": "Repeater Attributes Field type: repeater.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "label": {
+                                "description": "Attribute label Field type: input/text.",
+                                "type": [
+                                    "string",
+                                    "integer",
+                                    "number",
+                                    "boolean",
+                                    "null"
+                                ]
+                            },
+                            "value": {
+                                "description": "Attribute value Field type: input/text.",
+                                "type": [
+                                    "string",
+                                    "integer",
+                                    "number",
+                                    "boolean",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                },
+                "repeater_class": {
+                    "description": "Repeater Class Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "repeater_order": {
+                    "description": "Repeater Order Field type: input/number.",
+                    "type": [
+                        "number",
+                        "string",
+                        "null"
+                    ]
+                },
+                "modal_key": {
+                    "description": "Modal Meta key Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "modal_label": {
+                    "description": "Modal Button label Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "modal_title": {
+                    "description": "Modal Title Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "modal_class": {
+                    "description": "Modal Button Class Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "awm_explanation": {
+                    "description": "Input box explanation Field type: textarea.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "title"
+            ]
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "content_type": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "status": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "modified": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "user_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "hash": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "meta": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "ewp-fields/delete-field-group": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "description": "Ids of the items to delete."
+                },
+                "confirm": {
+                    "type": "boolean",
+                    "description": "Must be true. Guards against accidental destructive calls."
+                }
+            },
+            "required": [
+                "ids",
+                "confirm"
+            ]
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "deleted": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "not_found": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "ewp-fields/get-field-group": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "description": "The field group id."
+                }
+            },
+            "required": [
+                "id"
+            ]
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "content_type": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "status": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "modified": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "user_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "hash": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "meta": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "ewp-fields/list-field-groups": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": {
+                "status": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Restrict to these statuses. Omit for every status."
+                },
+                "search": {
+                    "type": "string",
+                    "description": "Match against the item title."
+                },
+                "include": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "description": "Return only these item ids."
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 200,
+                    "description": "How many items to return. Defaults to 50, maximum 200."
+                },
+                "order_by": {
+                    "type": "object",
+                    "properties": {
+                        "column": {
+                            "type": "string"
+                        },
+                        "type": {
+                            "type": "string",
+                            "enum": [
+                                "asc",
+                                "desc",
+                                "ASC",
+                                "DESC"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "with_meta": {
+                    "type": "boolean",
+                    "description": "Include every meta value for each item. Heavier; omit when you only need titles and ids."
+                }
+            }
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "content_type": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "status": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "created": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "modified": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "user_id": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "hash": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "meta": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "ewp-fields/list-field-vocabulary": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": []
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "field_cases": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                },
+                "input_types": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                },
+                "position_cases": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                },
+                "usage_types": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "ewp-fields/update-field-group": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "description": "The field group id."
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Administrative title shown in the wp-admin list."
+                },
+                "status": {
+                    "type": "string",
+                    "description": "Item status. Defaults to the first registered status on create.",
+                    "enum": [
+                        "enabled",
+                        "disabled"
+                    ]
+                },
+                "awm_fields": {
+                    "description": "Fields Field type: repeater.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "key": {
+                                "description": "Meta key Field type: input/text.",
+                                "type": [
+                                    "string",
+                                    "integer",
+                                    "number",
+                                    "boolean",
+                                    "null"
+                                ]
+                            },
+                            "label": {
+                                "description": "Meta label Field type: input/text.",
+                                "type": [
+                                    "string",
+                                    "integer",
+                                    "number",
+                                    "boolean",
+                                    "null"
+                                ]
+                            },
+                            "case": {
+                                "description": "Field type Field type: select. Allowed values: input, select, textarea, image, awm_gallery, radio, checkbox_multiple, date, map, postType, post_types, term, taxonomies, user, ewp_content, ewp_content_types, function, html.",
+                                "type": [
+                                    "string",
+                                    "integer",
+                                    "number",
+                                    "boolean",
+                                    "null"
+                                ]
+                            },
+                            "attributes": {
+                                "description": "Attributes like min=0 / onchange=action etc Field type: repeater.",
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "label": {
+                                            "description": "Attribute label Field type: input/text.",
+                                            "type": [
+                                                "string",
+                                                "integer",
+                                                "number",
+                                                "boolean",
+                                                "null"
+                                            ]
+                                        },
+                                        "value": {
+                                            "description": "Attribute value Field type: input/text.",
+                                            "type": [
+                                                "string",
+                                                "integer",
+                                                "number",
+                                                "boolean",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "additionalProperties": true
+                                }
+                            },
+                            "not_visible_by": {
+                                "description": "Restrict visibility to roles If you select roles here, the field will not be visible to them Field type: user_roles.",
+                                "type": "array",
+                                "items": {
+                                    "type": [
+                                        "string",
+                                        "integer"
+                                    ]
+                                }
+                            },
+                            "not_editable_by": {
+                                "description": "Restrict editing to roles If you select roles here, the field will be not editable to them Field type: user_roles.",
+                                "type": "array",
+                                "items": {
+                                    "type": [
+                                        "string",
+                                        "integer"
+                                    ]
+                                }
+                            },
+                            "class": {
+                                "description": "Class Field type: input/text.",
+                                "type": [
+                                    "string",
+                                    "integer",
+                                    "number",
+                                    "boolean",
+                                    "null"
+                                ]
+                            },
+                            "required": {
+                                "description": "Required Field type: input/checkbox.",
+                                "type": [
+                                    "string",
+                                    "boolean",
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "admin_list": {
+                                "description": "Show in admin list Field type: input/checkbox.",
+                                "type": [
+                                    "string",
+                                    "boolean",
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "auto_translate": {
+                                "description": "Auto translate Field type: input/checkbox.",
+                                "type": [
+                                    "string",
+                                    "boolean",
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "order": {
+                                "description": "Order Field type: input/number.",
+                                "type": [
+                                    "number",
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "explanation": {
+                                "description": "User message Field type: input/text.",
+                                "type": [
+                                    "string",
+                                    "integer",
+                                    "number",
+                                    "boolean",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                },
+                "awm_positions": {
+                    "description": "Positions Field type: repeater.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "case": {
+                                "description": "Position Field type: select. Allowed values: post_type, taxonomy, user, options, customizer, existing_awm_fields, content_types, ewp_block.",
+                                "type": [
+                                    "string",
+                                    "integer",
+                                    "number",
+                                    "boolean",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                },
+                "awm_type": {
+                    "description": "Type of usage Field type: select. Allowed values: simple_use, repeater, section, awm_modal.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "section_key": {
+                    "description": "Section Meta key Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "section_label": {
+                    "description": "Section Meta label Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "repeater_key": {
+                    "description": "Repeater Meta key Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "repeater_item": {
+                    "description": "Repeater item Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "repeater_label": {
+                    "description": "Repeater Meta label Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "repeater_attributes": {
+                    "description": "Repeater Attributes Field type: repeater.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "label": {
+                                "description": "Attribute label Field type: input/text.",
+                                "type": [
+                                    "string",
+                                    "integer",
+                                    "number",
+                                    "boolean",
+                                    "null"
+                                ]
+                            },
+                            "value": {
+                                "description": "Attribute value Field type: input/text.",
+                                "type": [
+                                    "string",
+                                    "integer",
+                                    "number",
+                                    "boolean",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                },
+                "repeater_class": {
+                    "description": "Repeater Class Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "repeater_order": {
+                    "description": "Repeater Order Field type: input/number.",
+                    "type": [
+                        "number",
+                        "string",
+                        "null"
+                    ]
+                },
+                "modal_key": {
+                    "description": "Modal Meta key Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "modal_label": {
+                    "description": "Modal Button label Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "modal_title": {
+                    "description": "Modal Title Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "modal_class": {
+                    "description": "Modal Button Class Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "awm_explanation": {
+                    "description": "Input box explanation Field type: textarea.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id"
+            ]
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "content_type": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "status": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "modified": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "user_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "hash": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "meta": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "ewp-search/get-filter": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "description": "The search filter id."
+                }
+            },
+            "required": [
+                "id"
+            ]
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "content_type": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "status": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "modified": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "user_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "hash": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "meta": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "ewp-search/list-filters": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": {
+                "status": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Restrict to these statuses. Omit for every status."
+                },
+                "search": {
+                    "type": "string",
+                    "description": "Match against the item title."
+                },
+                "include": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "description": "Return only these item ids."
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 200,
+                    "description": "How many items to return. Defaults to 50, maximum 200."
+                },
+                "order_by": {
+                    "type": "object",
+                    "properties": {
+                        "column": {
+                            "type": "string"
+                        },
+                        "type": {
+                            "type": "string",
+                            "enum": [
+                                "asc",
+                                "desc",
+                                "ASC",
+                                "DESC"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "with_meta": {
+                    "type": "boolean",
+                    "description": "Include every meta value for each item. Heavier; omit when you only need titles and ids."
+                }
+            }
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "content_type": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "status": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "created": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "modified": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "user_id": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "hash": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "meta": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "ewp-wp-content/create-post-type": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "description": "Administrative title shown in the wp-admin list."
+                },
+                "status": {
+                    "type": "string",
+                    "description": "Item status. Defaults to the first registered status on create.",
+                    "enum": [
+                        "enabled",
+                        "disabled"
+                    ]
+                },
+                "post_name": {
+                    "description": "Post label Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "plural": {
+                    "description": "Name plural Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "singular": {
+                    "description": "Name singular Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "prefix": {
+                    "description": "Registration prefix Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "gallery": {
+                    "description": "Has gallery Field type: input/checkbox.",
+                    "type": [
+                        "string",
+                        "boolean",
+                        "integer",
+                        "null"
+                    ]
+                },
+                "hierarchical": {
+                    "description": "Has children Field type: input/checkbox.",
+                    "type": [
+                        "string",
+                        "boolean",
+                        "integer",
+                        "null"
+                    ]
+                },
+                "custom_template": {
+                    "description": "Is public Field type: input/checkbox.",
+                    "type": [
+                        "string",
+                        "boolean",
+                        "integer",
+                        "null"
+                    ]
+                },
+                "disable_gutenburg": {
+                    "description": "Disable gutenburg Field type: input/checkbox.",
+                    "type": [
+                        "string",
+                        "boolean",
+                        "integer",
+                        "null"
+                    ]
+                },
+                "args": {
+                    "description": "Args Field type: select. Allowed values: title, editor, author, thumbnail, excerpt, trackbacks, custom-fields, comments, revisions, page-attributes, post-formats.",
+                    "type": "array",
+                    "items": {
+                        "type": [
+                            "string",
+                            "integer"
+                        ]
+                    }
+                },
+                "taxonomies": {
+                    "description": "Attach taxonomies Field type: taxonomies.",
+                    "type": "array",
+                    "items": {
+                        "type": [
+                            "string",
+                            "integer"
+                        ]
+                    }
+                },
+                "extra_slug": {
+                    "description": "With front (taxonomy_label) Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "archive_template_source": {
+                    "description": "Archive template from Reuse the archive template of another post type or taxonomy. A theme file named archive-{post_type}.php always wins over this. Field type: select.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "single_template_source": {
+                    "description": "Single template from Reuse the single template of another post type. A theme file named {post_type}.php always wins over this. Field type: select.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "inherit_metas": {
+                    "description": "Inherit meta boxes from post types Every meta box attached to the selected post types also shows up here, no need to edit each field library. Changes on the source apply instantly. Field type: post_types.",
+                    "type": "array",
+                    "items": {
+                        "type": [
+                            "string",
+                            "integer"
+                        ]
+                    }
+                },
+                "description": {
+                    "description": "Desription Field type: textarea.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "fullAccess": {
+                    "description": "Select user roles with full edit access Field type: user_roles.",
+                    "type": "array",
+                    "items": {
+                        "type": [
+                            "string",
+                            "integer"
+                        ]
+                    }
+                },
+                "semiAccess": {
+                    "description": "Select user roles with restricted edit access  Field type: user_roles.",
+                    "type": "array",
+                    "items": {
+                        "type": [
+                            "string",
+                            "integer"
+                        ]
+                    }
+                }
+            },
+            "required": [
+                "title",
+                "post_name",
+                "plural",
+                "singular"
+            ]
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "content_type": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "status": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "modified": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "user_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "hash": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "meta": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "ewp-wp-content/create-taxonomy": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "description": "Administrative title shown in the wp-admin list."
+                },
+                "status": {
+                    "type": "string",
+                    "description": "Item status. Defaults to the first registered status on create.",
+                    "enum": [
+                        "enabled",
+                        "disabled"
+                    ]
+                },
+                "taxonomy_name": {
+                    "description": "Taxonomy name Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "name": {
+                    "description": "Name plural Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "label": {
+                    "description": "Name singular Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "prefix": {
+                    "description": "Registration prefix Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "post_types": {
+                    "description": "Post types Field type: post_types.",
+                    "type": "array",
+                    "items": {
+                        "type": [
+                            "string",
+                            "integer"
+                        ]
+                    }
+                },
+                "template_source": {
+                    "description": "Archive template from Reuse the archive template of another post type or taxonomy. A theme file named taxonomy-{taxonomy_name}.php always wins over this. Field type: select.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "template": {
+                    "description": "Template path if you create ewp_{taxonomy_name}.php it will be used. Otherwise use path (from plugins/ or themes/). If none archive.php will be used. Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "inherit_metas": {
+                    "description": "Inherit meta boxes from taxonomies Every meta box attached to the selected taxonomies also shows up here, no need to edit each field library. Changes on the source apply instantly. Field type: taxonomies.",
+                    "type": "array",
+                    "items": {
+                        "type": [
+                            "string",
+                            "integer"
+                        ]
+                    }
+                },
+                "show_admin_column": {
+                    "description": "Show in admin list Field type: input/checkbox.",
+                    "type": [
+                        "string",
+                        "boolean",
+                        "integer",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "title",
+                "taxonomy_name",
+                "name",
+                "label",
+                "post_types"
+            ]
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "content_type": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "status": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "modified": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "user_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "hash": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "meta": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "ewp-wp-content/delete-post-type": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "description": "Ids of the items to delete."
+                },
+                "confirm": {
+                    "type": "boolean",
+                    "description": "Must be true. Guards against accidental destructive calls."
+                }
+            },
+            "required": [
+                "ids",
+                "confirm"
+            ]
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "deleted": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "not_found": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "ewp-wp-content/delete-taxonomy": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "description": "Ids of the items to delete."
+                },
+                "confirm": {
+                    "type": "boolean",
+                    "description": "Must be true. Guards against accidental destructive calls."
+                }
+            },
+            "required": [
+                "ids",
+                "confirm"
+            ]
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "deleted": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "not_found": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "ewp-wp-content/get-post-type": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "description": "The post type id."
+                }
+            },
+            "required": [
+                "id"
+            ]
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "content_type": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "status": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "modified": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "user_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "hash": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "meta": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "ewp-wp-content/get-taxonomy": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "description": "The taxonomy id."
+                }
+            },
+            "required": [
+                "id"
+            ]
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "content_type": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "status": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "modified": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "user_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "hash": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "meta": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "ewp-wp-content/list-post-types": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": {
+                "status": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Restrict to these statuses. Omit for every status."
+                },
+                "search": {
+                    "type": "string",
+                    "description": "Match against the item title."
+                },
+                "include": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "description": "Return only these item ids."
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 200,
+                    "description": "How many items to return. Defaults to 50, maximum 200."
+                },
+                "order_by": {
+                    "type": "object",
+                    "properties": {
+                        "column": {
+                            "type": "string"
+                        },
+                        "type": {
+                            "type": "string",
+                            "enum": [
+                                "asc",
+                                "desc",
+                                "ASC",
+                                "DESC"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "with_meta": {
+                    "type": "boolean",
+                    "description": "Include every meta value for each item. Heavier; omit when you only need titles and ids."
+                }
+            }
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "content_type": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "status": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "created": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "modified": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "user_id": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "hash": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "meta": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "ewp-wp-content/list-taxonomies": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": {
+                "status": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Restrict to these statuses. Omit for every status."
+                },
+                "search": {
+                    "type": "string",
+                    "description": "Match against the item title."
+                },
+                "include": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "description": "Return only these item ids."
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 200,
+                    "description": "How many items to return. Defaults to 50, maximum 200."
+                },
+                "order_by": {
+                    "type": "object",
+                    "properties": {
+                        "column": {
+                            "type": "string"
+                        },
+                        "type": {
+                            "type": "string",
+                            "enum": [
+                                "asc",
+                                "desc",
+                                "ASC",
+                                "DESC"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "with_meta": {
+                    "type": "boolean",
+                    "description": "Include every meta value for each item. Heavier; omit when you only need titles and ids."
+                }
+            }
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "content_type": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "status": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "created": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "modified": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "user_id": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "hash": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "meta": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "ewp-wp-content/update-post-type": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "description": "The post type id."
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Administrative title shown in the wp-admin list."
+                },
+                "status": {
+                    "type": "string",
+                    "description": "Item status. Defaults to the first registered status on create.",
+                    "enum": [
+                        "enabled",
+                        "disabled"
+                    ]
+                },
+                "post_name": {
+                    "description": "Post label Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "plural": {
+                    "description": "Name plural Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "singular": {
+                    "description": "Name singular Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "prefix": {
+                    "description": "Registration prefix Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "gallery": {
+                    "description": "Has gallery Field type: input/checkbox.",
+                    "type": [
+                        "string",
+                        "boolean",
+                        "integer",
+                        "null"
+                    ]
+                },
+                "hierarchical": {
+                    "description": "Has children Field type: input/checkbox.",
+                    "type": [
+                        "string",
+                        "boolean",
+                        "integer",
+                        "null"
+                    ]
+                },
+                "custom_template": {
+                    "description": "Is public Field type: input/checkbox.",
+                    "type": [
+                        "string",
+                        "boolean",
+                        "integer",
+                        "null"
+                    ]
+                },
+                "disable_gutenburg": {
+                    "description": "Disable gutenburg Field type: input/checkbox.",
+                    "type": [
+                        "string",
+                        "boolean",
+                        "integer",
+                        "null"
+                    ]
+                },
+                "args": {
+                    "description": "Args Field type: select. Allowed values: title, editor, author, thumbnail, excerpt, trackbacks, custom-fields, comments, revisions, page-attributes, post-formats.",
+                    "type": "array",
+                    "items": {
+                        "type": [
+                            "string",
+                            "integer"
+                        ]
+                    }
+                },
+                "taxonomies": {
+                    "description": "Attach taxonomies Field type: taxonomies.",
+                    "type": "array",
+                    "items": {
+                        "type": [
+                            "string",
+                            "integer"
+                        ]
+                    }
+                },
+                "extra_slug": {
+                    "description": "With front (taxonomy_label) Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "archive_template_source": {
+                    "description": "Archive template from Reuse the archive template of another post type or taxonomy. A theme file named archive-{post_type}.php always wins over this. Field type: select.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "single_template_source": {
+                    "description": "Single template from Reuse the single template of another post type. A theme file named {post_type}.php always wins over this. Field type: select.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "inherit_metas": {
+                    "description": "Inherit meta boxes from post types Every meta box attached to the selected post types also shows up here, no need to edit each field library. Changes on the source apply instantly. Field type: post_types.",
+                    "type": "array",
+                    "items": {
+                        "type": [
+                            "string",
+                            "integer"
+                        ]
+                    }
+                },
+                "description": {
+                    "description": "Desription Field type: textarea.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "fullAccess": {
+                    "description": "Select user roles with full edit access Field type: user_roles.",
+                    "type": "array",
+                    "items": {
+                        "type": [
+                            "string",
+                            "integer"
+                        ]
+                    }
+                },
+                "semiAccess": {
+                    "description": "Select user roles with restricted edit access  Field type: user_roles.",
+                    "type": "array",
+                    "items": {
+                        "type": [
+                            "string",
+                            "integer"
+                        ]
+                    }
+                }
+            },
+            "required": [
+                "id"
+            ]
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "content_type": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "status": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "modified": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "user_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "hash": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "meta": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "ewp-wp-content/update-taxonomy": {
+        "input": {
+            "type": "object",
+            "default": [],
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "description": "The taxonomy id."
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Administrative title shown in the wp-admin list."
+                },
+                "status": {
+                    "type": "string",
+                    "description": "Item status. Defaults to the first registered status on create.",
+                    "enum": [
+                        "enabled",
+                        "disabled"
+                    ]
+                },
+                "taxonomy_name": {
+                    "description": "Taxonomy name Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "name": {
+                    "description": "Name plural Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "label": {
+                    "description": "Name singular Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "prefix": {
+                    "description": "Registration prefix Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "post_types": {
+                    "description": "Post types Field type: post_types.",
+                    "type": "array",
+                    "items": {
+                        "type": [
+                            "string",
+                            "integer"
+                        ]
+                    }
+                },
+                "template_source": {
+                    "description": "Archive template from Reuse the archive template of another post type or taxonomy. A theme file named taxonomy-{taxonomy_name}.php always wins over this. Field type: select.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "template": {
+                    "description": "Template path if you create ewp_{taxonomy_name}.php it will be used. Otherwise use path (from plugins/ or themes/). If none archive.php will be used. Field type: input/text.",
+                    "type": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "null"
+                    ]
+                },
+                "inherit_metas": {
+                    "description": "Inherit meta boxes from taxonomies Every meta box attached to the selected taxonomies also shows up here, no need to edit each field library. Changes on the source apply instantly. Field type: taxonomies.",
+                    "type": "array",
+                    "items": {
+                        "type": [
+                            "string",
+                            "integer"
+                        ]
+                    }
+                },
+                "show_admin_column": {
+                    "description": "Show in admin list Field type: input/checkbox.",
+                    "type": [
+                        "string",
+                        "boolean",
+                        "integer",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id"
+            ]
+        },
+        "output": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "content_type": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "status": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "modified": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "user_id": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "hash": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "meta": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            },
+            "additionalProperties": true
+        }
+    }
+}

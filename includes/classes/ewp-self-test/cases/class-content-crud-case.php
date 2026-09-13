@@ -128,8 +128,8 @@ class Content_Crud_Case extends EWP_Self_Test_Case
         $checks[] = $this->check('rest', 'GET /{id} returns 200', $this->status($o, 'rest_get') === 200, $this->detail($o, 'rest_get'));
 
         $checks[] = $this->cli_check($o, 'cli_update', 'wp ewp content update reports success', 'Updated');
-        // GET /{id} answers with a list (the shared get_results handler), so the row is data[0].
-        $checks[] = $this->check('cli', 'Row reads back as "disabled" after the CLI update', isset($o['after_cli_update']['data'][0]['status']) && $o['after_cli_update']['data'][0]['status'] === 'disabled', $this->detail($o, 'after_cli_update'));
+        // GET /{id} answers with the single normalised row (since 1.5.0; it used to return a one-item list).
+        $checks[] = $this->check('cli', 'Row reads back as "disabled" after the CLI update', isset($o['after_cli_update']['data']['status']) && $o['after_cli_update']['data']['status'] === 'disabled', $this->detail($o, 'after_cli_update'));
 
         $checks[] = $this->ability_check($o, 'ability_get', 'ewp-content/get-item returns the row', function ($data) {
             return isset($data['status']) && $data['status'] === 'disabled';

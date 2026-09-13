@@ -35,6 +35,16 @@ class Test_Kit_Field_Map extends WP_UnitTestCase
         $this->assertStringContainsString('[--limit=<limit>]', Field_Map::describe_cli([$limit]));
     }
 
+    public function test_cli_name_overrides_the_dashed_flag_on_the_cli_only()
+    {
+        $type = Field::string('content_type')->cli_name('type');
+
+        $this->assertSame('type', Field_Map::to_synopsis([$type])[0]['name']);
+        $this->assertSame(['content_type' => 'ewp_fields'], Field_Map::from_cli([$type], [], ['type' => 'ewp_fields']));
+        $this->assertArrayHasKey('content_type', Field_Map::to_rest_args([$type]));
+        $this->assertArrayHasKey('content_type', Field_Map::to_json_schema([$type])['properties']);
+    }
+
     public function test_bool_field_is_a_cli_flag_and_a_boolean_elsewhere()
     {
         $flag = Field::bool('with_meta');
