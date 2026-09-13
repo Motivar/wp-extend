@@ -116,6 +116,22 @@ class Test_Kit_Operation extends WP_UnitTestCase
         $this->assertSame(500, $error->get_error_data()['status']);
     }
 
+    public function test_surfaces_can_be_resolved_lazily()
+    {
+        $enabled = false;
+        $op      = Operation::read('list_items')->surfaces(function () use (&$enabled) {
+            return $enabled ? ['rest', 'cli'] : [];
+        }, 'switched off');
+
+        $this->assertFalse($op->is_on('rest'));
+        $this->assertSame(['rest' => 'switched off', 'cli' => 'switched off', 'ability' => 'switched off'], $op->surface_reasons());
+
+        $enabled = true;
+        $this->assertTrue($op->is_on('rest'));
+        $this->assertFalse($op->is_on('ability'));
+        $this->assertSame(['ability' => 'switched off'], $op->surface_reasons());
+    }
+
     public function test_resource_default_capability_and_inventory_shape()
     {
         $registry = (new Registry())->add($this->resource);

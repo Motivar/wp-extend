@@ -226,20 +226,40 @@ class EWP_Logger_Query
         $shape = isset($defaults['shape']) ? $defaults['shape'] : 'full';
         unset($defaults['shape']);
 
-        $args   = $this->args_from($input, $defaults);
+        return $this->search_by_args($this->args_from($input, $defaults), $shape);
+    }
+
+    /**
+     * Search entries from prepared storage arguments.
+     *
+     * Lets a surface filter the arguments (the REST route applies
+     * `ewp_logger_rest_query_args`) between mapping and execution.
+     *
+     * @param array  $args  Storage arguments from args_from().
+     * @param string $shape `full`|`compact`.
+     *
+     * @return array total, returned, limit, offset, date_from, date_to, entries, hint?, args
+     *
+     * @since 1.5.0
+     */
+    public function search_by_args(array $args, $shape = 'full')
+    {
         $result = $this->fetch($args, $shape);
+        $limit  = isset($args['limit']) ? (int) $args['limit'] : self::DEFAULT_LIMIT;
+        $offset = isset($args['offset']) ? (int) $args['offset'] : 0;
 
         $out = [
             'total'     => $result['total'],
             'returned'  => count($result['entries']),
-            'limit'     => (int) $args['limit'],
-            'offset'    => (int) $args['offset'],
-            'date_from' => $args['date_from'],
-            'date_to'   => $args['date_to'],
+            'limit'     => $limit,
+            'offset'    => $offset,
+            'date_from' => isset($args['date_from']) ? (string) $args['date_from'] : '',
+            'date_to'   => isset($args['date_to']) ? (string) $args['date_to'] : '',
             'entries'   => $result['entries'],
+            'args'      => $args,
         ];
 
-        if ($result['total'] > $args['offset'] + count($result['entries'])) {
+        if ($result['total'] > $offset + count($result['entries'])) {
             $out['hint'] = __('More entries match than were returned. Prefer narrowing the filters (date range, owner, behaviour) over paging through everything.', 'extend-wp');
         }
 
@@ -506,21 +526,40 @@ class EWP_Logger_Query
     /**
      * Write one entry.
      *
-     * @param string $owner       Owner slug.
-     * @param string $action_type Action type key.
-     * @param string $message     Message.
-     * @param array  $data        Payload.
-     * @param string $level       editor|developer.
-     * @param string $object_type Object type.
-     * @param int    $behaviour   Behaviour constant.
+     * @param string     $owner       Owner slug.
+     * @param string     $action_type Action type key.
+     * @param string     $message     Message.
+     * @param array      $data        Payload.
+     * @param string     $level       editor|developer.
+     * @param string     $object_type Object type.
+     * @param int|string $behaviour   Behaviour constant or label (error|success|warning).
      *
-     * @return bool Whether the entry was queued.
+     * @return array|\WP_Error logged, owner, request_id; 503 when logging is switched off.
      *
      * @since 1.5.0
      */
     public function write($owner, $action_type, $message, array $data = [], $level = 'editor', $object_type = '', $behaviour = 1)
     {
-        return (bool) EWP_Logger::log($owner, $action_type, $message, $data, $level, $object_type, $behaviour);
+        if (!EWP_Logger::is_enabled()) {
+            return new \WP_Error(
+                'ewp_abilities_logger_disabled',
+                __('Logging is switched off on this site, so the entry was not written.', 'extend-wp'),
+                ['status' => 503]
+            );
+        }
+
+        if (!is_numeric($behaviour)) {
+            $mapped    = EWP_Logger_Formatter::behaviour_from_label((string) $behaviour);
+            $behaviour = $mapped === null ? EWP_Logger::BEHAVIOUR_SUCCESS : $mapped;
+        }
+
+        $logged = EWP_Logger::log((string) $owner, (string) $action_type, (string) $message, $data, (string) $level, (string) $object_type, (int) $behaviour);
+
+        return [
+            'logged'     => (bool) $logged,
+            'owner'      => (string) $owner,
+            'request_id' => EWP_Logger::get_request_id(),
+        ];
     }
 
     /**

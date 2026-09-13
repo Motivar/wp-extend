@@ -6,6 +6,7 @@ use EWP\Content\Content_Service;
 use EWP\Surfaces\Resources\Content_Resource;
 use EWP\Surfaces\Resources\Content_Type_Rest_Resource;
 use EWP\Surfaces\Resources\Fields_Resource;
+use EWP\Surfaces\Resources\Logger_Resource;
 use EWP\Surfaces\Resources\Search_Resource;
 use EWP\Surfaces\Resources\WP_Content_Resource;
 use Motivar\WP\Adapters\Ability_Adapter;
@@ -67,6 +68,7 @@ final class EWP_Surfaces
     {
         Kit::on_ready([$this, 'boot']);
         add_filter('mwp_operation_capability', [$this, 'reemit_ability_capability'], 10, 4);
+        add_filter('mwp_ability_definitions', [$this, 'reemit_logger_definitions'], 10, 2);
     }
 
     /**
@@ -96,6 +98,7 @@ final class EWP_Surfaces
         require_once __DIR__ . '/resources/class-fields-resource.php';
         require_once __DIR__ . '/resources/class-wp-content-resource.php';
         require_once __DIR__ . '/resources/class-search-resource.php';
+        require_once __DIR__ . '/resources/class-logger-resource.php';
 
         $this->service = new Content_Service();
         $this->registry = new Registry();
@@ -114,6 +117,7 @@ final class EWP_Surfaces
             'fields'     => new Fields_Resource($this->service),
             'wp-content' => new WP_Content_Resource($this->service),
             'search'     => new Search_Resource($this->service),
+            'logger'     => new Logger_Resource(new \EWP\Logger\EWP_Logger_Query()),
         ], $this->service);
 
         foreach ($resources as $resource) {
@@ -193,6 +197,32 @@ final class EWP_Surfaces
     public function service()
     {
         return $this->service;
+    }
+
+    /**
+     * Keep the `ewp_logger_ability_definitions` filter working for the logger abilities.
+     *
+     * @param array    $definitions Definitions keyed by ability name.
+     * @param Resource $resource    Owning resource.
+     *
+     * @return array
+     *
+     * @since 1.5.0
+     */
+    public function reemit_logger_definitions(array $definitions, Resource $resource)
+    {
+        if ($resource->name() !== 'logger') {
+            return $definitions;
+        }
+
+        /**
+         * Filter the EWP Logger ability definitions before registration.
+         *
+         * @param array $definitions Ability definitions keyed by ability name.
+         *
+         * @since 1.3.0
+         */
+        return apply_filters('ewp_logger_ability_definitions', $definitions);
     }
 
     /**

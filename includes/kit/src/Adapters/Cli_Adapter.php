@@ -31,13 +31,37 @@ final class Cli_Adapter
     }
 
     /**
-     * Register one command per CLI-enabled operation.
+     * Register the commands once `init` has run (or now, if it already has).
+     *
+     * Operations may gate their surfaces on state that a module only knows
+     * on `init`, so commands are added at priority 5 rather than at boot.
      *
      * @return void
      *
      * @since 0.1.0
      */
     public function register()
+    {
+        if (!class_exists('WP_CLI') || !function_exists('add_action')) {
+            return;
+        }
+
+        if (did_action('init')) {
+            $this->register_commands();
+            return;
+        }
+
+        add_action('init', [$this, 'register_commands'], 5);
+    }
+
+    /**
+     * Register one command per CLI-enabled operation.
+     *
+     * @return void
+     *
+     * @since 0.1.0
+     */
+    public function register_commands()
     {
         $base = $this->resource->cli_base();
         if (!class_exists('WP_CLI') || $base === null || $base === '') {

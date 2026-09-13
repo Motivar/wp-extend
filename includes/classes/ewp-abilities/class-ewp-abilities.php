@@ -12,7 +12,6 @@ require_once dirname(__DIR__) . '/ewp-content/class-content-service.php';
 require_once __DIR__ . '/class-ewp-abilities-audit.php';
 require_once __DIR__ . '/providers/class-ewp-abilities-options-provider.php';
 require_once __DIR__ . '/providers/class-ewp-abilities-system-provider.php';
-require_once __DIR__ . '/providers/class-ewp-abilities-logger-provider.php';
 
 /**
  * Bootstraps the Extend WP integration with the WordPress Abilities API.
@@ -275,7 +274,6 @@ class EWP_Abilities
         $providers = [
             'options'    => new EWP_Abilities_Options_Provider(),
             'system'     => new EWP_Abilities_System_Provider($service),
-            'logger'     => new EWP_Abilities_Logger_Provider(),
         ];
 
         /**

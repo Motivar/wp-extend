@@ -14,7 +14,6 @@ require_once __DIR__ . '/class-ewp-logger-cleanup.php';
 require_once __DIR__ . '/class-ewp-logger-formatter.php';
 require_once __DIR__ . '/class-ewp-logger-query.php';
 require_once __DIR__ . '/class-ewp-logger-api.php';
-require_once __DIR__ . '/class-ewp-logger-abilities.php';
 require_once __DIR__ . '/class-ewp-logger-diagnose.php';
 require_once __DIR__ . '/class-ewp-logger-viewer.php';
 require_once __DIR__ . '/class-ewp-logger-cli.php';
@@ -197,28 +196,18 @@ class EWP_Logger
         // Initialize storage backend (always needed for viewer/API to read logs)
         $this->storage = $this->resolve_storage_backend();
 
-        // Initialize REST API when logging is enabled.
-        // Authentication is handled by check_permission() in the API class (logged-in users only).
-        if (self::$enabled) {
-            $api = new EWP_Logger_API($this->storage);
-            $api->init();
-        }
-
-        // Register read-only log abilities with the WordPress Abilities API
-        // (core 6.9+). Every ability enforces the viewer capability, so this
-        // exposes nothing a user could not already read in the log viewer.
-        // These back the in-admin diagnose box and any MCP consumer.
+        // The REST routes (extend-wp/v1/logs*), the `wp ewp log` commands and
+        // the ewp-logger/* abilities are generated from
+        // EWP\Surfaces\Resources\Logger_Resource over EWP_Logger_Query, gated
+        // per surface on is_enabled() and EWP_Logger_Settings::is_ai_enabled().
         $abilities_supported = class_exists('EWP\Abilities\EWP_Abilities')
             ? \EWP\Abilities\EWP_Abilities::is_supported()
             : function_exists('wp_register_ability');
 
         if (self::$enabled && $abilities_supported && EWP_Logger_Settings::is_ai_enabled()) {
-            $abilities = new EWP_Logger_Abilities();
-            $abilities->init();
-
-            // In-admin diagnosis reuses the same ability handlers, so the
-            // model sees exactly what an external AI agent would see.
-            $diagnose = new EWP_Logger_Diagnose($abilities);
+            // In-admin diagnosis reuses the same query layer, so the model
+            // sees exactly what an external AI agent would see.
+            $diagnose = new EWP_Logger_Diagnose(new EWP_Logger_Query());
             $diagnose->init();
         }
 
@@ -255,9 +244,6 @@ class EWP_Logger
         // Initialize cleanup cron
         $cleanup = new EWP_Logger_Cleanup($this->storage);
         $cleanup->init();
-
-        // Initialize WP-CLI commands
-        EWP_Logger_CLI::init();
 
         // One-time migration: drop legacy ewp_logs DB table if it exists
         $this->maybe_drop_legacy_db_table();

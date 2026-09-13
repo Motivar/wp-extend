@@ -28,6 +28,16 @@ tests_add_filter('muplugins_loaded', function () {
     require dirname(__DIR__) . '/extend-wp.php';
 });
 
+/**
+ * Run the logger in PHPUnit so its REST routes, commands and abilities can
+ * be exercised end to end. Entries go to a throwaway directory, never to
+ * the site's uploads.
+ */
+tests_add_filter('ewp_logger_enabled', '__return_true');
+tests_add_filter('ewp_logger_file_directory', function () {
+    return sys_get_temp_dir() . '/ewp-logs-phpunit-' . getmypid();
+});
+
 require $_tests_dir . '/includes/bootstrap.php';
 
 require_once __DIR__ . '/includes/trait-content-fixture.php';

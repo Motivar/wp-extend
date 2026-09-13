@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
  * In-admin AI diagnosis for the EWP Logger.
  *
  * Adds a "Describe the issue" box to the log viewer. The described issue is
- * combined with log context gathered through the registered logger abilities
+ * combined with log context gathered through the shared logger query layer
  * and sent to the WordPress AI Client, which returns a plain-language
  * diagnosis. No external agent or connector is involved.
  *
@@ -53,20 +53,20 @@ class EWP_Logger_Diagnose
      * Reused rather than duplicated so the diagnosis sees exactly what an
      * external AI agent would see.
      *
-     * @var EWP_Logger_Abilities
+     * @var EWP_Logger_Query
      */
-    private $abilities;
+    private $query;
 
     /**
      * Constructor.
      *
-     * @param EWP_Logger_Abilities $abilities Abilities instance.
+     * @param EWP_Logger_Query|null $query Query layer shared with every logger surface.
      *
      * @since 1.3.0
      */
-    public function __construct(EWP_Logger_Abilities $abilities)
+    public function __construct(?EWP_Logger_Query $query = null)
     {
-        $this->abilities = $abilities;
+        $this->query = $query ?: new EWP_Logger_Query();
     }
 
     /**
@@ -439,6 +439,24 @@ class EWP_Logger_Diagnose
      *
      * @since 1.3.0
      */
+    /**
+     * Search with the ability defaults (7-day window, compact payloads),
+     * so the model sees exactly what an external agent would see.
+     *
+     * @param array $input Search input.
+     *
+     * @return array Search payload.
+     *
+     * @since 1.5.0
+     */
+    private function search(array $input)
+    {
+        $result = $this->query->search($input, ['shape' => 'compact', 'window' => EWP_Logger_Query::DEFAULT_WINDOW_DAYS, 'limit' => 50, 'max' => 200]);
+        unset($result['args']);
+
+        return $result;
+    }
+
     private function gather_context($issue, array $scope)
     {
         $applied = $scope['filters_applied'] ?? [];
@@ -450,8 +468,8 @@ class EWP_Logger_Diagnose
             $stats_input['owner'] = $scope['owner'];
         }
 
-        $vocabulary = $this->abilities->run_list_vocabulary();
-        $stats      = $this->abilities->run_get_stats($stats_input);
+        $vocabulary = $this->query->vocabulary();
+        $stats      = $this->query->stats($stats_input, EWP_Logger_Query::DEFAULT_WINDOW_DAYS);
 
         $entries = [];
         $seen    = [];
@@ -470,14 +488,14 @@ class EWP_Logger_Diagnose
         // When the operator already chose an outcome filter, respect it rather
         // than overriding with our own failures-first assumption.
         if (in_array('behaviour', $applied, true)) {
-            $primary = $this->abilities->run_search(array_merge($scope, [
+            $primary = $this->search(array_merge($scope, [
                 'limit' => self::MAX_CONTEXT_ENTRIES,
                 'order' => 'DESC',
             ]));
             $collect($primary['entries']);
         } else {
             // Failures first - they are what a diagnosis usually hinges on.
-            $failures = $this->abilities->run_search(array_merge($scope, [
+            $failures = $this->search(array_merge($scope, [
                 'behaviour' => ['error', 'warning'],
                 'limit'     => self::MAX_CONTEXT_ENTRIES,
                 'order'     => 'DESC',
@@ -492,7 +510,7 @@ class EWP_Logger_Diagnose
             $keywords = $this->extract_keywords($issue);
 
             if ($keywords !== '') {
-                $keyword_hits = $this->abilities->run_search(array_merge($scope, [
+                $keyword_hits = $this->search(array_merge($scope, [
                     'search_text' => $keywords,
                     'limit'       => $remaining,
                     'order'       => 'DESC',
@@ -508,7 +526,7 @@ class EWP_Logger_Diagnose
         if (empty($entries)) {
             $window_only = array_intersect_key($scope, array_flip(['date_from', 'date_to', 'owner']));
 
-            $recent = $this->abilities->run_search(array_merge($window_only, [
+            $recent = $this->search(array_merge($window_only, [
                 'limit' => self::MAX_CONTEXT_ENTRIES,
                 'order' => 'DESC',
             ]));

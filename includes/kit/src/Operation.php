@@ -50,10 +50,10 @@ final class Operation
     private $cli = null;
     /** @var string|null */
     private $ability = null;
-    /** @var string[] */
+    /** @var string[]|callable */
     private $surfaces = self::SURFACES;
-    /** @var array<string,string> */
-    private $surface_reasons = [];
+    /** @var string */
+    private $surface_reason = '';
     /** @var array<string,bool> */
     private $annotations = [];
     /** @var callable|null */
@@ -206,17 +206,20 @@ final class Operation
     /**
      * Restrict the surfaces this operation is exposed on.
      *
-     * @param string[] $enabled Enabled surfaces.
-     * @param string   $reason  Why the others are excluded (for the inventory).
+     * A callable is resolved every time a surface asks, so a module can
+     * gate registration on state that is only known later (a setting read
+     * on `init`, for example).
+     *
+     * @param string[]|callable $enabled Enabled surfaces, or fn(): string[].
+     * @param string            $reason  Why the others are excluded (for the inventory).
      *
      * @return Operation
      */
-    public function surfaces(array $enabled, $reason = '')
+    public function surfaces($enabled, $reason = '')
     {
-        $this->surfaces = array_values(array_intersect(self::SURFACES, $enabled));
-        foreach (array_diff(self::SURFACES, $this->surfaces) as $excluded) {
-            $this->surface_reasons[$excluded] = (string) $reason;
-        }
+        // A plain list of surface names is never callable; closures and [$obj, 'method'] pairs are.
+        $this->surfaces       = is_callable($enabled) ? $enabled : array_values(array_intersect(self::SURFACES, (array) $enabled));
+        $this->surface_reason = (string) $reason;
         return $this;
     }
 
@@ -364,18 +367,27 @@ final class Operation
     /** @return string[] */
     public function enabled_surfaces()
     {
+        if (is_callable($this->surfaces)) {
+            return array_values(array_intersect(self::SURFACES, (array) call_user_func($this->surfaces)));
+        }
+
         return $this->surfaces;
     }
 
-    /** @return array<string,string> */
+    /** @return array<string,string> Excluded surface => reason. */
     public function surface_reasons()
     {
-        return $this->surface_reasons;
+        $reasons = [];
+        foreach (array_diff(self::SURFACES, $this->enabled_surfaces()) as $excluded) {
+            $reasons[$excluded] = $this->surface_reason;
+        }
+
+        return $reasons;
     }
 
     public function is_on($surface)
     {
-        return in_array($surface, $this->surfaces, true);
+        return in_array($surface, $this->enabled_surfaces(), true);
     }
 
     /** @return array<string,bool> */
