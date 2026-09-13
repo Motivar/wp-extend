@@ -55,19 +55,36 @@ class AWM_Add_Content_DB_API extends WP_REST_Controller
   }
 
   /**
-   * delete the object and all related data
+   * Delete one or more items and all their meta.
+   *
+   * Delegates to EWP_Abilities_Content_Service::delete_items(), the same
+   * implementation the abilities and `wp ewp content delete` use, so the
+   * existence check and the `{count, deleted, not_found}` result are
+   * identical on every surface.
+   *
+   * @param WP_REST_Request $request The incoming REST request. `ids` is a comma separated list.
+   *
+   * @return WP_REST_Response|WP_Error
    */
   public function delete($request)
   {
-    if (isset($request)) {
-      $params = $request->get_params();
-      if (!isset($params['ids']) || empty($params['ids'])) {
-        return rest_ensure_response(new WP_REST_Response(__('No ids detected', 'ewp')), 400);
-      }
-      $ids = explode(',', $params['ids']);
-      return rest_ensure_response(new WP_REST_Response(awm_custom_content_delete($this->object_type, $ids)), 200);
+    if (!isset($request)) {
+      return rest_ensure_response(new WP_REST_Response(__('No params detected', 'ewp')), 400);
     }
-    return rest_ensure_response(new WP_REST_Response(__('No params detected', 'ewp')), 400);
+
+    $params = $request->get_params();
+    if (!isset($params['ids']) || $params['ids'] === '') {
+      return rest_ensure_response(new WP_REST_Response(__('No ids detected', 'ewp')), 400);
+    }
+
+    $ids    = array_filter(array_map('absint', explode(',', (string) $params['ids'])));
+    $result = $this->content_service->delete_items($this->object_type, array_values($ids));
+
+    if (is_wp_error($result)) {
+      return $result;
+    }
+
+    return rest_ensure_response($result);
   }
 
   /**

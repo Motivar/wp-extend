@@ -108,6 +108,18 @@ Search filter rows are decorated with their `shortcode` and `rest_endpoint`. Wri
 - **Auditing.** Every non-read-only `ewp-*` ability execution is written to the activity log as owner `extend-wp`, action type `ability_write`, level `developer`, with the ability name, a noise-filtered and truncated copy of the input and an outcome summary. Failures are logged with the error behaviour. Content writes therefore produce two entries: the logger's own `content_save` and this one, sharing a `request_id`.
 - **Cache flushing is automatic.** Writes go through `awm_custom_content_save()` / `awm_custom_content_delete()`, which fire the actions that flush the transients, so `ewp-system/flush-cache` is rarely needed.
 
+## Authorization across surfaces
+
+Since 1.5.0 the three surfaces agree on who may call a content operation:
+
+| Surface | Read | Write |
+|---|---|---|
+| Ability (`ewp-content/*`, typed categories) | the content type's `capability` | the content type's `capability` |
+| REST (`{prefix}/{type}`, `/create/`, `/update/{id}`, `/delete/`) | the content type's `capability`, or anonymous when the type registers `'public_read' => true` | the content type's `capability` |
+| WP-CLI (`wp ewp content …`) | trusted as an administrator without `--user`; with `--user` the same capability applies | same |
+
+`AWM_Dynamic_API` routes with no `permission_callback` require `manage_options` (filter `ewp_dynamic_api_default_permission`) unless the definition says `'public' => true`. The only intentionally anonymous routes are the search-filter results (`ewp-filter/{id}`) and the front-end `recently-seen` recorder (filter `ewp_recently_seen_public`). The field-builder helper routes need `edit_posts`; the map-options route needs a logged-in user (filter `ewp_map_options_public`).
+
 ## REST
 
 Core exposes the abilities itself; this module registers no routes. Every ability sets `show_in_rest`.

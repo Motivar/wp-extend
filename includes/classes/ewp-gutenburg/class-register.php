@@ -130,21 +130,17 @@ class EWP_Dynamic_Blocks
     $blocks = $this->gather_blocks();
 
     foreach ($blocks as $block) {
+      /*
+       * The preview always renders with the block's registered render
+       * callback, resolved from the route. Before 1.5.0 the request could
+       * name any existing PHP function via a `php_callback` argument.
+       */
       register_rest_route($block['namespace'] . '/' . $block['name'], '/preview', [
         'methods' => 'GET',
-        'auth_callback' => function () {
+        'permission_callback' => function () {
           return current_user_can('edit_posts');
         },
-        'permission_callback' => function () {
-          return is_user_logged_in();
-        },
         'callback' => [$this, 'handle_rest_callback'],
-        'args' => [
-          'php_callback' => [
-            'type' => 'string|array',
-            'default' =>  $block['render_callback'],
-          ],
-        ],
       ]);
     }
   }
@@ -231,6 +227,30 @@ class EWP_Dynamic_Blocks
     return $callback;
   }
   /**
+   * Find the registered block a preview route belongs to.
+   *
+   * @param string $route Request route, e.g. `/ns/name/preview`.
+   *
+   * @return array|null Block definition from gather_blocks(), or null.
+   *
+   * @since 1.5.0
+   */
+  private function block_from_route($route)
+  {
+    if (!preg_match('/\/([^\/]+)\/([^\/]+)\/preview/', (string) $route, $matches)) {
+      return null;
+    }
+
+    foreach ($this->gather_blocks() as $block) {
+      if ($block['namespace'] === $matches[1] && $block['name'] === $matches[2]) {
+        return $block;
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Handles REST API callbacks for block previews.
    *
    * @param WP_REST_Request $request REST API request object.
@@ -239,38 +259,20 @@ class EWP_Dynamic_Blocks
   public function handle_rest_callback($request)
   {
     $attributes = $request->get_params();
-    
-    // Validate the callback before calling it
-    $callback = isset($attributes['php_callback']) ? $attributes['php_callback'] : '';
-    $validated_callback = $this->check_callback($callback);
-    
+    unset($attributes['php_callback']);
+
+    // Resolve the block from the route; only its registered callback may run.
+    $current_block = $this->block_from_route($request->get_route());
+    $validated_callback = $current_block ? $this->check_callback($current_block['render_callback']) : '';
+
     if (empty($validated_callback)) {
       return new WP_REST_Response(
-        ['error' => 'Invalid or missing render callback'], 
+        ['error' => 'Invalid or missing render callback'],
         400
       );
     }
-    
+
     $content = call_user_func_array($validated_callback, array($attributes));
-    
-    // Find the block data to get script information
-    $blocks = $this->gather_blocks();
-    $current_block = null;
-    
-    // Extract namespace and name from the request route
-    $route = $request->get_route();
-    if (preg_match('/\/([^\/]+)\/([^\/]+)\/preview/', $route, $matches)) {
-      $namespace = $matches[1];
-      $name = $matches[2];
-      
-      // Find the matching block
-      foreach ($blocks as $block) {
-        if ($block['namespace'] === $namespace && $block['name'] === $name) {
-          $current_block = $block;
-          break;
-        }
-      }
-    }
     
     // Wrap content with data attributes for event handling
     if ($current_block && !empty($content)) {

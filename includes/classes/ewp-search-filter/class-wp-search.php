@@ -34,6 +34,8 @@ class Extend_WP_Search_Filters
         'endpoint' => $filter['content_id'],
         'namespace' =>  'ewp-filter',
         'method' => 'get',
+        /*search results are rendered on the front end for anonymous visitors: explicitly public*/
+        'public' => true,
         'args' => array(
           'id' => array(
             'description'       => sprintf(__('The id of the search filter', 'ewp'), $filter['content_id']),

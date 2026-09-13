@@ -73,16 +73,18 @@ class AWM_Add_Content_DB_Setup
         'namespace' =>  $this->prefix,
         'method' => 'get',
         'php_callback' => [$class, 'get_results'],
+        'permission_callback' => [$this, 'read_permission'],
       ),
       'view_single' => array(
         'endpoint' => $this->data_id . '/(?P<id>\d+)',
         'namespace' =>  $this->prefix,
         'method' => 'get',
         'php_callback' => [$class, 'get_results'],
+        'permission_callback' => [$this, 'read_permission'],
         'args' => array(
           'id' => array(
             'description'       => sprintf(__('The id of the %s content object', 'ewp'), $this->data_content['list_name_singular']),
-            'type'              => 'int',
+            'type'              => 'integer',
             'default'           => 0,
             'sanitize_callback' => 'absint',
             'required' => true
@@ -98,7 +100,7 @@ class AWM_Add_Content_DB_Setup
         'namespace' =>  $this->prefix,
         'method' => 'post',
         'php_callback' => [$class, 'insert'],
-        'permission_callback' => 'ewp_rest_check_user_is_admin',
+        'permission_callback' => [$this, 'write_permission'],
         'args' => $this->write_args(),
       );
       $default_rest['update'] = array(
@@ -109,7 +111,7 @@ class AWM_Add_Content_DB_Setup
           array(
             'id' => array(
               'description'       => sprintf(__('The id of the %s content object', 'ewp'), $this->data_content['list_name_singular']),
-              'type'              => 'int',
+              'type'              => 'integer',
               'default'           => 0,
               'sanitize_callback' => 'absint',
               'required' => true
@@ -118,7 +120,7 @@ class AWM_Add_Content_DB_Setup
           $this->write_args(false)
         ),
         'php_callback' => [$class, 'update'],
-        'permission_callback' => 'ewp_rest_check_user_is_admin'
+        'permission_callback' => [$this, 'write_permission']
       );
       $default_rest['delete_single'] = array(
         'endpoint' => $this->data_id . '/delete/',
@@ -126,14 +128,15 @@ class AWM_Add_Content_DB_Setup
         'method' => 'delete',
         'args' => array(
           'ids' => array(
-            'description'       => sprintf(__('The ids of the %s content object. You can combine multiple seperated', 'ewp'), $this->data_content['list_name_singular']),
+            'description'       => sprintf(__('The ids of the %s content objects to delete, comma separated.', 'ewp'), $this->data_content['list_name_singular']),
+            'type'              => 'string',
             'sanitize_callback' => 'sanitize_text_field',
             'default'           => 0,
             'required' => true
           )
         ),
         'php_callback' => [$class, 'delete'],
-        'permission_callback' => 'ewp_rest_check_user_is_admin'
+        'permission_callback' => [$this, 'write_permission']
 
       );
     }
@@ -149,6 +152,42 @@ class AWM_Add_Content_DB_Setup
    *
    * @return array REST route `args` definition for `title`, `status` and `meta`.
    */
+  /**
+   * Permission callback for the list and single read routes.
+   *
+   * Anonymous access only when the content type opted in with
+   * `'public_read' => true`; otherwise the type's own `capability`
+   * (the same rule the wp-admin list table and the abilities use).
+   *
+   * @return bool
+   *
+   * @since 1.5.0
+   */
+  public function read_permission()
+  {
+    if (!empty($this->list['public_read'])) {
+      return true;
+    }
+
+    return current_user_can($this->list['capability']);
+  }
+
+  /**
+   * Permission callback for the create, update and delete routes.
+   *
+   * Uses the content type's own `capability`, as wp-admin and the
+   * abilities do. Before 1.5.0 REST writes required `manage_options`
+   * for every type regardless of what the type registered.
+   *
+   * @return bool
+   *
+   * @since 1.5.0
+   */
+  public function write_permission()
+  {
+    return current_user_can($this->list['capability']);
+  }
+
   private function write_args($required = true)
   {
     return array(
@@ -217,6 +256,8 @@ class AWM_Add_Content_DB_Setup
       'save_columns' => $this->main_table_columns(),
       /*whether create/update/delete REST routes and abilities are registered for this content type; read-only types (e.g. ewp_search) set this to false*/
       'writable' => isset($this->data_content['writable']) ? (bool) $this->data_content['writable'] : true,
+      /*opt-in: expose the read routes (list + single) to anonymous requests; everything else uses `capability`*/
+      'public_read' => !empty($this->data_content['public_read']),
     );
     self::$ewp_data_configuration[$this->content_id] = $this->list;
   }

@@ -47,9 +47,7 @@ class AWM_API extends WP_REST_Controller
       array(
         "methods" => WP_REST_Server::READABLE,
         "callback" => array($this, 'get_case_fields'),
-        "permission_callback" => function () {
-          return true;
-        }
+        "permission_callback" => array($this, 'field_builder_permission_check')
       )
     ));
 
@@ -57,9 +55,7 @@ class AWM_API extends WP_REST_Controller
       array(
         "methods" => WP_REST_Server::READABLE,
         "callback" => array($this, 'get_query_fields'),
-        "permission_callback" => function () {
-          return true;
-        }
+        "permission_callback" => array($this, 'field_builder_permission_check')
       )
     ));
 
@@ -67,9 +63,7 @@ class AWM_API extends WP_REST_Controller
       array(
         "methods" => WP_REST_Server::READABLE,
         "callback" => array($this, 'ewp_get_php'),
-        "permission_callback" => function () {
-          return true;
-        }
+        "permission_callback" => array($this, 'field_builder_permission_check')
       )
     ));
 
@@ -78,9 +72,7 @@ class AWM_API extends WP_REST_Controller
       array(
         "methods" => WP_REST_Server::READABLE,
         "callback" => array($this, 'get_position_fields'),
-        "permission_callback" => function () {
-          return true;
-        }
+        "permission_callback" => array($this, 'field_builder_permission_check')
       )
     ));
 
@@ -88,9 +80,7 @@ class AWM_API extends WP_REST_Controller
       array(
         "methods" => WP_REST_Server::READABLE,
         "callback" => array($this, 'awm_map_options_func'),
-        "permission_callback" => function () {
-          return true;
-        }
+        "permission_callback" => array($this, 'map_options_permission_check')
       )
     ));
 
@@ -310,6 +300,50 @@ class AWM_API extends WP_REST_Controller
    * @return bool True if user has permission
    * @since 1.2.0
    */
+  /**
+   * Permission for the field-builder helper routes (case, query and
+   * position fields, PHP code export).
+   *
+   * These render admin-only markup and configuration for the wp-admin
+   * field builder; before 1.5.0 they answered anonymous requests.
+   *
+   * @return bool
+   *
+   * @since 1.5.0
+   */
+  public function field_builder_permission_check()
+  {
+    return current_user_can('edit_posts');
+  }
+
+  /**
+   * Permission for the map options route.
+   *
+   * Returns the configured Google Maps browser key, so it is limited to
+   * logged-in users; the map field only renders in wp-admin. Use the
+   * `ewp_map_options_public` filter if a site renders the map field for
+   * anonymous visitors.
+   *
+   * @return bool
+   *
+   * @since 1.5.0
+   */
+  public function map_options_permission_check()
+  {
+    /**
+     * Whether the map options route may answer anonymous requests.
+     *
+     * @param bool $public Default false.
+     *
+     * @since 1.5.0
+     */
+    if (apply_filters('ewp_map_options_public', false)) {
+      return true;
+    }
+
+    return is_user_logged_in();
+  }
+
   public function modal_permission_check()
   {
     return current_user_can('edit_posts');

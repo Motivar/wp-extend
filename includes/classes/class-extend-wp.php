@@ -77,6 +77,16 @@ class AWM_Meta
         add_action('rest_api_init', array($this, 'awm_dynamic_routes'), 10);
     }
 
+    /**
+     * Register REST routes declared by options boxes through their `rest` key.
+     *
+     * Each entry is an AWM_Dynamic_API endpoint definition. Since 1.5.0 a
+     * definition without `permission_callback` requires `manage_options`
+     * (filterable via `ewp_dynamic_api_default_permission`); pass
+     * `'public' => true` for a deliberately anonymous route.
+     *
+     * @return bool
+     */
     public function awm_dynamic_routes()
     {
         if (empty($this->options_boxes())) {

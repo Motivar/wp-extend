@@ -85,17 +85,41 @@ class EWP_Recently_Seen_UTIL
                 'callback' => [$this, 'recently_seen'],
                 'args' => array(
                     'id' => array(
-                        'description'       => __('The id of the post', 'extend-wp'),
-                        'validate_callback' => function($param) { return is_numeric($param); },
+                        'description'       => __('The id of a published post', 'extend-wp'),
+                        'validate_callback' => function($param) { return is_numeric($param) && get_post_status((int) $param) === 'publish'; },
                         'sanitize_callback' => 'absint',
                         'required' => true
                     )
                 ),
-                'permission_callback' => '__return_true'
+                /*
+                 * Deliberately anonymous: the front-end script records views for
+                 * visitors who are not logged in. It only accepts the id of a
+                 * published post and writes nothing but the visitor's own session.
+                 */
+                'permission_callback' => [$this, 'permission_check']
             ));
         } catch (Exception $e) {
             error_log('REST endpoint registration error: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Permission callback for the recently-seen route.
+     *
+     * @return bool
+     *
+     * @since 1.5.0
+     */
+    public function permission_check()
+    {
+        /**
+         * Whether the recently-seen route accepts anonymous requests.
+         *
+         * @param bool $public Default true; return false to require a logged-in user.
+         *
+         * @since 1.5.0
+         */
+        return (bool) apply_filters('ewp_recently_seen_public', true);
     }
 
     /**

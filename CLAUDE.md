@@ -88,7 +88,7 @@ An alternative to custom post types: each registered content type gets two table
 
 ### REST API
 
-Canonical namespace is `extend-wp/v1` (logger, options portability, object search, REST health, generic AWM API). Search filters expose `ewp-filter/1`. UI-configured dynamic endpoints get their own namespace, defaulting to `awm-dynamic-api/v1`. Prefer REST over `admin-ajax.php`. `includes/classes/ewp-rest-health/` scans source for `register_rest_route()` calls to build a route inventory — keep route registration greppable (literal namespace strings, `$namespace`/`$rest_namespace` properties).
+Canonical namespace is `extend-wp/v1` (logger, options portability, object search, REST health, generic AWM API). Search filters expose `ewp-filter/1`. UI-configured dynamic endpoints get their own namespace, defaulting to `awm-dynamic-api/v1`. Prefer REST over `admin-ajax.php`. **Every route needs an explicit permission.** `AWM_Dynamic_API` denies by default (`manage_options` via `ewp_dynamic_api_default_permission`); a deliberately anonymous route says `'public' => true`. Custom content types use their own `capability` for reads and writes and opt into anonymous reads with `public_read => true` in their registration. `includes/classes/ewp-rest-health/` scans source for `register_rest_route()` calls to build a route inventory — keep route registration greppable (literal namespace strings, `$namespace`/`$rest_namespace` properties).
 
 ### Dynamic Asset Loader
 
