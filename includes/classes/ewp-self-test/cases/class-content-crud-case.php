@@ -24,6 +24,8 @@ if (!defined('ABSPATH')) {
  */
 class Content_Crud_Case extends EWP_Self_Test_Case
 {
+    use Fixture_Content_Type;
+
     /** {@inheritDoc} */
     public function preview()
     {
@@ -175,81 +177,7 @@ class Content_Crud_Case extends EWP_Self_Test_Case
     /** {@inheritDoc} */
     public function cleanup(array $context)
     {
-        global $wpdb;
-
-        $type     = isset($context['content_type']) ? (string) $context['content_type'] : '';
-        $messages = [];
-
-        if ($type === '' || strpos($type, 'selftest_') === false) {
-            return [__('Nothing to clean: no fixture content type recorded.', 'extend-wp')];
-        }
-
-        $rows = function_exists('awm_get_db_content') ? awm_get_db_content($type, ['fields' => ['content_id'], 'limit' => 500]) : [];
-        if (!empty($rows) && is_array($rows)) {
-            $ids = array_map(function ($row) {
-                return (int) $row['content_id'];
-            }, $rows);
-            awm_custom_content_delete($type, $ids);
-            $messages[] = sprintf(__('Deleted %d leftover row(s) from %s.', 'extend-wp'), count($ids), $type);
-        }
-
-        foreach (['_data', '_main'] as $suffix) {
-            $table = $type . $suffix;
-            $wpdb->query('DROP TABLE IF EXISTS `' . esc_sql($wpdb->prefix . $table) . '`'); // phpcs:ignore WordPress.DB.PreparedSQL
-            delete_option('ewp_version_' . $table);
-            $messages[] = sprintf(__('Dropped table %s.', 'extend-wp'), $wpdb->prefix . $table);
-        }
-
-        if (class_exists('AWM_Add_Content_DB_Setup') && isset(\AWM_Add_Content_DB_Setup::$ewp_data_configuration[$type])) {
-            unset(\AWM_Add_Content_DB_Setup::$ewp_data_configuration[$type]);
-        }
-
-        if (function_exists('ewp_flush_cache')) {
-            ewp_flush_cache();
-            $messages[] = __('Flushed the Extend WP cache.', 'extend-wp');
-        }
-
-        return $messages;
-    }
-
-    /* ------------------------------------------------------------------ */
-
-    /**
-     * Register the fixture type and create its tables + REST routes now.
-     *
-     * @param string $key    Raw key (`selftest_xxxxxx`).
-     * @param string $prefix Content prefix / REST namespace.
-     *
-     * @return void
-     */
-    private function register_fixture_type($key, $prefix)
-    {
-        $structure = [
-            'list_name'          => 'Self-test fixture',
-            'list_name_singular' => 'Self-test row',
-            'capability'         => 'manage_options',
-            'custom_prefix'      => $prefix,
-            'statuses'           => [
-                'enabled'  => ['label' => 'Enabled'],
-                'disabled' => ['label' => 'Disabled'],
-            ],
-            'metaboxes'          => [
-                'main' => [
-                    'title'   => 'Main',
-                    'library' => [
-                        'required_field' => ['case' => 'input', 'label' => 'Required field', 'required' => true],
-                        'note'           => ['case' => 'input', 'label' => 'Note', 'required' => false],
-                    ],
-                ],
-            ],
-        ];
-
-        $setup = new \AWM_Add_Content_DB_Setup();
-        $setup->init(['key' => $key, 'structure' => $structure]);
-        $setup->on_load();
-
-        rest_get_server();
-        $setup->rest_endpoints();
+        return $this->cleanup_fixture_type(isset($context['content_type']) ? (string) $context['content_type'] : '');
     }
 
     /**
@@ -266,68 +194,5 @@ class Content_Crud_Case extends EWP_Self_Test_Case
         }
 
         return (int) $m[1];
-    }
-
-    private function status(array $o, $key)
-    {
-        return isset($o[$key]['status']) ? (int) $o[$key]['status'] : 0;
-    }
-
-    private function detail(array $o, $key)
-    {
-        if (!isset($o[$key])) {
-            return __('not executed', 'extend-wp');
-        }
-
-        return 'HTTP ' . $this->status($o, $key) . ' ' . wp_json_encode($o[$key]['data']);
-    }
-
-    private function cli_check(array $o, $key, $label, $expected_fragment)
-    {
-        if (!$this->cli_available()) {
-            return $this->skip('cli', $label, __('WP-CLI wrappers are not loaded in this process.', 'extend-wp'));
-        }
-
-        if (!isset($o[$key])) {
-            return $this->check('cli', $label, false, __('not executed', 'extend-wp'));
-        }
-
-        $r    = $o[$key];
-        $pass = !empty($r['ok']) && !empty($r['success'][0]) && strpos($r['success'][0], $expected_fragment) !== false;
-
-        return $this->check('cli', $label, $pass, $pass ? $r['success'][0] : ($r['error'] ?: wp_json_encode($r['success'])));
-    }
-
-    private function cli_check_printed(array $o, $key, $label, callable $predicate)
-    {
-        if (!$this->cli_available()) {
-            return $this->skip('cli', $label, __('WP-CLI wrappers are not loaded in this process.', 'extend-wp'));
-        }
-
-        $r    = isset($o[$key]) ? $o[$key] : ['ok' => false, 'printed' => [], 'error' => 'not executed'];
-        $pass = !empty($r['ok']) && $predicate(isset($r['printed']) ? $r['printed'] : []);
-
-        return $this->check('cli', $label, $pass, $pass ? __('ok', 'extend-wp') : ($r['error'] ?: __('expected row not found in output', 'extend-wp')));
-    }
-
-    private function ability_check(array $o, $key, $label, callable $predicate)
-    {
-        if (!$this->abilities_available()) {
-            return $this->skip('ability', $label, __('Abilities API not available on this site.', 'extend-wp'));
-        }
-
-        if (!isset($o[$key])) {
-            return $this->check('ability', $label, false, __('not executed — an earlier step it depends on failed', 'extend-wp'));
-        }
-
-        $r = $o[$key];
-
-        if (empty($r['found'])) {
-            return $this->check('ability', $label, false, __('ability is not registered', 'extend-wp'));
-        }
-
-        $pass = !empty($r['ok']) && $predicate(is_array($r['data']) ? $r['data'] : []);
-
-        return $this->check('ability', $label, $pass, $pass ? __('ok', 'extend-wp') : ($r['error'] ?: wp_json_encode($r['data'])));
     }
 }

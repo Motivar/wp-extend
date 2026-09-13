@@ -207,6 +207,84 @@
                     "ewp-logger diagnose provider availability"
                 ]
             }
+        },
+        {
+            "id": "content-portability",
+            "label": "Custom content export / import (round trip)",
+            "category": "content",
+            "layers": [
+                "rest",
+                "cli",
+                "ability"
+            ],
+            "class": "EWP\\SelfTest\\Cases\\Content_Portability_Case",
+            "requires": [],
+            "args": {},
+            "covers": {
+                "rest": [
+                    "ewp/v1/export",
+                    "ewp/v1/import"
+                ],
+                "cli": [
+                    "ewp content export",
+                    "ewp content import"
+                ],
+                "ability": [
+                    "ewp-content/export",
+                    "ewp-content/import"
+                ]
+            }
+        },
+        {
+            "id": "object-search",
+            "label": "Object search by name",
+            "category": "system",
+            "layers": [
+                "rest",
+                "cli",
+                "ability"
+            ],
+            "class": "EWP\\SelfTest\\Cases\\Object_Search_Case",
+            "requires": [],
+            "args": {},
+            "covers": {
+                "rest": [
+                    "extend-wp/v1/objects/search"
+                ],
+                "cli": [
+                    "ewp objects search"
+                ],
+                "ability": [
+                    "ewp-system/search-objects"
+                ]
+            }
+        },
+        {
+            "id": "rest-health",
+            "label": "REST route inventory",
+            "category": "system",
+            "layers": [
+                "rest",
+                "cli",
+                "ability"
+            ],
+            "class": "EWP\\SelfTest\\Cases\\Rest_Health_Case",
+            "requires": [],
+            "args": {},
+            "covers": {
+                "rest": [
+                    "extend-wp/v1/rest-health/plugins",
+                    "extend-wp/v1/rest-health/endpoints"
+                ],
+                "cli": [
+                    "ewp rest-health plugins",
+                    "ewp rest-health endpoints"
+                ],
+                "ability": [
+                    "ewp-rest-health/list-plugins",
+                    "ewp-rest-health/list-endpoints"
+                ]
+            }
         }
     ]
 }

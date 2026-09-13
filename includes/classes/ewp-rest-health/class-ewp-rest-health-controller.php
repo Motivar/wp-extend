@@ -11,8 +11,8 @@ if (!defined('ABSPATH')) {
  * All routes are restricted to super administrators.
  *
  * Routes (namespace: extend-wp/v1):
- *   GET    /rest-health/plugins      List active WP plugins
- *   POST   /rest-health/endpoints    Discover routes for selected plugins
+ *   GET    /rest-health/plugins      (generated from Rest_Health_Resource, also CLI + ability)
+ *   POST   /rest-health/endpoints    (generated from Rest_Health_Resource, also CLI + ability)
  *   GET    /rest-health/openapi      OpenAPI 3.0 spec JSON
  *   POST   /rest-health/test         Run a single endpoint test
  *   POST   /rest-health/batch        Run a batch of endpoint tests
@@ -53,13 +53,7 @@ class EWP_REST_Health_Controller extends WP_REST_Controller
         $perm = [$this, 'check_permission'];
         $base = '/' . $this->rest_base;
 
-        register_rest_route($this->namespace, $base . '/plugins', [
-            ['methods' => WP_REST_Server::READABLE,  'callback' => [$this, 'get_plugins'],  'permission_callback' => $perm],
-        ]);
-
-        register_rest_route($this->namespace, $base . '/endpoints', [
-            ['methods' => WP_REST_Server::CREATABLE, 'callback' => [$this, 'get_endpoints'], 'permission_callback' => $perm],
-        ]);
+        /* /plugins and /endpoints are generated from EWP\Surfaces\Resources\Rest_Health_Resource. */
 
         register_rest_route($this->namespace, $base . '/openapi', [
             ['methods' => WP_REST_Server::READABLE,  'callback' => [$this, 'get_openapi'],  'permission_callback' => $perm],
@@ -106,40 +100,6 @@ class EWP_REST_Health_Controller extends WP_REST_Controller
     // -------------------------------------------------------------------------
     // Route callbacks
     // -------------------------------------------------------------------------
-
-    public function get_plugins(WP_REST_Request $request): WP_REST_Response
-    {
-        // Refresh button always clears the scan cache so re-scanning happens
-        if ($request->get_param('refresh')) {
-            $this->discovery->clear_map_cache();
-        }
-
-        $plugins = $this->discovery->get_active_plugins();
-        $ns_map  = $this->discovery->build_namespace_plugin_map();
-        $result  = [];
-
-        foreach ($plugins as $path => $meta) {
-            $namespaces = array_keys(array_filter($ns_map, fn($p) => $p === $path));
-            $result[]   = [
-                'path'       => $path,
-                'name'       => $meta['name'],
-                'dir'        => $meta['dir'],
-                'namespaces' => array_values($namespaces),
-            ];
-        }
-
-        return rest_ensure_response($result);
-    }
-
-    public function get_endpoints(WP_REST_Request $request): WP_REST_Response
-    {
-        $plugins = (array) ($request->get_param('plugins') ?? []);
-        if (empty($plugins)) {
-            return new WP_REST_Response(['error' => 'No plugins specified.'], 400);
-        }
-        $routes = $this->discovery->get_routes_for_plugins($plugins);
-        return rest_ensure_response(array_values($routes));
-    }
 
     public function get_openapi(WP_REST_Request $request): WP_REST_Response
     {

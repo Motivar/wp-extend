@@ -5,6 +5,9 @@ namespace EWP\Surfaces;
 use EWP\Content\Content_Service;
 use EWP\Surfaces\Resources\Content_Resource;
 use EWP\Surfaces\Resources\Content_Type_Rest_Resource;
+use EWP\Surfaces\Resources\Content_Portability_Resource;
+use EWP\Surfaces\Resources\Object_Search_Resource;
+use EWP\Surfaces\Resources\Rest_Health_Resource;
 use EWP\Surfaces\Resources\Fields_Resource;
 use EWP\Surfaces\Resources\Logger_Resource;
 use EWP\Surfaces\Resources\Options_Resource;
@@ -104,6 +107,12 @@ final class EWP_Surfaces
         require_once __DIR__ . '/class-system-service.php';
         require_once __DIR__ . '/resources/class-system-resource.php';
         require_once __DIR__ . '/resources/class-options-resource.php';
+        require_once dirname(__DIR__) . '/ewp-content/class-content-portability.php';
+        require_once dirname(__DIR__) . '/ewp-search/class-object-search.php';
+        require_once __DIR__ . '/class-rest-health-inventory.php';
+        require_once __DIR__ . '/resources/class-content-portability-resource.php';
+        require_once __DIR__ . '/resources/class-object-search-resource.php';
+        require_once __DIR__ . '/resources/class-rest-health-resource.php';
 
         $this->service = new Content_Service();
         $this->registry = new Registry();
@@ -125,6 +134,9 @@ final class EWP_Surfaces
             'logger'     => new Logger_Resource(new \EWP\Logger\EWP_Logger_Query()),
             'options'    => new Options_Resource(),
             'system'     => new System_Resource(new System_Service($this->service)),
+            'content-portability' => new Content_Portability_Resource(new \EWP\Content\Content_Portability()),
+            'objects'    => new Object_Search_Resource(new \EWP\Search\Object_Search()),
+            'rest-health' => new Rest_Health_Resource(new Rest_Health_Inventory()),
         ], $this->service);
 
         foreach ($resources as $resource) {
@@ -180,6 +192,32 @@ final class EWP_Surfaces
         $resource = new Content_Type_Rest_Resource($content_type, $prefix, $data_id, $this->service);
         $registry->add($resource);
         (new Rest_Adapter($resource))->register();
+    }
+
+    /**
+     * A callable that runs one operation with WP-CLI style arguments, for
+     * in-process invocation by tests and the self-test suite.
+     *
+     * @param string $resource  Resource name.
+     * @param string $operation Operation key.
+     *
+     * @return callable fn(array $args, array $assoc_args)
+     *
+     * @since 1.5.0
+     */
+    public static function cli($resource, $operation)
+    {
+        return function ($args = [], $assoc_args = []) use ($resource, $operation) {
+            $registry = self::instance()->registry();
+            $found    = $registry ? $registry->find($resource, $operation) : null;
+
+            if ($found === null) {
+                \WP_CLI::error(sprintf('Unknown operation %s/%s.', $resource, $operation));
+                return null;
+            }
+
+            return \Motivar\WP\Adapters\Cli_Adapter::invoke($found, (array) $args, (array) $assoc_args);
+        };
     }
 
     /**

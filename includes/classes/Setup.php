@@ -47,7 +47,6 @@ class Setup
   require_once 'ewp-search-filter/class-wp-search.php';
   require_once 'awm-api/class-awm-api.php';
   require_once 'awm-api/class-awm-dynamic-api.php';
-  require_once 'awm-api/class-awm-object-search-api.php';
   require_once 'awm-content-db-api/init.php';
   /*shared read/write implementation behind the content REST routes, `wp ewp content` and the content abilities; must follow the content DB api*/
   require_once 'ewp-content/class-content-service.php';

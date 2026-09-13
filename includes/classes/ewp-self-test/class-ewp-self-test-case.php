@@ -380,4 +380,79 @@ abstract class EWP_Self_Test_Case
     {
         return json_decode(wp_json_encode($value), true);
     }
+
+    /* ---------------------------------------------------------------------
+     * Assertion helpers shared by cases
+     * ------------------------------------------------------------------ */
+
+    /**
+     * HTTP status of an observed REST call, 0 when it did not run.
+     *
+     * @param array  $o   Observed results.
+     * @param string $key Result key.
+     *
+     * @return int
+     */
+    protected function status(array $o, $key)
+    {
+        return isset($o[$key]['status']) ? (int) $o[$key]['status'] : 0;
+    }
+
+    protected function detail(array $o, $key)
+    {
+        if (!isset($o[$key])) {
+            return __('not executed', 'extend-wp');
+        }
+
+        return 'HTTP ' . $this->status($o, $key) . ' ' . wp_json_encode($o[$key]['data']);
+    }
+
+    protected function cli_check(array $o, $key, $label, $expected_fragment = null)
+    {
+        if (!$this->cli_available()) {
+            return $this->skip('cli', $label, __('WP-CLI wrappers are not loaded in this process.', 'extend-wp'));
+        }
+
+        if (!isset($o[$key])) {
+            return $this->check('cli', $label, false, __('not executed', 'extend-wp'));
+        }
+
+        $r    = $o[$key];
+        $pass = !empty($r['ok']) && ($expected_fragment === null || (!empty($r['success'][0]) && strpos($r['success'][0], $expected_fragment) !== false));
+
+        return $this->check('cli', $label, $pass, $pass ? (!empty($r['success'][0]) ? $r['success'][0] : __('ok', 'extend-wp')) : ($r['error'] ?: wp_json_encode($r['success'])));
+    }
+
+    protected function cli_check_printed(array $o, $key, $label, callable $predicate)
+    {
+        if (!$this->cli_available()) {
+            return $this->skip('cli', $label, __('WP-CLI wrappers are not loaded in this process.', 'extend-wp'));
+        }
+
+        $r    = isset($o[$key]) ? $o[$key] : ['ok' => false, 'printed' => [], 'error' => 'not executed'];
+        $pass = !empty($r['ok']) && $predicate(isset($r['printed']) ? $r['printed'] : []);
+
+        return $this->check('cli', $label, $pass, $pass ? __('ok', 'extend-wp') : ($r['error'] ?: __('expected row not found in output', 'extend-wp')));
+    }
+
+    protected function ability_check(array $o, $key, $label, callable $predicate)
+    {
+        if (!$this->abilities_available()) {
+            return $this->skip('ability', $label, __('Abilities API not available on this site.', 'extend-wp'));
+        }
+
+        if (!isset($o[$key])) {
+            return $this->check('ability', $label, false, __('not executed — an earlier step it depends on failed', 'extend-wp'));
+        }
+
+        $r = $o[$key];
+
+        if (empty($r['found'])) {
+            return $this->check('ability', $label, false, __('ability is not registered', 'extend-wp'));
+        }
+
+        $pass = !empty($r['ok']) && $predicate(is_array($r['data']) ? $r['data'] : []);
+
+        return $this->check('ability', $label, $pass, $pass ? __('ok', 'extend-wp') : ($r['error'] ?: wp_json_encode($r['data'])));
+    }
 }

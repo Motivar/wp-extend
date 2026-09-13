@@ -13,12 +13,16 @@ require_once __DIR__ . '/class-ewp-self-test-runner.php';
 require_once __DIR__ . '/class-ewp-self-test-rest.php';
 require_once __DIR__ . '/class-ewp-self-test-cli.php';
 require_once __DIR__ . '/class-ewp-self-test-admin.php';
+require_once __DIR__ . '/cases/trait-fixture-content-type.php';
 require_once __DIR__ . '/cases/class-content-crud-case.php';
 require_once __DIR__ . '/cases/class-search-filter-case.php';
 require_once __DIR__ . '/cases/class-cache-flush-case.php';
 require_once __DIR__ . '/cases/class-logger-case.php';
 require_once __DIR__ . '/cases/class-options-portability-case.php';
 require_once __DIR__ . '/cases/class-ai-case.php';
+require_once __DIR__ . '/cases/class-content-portability-case.php';
+require_once __DIR__ . '/cases/class-object-search-case.php';
+require_once __DIR__ . '/cases/class-rest-health-case.php';
 
 /**
  * Bootstraps the self-test module.

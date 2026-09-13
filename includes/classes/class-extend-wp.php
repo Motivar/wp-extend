@@ -109,8 +109,7 @@ class AWM_Meta
         $api->register_routes();
 
         // Global object search endpoint powering the `object_id_filter` field type.
-        $object_search_api = new AWM_Object_Search_API();
-        $object_search_api->register_routes();
+        /* GET /objects/search is generated from EWP\Surfaces\Resources\Object_Search_Resource. */
     }
 
     public function awm_admin_post_columns()
