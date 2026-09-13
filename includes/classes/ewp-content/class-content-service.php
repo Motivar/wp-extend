@@ -1,6 +1,6 @@
 <?php
 
-namespace EWP\Abilities;
+namespace EWP\Content;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -14,14 +14,35 @@ if (!defined('ABSPATH')) {
  * `awm_get_db_content`), so ability writes fire the same actions as the admin
  * UI: transients are flushed and the activity log records the change.
  *
- * @package    EWP\Abilities
+ * @package    EWP\Content
  * @author     Motivar
  * @version    1.0.0
  *
  * @since 1.4.0
  */
-class EWP_Abilities_Content_Service
+class Content_Service
 {
+    /**
+     * Field cases that render markup or actions and never store a value.
+     *
+     * @var string[]
+     */
+    const PRESENTATION_CASES = ['html', 'message', 'button', 'function', 'awm_tab'];
+
+    /**
+     * Default number of rows returned by list_items().
+     *
+     * @var int
+     */
+    const DEFAULT_LIMIT = 50;
+
+    /**
+     * Ceiling for list_items() so no surface can pull a whole table at once.
+     *
+     * @var int
+     */
+    const MAX_LIMIT = 200;
+
     /**
      * Main table column keys that cannot be used as meta keys.
      *
@@ -176,7 +197,7 @@ class EWP_Abilities_Content_Service
             }
 
             $case = isset($field['case']) ? (string) $field['case'] : '';
-            if (in_array($case, EWP_Abilities_Schema::PRESENTATION_CASES, true)) {
+            if (in_array($case, self::PRESENTATION_CASES, true)) {
                 continue;
             }
 
@@ -184,7 +205,7 @@ class EWP_Abilities_Content_Service
                 'key'      => (string) $key,
                 'label'    => isset($field['label']) ? (string) $field['label'] : (string) $key,
                 'case'     => $case,
-                'required' => EWP_Abilities_Schema::is_required($field),
+                'required' => self::is_required($field),
             ];
         }
 
@@ -291,7 +312,7 @@ class EWP_Abilities_Content_Service
         $missing = [];
 
         foreach ($library as $key => $field) {
-            if (!is_array($field) || !EWP_Abilities_Schema::is_required($field)) {
+            if (!is_array($field) || !self::is_required($field)) {
                 continue;
             }
 
@@ -331,8 +352,8 @@ class EWP_Abilities_Content_Service
      */
     public function list_items($content_type, array $args = [])
     {
-        $limit = isset($args['limit']) ? (int) $args['limit'] : EWP_Abilities_Schema::DEFAULT_LIMIT;
-        $limit = max(1, min($limit, EWP_Abilities_Schema::MAX_LIMIT));
+        $limit = isset($args['limit']) ? (int) $args['limit'] : self::DEFAULT_LIMIT;
+        $limit = max(1, min($limit, self::MAX_LIMIT));
 
         $query = ['limit' => $limit];
 
@@ -639,4 +660,58 @@ class EWP_Abilities_Content_Service
             'meta'         => (object) $meta,
         ];
     }
+
+    /**
+     * Whether a content type exposes its read routes to anonymous requests.
+     *
+     * Opt-in through `'public_read' => true` on the `awm_register_content_db`
+     * definition; everything else uses the type's `capability`.
+     *
+     * @param string $content_type Content type id.
+     *
+     * @return bool
+     *
+     * @since 1.5.0
+     */
+    public function is_public_read($content_type)
+    {
+        $config = $this->get_config($content_type);
+
+        return !empty($config['public_read']);
+    }
+
+    /**
+     * Whether a field library entry is flagged required in the admin UI.
+     *
+     * A field only shown for certain values of another field cannot be
+     * unconditionally required, so it is reported as optional.
+     *
+     * @param array $field Field definition.
+     *
+     * @return bool
+     *
+     * @since 1.5.0
+     */
+    public static function is_required(array $field)
+    {
+        if (!empty($field['show-when'])) {
+            return false;
+        }
+
+        if (!empty($field['required'])) {
+            return true;
+        }
+
+        if (empty($field['label_class']) || !is_array($field['label_class'])) {
+            return false;
+        }
+
+        return in_array('awm-needed', $field['label_class'], true);
+    }
 }
+
+/*
+ * The service lived in the abilities module until 1.5.0. Keep the old name
+ * resolvable for the abilities providers and any external caller.
+ */
+class_alias('EWP\\Content\\Content_Service', 'EWP\\Abilities\\EWP_Abilities_Content_Service');

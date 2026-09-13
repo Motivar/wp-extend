@@ -332,6 +332,24 @@ class EWP_Options_Portability
 		);
 		$opts = wp_parse_args($opts, $defaults);
 
+		/**
+		 * Filter import data before processing, on every surface.
+		 *
+		 * Return false to cancel the import. Until 1.5.0 this ran only for
+		 * REST imports; CLI and ability imports bypassed it.
+		 *
+		 * @param array  $import_data Parsed import payload.
+		 * @param array  $opts        Import options (dry_run, skip_url_replace, actor, backup_file).
+		 * @return array|false Modified import data or false to cancel.
+		 *
+		 * @since 1.0.0
+		 */
+		$import_data = apply_filters('ewp_options_portability_before_import', $import_data, $opts);
+
+		if ($import_data === false) {
+			return new \WP_Error('import_cancelled', __('Import was cancelled by a filter.', 'extend-wp'), array('status' => 400));
+		}
+
 		/* Step 1: Validate structure */
 		$validation = $this->validate_import_data($import_data);
 		if (is_wp_error($validation)) {
@@ -825,6 +843,12 @@ class EWP_Options_Portability
 						'type'     => 'boolean',
 						'default'  => false,
 					),
+					'backup_file' => array(
+						'required'          => false,
+						'type'              => 'string',
+						'description'       => __('Server path to write a JSON backup of the affected options before importing.', 'extend-wp'),
+						'sanitize_callback' => 'sanitize_text_field',
+					),
 				),
 			),
 		));
@@ -952,28 +976,14 @@ class EWP_Options_Portability
 			return new \WP_Error('invalid_json', __('Invalid JSON in import data.', 'extend-wp'), array('status' => 400));
 		}
 
+		$backup_file = $request->get_param('backup_file');
+
 		$opts = array(
 			'dry_run'          => (bool) $request->get_param('dry_run'),
 			'skip_url_replace' => (bool) $request->get_param('skip_url_replace'),
 			'actor'            => 'rest',
+			'backup_file'      => $backup_file !== null && $backup_file !== '' ? (string) $backup_file : null,
 		);
-
-		/**
-		 * Filter import data before processing via REST.
-		 *
-		 * Return false to cancel the import.
-		 *
-		 * @param array  $parsed Parsed import payload.
-		 * @param array  $opts   Import options.
-		 * @return array|false Modified import data or false to cancel.
-		 *
-		 * @since 1.0.0
-		 */
-		$parsed = apply_filters('ewp_options_portability_before_import', $parsed, $opts);
-
-		if ($parsed === false) {
-			return new \WP_Error('import_cancelled', __('Import was cancelled by a filter.', 'extend-wp'), array('status' => 400));
-		}
 
 		$result = $this->import_options($parsed, $opts);
 
@@ -1095,7 +1105,7 @@ class EWP_Options_Portability
 	 *
 	 * @since 1.0.0
 	 */
-	private function get_plugin_version()
+	public function get_plugin_version()
 	{
 		static $version = null;
 

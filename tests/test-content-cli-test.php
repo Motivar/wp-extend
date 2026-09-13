@@ -1,7 +1,7 @@
 <?php
 /**
  * Tests for `wp ewp content` (EWP_Content_CLI), using the WP_CLI stub
- * from tests/wp-cli-stub.php. Same underlying EWP_Abilities_Content_Service
+ * from tests/wp-cli-stub.php. Same underlying EWP\Content\Content_Service
  * as tests/test-content-service-test.php and
  * tests/test-content-rest-test.php — this file checks the CLI wrapper's
  * argument handling and success/error reporting, not the persistence
@@ -58,7 +58,7 @@ class Test_Content_Cli extends WP_UnitTestCase
 
     public function test_get_then_update_then_delete_round_trip()
     {
-        $service = new \EWP\Abilities\EWP_Abilities_Content_Service();
+        $service = new \EWP\Content\Content_Service();
         $created = $service->create_item(self::$type, 'Round trip', 'enabled', ['required_field' => 'value']);
         $this->assertIsArray($created);
 

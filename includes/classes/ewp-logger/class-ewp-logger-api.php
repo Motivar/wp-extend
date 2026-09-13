@@ -41,9 +41,17 @@ class EWP_Logger_API
      *
      * @since 1.0.0
      */
-    public function __construct(EWP_Logger_Storage $storage)
+    /**
+     * Shared query layer used by every logger surface.
+     *
+     * @var EWP_Logger_Query
+     */
+    private $query;
+
+    public function __construct(EWP_Logger_Storage $storage, ?EWP_Logger_Query $query = null)
     {
         $this->storage = $storage;
+        $this->query   = $query ?: new EWP_Logger_Query();
     }
 
     /**
@@ -132,15 +140,8 @@ class EWP_Logger_API
      */
     public function get_logs(\WP_REST_Request $request)
     {
-        $args = $this->extract_filter_args($request);
-
-        // Pagination
-        $per_page = $request->get_param('per_page') ?? 50;
-        $page     = $request->get_param('page') ?? 1;
-
-        $args['limit']  = $per_page;
-        $args['offset'] = ($page - 1) * $per_page;
-        $args['order']  = $request->get_param('order') ?? 'DESC';
+        // REST stays unbounded in time and may page as far as storage allows.
+        $args = $this->query->args_from($request->get_params(), ['window' => null, 'max' => 10000]);
 
         /**
          * Filter the REST API query args before execution.
@@ -152,16 +153,9 @@ class EWP_Logger_API
          */
         $args = apply_filters('ewp_logger_rest_query_args', $args, $request);
 
-        $data  = $this->storage->query($args);
-        $total = $this->storage->count($args);
-
+        $result   = $this->query->fetch($args, 'full');
         $per_page = max(1, absint($args['limit']));
         $page     = (int) floor($args['offset'] / $per_page) + 1;
-
-        // Enrich each entry with human-readable labels
-        $data = array_map(function ($entry) {
-            return $this->prepare_entry_for_output($entry);
-        }, $data);
 
         /**
          * Filter the full prepared log data before building the REST response.
@@ -174,11 +168,11 @@ class EWP_Logger_API
          *
          * @since 1.2.0
          */
-        $data = apply_filters('ewp_logger_rest_response_data', $data, $total, $args);
+        $data = apply_filters('ewp_logger_rest_response_data', $result['entries'], $result['total'], $args);
 
         return new \WP_REST_Response([
             'data'     => $data,
-            'total'    => $total,
+            'total'    => $result['total'],
             'page'     => $page,
             'per_page' => $per_page,
         ], 200);
@@ -197,7 +191,8 @@ class EWP_Logger_API
      */
     public function delete_logs(\WP_REST_Request $request)
     {
-        $args = $this->extract_filter_args($request);
+        $args = $this->query->args_from($request->get_params(), ['window' => null]);
+        unset($args['limit'], $args['offset'], $args['order']);
 
         /**
          * Filter the delete args before execution.
@@ -209,11 +204,11 @@ class EWP_Logger_API
          */
         $args = apply_filters('ewp_logger_rest_delete_args', $args, $request);
 
-        $deleted = $this->storage->delete_by_filters($args);
+        $deleted = $this->query->delete_by_args($args);
 
-        if ($deleted === -1) {
+        if (is_wp_error($deleted)) {
             return new \WP_REST_Response([
-                'message' => __('Failed to delete log entries.', 'extend-wp'),
+                'message' => $deleted->get_error_message(),
             ], 500);
         }
 
@@ -238,18 +233,15 @@ class EWP_Logger_API
      */
     public function get_types()
     {
-        $types  = EWP_Logger::get_registered_types();
         $output = [];
 
-        foreach ($types as $owner => $owner_types) {
-            foreach ($owner_types as $type_key => $type_data) {
-                $output[] = [
-                    'owner'       => $owner,
-                    'type_key'    => $type_key,
-                    'label'       => __($type_data['label'], 'extend-wp'),
-                    'description' => __($type_data['description'], 'extend-wp'),
-                ];
-            }
+        foreach ($this->query->vocabulary()['action_types'] as $type) {
+            $output[] = [
+                'owner'       => $type['owner'],
+                'type_key'    => $type['key'],
+                'label'       => $type['label'],
+                'description' => $type['description'],
+            ];
         }
 
         return new \WP_REST_Response(['data' => $output], 200);
@@ -289,154 +281,26 @@ class EWP_Logger_API
     }
 
     /**
-     * Return the recognized filter parameter names.
+     * The recognised filter parameter names.
      *
-     * Form field names match query arg names directly (e.g. 'owner', 'date_from').
-     * Developers can add custom filter fields and register them here.
+     * Kept for callers that reached the list through the API class; the
+     * list and its `ewp_logger_filter_params` filter live in
+     * EWP_Logger_Query::params() since 1.5.0.
      *
-     * @return array List of recognized filter parameter names.
+     * @return array List of recognised filter parameter names.
      *
      * @since 1.2.0
      */
     public static function get_filter_params()
     {
-        $params = [
-            'owner',
-            'action_type',
-            'object_type',
-            'object_filter',
-            'object_filter_ids',
-            'behaviour',
-            'level',
-            'user_id',
-            'date_from',
-            'date_to',
-            'request_id',
-            'search_text',
-        ];
-
-        /**
-         * Filter the list of recognized filter parameter names.
-         *
-         * Allows developers who add custom viewer filter fields
-         * to register them so the REST API processes them.
-         *
-         * @param array $params List of parameter names.
-         *
-         * @since 1.2.0
-         */
-        return apply_filters('ewp_logger_filter_params', $params);
-    }
-
-    /**
-     * Extract filter arguments from a REST request.
-     *
-     * Reads recognized filter params from the request and handles
-     * date format conversion (d-m-Y → Y-m-d).
-     *
-     * @param \WP_REST_Request $request The REST request.
-     *
-     * @return array Query arguments keyed by storage arg names.
-     *
-     * @since 1.2.0
-     */
-    private function extract_filter_args(\WP_REST_Request $request)
-    {
-        $params     = self::get_filter_params();
-        $all_params = $request->get_params();
-        $args       = [];
-
-        foreach ($params as $param) {
-            $value = isset($all_params[$param]) ? $all_params[$param] : null;
-
-            if ($value === null || $value === '') {
-                continue;
-            }
-
-            $value = $this->parse_multi_param($value);
-
-            // Convert date formats (d-m-Y → Y-m-d) for date fields
-            if (in_array($param, ['date_from', 'date_to'], true)) {
-                $value = $this->convert_date_format($value);
-            }
-
-            // Map object_id_filter fields to storage query args.
-            if ($param === 'object_filter') {
-                // Extract the group portion (e.g. "custom_content" from "custom_content:ewp_fields")
-                // and apply it as an object_type constraint so entries are scoped even when no
-                // specific IDs are selected. The explicit object_type multi-select takes precedence.
-                $parts = explode(':', $value, 2);
-                $group = !empty($parts[0]) ? sanitize_key($parts[0]) : '';
-                if (!empty($group) && !isset($args['object_type'])) {
-                    $args['object_type'] = $group;
-                }
-                continue;
-            }
-            if ($param === 'object_filter_ids') {
-                $ids = array_values(array_filter(array_map('absint', (array) $value)));
-                if (!empty($ids)) {
-                    $args['object_id'] = $ids;
-                }
-                continue;
-            }
-
-            $args[$param] = $value;
-        }
-
-        return $args;
-    }
-
-    /**
-     * Parse a value that may contain comma-separated multi-values.
-     *
-     * Returns a single string for single values, an array for multiple,
-     * or empty string for null/empty.
-     *
-     * @param mixed $value Raw parameter value.
-     *
-     * @return string|array Parsed value.
-     *
-     * @since 1.2.0
-     */
-    private function parse_multi_param($value)
-    {
-        if ($value === null || $value === '') {
-            return '';
-        }
-
-        $value = (string) $value;
-
-        if (strpos($value, ',') === false) {
-            return $value;
-        }
-
-        return array_values(array_filter(array_map('trim', explode(',', $value)), function ($v) {
-            return $v !== '';
-        }));
-    }
-
-    /**
-     * Convert a date string from d-m-Y to Y-m-d format.
-     *
-     * Supports both d-m-Y and Y-m-d input. Returns the original
-     * value if parsing fails.
-     *
-     * @param string $date Date string.
-     *
-     * @return string Date in Y-m-d format.
-     *
-     * @since 1.2.0
-     */
-    private function convert_date_format($date)
-    {
-        return EWP_Logger_Formatter::normalize_date($date);
+        return EWP_Logger_Query::params();
     }
 
     /**
      * Define endpoint argument schemas for pagination only.
      *
-     * Filter fields arrive as raw form field names and are mapped
-     * by extract_filter_args() via the filterable field-param map.
+     * Filter fields arrive as raw form field names and are mapped by
+     * EWP_Logger_Query::args_from() (see EWP_Logger_Query::params()).
      *
      * @return array Argument definitions.
      *

@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests for EWP_Abilities_Content_Service, the shared implementation
+ * Tests for EWP\Content\Content_Service, the shared implementation
  * behind the generic content-type REST routes (AWM_Add_Content_DB_API),
  * the `wp ewp content` CLI commands (EWP_Content_CLI), and the
  * ewp-content/ewp-fields/ewp-wp-content abilities. Covering it here
@@ -14,7 +14,7 @@ class Test_Content_Service extends WP_UnitTestCase
     /** @var string */
     private static $type;
 
-    /** @var \EWP\Abilities\EWP_Abilities_Content_Service */
+    /** @var \EWP\Content\Content_Service */
     private $service;
 
     public static function setUpBeforeClass(): void
@@ -26,7 +26,7 @@ class Test_Content_Service extends WP_UnitTestCase
     public function set_up()
     {
         parent::set_up();
-        $this->service = new \EWP\Abilities\EWP_Abilities_Content_Service();
+        $this->service = new \EWP\Content\Content_Service();
         wp_set_current_user(self::factory()->user->create(['role' => 'administrator']));
     }
 

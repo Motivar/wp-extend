@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) {
 
 require_once __DIR__ . '/class-ewp-abilities-schema.php';
 require_once __DIR__ . '/class-ewp-abilities-provider.php';
-require_once __DIR__ . '/class-ewp-abilities-content-service.php';
+require_once dirname(__DIR__) . '/ewp-content/class-content-service.php';
 require_once __DIR__ . '/class-ewp-abilities-typed-provider.php';
 require_once __DIR__ . '/class-ewp-abilities-audit.php';
 require_once __DIR__ . '/providers/class-ewp-abilities-content-provider.php';

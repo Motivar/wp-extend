@@ -12,6 +12,7 @@ require_once __DIR__ . '/class-ewp-logger-queue.php';
 require_once __DIR__ . '/class-ewp-logger-settings.php';
 require_once __DIR__ . '/class-ewp-logger-cleanup.php';
 require_once __DIR__ . '/class-ewp-logger-formatter.php';
+require_once __DIR__ . '/class-ewp-logger-query.php';
 require_once __DIR__ . '/class-ewp-logger-api.php';
 require_once __DIR__ . '/class-ewp-logger-abilities.php';
 require_once __DIR__ . '/class-ewp-logger-diagnose.php';

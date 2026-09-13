@@ -18,7 +18,7 @@ class AWM_Add_Content_DB_API extends WP_REST_Controller
    * the `wp ewp content` CLI commands, so create/update validation and
    * persistence behave identically no matter which surface is used.
    *
-   * @var \EWP\Abilities\EWP_Abilities_Content_Service
+   * @var \EWP\Content\Content_Service
    */
   private $content_service;
 
@@ -27,7 +27,7 @@ class AWM_Add_Content_DB_API extends WP_REST_Controller
     // Initialize values
     $this->object_type = $id;
     $this->object_defaults = $args;
-    $this->content_service = new \EWP\Abilities\EWP_Abilities_Content_Service();
+    $this->content_service = new \EWP\Content\Content_Service();
   }
   /**
    * get the results
@@ -57,7 +57,7 @@ class AWM_Add_Content_DB_API extends WP_REST_Controller
   /**
    * Delete one or more items and all their meta.
    *
-   * Delegates to EWP_Abilities_Content_Service::delete_items(), the same
+   * Delegates to EWP\Content\Content_Service::delete_items(), the same
    * implementation the abilities and `wp ewp content delete` use, so the
    * existence check and the `{count, deleted, not_found}` result are
    * identical on every surface.
@@ -90,7 +90,7 @@ class AWM_Add_Content_DB_API extends WP_REST_Controller
   /**
    * Create a new content item.
    *
-   * Delegates to EWP_Abilities_Content_Service::create_item(), the same
+   * Delegates to EWP\Content\Content_Service::create_item(), the same
    * implementation the `ewp-content`/`ewp-fields`/`ewp-wp-content` abilities
    * and the `wp ewp content create` CLI command use, so validation
    * (required fields, unknown meta keys, status) and persistence are
@@ -125,7 +125,7 @@ class AWM_Add_Content_DB_API extends WP_REST_Controller
   /**
    * Update an existing content item.
    *
-   * Delegates to EWP_Abilities_Content_Service::update_item() (patch
+   * Delegates to EWP\Content\Content_Service::update_item() (patch
    * semantics: only the keys present in the request body are changed),
    * the same implementation the abilities layer and the
    * `wp ewp content update` CLI command use.

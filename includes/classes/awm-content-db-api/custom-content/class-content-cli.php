@@ -13,7 +13,7 @@ if (!class_exists('WP_CLI')) {
  * Every registered content type — `ewp_fields`, `ewp_post_types`,
  * `ewp_taxonomies`, `ewp_search`, and any type a sibling plugin registers —
  * is reachable here. All read/write operations delegate to
- * \EWP\Abilities\EWP_Abilities_Content_Service, the same implementation
+ * \EWP\Content\Content_Service, the same implementation
  * used by the `ewp-content`/`ewp-fields`/`ewp-wp-content`/`ewp-search`
  * abilities and by the generic REST create/update routes
  * (AWM_Add_Content_DB_API::insert()/update()), so validation and
@@ -38,7 +38,7 @@ class EWP_Content_CLI
   /**
    * Shared content service instance.
    *
-   * @var \EWP\Abilities\EWP_Abilities_Content_Service
+   * @var \EWP\Content\Content_Service
    */
   private static $service;
 
@@ -51,7 +51,7 @@ class EWP_Content_CLI
    */
   public static function init()
   {
-    self::$service = new \EWP\Abilities\EWP_Abilities_Content_Service();
+    self::$service = new \EWP\Content\Content_Service();
 
     \WP_CLI::add_command('ewp content types', [__CLASS__, 'types']);
     \WP_CLI::add_command('ewp content list', [__CLASS__, 'list_items']);

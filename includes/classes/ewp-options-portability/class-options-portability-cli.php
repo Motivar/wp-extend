@@ -208,20 +208,6 @@ class EWP_Options_Portability_CLI
 			));
 		}
 
-		/* Show version mismatch warning */
-		if (isset($data['plugin_version'])) {
-			$import_major  = intval(explode('.', $data['plugin_version'])[0]);
-			$current_major = intval(explode('.', self::get_plugin_version())[0]);
-
-			if ($import_major !== $current_major) {
-				\WP_CLI::warning(sprintf(
-					'Plugin version mismatch: export=%s, current=%s',
-					$data['plugin_version'],
-					self::get_plugin_version()
-				));
-			}
-		}
-
 		$result = self::$portability->import_options($data, $opts);
 
 		if (is_wp_error($result)) {
@@ -378,32 +364,5 @@ class EWP_Options_Portability_CLI
 			count($result['pages_imported']),
 			count($result['pages_skipped'])
 		));
-	}
-
-	/**
-	 * Get the current plugin version.
-	 *
-	 * @return string Plugin version string.
-	 *
-	 * @since 1.0.0
-	 */
-	private static function get_plugin_version()
-	{
-		static $version = null;
-
-		if ($version !== null) {
-			return $version;
-		}
-
-		$plugin_file = awm_path . 'extend-wp.php';
-
-		if (!function_exists('get_plugin_data')) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		}
-
-		$plugin_data = get_plugin_data($plugin_file, false, false);
-		$version     = isset($plugin_data['Version']) ? $plugin_data['Version'] : '0.0.0';
-
-		return $version;
 	}
 }

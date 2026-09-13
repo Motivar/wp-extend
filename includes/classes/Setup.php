@@ -49,6 +49,8 @@ class Setup
   require_once 'awm-api/class-awm-dynamic-api.php';
   require_once 'awm-api/class-awm-object-search-api.php';
   require_once 'awm-content-db-api/init.php';
+  /*shared read/write implementation behind the content REST routes, `wp ewp content` and the content abilities; must follow the content DB api*/
+  require_once 'ewp-content/class-content-service.php';
   require_once 'class-extend-wp.php';
   require_once 'awm-db/class-db-creator.php';
   require_once 'awm-list-tables/class-list-table.php';
@@ -66,7 +68,7 @@ class Setup
   /*must stay after every module it wraps: the abilities read the content type registry, the logger, options portability and the self-test runner*/
   require_once 'ewp-abilities/class-ewp-abilities.php';
   //require_once 'ewp-ai-content/class-ewp-ai-content.php';
-  /*must stay after ewp-abilities: uses EWP_Abilities_Content_Service, the shared read/write implementation also used by REST and the abilities*/
+  /*uses EWP\Content\Content_Service (loaded above); kept after ewp-abilities so the shim-based self-test loads it in the same order as production*/
   require_once 'awm-content-db-api/custom-content/class-content-cli.php';
 
  }
