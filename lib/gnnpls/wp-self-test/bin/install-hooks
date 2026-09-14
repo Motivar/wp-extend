@@ -1,0 +1,60 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Install the pre-push hook into the consumer repository.
+ *
+ * Run from a Composer script (`"post-install-cmd": ["@php <package>/bin/install-hooks"]`)
+ * or by hand from the repository root. It:
+ *
+ *   1. writes .githooks/pre-push — a two-line shim that execs this package's
+ *      bin/pre-push — unless a hook that is not ours already exists there;
+ *   2. makes it executable (Composer does not preserve file modes from
+ *      dist archives, so nothing relies on the package's own modes);
+ *   3. sets `git config core.hooksPath .githooks` for this clone.
+ *
+ * Idempotent; safe to run on every `composer install`. Outside a git
+ * checkout (a CI job building from an archive) it prints a note and exits 0.
+ *
+ * @package Gnnpls\SelfTest
+ * @since   0.1.0
+ */
+
+if (PHP_SAPI !== 'cli') {
+    exit(1);
+}
+
+$marker = '# managed by gnnpls/wp-self-test';
+$root   = trim((string) @shell_exec('git rev-parse --show-toplevel 2>/dev/null'));
+
+if ($root === '') {
+    fwrite(STDOUT, "[wp-self-test] Not inside a git checkout; hooks not installed.\n");
+    exit(0);
+}
+
+$package  = realpath(dirname(__DIR__));
+$relative = ltrim(str_replace(realpath($root), '', $package), '/\\');
+$dir      = $root . '/.githooks';
+$hook     = $dir . '/pre-push';
+
+if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
+    fwrite(STDERR, "[wp-self-test] Could not create {$dir}.\n");
+    exit(1);
+}
+
+$existing = file_exists($hook) ? (string) file_get_contents($hook) : '';
+$managed  = strpos($existing, $marker) !== false || strpos($existing, '# managed by motivar/wp-self-test') !== false;
+
+if ($existing !== '' && !$managed) {
+    fwrite(STDOUT, "[wp-self-test] {$hook} exists and is not managed by this package; left untouched.\n");
+} else {
+    $shim = "#!/usr/bin/env bash\n{$marker}\nexec bash \"\$(git rev-parse --show-toplevel)/{$relative}/bin/pre-push\" \"\$@\"\n";
+    file_put_contents($hook, $shim);
+    fwrite(STDOUT, "[wp-self-test] Wrote {$hook} -> {$relative}/bin/pre-push\n");
+}
+
+chmod($hook, 0755);
+chmod($package . '/bin/pre-push', 0755);
+
+exec('git -C ' . escapeshellarg($root) . ' config core.hooksPath .githooks', $out, $code);
+fwrite(STDOUT, $code === 0 ? "[wp-self-test] core.hooksPath = .githooks\n" : "[wp-self-test] Could not set core.hooksPath (git exited {$code}).\n");
+exit(0);

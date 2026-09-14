@@ -14,14 +14,14 @@ use EWP\Surfaces\Resources\Options_Resource;
 use EWP\Surfaces\Resources\System_Resource;
 use EWP\Surfaces\Resources\Search_Resource;
 use EWP\Surfaces\Resources\WP_Content_Resource;
-use Motivar\WP\Adapters\Ability_Adapter;
-use Motivar\WP\Adapters\Cli_Adapter;
-use Motivar\WP\Adapters\Rest_Adapter;
-use Motivar\WP\Context;
-use Motivar\WP\Kit;
-use Motivar\WP\Operation;
-use Motivar\WP\Registry;
-use Motivar\WP\Resource;
+use Gnnpls\WP\Adapters\Ability_Adapter;
+use Gnnpls\WP\Adapters\Cli_Adapter;
+use Gnnpls\WP\Adapters\Rest_Adapter;
+use Gnnpls\WP\Context;
+use Gnnpls\WP\Kit;
+use Gnnpls\WP\Operation;
+use Gnnpls\WP\Registry;
+use Gnnpls\WP\Resource;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -91,7 +91,7 @@ final class EWP_Surfaces
         }
 
         /*
-         * The resource classes extend Motivar\WP\Resource, which only
+         * The resource classes extend Gnnpls\WP\Resource, which only
          * autoloads once the kit has booted (plugins_loaded -100), so they
          * are loaded here rather than when Setup.php requires this file.
          */
@@ -217,7 +217,7 @@ final class EWP_Surfaces
                 return null;
             }
 
-            return \Motivar\WP\Adapters\Cli_Adapter::invoke($found, (array) $args, (array) $assoc_args);
+            return \Gnnpls\WP\Adapters\Cli_Adapter::invoke($found, (array) $args, (array) $assoc_args);
         };
     }
 

@@ -4,15 +4,50 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "04fb9d9f1b19fbe91078add6b3f0c4e8",
+    "content-hash": "86b1a6e9ad69589b67ce8c0b6e87d68d",
     "packages": [
         {
-            "name": "motivar/wp-self-test",
-            "version": "v0.2.0",
+            "name": "gnnpls/wp-kit",
+            "version": "v0.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://gitlab.motivar.io/tools/wp-kit.git",
+                "reference": "74dc49cf32a5c1a3bfce8e545ef7c037706d53ac"
+            },
+            "require": {
+                "php": ">=7.4"
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "bootstrap.php"
+                ]
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Gnnpls\\WP\\": "src/"
+                }
+            },
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "Motivar",
+                    "email": "info@motivar.io"
+                }
+            ],
+            "description": "Declare a WordPress feature once and expose it as a REST route, a WP-CLI command and a WordPress Ability from the same definition.",
+            "homepage": "https://gitlab.motivar.io/tools/wp-kit",
+            "time": "2026-09-14T07:39:04+00:00"
+        },
+        {
+            "name": "gnnpls/wp-self-test",
+            "version": "v0.3.0",
             "source": {
                 "type": "git",
                 "url": "https://gitlab.motivar.io/tools/wp-selft-test.git",
-                "reference": "868a6612175203f55769b25088a8d8618f54e6fe"
+                "reference": "d795f090e3fddfb6621fc49afebb175b7f1b60bd"
             },
             "require": {
                 "php": ">=7.4"
@@ -29,7 +64,7 @@
             },
             "autoload-dev": {
                 "psr-4": {
-                    "Motivar\\SelfTest\\": "src/"
+                    "Gnnpls\\SelfTest\\": "src/"
                 }
             },
             "license": [
@@ -43,7 +78,7 @@
             ],
             "description": "Manifest-driven self-test suite for WordPress plugins: register a manifest of cases from your plugin folder and run them from wp-admin, WP-CLI, the Abilities API, a pre-push hook and CI.",
             "homepage": "https://gitlab.motivar.io/tools/wp-selft-test",
-            "time": "2026-09-14T07:20:41+00:00"
+            "time": "2026-09-14T07:37:39+00:00"
         }
     ],
     "packages-dev": [],

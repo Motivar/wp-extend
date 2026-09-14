@@ -1,7 +1,7 @@
 # Version: 1.1.0
 #
-# Tests run through the motivar/wp-self-test package's job template
-# (lib/motivar/wp-self-test/ci/gitlab-ci.yml): PHP lint, the PHPUnit suite
+# Tests run through the gnnpls/wp-self-test package's job template
+# (lib/gnnpls/wp-self-test/ci/gitlab-ci.yml): PHP lint, the PHPUnit suite
 # (tests/, toolchain from tests/composer.json) and every self-test manifest
 # through bin/run.php, against a throwaway MariaDB. Locally the same two
 # suites run via `composer test` (tests/run-tests.sh) and the pre-push hook.
@@ -9,7 +9,7 @@ include:
   - project: "tools/motivar-cicd-files"
     ref: main
     file: ".gitlab-ci-mtv-plugins-wiki.yml"
-  - local: "lib/motivar/wp-self-test/ci/gitlab-ci.yml"
+  - local: "lib/gnnpls/wp-self-test/ci/gitlab-ci.yml"
 
 variables:
   MWP_TESTS_DB_NAME: wp_extend_tests

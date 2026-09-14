@@ -70,6 +70,6 @@ class EWP_Options_Portability_CLI
 			return null;
 		}
 
-		return \Motivar\WP\Adapters\Cli_Adapter::invoke($found, (array) $args, (array) $assoc_args);
+		return \Gnnpls\WP\Adapters\Cli_Adapter::invoke($found, (array) $args, (array) $assoc_args);
 	}
 }

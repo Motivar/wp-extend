@@ -2,10 +2,10 @@
 
 namespace EWP\Surfaces\Resources;
 
-use Motivar\WP\Context;
-use Motivar\WP\Field;
-use Motivar\WP\Operation;
-use Motivar\WP\Resource;
+use Gnnpls\WP\Context;
+use Gnnpls\WP\Field;
+use Gnnpls\WP\Operation;
+use Gnnpls\WP\Resource;
 
 if (!defined('ABSPATH')) {
     exit;

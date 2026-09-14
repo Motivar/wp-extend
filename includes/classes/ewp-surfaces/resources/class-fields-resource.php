@@ -3,8 +3,8 @@
 namespace EWP\Surfaces\Resources;
 
 use EWP\Surfaces\Field_Vocabulary;
-use Motivar\WP\Context;
-use Motivar\WP\Operation;
+use Gnnpls\WP\Context;
+use Gnnpls\WP\Operation;
 
 if (!defined('ABSPATH')) {
     exit;

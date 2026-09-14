@@ -1,0 +1,10 @@
+lint:
+  stage: test
+  image: php:8.2-cli
+  script:
+    - 'git ls-files -z -- "*.php" | xargs -0 -n1 php -l >/dev/null'
+    - php -r 'json_decode(file_get_contents("composer.json")); exit(json_last_error() === JSON_ERROR_NONE ? 0 : 1);'
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "push"'

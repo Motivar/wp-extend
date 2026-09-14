@@ -2,7 +2,7 @@
 
 One manifest, one runner, five ways to drive it. The self-test suite exercises every REST route, WP-CLI command and Abilities API ability the plugin exposes, **on a real WordPress install**, with test data that is removed afterwards. It complements the PHPUnit suite (`tests/`), which covers the shared implementations in isolation.
 
-Since 1.5.0 the runner, the dashboard, the REST routes, the commands, the abilities, the pre-push hook and the CI job template all come from the **`motivar/wp-self-test`** package (`lib/motivar/wp-self-test`, [repository](https://gitlab.motivar.io/tools/wp-selft-test)). This plugin contributes only its manifest and cases and registers them on the package's `mwp_self_test_register` action (`includes/classes/ewp-self-test/class-ewp-self-test.php`). Any other plugin can register its own manifest the same way; every surface then shows all of them, grouped by plugin.
+Since 1.5.0 the runner, the dashboard, the REST routes, the commands, the abilities, the pre-push hook and the CI job template all come from the **`gnnpls/wp-self-test`** package (`lib/gnnpls/wp-self-test`, [repository](https://gitlab.motivar.io/tools/wp-selft-test)). This plugin contributes only its manifest and cases and registers them on the package's `mwp_self_test_register` action (`includes/classes/ewp-self-test/class-ewp-self-test.php`). Any other plugin can register its own manifest the same way; every surface then shows all of them, grouped by plugin.
 
 ## Single source of truth
 
@@ -13,7 +13,7 @@ Since 1.5.0 the runner, the dashboard, the REST routes, the commands, the abilit
 | `id` | case id, used by `--cases=`, `ids[]` and the dashboard |
 | `label`, `category` | display |
 | `layers` | surfaces the case drives: `rest`, `cli`, `ability` |
-| `class` | a class extending `Motivar\SelfTest\Case_Base` (the old `EWP\SelfTest\EWP_Self_Test_Case` name is aliased) |
+| `class` | a class extending `Gnnpls\SelfTest\Case_Base` (the old `EWP\SelfTest\EWP_Self_Test_Case` name is aliased) |
 | `requires` | site requirements: `abilities`, `logger`, `ai` (reported as *unavailable*, never as failures) |
 | `args` | free-form config passed to the case |
 | `covers` | the routes / commands / abilities the case exercises — the coverage matrix |
@@ -43,10 +43,10 @@ A case is `skipped` when its site requirement is missing (logger off, no Abiliti
 | **pre-push hook** — `.githooks/pre-push` (a shim to the package's `bin/pre-push`) | `php -l`, then `composer test` (`tests/run-tests.sh`: PHPUnit + `bin/run.php`) | `wp_extend_tests` (isolated) |
 | **GitLab CI** — `.gitlab-ci.yml` includes the package's `ci/gitlab-ci.yml` | same two suites | throwaway `mariadb` service |
 
-`lib/motivar/wp-self-test/bin/run.php` boots WordPress through `tests/bootstrap.php` (same isolated database as PHPUnit) but *without* PHPUnit's per-test transaction wrapper, because the content case creates real tables and `WP_UnitTestCase` would silently turn them into temporary ones. Run it by hand with:
+`lib/gnnpls/wp-self-test/bin/run.php` boots WordPress through `tests/bootstrap.php` (same isolated database as PHPUnit) but *without* PHPUnit's per-test transaction wrapper, because the content case creates real tables and `WP_UnitTestCase` would silently turn them into temporary ones. Run it by hand with:
 
 ```bash
-ddev exec bash -c "cd wp-content/plugins/wp-extend && WP_CORE_DIR=/var/www/html WP_TESTS_DB_HOST=db php lib/motivar/wp-self-test/bin/run.php"
+ddev exec bash -c "cd wp-content/plugins/wp-extend && WP_CORE_DIR=/var/www/html WP_TESTS_DB_HOST=db php lib/gnnpls/wp-self-test/bin/run.php"
 ```
 
 The REST routes live under `mwp-self-test/v1/{cases,preview,run,cleanup,report}`. The hook is installed by `composer install` (`post-install-cmd` runs the package's `bin/install-hooks`, which writes the shim and sets `core.hooksPath`).
@@ -68,7 +68,7 @@ The plugin's CLI classes guard themselves with `class_exists('WP_CLI')`. In a we
 
 ## Adding a case
 
-1. Create `includes/classes/ewp-self-test/cases/class-<name>-case.php` extending `Motivar\SelfTest\Case_Base`; implement `preview()`, `run()`, `validate()`, and `cleanup()` when `run()` creates anything. Use the helpers `rest()`, `cli()`, `ability()`, `check()`, `skip()`, `status()`, `detail()`, `cli_check()`, `cli_check_printed()`, `ability_check()`.
+1. Create `includes/classes/ewp-self-test/cases/class-<name>-case.php` extending `Gnnpls\SelfTest\Case_Base`; implement `preview()`, `run()`, `validate()`, and `cleanup()` when `run()` creates anything. Use the helpers `rest()`, `cli()`, `ability()`, `check()`, `skip()`, `status()`, `detail()`, `cli_check()`, `cli_check_printed()`, `ability_check()`.
 2. Add it to the list in `EWP_Self_Test::load_cases()`.
 3. Add the manifest entry, including `covers`.
 4. Run `composer test` (or `wp mwp self-test run --cases=<id> --cleanup` on a site).
@@ -94,7 +94,7 @@ Cases that need somewhere safe to write use the `Fixture_Content_Type` trait (`c
 
 `tests/test-self-test-manifest-test.php` fails when:
 
-- a route, command or ability generated from the surfaces registry (`Motivar\WP\Inventory`) is not listed under some case's `covers`;
+- a route, command or ability generated from the surfaces registry (`Gnnpls\WP\Inventory`) is not listed under some case's `covers`;
 - a registered `wp ewp` command is uncovered;
 - a REST route of this plugin is neither generated from a resource, covered by a case, nor explained in `includes/classes/ewp-self-test/rest-only.json`.
 

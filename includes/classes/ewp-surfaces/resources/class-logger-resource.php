@@ -5,10 +5,10 @@ namespace EWP\Surfaces\Resources;
 use EWP\Logger\EWP_Logger;
 use EWP\Logger\EWP_Logger_Query;
 use EWP\Logger\EWP_Logger_Settings;
-use Motivar\WP\Context;
-use Motivar\WP\Field;
-use Motivar\WP\Operation;
-use Motivar\WP\Resource;
+use Gnnpls\WP\Context;
+use Gnnpls\WP\Field;
+use Gnnpls\WP\Operation;
+use Gnnpls\WP\Resource;
 
 if (!defined('ABSPATH')) {
     exit;

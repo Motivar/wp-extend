@@ -3,7 +3,7 @@
 namespace EWP\Surfaces;
 
 use EWP\Content\Content_Service;
-use Motivar\WP\Field;
+use Gnnpls\WP\Field;
 
 if (!defined('ABSPATH')) {
     exit;

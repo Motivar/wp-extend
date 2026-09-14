@@ -31,6 +31,6 @@ class WP_CLI_Integration
    return null;
   }
 
-  return \Motivar\WP\Adapters\Cli_Adapter::invoke($found, [], []);
+  return \Gnnpls\WP\Adapters\Cli_Adapter::invoke($found, [], []);
  }
 }

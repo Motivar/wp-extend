@@ -2,7 +2,7 @@
 
 namespace EWP\SelfTest\Cases;
 
-use Motivar\SelfTest\Case_Base;
+use Gnnpls\SelfTest\Case_Base;
 
 if (!defined('ABSPATH')) {
     exit;

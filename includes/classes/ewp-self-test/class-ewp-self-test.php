@@ -7,8 +7,8 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Registers the Extend WP self-test suite with the motivar/wp-self-test
- * package (lib/motivar/wp-self-test, loaded by Composer).
+ * Registers the Extend WP self-test suite with the gnnpls/wp-self-test
+ * package (lib/gnnpls/wp-self-test, loaded by Composer).
  *
  * The runner, the Tools › Self-test dashboard, the `mwp-self-test/v1`
  * REST routes, the `wp mwp self-test` commands and the `mwp-self-test/*`
@@ -48,7 +48,7 @@ final class EWP_Self_Test
      */
     public static function ui_enabled()
     {
-        return class_exists('Motivar\\SelfTest\\Config') && \Motivar\SelfTest\Config::ui_enabled();
+        return class_exists('Gnnpls\\SelfTest\\Config') && \Gnnpls\SelfTest\Config::ui_enabled();
     }
 
     /**
@@ -58,7 +58,7 @@ final class EWP_Self_Test
      */
     public static function capability()
     {
-        return class_exists('Motivar\\SelfTest\\Config') ? \Motivar\SelfTest\Config::capability() : 'manage_options';
+        return class_exists('Gnnpls\\SelfTest\\Config') ? \Gnnpls\SelfTest\Config::capability() : 'manage_options';
     }
 
     /**
@@ -68,7 +68,7 @@ final class EWP_Self_Test
      */
     public function init()
     {
-        if (!class_exists('Motivar\\SelfTest\\Loader')) {
+        if (!class_exists('Gnnpls\\SelfTest\\Loader')) {
             return;
         }
 
@@ -83,7 +83,7 @@ final class EWP_Self_Test
     /**
      * Register manifest.json with the package.
      *
-     * @param \Motivar\SelfTest\Registry $registry The package registry.
+     * @param \Gnnpls\SelfTest\Registry $registry The package registry.
      *
      * @return void
      */
@@ -101,7 +101,7 @@ final class EWP_Self_Test
     /**
      * Load the case classes.
      *
-     * They extend Motivar\SelfTest\Case_Base, which the package's loader
+     * They extend Gnnpls\SelfTest\Case_Base, which the package's loader
      * only autoloads after it booted on `plugins_loaded`, so they cannot be
      * required when Setup.php loads this file.
      *
@@ -115,7 +115,7 @@ final class EWP_Self_Test
 
         if (!class_exists(__NAMESPACE__ . '\\EWP_Self_Test_Case', false)) {
             // Cases written against the pre-1.5 base class keep working.
-            class_alias('Motivar\\SelfTest\\Case_Base', __NAMESPACE__ . '\\EWP_Self_Test_Case');
+            class_alias('Gnnpls\\SelfTest\\Case_Base', __NAMESPACE__ . '\\EWP_Self_Test_Case');
         }
 
         foreach ([

@@ -6,17 +6,17 @@
  */
 
 use EWP\Surfaces\EWP_Surfaces;
-use Motivar\WP\Adapters\Cli_Adapter;
-use Motivar\WP\Context;
-use Motivar\WP\Field;
-use Motivar\WP\Field_Map;
-use Motivar\WP\Inventory;
+use Gnnpls\WP\Adapters\Cli_Adapter;
+use Gnnpls\WP\Context;
+use Gnnpls\WP\Field;
+use Gnnpls\WP\Field_Map;
+use Gnnpls\WP\Inventory;
 
 class Test_Surface_Parity extends WP_UnitTestCase
 {
     use EWP_Test_Content_Fixture;
 
-    /** @var \Motivar\WP\Registry */
+    /** @var \Gnnpls\WP\Registry */
     private $registry;
 
     public function set_up()
@@ -125,7 +125,7 @@ class Test_Surface_Parity extends WP_UnitTestCase
      * the static registry after WP_UnitTestCase restored the hooks that
      * registered their routes; they are covered by tests/test-content-rest-test.php.
      *
-     * @param \Motivar\WP\Resource $resource Resource.
+     * @param \Gnnpls\WP\Resource $resource Resource.
      *
      * @return bool
      */

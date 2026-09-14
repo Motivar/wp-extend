@@ -4,12 +4,12 @@
  * normalise, validate, authorise, confirm, hooks, service call.
  */
 
-use Motivar\WP\Context;
-use Motivar\WP\Field;
-use Motivar\WP\Inventory;
-use Motivar\WP\Operation;
-use Motivar\WP\Registry;
-use Motivar\WP\Resource;
+use Gnnpls\WP\Context;
+use Gnnpls\WP\Field;
+use Gnnpls\WP\Inventory;
+use Gnnpls\WP\Operation;
+use Gnnpls\WP\Registry;
+use Gnnpls\WP\Resource;
 
 class Test_Kit_Operation extends WP_UnitTestCase
 {

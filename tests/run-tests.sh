@@ -6,7 +6,7 @@
 # wp_extend_tests database — the PHPUnit suite (tests/) and the self-test
 # suite (every REST route, WP-CLI command and ability listed in
 # includes/classes/ewp-self-test/manifest.json) through
-# lib/motivar/wp-self-test/bin/run.php. Used by the pre-push hook
+# lib/gnnpls/wp-self-test/bin/run.php. Used by the pre-push hook
 # (installed from the same package) and by hand.
 #
 # Exit codes: 0 all green; 1 a suite failed; 0 with a warning when DDEV is
@@ -18,7 +18,7 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
 PLUGIN_DIR="wp-content/plugins/$(basename "$REPO_ROOT")"
-RUNNER="lib/motivar/wp-self-test/bin/run.php"
+RUNNER="lib/gnnpls/wp-self-test/bin/run.php"
 [ -f "$RUNNER" ] || RUNNER="tests/self-test-runner.php"
 
 if ! command -v ddev >/dev/null 2>&1; then

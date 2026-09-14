@@ -4,8 +4,8 @@
  * and JSON Schema, and normalise raw input the same way for all three.
  */
 
-use Motivar\WP\Field;
-use Motivar\WP\Field_Map;
+use Gnnpls\WP\Field;
+use Gnnpls\WP\Field_Map;
 
 class Test_Kit_Field_Map extends WP_UnitTestCase
 {
