@@ -130,6 +130,8 @@ final class EWP_Self_Test
             'class-object-search-case',
             'class-rest-health-case',
             'class-typed-content-case',
+            'class-rest-health-probes-case',
+            'class-field-builder-case',
         ] as $file) {
             require_once __DIR__ . '/cases/' . $file . '.php';
         }

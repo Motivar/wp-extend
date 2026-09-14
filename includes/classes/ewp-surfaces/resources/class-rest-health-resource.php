@@ -14,8 +14,8 @@ if (!defined('ABSPATH')) {
 /**
  * The REST route inventory on every surface: which active plugins register
  * REST namespaces and which routes each exposes. The remaining REST-health
- * features (testing, batches, history, monitoring, OpenAPI) stay REST-only
- * in EWP_REST_Health_Controller.
+ * features (testing, batches, history, monitoring, OpenAPI) are the
+ * REST-only Rest_Health_Probes_Resource.
  *
  * @package    EWP\Surfaces
  * @author     Motivar

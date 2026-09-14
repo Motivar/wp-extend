@@ -5,269 +5,174 @@ if (!defined('ABSPATH')) {
 
 
 
-class AWM_API extends WP_REST_Controller
+/**
+ * The wp-admin field-builder and modal-field helpers.
+ *
+ * A plain service: every method takes PHP values and returns the HTML
+ * string, array or WP_Error the admin scripts expect. The
+ * `extend-wp/v1/get-case-fields|get-query-fields|get-position-fields|
+ * get-php-code|awm-map-options|modal-fields|modal-save` routes are
+ * generated from EWP\Surfaces\Resources\Field_Builder_Resource, which
+ * declares them REST-only (they render markup for the browser).
+ *
+ * @since 1.5.0 No longer a WP_REST_Controller; routes come from the resource.
+ */
+class AWM_API
 {
   /**
-   * @var namespace The namespace of the API. Distinct name and version.
+   * Google Maps options for the admin map field.
+   *
+   * @return array `{key, lat, lng, map_options}` after `awm_map_options_func_filter`.
    */
-  protected $namespace;
+  public function map_options()
+  {
+    $dev_settings = get_option('ewp_dev_settings') ?: array();
+    $options = array(
+      'key' => isset($dev_settings['google_maps_api_key']) ? $dev_settings['google_maps_api_key'] : '',
+      'lat' => '39.0742',
+      'lng' => '21.8243',
+      'map_options' => array('zoom' => 12),
+    );
+    return apply_filters('awm_map_options_func_filter', $options);
+  }
 
   /**
-   * Basic constructor function that initializes the namespace and the base of the Filox Rates API
+   * Highlighted PHP snippet that registers a UI-built field group in code.
+   *
+   * @param int $post_id ewp_fields row id.
+   *
+   * @return string HTML; empty when the row does not exist.
    */
-  public function __construct()
+  public function php_code($post_id)
   {
-
-    // Initialize values
-    $this->namespace = 'extend-wp/v1';
-  }
-  /**
-   * Registers all Filox Rates API endpoints using the proper custom WP REST API configuration
-   */
-  public function register_routes()
-  {
-
-    /**
-     * *****************************
-     *        RATES SETTINGS
-     * *****************************
-     */
-
-    /**
-     * @param namespace The namespace of the endpoint
-     * 
-     * @param base The base of the endpoint
-     * 
-     * @param args Takes an array of arguments. Arguments are 
-     * 1. methods: (WP_REST_Server::Readable,Creatable,Editable,Deletable) (GET,POST,PUT,DELETE)
-     * 2. callback: The function to call once the endpoint is met. Array of 2 elements. First element is the class and the second the name of the callback function
-     * 3. permission_callback: The function that gets called in order to authorize the API call
-     */
-    register_rest_route($this->namespace, "/get-case-fields/", array(
-      array(
-        "methods" => WP_REST_Server::READABLE,
-        "callback" => array($this, 'get_case_fields'),
-        "permission_callback" => array($this, 'field_builder_permission_check')
-      )
-    ));
-
-    register_rest_route($this->namespace, "/get-query-fields/", array(
-      array(
-        "methods" => WP_REST_Server::READABLE,
-        "callback" => array($this, 'get_query_fields'),
-        "permission_callback" => array($this, 'field_builder_permission_check')
-      )
-    ));
-
-    register_rest_route($this->namespace, "/get-php-code/", array(
-      array(
-        "methods" => WP_REST_Server::READABLE,
-        "callback" => array($this, 'ewp_get_php'),
-        "permission_callback" => array($this, 'field_builder_permission_check')
-      )
-    ));
-
-
-    register_rest_route($this->namespace, "/get-position-fields/", array(
-      array(
-        "methods" => WP_REST_Server::READABLE,
-        "callback" => array($this, 'get_position_fields'),
-        "permission_callback" => array($this, 'field_builder_permission_check')
-      )
-    ));
-
-    register_rest_route($this->namespace, "/awm-map-options/", array(
-      array(
-        "methods" => WP_REST_Server::READABLE,
-        "callback" => array($this, 'awm_map_options_func'),
-        "permission_callback" => array($this, 'map_options_permission_check')
-      )
-    ));
-
-    /**
-     * Modal Fields Endpoints
-     * 
-     * GET /modal-fields/ — Render modal fields HTML with current values
-     * POST /modal-save/ — Save modal field values to meta/option
-     * 
-     * @since 1.2.0
-     */
-    register_rest_route($this->namespace, "/modal-fields/", array(
-      array(
-        "methods" => WP_REST_Server::READABLE,
-        "callback" => array($this, 'get_modal_fields'),
-        "permission_callback" => array($this, 'modal_permission_check')
-      )
-    ));
-
-    register_rest_route($this->namespace, "/modal-save/", array(
-      array(
-        "methods" => WP_REST_Server::CREATABLE,
-        "callback" => array($this, 'save_modal_fields'),
-        "permission_callback" => array($this, 'modal_permission_check')
-      )
-    ));
-  }
-
-  public function awm_map_options_func($request)
-  {
-    if (isset($request)) {
-      $options = array();
-      $dev_settings = get_option('ewp_dev_settings') ?: array();
-      $options['key'] = isset($dev_settings['google_maps_api_key']) ? $dev_settings['google_maps_api_key'] : '';
-      $options['lat'] = '39.0742';
-      $options['lng'] = '21.8243';
-      $options['map_options'] = array(
-        'zoom' => 12,
-      );
-      $options = apply_filters('awm_map_options_func_filter', $options);
-      return rest_ensure_response(new WP_REST_Response($options), 200);
+    $post_id = absint($post_id);
+    if ($post_id < 1) {
+      return '';
     }
-    return rest_ensure_response(new WP_REST_Response(__('No options detected', 'extend-wp')), 401);
-  }
-
-
-
-
-  public function ewp_get_php($request)
-  {
-    if (isset($request)) {
-      $params = $request->get_params();
-      $post_id = isset($params['awm_post_id']) ? absint($params['awm_post_id']) : 0;
-      $code = array();
-      $awm_field = awm_get_db_content('ewp_fields', array('include' => $post_id));
-      if (empty($awm_field)) {
-        return;
-      }
-      $awm_field = $awm_field[0];
-      $field_meta = awm_get_db_content_meta('ewp_fields', $awm_field['content_id']);
-      $fields = $field_meta['awm_fields'] ?: array();
-      $positions = $field_meta['awm_positions'] ?: array();
-      $awm_type = $field_meta['awm_type'] ?: array();
-      $awm_explanation = $field_meta['awm_explanation'] ?: '';
-      $counter = 0;
-      foreach ($positions as $position) {
-        $final_fields = array();
-        $final_fields[$awm_field['content_id'] . '_' . $counter] = $awm_field;
-        $final_fields[$awm_field['content_id'] . '_' . $counter]['fields'] = $fields;
-        $final_fields[$awm_field['content_id'] . '_' . $counter]['position'] = $position;
-        $final_fields[$awm_field['content_id'] . '_' . $counter]['type'] = $awm_type;
-        $final_fields[$awm_field['content_id'] . '_' . $counter]['explanation'] = $awm_explanation;
-        $fields = awm_create_boxes($position['case'], $final_fields);
-        $content = awm_print_php($fields);
-     
-        $filter = '';
-        switch ($position['case']) {
-          case 'post_type':
-            $filter = 'awm_add_meta_boxes_filter';
-            break;
-          case 'ewp_block':
-            $filter = 'ewp_gutenburg_blocks_filter';
-            break;
-          case 'taxonomy':
-            $filter = 'awm_add_term_meta_boxes_filter';
-            break;
-          case 'customizer':
-            $filter = 'awm_add_customizer_settings_filter';
-            break;
-          case 'options':
-            $filter = 'awm_add_options_boxes_filter';
-            break;
-          case 'user':
-            $filter = 'awm_add_user_boxes_filter';
-            break;
-        }
-        $code[] = str_replace('@@@@', '<br>', highlight_string('<?php add_filter(\'' . $filter . '\',function($boxes){
-              $boxes+=array(' . $content . ');
-              return $boxes;
-            }); 
-          ?>', true));
-        $counter++;
-      }
-      return rest_ensure_response(new WP_REST_Response(implode('', $code)), 200);
+    $code = array();
+    $awm_field = awm_get_db_content('ewp_fields', array('include' => $post_id));
+    if (empty($awm_field)) {
+      return '';
     }
-    return rest_ensure_response(new WP_REST_Response(__('No options detected', 'extend-wp')), 401);
-  }
-
-
-  public function get_position_fields($request)
-  {
-    if (isset($request)) {
-      $params = $request->get_params();
-      if (!isset($params['position']) || empty($params['position'])) {
-        return '';
-      }
-      $field = sanitize_text_field($params['position']);
-      $name = sanitize_text_field($params['name']);
-      $postId = absint($params['id']);
-      $return = $this->get_awm_metas_configuration(
-        $field,
-        $name,
-        'awm_positions',
-        $postId,
-        awm_position_options(),
-        'ewp_fields',
-        'case'
-      );
-      return rest_ensure_response(new WP_REST_Response($return), 200);
-    }
-    return false;
-  }
-
-
-  /**
-   * get query fields
-   */
-  public function get_query_fields($request)
-  {
-    // Check that a request is sent
-    if (isset($request)) {
-      $params = $request->get_params();
-      if (!isset($params['field']) || empty($params['field'])) {
-        return '';
-      }
-      $field = sanitize_text_field($params['field']);
-      $name = sanitize_text_field($params['name']);
-      $meta = sanitize_text_field($params['meta']);
-      $postId = absint($params['id']);
-      $return = $this->get_awm_metas_configuration(
-        $field,
-        $name,
-        $meta,
-        $postId,
-        ewp_query_fields(),
-        'ewp_search',
-        'query_type'
-      );
-      return rest_ensure_response(new WP_REST_Response($return), 200);
-    }
-    return false;
-  }
-
-
-  public function get_case_fields($request)
-  {
-    // Check that a request is sent
-    if (isset($request)) {
-      $params = $request->get_params();
-      if (!isset($params['field']) || empty($params['field'])) {
-        return '';
-      }
-      $field = sanitize_text_field($params['field']);
-      $name = sanitize_text_field($params['name']);
-      $meta = sanitize_text_field($params['meta']);
-      $db = 'ewp_fields';
-      switch ($meta) {
-        case 'query_fields':
-          $db = 'ewp_search';
-          $replace = 'query_type';
+    $awm_field = $awm_field[0];
+    $field_meta = awm_get_db_content_meta('ewp_fields', $awm_field['content_id']);
+    $fields = $field_meta['awm_fields'] ?: array();
+    $positions = $field_meta['awm_positions'] ?: array();
+    $awm_type = $field_meta['awm_type'] ?: array();
+    $awm_explanation = $field_meta['awm_explanation'] ?: '';
+    $counter = 0;
+    foreach ($positions as $position) {
+      $final_fields = array();
+      $final_fields[$awm_field['content_id'] . '_' . $counter] = $awm_field;
+      $final_fields[$awm_field['content_id'] . '_' . $counter]['fields'] = $fields;
+      $final_fields[$awm_field['content_id'] . '_' . $counter]['position'] = $position;
+      $final_fields[$awm_field['content_id'] . '_' . $counter]['type'] = $awm_type;
+      $final_fields[$awm_field['content_id'] . '_' . $counter]['explanation'] = $awm_explanation;
+      $fields = awm_create_boxes($position['case'], $final_fields);
+      $content = awm_print_php($fields);
+   
+      $filter = '';
+      switch ($position['case']) {
+        case 'post_type':
+          $filter = 'awm_add_meta_boxes_filter';
+          break;
+        case 'ewp_block':
+          $filter = 'ewp_gutenburg_blocks_filter';
+          break;
+        case 'taxonomy':
+          $filter = 'awm_add_term_meta_boxes_filter';
+          break;
+        case 'customizer':
+          $filter = 'awm_add_customizer_settings_filter';
+          break;
+        case 'options':
+          $filter = 'awm_add_options_boxes_filter';
+          break;
+        case 'user':
+          $filter = 'awm_add_user_boxes_filter';
           break;
       }
-      $postId = absint($params['id']);
-      $return = $this->get_awm_metas_configuration($field, $name, $meta, $postId, awmInputFields(), $db, 'case');
-      return rest_ensure_response(new WP_REST_Response($return), 200);
+      $code[] = str_replace('@@@@', '<br>', highlight_string('<?php add_filter(\'' . $filter . '\',function($boxes){
+            $boxes+=array(' . $content . ');
+            return $boxes;
+          }); 
+        ?>', true));
+      $counter++;
     }
-    return false;
+    return implode('', $code);
+  }
+
+  /**
+   * Settings markup for one position type of a field group.
+   *
+   * @param string $position Position type (a key of awm_position_options()).
+   * @param string $name     Input name of the position row.
+   * @param int    $id       ewp_fields row id.
+   *
+   * @return string HTML; empty when no position was given.
+   */
+  public function position_fields($position, $name, $id)
+  {
+    if (empty($position)) {
+      return '';
+    }
+    return $this->get_awm_metas_configuration(
+      sanitize_text_field($position),
+      sanitize_text_field($name),
+      'awm_positions',
+      absint($id),
+      awm_position_options(),
+      'ewp_fields',
+      'case'
+    );
+  }
+
+
+  /**
+   * Settings markup for one query type of a search filter.
+   *
+   * @param string $field Query type (a key of ewp_query_fields()).
+   * @param string $name  Input name of the query row.
+   * @param string $meta  Meta key holding the rows (query_fields).
+   * @param int    $id    ewp_search row id.
+   *
+   * @return string HTML; empty when no field was given.
+   */
+  public function query_fields($field, $name, $meta, $id)
+  {
+    if (empty($field)) {
+      return '';
+    }
+    return $this->get_awm_metas_configuration(
+      sanitize_text_field($field),
+      sanitize_text_field($name),
+      sanitize_text_field($meta),
+      absint($id),
+      ewp_query_fields(),
+      'ewp_search',
+      'query_type'
+    );
+  }
+
+
+  /**
+   * Settings markup for one field case (input type) of a field group.
+   *
+   * @param string $field Field case (a key of awmInputFields()).
+   * @param string $name  Input name of the field row.
+   * @param string $meta  Meta key holding the rows (awm_fields or query_fields).
+   * @param int    $id    Row id in ewp_fields (or ewp_search for query_fields).
+   *
+   * @return string HTML; empty when no field was given.
+   */
+  public function case_fields($field, $name, $meta, $id)
+  {
+    if (empty($field)) {
+      return '';
+    }
+    $meta = sanitize_text_field($meta);
+    $db = $meta === 'query_fields' ? 'ewp_search' : 'ewp_fields';
+    return $this->get_awm_metas_configuration(sanitize_text_field($field), sanitize_text_field($name), $meta, absint($id), awmInputFields(), $db, 'case');
   }
 
   private function get_awm_metas_configuration($field, $name, $meta, $postId, $all_fields, $db, $replace)
@@ -293,42 +198,18 @@ class AWM_API extends WP_REST_Controller
   }
 
   /**
-   * Permission check for modal endpoints
+   * Capability the map-options route requires.
    *
-   * Requires user to have edit_posts capability.
+   * The route returns the configured Google Maps browser key, so it is
+   * limited to logged-in users; the map field only renders in wp-admin.
+   * Use the `ewp_map_options_public` filter if a site renders the map
+   * field for anonymous visitors.
    *
-   * @return bool True if user has permission
-   * @since 1.2.0
-   */
-  /**
-   * Permission for the field-builder helper routes (case, query and
-   * position fields, PHP code export).
-   *
-   * These render admin-only markup and configuration for the wp-admin
-   * field builder; before 1.5.0 they answered anonymous requests.
-   *
-   * @return bool
+   * @return bool `true` when the caller may read the options, `false` otherwise.
    *
    * @since 1.5.0
    */
-  public function field_builder_permission_check()
-  {
-    return current_user_can('edit_posts');
-  }
-
-  /**
-   * Permission for the map options route.
-   *
-   * Returns the configured Google Maps browser key, so it is limited to
-   * logged-in users; the map field only renders in wp-admin. Use the
-   * `ewp_map_options_public` filter if a site renders the map field for
-   * anonymous visitors.
-   *
-   * @return bool
-   *
-   * @since 1.5.0
-   */
-  public function map_options_permission_check()
+  public function map_options_capability()
   {
     /**
      * Whether the map options route may answer anonymous requests.
@@ -337,16 +218,7 @@ class AWM_API extends WP_REST_Controller
      *
      * @since 1.5.0
      */
-    if (apply_filters('ewp_map_options_public', false)) {
-      return true;
-    }
-
-    return is_user_logged_in();
-  }
-
-  public function modal_permission_check()
-  {
-    return current_user_can('edit_posts');
+    return apply_filters('ewp_map_options_public', false) ? true : is_user_logged_in();
   }
 
   /**
@@ -357,35 +229,35 @@ class AWM_API extends WP_REST_Controller
    * Field definitions are looked up server-side from registered meta boxes/options.
    * Uses PHP template file for modal HTML structure.
    *
-   * @param WP_REST_Request $request REST request object
-   * @return WP_REST_Response Rendered HTML or error
+   * @param string $meta_key    Modal meta key (required).
+   * @param string $view        View type: post|term|user|option|content_meta.
+   * @param int    $object_id   Object id for post/term/user/content_meta views.
+   * @param string $modal_title Modal header title.
+   * @param string $modal_id    Modal identifier; defaults to the meta key.
+   * @param string $option_page Option page key for a direct lookup (option view).
+   *
+   * @return array|WP_Error `{modal_html, fields_html, modal_title, current_value}`, or a 404 error.
+   *
    * @since 1.2.0
+   * @since 1.5.0 Takes plain values instead of a WP_REST_Request.
    */
-  public function get_modal_fields($request)
+  public function modal_fields($meta_key, $view = 'post', $object_id = 0, $modal_title = '', $modal_id = '', $option_page = '')
   {
-    $params = $request->get_params();
-
-    $meta_key = isset($params['meta_key']) ? sanitize_key($params['meta_key']) : '';
-    $view = isset($params['view']) ? sanitize_key($params['view']) : 'post';
-    $object_id = isset($params['object_id']) ? absint($params['object_id']) : 0;
-    $modal_title = isset($params['modal_title']) ? sanitize_text_field($params['modal_title']) : '';
-    $modal_id = isset($params['modal_id']) ? sanitize_key($params['modal_id']) : $meta_key;
-    $option_page = isset($params['option_page']) ? sanitize_key($params['option_page']) : '';
-
-    if (empty($meta_key)) {
-      return new WP_REST_Response(
-        array('message' => __('Missing meta_key parameter', 'extend-wp')),
-        400
-      );
-    }
+    $meta_key = sanitize_key($meta_key);
+    $view = sanitize_key($view) ?: 'post';
+    $object_id = absint($object_id);
+    $modal_title = sanitize_text_field($modal_title);
+    $modal_id = sanitize_key($modal_id) ?: $meta_key;
+    $option_page = sanitize_key($option_page);
 
     // Lookup field definitions server-side
     $fields = $this->lookup_modal_field_definition($meta_key, $view, $object_id, $option_page);
 
     if (!is_array($fields) || empty($fields)) {
-      return new WP_REST_Response(
-        array('message' => sprintf(__('Field definition not found for meta_key: %s', 'extend-wp'), $meta_key)),
-        404
+      return new WP_Error(
+        'ewp_modal_not_found',
+        sprintf(__('Field definition not found for meta_key: %s', 'extend-wp'), $meta_key),
+        array('status' => 404)
       );
     }
 
@@ -430,12 +302,12 @@ class AWM_API extends WP_REST_Controller
 
     $modal_html = $this->render_modal_template($modal_id, $modal_title, $fields_html, $args);
 
-    return new WP_REST_Response(array(
+    return array(
       'modal_html' => $modal_html,
       'fields_html' => $fields_html,
       'modal_title' => $modal_title,
       'current_value' => $current_value,
-    ), 200);
+    );
   }
 
   /**
@@ -484,25 +356,22 @@ class AWM_API extends WP_REST_Controller
    * Saves the serialized modal values to the appropriate storage
    * based on view type (post_meta/term_meta/user_meta/option/content_meta).
    *
-   * @param WP_REST_Request $request REST request object
-   * @return WP_REST_Response Success or error response
+   * @param string $meta_key  Modal meta key (required).
+   * @param string $view      View type: post|term|user|option|content_meta.
+   * @param int    $object_id Object id for post/term/user/content_meta views.
+   * @param array  $values    Values to save, keyed by field.
+   *
+   * @return array|WP_Error `{success, message, values}`, or a 500 error with debug data.
+   *
    * @since 1.2.0
+   * @since 1.5.0 Takes plain values instead of a WP_REST_Request.
    */
-  public function save_modal_fields($request)
+  public function save_modal_fields($meta_key, $view = 'post', $object_id = 0, $values = array())
   {
-    $params = $request->get_params();
-
-    $meta_key = isset($params['meta_key']) ? sanitize_key($params['meta_key']) : '';
-    $view = isset($params['view']) ? sanitize_key($params['view']) : 'post';
-    $object_id = isset($params['object_id']) ? absint($params['object_id']) : 0;
-    $values = isset($params['values']) ? $params['values'] : array();
-
-    if (empty($meta_key)) {
-      return new WP_REST_Response(
-        array('message' => __('Missing meta key', 'extend-wp')),
-        400
-      );
-    }
+    $meta_key = sanitize_key($meta_key);
+    $view = sanitize_key($view) ?: 'post';
+    $object_id = absint($object_id);
+    $values = is_array($values) ? $values : array();
 
     /**
      * Action before saving modal values
@@ -537,16 +406,17 @@ class AWM_API extends WP_REST_Controller
         );
       }
 
-      return new WP_REST_Response(
+      return new WP_Error(
+        'ewp_modal_save_failed',
+        __('Failed to save data', 'extend-wp'),
         array(
-          'message' => __('Failed to save data', 'extend-wp'),
+          'status' => 500,
           'debug' => array(
             'meta_key' => $meta_key,
             'view' => $view,
             'object_id' => $object_id,
-          )
-        ),
-        500
+          ),
+        )
       );
     }
 
@@ -561,11 +431,11 @@ class AWM_API extends WP_REST_Controller
      */
     do_action('awm_modal_after_save', $meta_key, $view, $object_id, $sanitized_values);
 
-    return new WP_REST_Response(array(
+    return array(
       'success' => true,
       'message' => __('Data saved successfully', 'extend-wp'),
       'values' => $sanitized_values,
-    ), 200);
+    );
   }
 
   /**

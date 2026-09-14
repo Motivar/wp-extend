@@ -73,7 +73,6 @@ class AWM_Meta
             100,
             2
         );
-        add_action('rest_api_init', array($this, 'awm_new_routes'), 10);
         add_action('rest_api_init', array($this, 'awm_dynamic_routes'), 10);
     }
 
@@ -102,15 +101,6 @@ class AWM_Meta
         $d_api->register_routes();
     }
 
-
-    public function awm_new_routes()
-    {
-        $api = new AWM_API();
-        $api->register_routes();
-
-        // Global object search endpoint powering the `object_id_filter` field type.
-        /* GET /objects/search is generated from EWP\Surfaces\Resources\Object_Search_Resource. */
-    }
 
     public function awm_admin_post_columns()
     {

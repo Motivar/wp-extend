@@ -319,6 +319,54 @@
                     "ewp-wp-content/delete-taxonomy"
                 ]
             }
+        },
+        {
+            "id": "rest-health-probes",
+            "label": "REST-health page probes",
+            "category": "system",
+            "layers": [
+                "rest"
+            ],
+            "class": "EWP\\SelfTest\\Cases\\Rest_Health_Probes_Case",
+            "requires": [],
+            "args": {},
+            "covers": {
+                "rest": [
+                    "extend-wp/v1/rest-health/openapi",
+                    "extend-wp/v1/rest-health/test",
+                    "extend-wp/v1/rest-health/batch",
+                    "extend-wp/v1/rest-health/history",
+                    "extend-wp/v1/rest-health/monitor",
+                    "extend-wp/v1/rest-health/monitor/payloads",
+                    "extend-wp/v1/rest-health/preferences"
+                ],
+                "cli": [],
+                "ability": []
+            }
+        },
+        {
+            "id": "field-builder",
+            "label": "Field-builder and modal helpers",
+            "category": "fields",
+            "layers": [
+                "rest"
+            ],
+            "class": "EWP\\SelfTest\\Cases\\Field_Builder_Case",
+            "requires": [],
+            "args": {},
+            "covers": {
+                "rest": [
+                    "extend-wp/v1/get-case-fields",
+                    "extend-wp/v1/get-query-fields",
+                    "extend-wp/v1/get-position-fields",
+                    "extend-wp/v1/get-php-code",
+                    "extend-wp/v1/awm-map-options",
+                    "extend-wp/v1/modal-fields",
+                    "extend-wp/v1/modal-save"
+                ],
+                "cli": [],
+                "ability": []
+            }
         }
     ]
 }

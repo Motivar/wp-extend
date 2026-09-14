@@ -21,7 +21,6 @@ require_once __DIR__ . '/logger-functions.php';
 require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health-discovery.php';
 require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health-runner.php';
 require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health-openapi.php';
-require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health-controller.php';
 require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health.php';
 
 /**

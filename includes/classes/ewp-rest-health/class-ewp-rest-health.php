@@ -32,7 +32,7 @@ class EWP_REST_Health
         // query on every non-REST page load.
         add_action('rest_api_init', [$this, 'maybe_register_capture_hook']);
 
-        new EWP_REST_Health_Controller();
+        /* All /rest-health/* routes are generated from EWP\Surfaces\Resources\Rest_Health_Resource and Rest_Health_Probes_Resource. */
     }
 
     /**

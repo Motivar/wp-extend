@@ -31,6 +31,8 @@ output schema therefore have exactly one definition.
 | `content-portability` | `EWP\Content\Content_Portability` | `ewp/v1/export`, `ewp/v1/import` | `wp ewp content export\|import` | `ewp-content/export`, `import` |
 | `objects` | `EWP\Search\Object_Search` | `extend-wp/v1/objects/search` | `wp ewp objects search` | `ewp-system/search-objects` |
 | `rest-health` | `EWP\Surfaces\Rest_Health_Inventory` | `extend-wp/v1/rest-health/plugins`, `/endpoints` | `wp ewp rest-health plugins\|endpoints` | `ewp-rest-health/list-plugins`, `list-endpoints` |
+| `rest-health-probes` (REST only) | `EWP\Surfaces\Rest_Health_Probes` | `extend-wp/v1/rest-health/openapi`, `/test`, `/batch`, `/history` (GET, DELETE), `/monitor` (GET, POST), `/monitor/payloads` (GET, DELETE), `/preferences` (GET, POST) | — | — |
+| `field-builder` (REST only) | `AWM_API` | `extend-wp/v1/get-case-fields`, `/get-query-fields`, `/get-position-fields`, `/get-php-code`, `/awm-map-options`, `/modal-fields`, `/modal-save` | — | — |
 
 Typed content resources expose abilities only: REST already serves every
 content type under its own routes and the CLI through `wp ewp content
@@ -38,11 +40,16 @@ content type under its own routes and the CLI through `wp ewp content
 `Gnnpls\WP\Inventory::export()` lists every operation with the routes,
 commands and abilities it generates and the surfaces it deliberately skips.
 
-Routes that stay REST-only (admin helpers, the diagnose box, the
-interactive REST-health tools) are listed with their reason in
-`includes/classes/ewp-self-test/rest-only.json`, and a PHPUnit test fails
-when a route is registered that is neither generated, covered by a
-self-test case, nor explained there.
+Two resources are REST-only by declaration (`Resource::surfaces()` returns
+`[Context::REST]`): the REST-health page probes and the wp-admin
+field-builder/modal helpers. They render for a browser script, so a
+command or ability would have no caller, but they still get typed and
+described arguments, the shared authorization path and inventory entries.
+The three routes that remain hand-registered (the logger diagnose box, the
+anonymous recently-seen recorder and the `ewp-filter/{id}` search results)
+are listed with their reason in `includes/classes/ewp-self-test/rest-only.json`,
+and a PHPUnit test fails when a route is registered that is neither
+generated, covered by a self-test case, nor explained there.
 
 ## Authorization
 

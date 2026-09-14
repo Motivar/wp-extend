@@ -8,6 +8,8 @@ use EWP\Surfaces\Resources\Content_Type_Rest_Resource;
 use EWP\Surfaces\Resources\Content_Portability_Resource;
 use EWP\Surfaces\Resources\Object_Search_Resource;
 use EWP\Surfaces\Resources\Rest_Health_Resource;
+use EWP\Surfaces\Resources\Rest_Health_Probes_Resource;
+use EWP\Surfaces\Resources\Field_Builder_Resource;
 use EWP\Surfaces\Resources\Fields_Resource;
 use EWP\Surfaces\Resources\Logger_Resource;
 use EWP\Surfaces\Resources\Options_Resource;
@@ -114,6 +116,9 @@ final class EWP_Surfaces
         require_once __DIR__ . '/resources/class-content-portability-resource.php';
         require_once __DIR__ . '/resources/class-object-search-resource.php';
         require_once __DIR__ . '/resources/class-rest-health-resource.php';
+        require_once __DIR__ . '/class-rest-health-probes.php';
+        require_once __DIR__ . '/resources/class-rest-health-probes-resource.php';
+        require_once __DIR__ . '/resources/class-field-builder-resource.php';
 
         $this->service = new Content_Service();
         $this->registry = new Registry();
@@ -138,6 +143,8 @@ final class EWP_Surfaces
             'content-portability' => new Content_Portability_Resource(new \EWP\Content\Content_Portability()),
             'objects'    => new Object_Search_Resource(new \EWP\Search\Object_Search()),
             'rest-health' => new Rest_Health_Resource(new Rest_Health_Inventory()),
+            'rest-health-probes' => new Rest_Health_Probes_Resource(new Rest_Health_Probes()),
+            'field-builder' => new Field_Builder_Resource(new \AWM_API()),
         ], $this->service);
 
         foreach ($resources as $resource) {
