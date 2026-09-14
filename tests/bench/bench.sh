@@ -37,6 +37,7 @@ cli_ms() { # wall-clock ms of a wp-cli command (includes ddev exec overhead)
 for REF in "$1" "$2"; do
   echo "== $REF"
   checkout_ref "$REF"
+  ddev mutagen sync >/dev/null 2>&1 || true   # DDEV syncs the tree asynchronously; wait before the container is measured
   ddev exec -d /var/www/html "cat > /tmp/ewp-bench-probe.php" < "$STAGE/probe.php"
   NAME="${REF//\//_}"; [ "$NAME" = "." ] && NAME="worktree"
   OUT="$STAGE/results/$NAME.jsonl"; : > "$OUT"
