@@ -23,6 +23,54 @@ class Test_Kit_Operation extends WP_UnitTestCase
         wp_set_current_user(0);
     }
 
+    /** Resource::surfaces() applies to operations that declared none; explicit ones win. */
+    public function test_resource_level_surfaces_are_the_default_for_undeclared_operations()
+    {
+        $resource = new class extends Resource {
+            public function name()
+            {
+                return 'no-cli';
+            }
+            public function service()
+            {
+                return new stdClass();
+            }
+            public function rest_namespace()
+            {
+                return 'kit-test/v1';
+            }
+            public function cli_base()
+            {
+                return 'kit-test no-cli';
+            }
+            public function ability_category()
+            {
+                return 'kit-test-no-cli';
+            }
+            public function surfaces()
+            {
+                return [Context::REST, Context::ABILITY];
+            }
+            public function surfaces_reason()
+            {
+                return 'no command-line use';
+            }
+            public function operations()
+            {
+                return [
+                    'inherits' => Operation::read('x')->rest('GET')->cli('inherits')->ability('inherits'),
+                    'own'      => Operation::read('x')->surfaces([Context::CLI], 'cli only')->cli('own'),
+                ];
+            }
+        };
+
+        $ops = $resource->ops();
+        $this->assertSame([Context::REST, Context::ABILITY], $ops['inherits']->enabled_surfaces());
+        $this->assertSame([Context::CLI => 'no command-line use'], $ops['inherits']->surface_reasons());
+        $this->assertSame([Context::CLI], $ops['own']->enabled_surfaces());
+        $this->assertSame('cli only', $ops['own']->surface_reasons()[Context::REST]);
+    }
+
     public function test_unattended_cli_is_trusted_and_leftover_input_reaches_the_array_parameter()
     {
         $op     = $this->resource->ops()['list'];

@@ -7,13 +7,13 @@
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
-        'dev' => false,
+        'dev' => true,
     ),
     'versions' => array(
         'gnnpls/wp-kit' => array(
-            'pretty_version' => 'v0.1.0',
-            'version' => '0.1.0.0',
-            'reference' => '74dc49cf32a5c1a3bfce8e545ef7c037706d53ac',
+            'pretty_version' => 'v0.2.0',
+            'version' => '0.2.0.0',
+            'reference' => '7a7b245498c73f9faf1c97640b391eb2b6285d6d',
             'type' => 'library',
             'install_path' => __DIR__ . '/../gnnpls/wp-kit',
             'aliases' => array(),

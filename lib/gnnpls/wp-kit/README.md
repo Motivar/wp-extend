@@ -76,6 +76,33 @@ foreach ($registry->all() as $resource) {
 }
 ```
 
+## Choosing surfaces
+
+Every operation is exposed on REST, WP-CLI and the Abilities API unless told
+otherwise. Leave a layer out per operation with `Operation::surfaces()`, or
+for the whole resource by overriding `Resource::surfaces()`; operations that
+call `surfaces()` themselves keep their own choice:
+
+```php
+class Admin_Helpers_Resource extends Resource
+{
+    /** No meaningful CLI for editor helpers: register REST and abilities only. */
+    public function surfaces()
+    {
+        return [Context::REST, Context::ABILITY];
+    }
+
+    public function surfaces_reason()
+    {
+        return 'editor helpers have no command-line use';
+    }
+}
+```
+
+The reason travels into `Inventory::export()` so parity tests can tell a
+deliberate omission from a missing registration. Both accept a callable for
+decisions that depend on runtime state.
+
 ## What one field becomes
 
 | `Field::int('limit')->default_value(50)->max(200)` | Output |

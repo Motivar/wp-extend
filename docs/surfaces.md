@@ -109,6 +109,17 @@ Surface differences are declared in the resource, never in three classes:
 Never register a route, command or ability by hand for a feature that has
 a service; declare it.
 
+### Leaving a layer out
+
+Every operation lands on REST, CLI and abilities unless told otherwise. When
+a whole resource has no use for one layer, override `Resource::surfaces()`
+(and `surfaces_reason()`) once instead of repeating `->surfaces()` on each
+operation — `Content_Resource` (no REST, served per type) and the typed
+content resources (abilities only) do this. A single operation can still
+call `Operation::surfaces()` to differ from its resource. The reason is
+recorded in the inventory so the parity test can tell a deliberate omission
+from a missing registration.
+
 ## Filters
 
 | Hook | Kind | Signature |

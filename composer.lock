@@ -4,15 +4,15 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "86b1a6e9ad69589b67ce8c0b6e87d68d",
+    "content-hash": "3391d2701d04c6a03231a959982a8545",
     "packages": [
         {
             "name": "gnnpls/wp-kit",
-            "version": "v0.1.0",
+            "version": "v0.2.0",
             "source": {
                 "type": "git",
                 "url": "https://gitlab.motivar.io/tools/wp-kit.git",
-                "reference": "74dc49cf32a5c1a3bfce8e545ef7c037706d53ac"
+                "reference": "7a7b245498c73f9faf1c97640b391eb2b6285d6d"
             },
             "require": {
                 "php": ">=7.4"
@@ -39,7 +39,7 @@
             ],
             "description": "Declare a WordPress feature once and expose it as a REST route, a WP-CLI command and a WordPress Ability from the same definition.",
             "homepage": "https://gitlab.motivar.io/tools/wp-kit",
-            "time": "2026-09-14T07:39:04+00:00"
+            "time": "2026-09-14T07:59:50+00:00"
         },
         {
             "name": "gnnpls/wp-self-test",

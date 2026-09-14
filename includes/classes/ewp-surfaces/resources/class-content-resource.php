@@ -95,11 +95,29 @@ final class Content_Resource extends Resource
         };
     }
 
+    /**
+     * REST is served per content type by Content_Type_Rest_Resource, so this
+     * resource exposes CLI and abilities only.
+     *
+     * @return string[]
+     */
+    public function surfaces()
+    {
+        return [Context::CLI, Context::ABILITY];
+    }
+
+    /**
+     * @return string
+     */
+    public function surfaces_reason()
+    {
+        return __('the type inventory is global; REST serves each type under its own {prefix}/{type} routes', 'extend-wp');
+    }
+
     public function operations()
     {
         $service = $this->service;
         $type    = Content_Schema::content_type($service);
-        $reason  = __('the type inventory is global; REST serves each type under its own {prefix}/{type} routes', 'extend-wp');
 
         return [
             'types' => Operation::read('describe_types')
@@ -107,7 +125,6 @@ final class Content_Resource extends Resource
                 ->description(__('List every custom content type registered on this site with its statuses, required capability and field keys. Call this first: it tells you which content_type values and meta keys the other content abilities accept, so you never have to guess. Only types the current user may access are returned.', 'extend-wp'))
                 ->capability('read')
                 ->output(Content_Schema::types())
-                ->surfaces([Context::CLI, Context::ABILITY], $reason)
                 ->cli('types', ['presenter' => [$this, 'present_types']])
                 ->ability('list-content-types'),
 
@@ -116,7 +133,6 @@ final class Content_Resource extends Resource
                 ->description(__('List rows of one content type, newest first. Filter by status, title text or explicit ids. Leave with_meta off unless you need every stored value: titles and ids alone are much cheaper. Returns 50 items by default, 200 at most.', 'extend-wp'))
                 ->input(array_merge([$type], Content_Schema::list_fields()))
                 ->output(Content_Schema::row_collection())
-                ->surfaces([Context::CLI, Context::ABILITY], $reason)
                 ->cli('list', ['columns' => ['id', 'title', 'status', 'modified']])
                 ->ability('list-items'),
 
@@ -125,7 +141,6 @@ final class Content_Resource extends Resource
                 ->description(__('Return one row of a content type by id, including every stored meta value. Use this after list-items when you need the full configuration of a single item.', 'extend-wp'))
                 ->input([$type, Content_Schema::id()])
                 ->output(Content_Schema::row())
-                ->surfaces([Context::CLI, Context::ABILITY], $reason)
                 ->cli('get', ['default_format' => 'json'])
                 ->ability('get-item'),
 
@@ -135,7 +150,6 @@ final class Content_Resource extends Resource
                 ->input(array_merge([$type], Content_Schema::writable_fields(true)))
                 ->output(Content_Schema::row())
                 ->args([$this, 'create_args'])
-                ->surfaces([Context::CLI, Context::ABILITY], $reason)
                 ->cli('create', ['success' => 'Created %content_type% item #%id%.'])
                 ->ability('create-item'),
 
@@ -146,7 +160,6 @@ final class Content_Resource extends Resource
                 ->input(array_merge([$type, Content_Schema::id()], Content_Schema::writable_fields(false)))
                 ->output(Content_Schema::row())
                 ->args([$this, 'update_args'])
-                ->surfaces([Context::CLI, Context::ABILITY], $reason)
                 ->cli('update', ['success' => 'Updated %content_type% item #%id%.'])
                 ->ability('update-item'),
 
@@ -156,7 +169,6 @@ final class Content_Resource extends Resource
                 ->input([$type, Content_Schema::ids()])
                 ->output(Content_Schema::delete_result())
                 ->args([$this, 'delete_args'])
-                ->surfaces([Context::CLI, Context::ABILITY], $reason)
                 ->cli('delete', ['success' => 'Deleted %count% %content_type% item(s).'])
                 ->ability('delete-item'),
         ];

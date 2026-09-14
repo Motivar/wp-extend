@@ -68,7 +68,6 @@ class Setup
   require_once 'ewp-abilities/class-ewp-abilities.php';
   /*declares the plugin's resources with the gnnpls/wp-kit package (lib/, loaded by Composer); REST, WP-CLI and abilities are generated from them (must follow the modules whose services it wraps)*/
   require_once 'ewp-surfaces/class-ewp-surfaces.php';
-  //require_once 'ewp-ai-content/class-ewp-ai-content.php';
   /*uses EWP\Content\Content_Service (loaded above); kept after ewp-abilities so the shim-based self-test loads it in the same order as production*/
   require_once 'awm-content-db-api/custom-content/class-content-cli.php';
 

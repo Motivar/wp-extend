@@ -2,17 +2,17 @@
     "packages": [
         {
             "name": "gnnpls/wp-kit",
-            "version": "v0.1.0",
-            "version_normalized": "0.1.0.0",
+            "version": "v0.2.0",
+            "version_normalized": "0.2.0.0",
             "source": {
                 "type": "git",
                 "url": "https://gitlab.motivar.io/tools/wp-kit.git",
-                "reference": "74dc49cf32a5c1a3bfce8e545ef7c037706d53ac"
+                "reference": "7a7b245498c73f9faf1c97640b391eb2b6285d6d"
             },
             "require": {
                 "php": ">=7.4"
             },
-            "time": "2026-09-14T07:39:04+00:00",
+            "time": "2026-09-14T07:59:50+00:00",
             "type": "library",
             "installation-source": "source",
             "autoload": {
@@ -81,6 +81,6 @@
             "install-path": "../gnnpls/wp-self-test"
         }
     ],
-    "dev": false,
+    "dev": true,
     "dev-package-names": []
 }

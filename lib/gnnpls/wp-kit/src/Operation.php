@@ -54,6 +54,8 @@ final class Operation
     private $surfaces = self::SURFACES;
     /** @var string */
     private $surface_reason = '';
+    /** @var bool Whether surfaces() was called on this operation (resource defaults apply otherwise). */
+    private $surfaces_set = false;
     /** @var array<string,bool> */
     private $annotations = [];
     /** @var callable|null */
@@ -220,7 +222,22 @@ final class Operation
         // A plain list of surface names is never callable; closures and [$obj, 'method'] pairs are.
         $this->surfaces       = is_callable($enabled) ? $enabled : array_values(array_intersect(self::SURFACES, (array) $enabled));
         $this->surface_reason = (string) $reason;
+        $this->surfaces_set   = true;
         return $this;
+    }
+
+    /**
+     * Whether this operation declared its own surfaces.
+     *
+     * Resource::surfaces() is applied as the default only when it did not.
+     *
+     * @return bool
+     *
+     * @since 0.2.0
+     */
+    public function has_surfaces()
+    {
+        return $this->surfaces_set;
     }
 
     /** @return Operation */

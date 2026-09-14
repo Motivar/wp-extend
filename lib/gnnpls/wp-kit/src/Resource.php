@@ -115,6 +115,35 @@ abstract class Resource
     }
 
     /**
+     * Surfaces every operation of this resource is exposed on unless the
+     * operation calls Operation::surfaces() itself.
+     *
+     * Return a subset of Operation::SURFACES (`rest`, `cli`, `ability`) to
+     * leave a whole layer out, e.g. `[Context::REST, Context::ABILITY]` for
+     * a resource that has no meaningful CLI. A callable is resolved lazily.
+     *
+     * @return string[]|callable
+     *
+     * @since 0.2.0
+     */
+    public function surfaces()
+    {
+        return Operation::SURFACES;
+    }
+
+    /**
+     * Why the surfaces left out by surfaces() are excluded (for the inventory).
+     *
+     * @return string
+     *
+     * @since 0.2.0
+     */
+    public function surfaces_reason()
+    {
+        return '';
+    }
+
+    /**
      * Operations with names and resource bound, memoised.
      *
      * @return array<string,Operation>
@@ -174,6 +203,9 @@ abstract class Resource
     {
         if ($operation->capability_resolver() === null) {
             $operation->capability($this->capability());
+        }
+        if (!$operation->has_surfaces()) {
+            $operation->surfaces($this->surfaces(), $this->surfaces_reason());
         }
 
         return $operation;

@@ -103,6 +103,25 @@ abstract class Typed_Content_Resource extends Resource
         return $row;
     }
 
+    /**
+     * Typed resources are the agent-facing view of a content type; REST and
+     * CLI already serve the same rows through the generic content surfaces.
+     *
+     * @return string[]
+     */
+    public function surfaces()
+    {
+        return [Context::ABILITY];
+    }
+
+    /**
+     * @return string
+     */
+    public function surfaces_reason()
+    {
+        return __('served by the generic content resource ({prefix}/{type} routes, wp ewp content --type=)', 'extend-wp');
+    }
+
     /* ---------------------------------------------------------------------
      * Operation builders
      * ------------------------------------------------------------------ */
@@ -116,7 +135,6 @@ abstract class Typed_Content_Resource extends Resource
     {
         $type       = $entity['content_type'];
         $capability = $this->service->get_capability($type);
-        $reason     = __('served by the generic content resource ({prefix}/{type} routes, wp ewp content --type=)', 'extend-wp');
         $decorate   = function ($row) use ($entity) {
             return is_array($row) ? $this->decorate_row($entity, $row) : $row;
         };
@@ -137,7 +155,6 @@ abstract class Typed_Content_Resource extends Resource
                     return $result;
                 })
                 ->capability($capability)
-                ->surfaces([Context::ABILITY], $reason)
                 ->ability('list-' . $entity['plural']),
 
             'get-' . $entity['singular'] => Operation::read('get_item')
@@ -150,7 +167,6 @@ abstract class Typed_Content_Resource extends Resource
                 })
                 ->transform($decorate)
                 ->capability($capability)
-                ->surfaces([Context::ABILITY], $reason)
                 ->ability('get-' . $entity['singular']),
         ];
 
@@ -158,18 +174,17 @@ abstract class Typed_Content_Resource extends Resource
             return $ops;
         }
 
-        return array_merge($ops, $this->write_operations($entity, $capability, $reason, $decorate));
+        return array_merge($ops, $this->write_operations($entity, $capability, $decorate));
     }
 
     /**
      * @param array    $entity     Entity descriptor.
      * @param string   $capability Capability of the content type.
-     * @param string   $reason     Why REST/CLI are excluded.
      * @param callable $decorate   Row decorator.
      *
      * @return array<string,Operation>
      */
-    private function write_operations(array $entity, $capability, $reason, callable $decorate)
+    private function write_operations(array $entity, $capability, callable $decorate)
     {
         $type    = $entity['content_type'];
         $library = $this->service->resolve_library($type);
@@ -185,7 +200,6 @@ abstract class Typed_Content_Resource extends Resource
                 })
                 ->transform($decorate)
                 ->capability($capability)
-                ->surfaces([Context::ABILITY], $reason)
                 ->ability('create-' . $entity['singular']),
 
             'update-' . $entity['singular'] => Operation::write('update_item')
@@ -199,7 +213,6 @@ abstract class Typed_Content_Resource extends Resource
                 })
                 ->transform($decorate)
                 ->capability($capability)
-                ->surfaces([Context::ABILITY], $reason)
                 ->ability('update-' . $entity['singular']),
 
             'delete-' . $entity['singular'] => Operation::destructive('delete_items')
@@ -211,7 +224,6 @@ abstract class Typed_Content_Resource extends Resource
                     return [$type, (array) $input['ids']];
                 })
                 ->capability($capability)
-                ->surfaces([Context::ABILITY], $reason)
                 ->ability('delete-' . $entity['singular']),
         ];
     }

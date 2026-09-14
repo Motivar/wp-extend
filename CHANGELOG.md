@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **Unloaded `ewp-ai-content` module deleted** (`2026-09-14`):
+  - **Question/Prompt**: "Why in wp-extend I still see so many register_rest_route?" → "proceed with the delete".
+  - **Summary**: `includes/classes/ewp-ai-content/` (8 hand-registered REST routes that never ran — its `require_once` in `Setup.php` had been commented out) and its orphaned assets `assets/css/admin/ewp-ai-content.css`, `assets/js/admin/class-ewp-ai-content.js` are removed. The remaining hand-written `register_rest_route()` calls are the admin-JS/front-end helpers listed in `includes/classes/ewp-self-test/rest-only.json`, the UI-configured dynamic API executor, and the REST-health scanner's own search strings.
+  - **Files**: `includes/classes/Setup.php`, `CLAUDE.md`.
+  - **Backwards compatibility**: none affected; the module was not loaded.
+
+### Changed
+- **Resource-level surface selection (`gnnpls/wp-kit` 0.2.0)** (`2026-09-14`):
+  - **Question/Prompt**: "add to wp-kit a flag of which layer to use, so if a layer does not need cli we just register the other two."
+  - **Summary**: the kit gains `Resource::surfaces()` / `Resource::surfaces_reason()`; operations that never call `Operation::surfaces()` inherit the resource's choice, so a whole resource can drop REST, CLI or abilities in one place. `Content_Resource` now declares CLI + abilities at the resource level (REST is served per type by `Content_Type_Rest_Resource`) and `Typed_Content_Resource` declares abilities only, removing the eleven repeated `->surfaces()` calls. `Fields_Resource::list-field-vocabulary` keeps its own, more specific reason.
+  - **Files**: `composer.json` (`gnnpls/wp-kit` `^0.2`), `lib/gnnpls/wp-kit/*`, `includes/classes/ewp-surfaces/resources/class-content-resource.php`, `class-typed-content-resource.php`, `tests/test-kit-operation-test.php` (new default/override test), `docs/surfaces.md` ("Leaving a layer out"), `CLAUDE.md`.
+  - **Backwards compatibility**: generated routes, commands, abilities and inventory reasons are unchanged; the parity and manifest tests pass unmodified.
+
 ### Changed
 - **Kit extracted to `gnnpls/wp-kit`; both packages renamed to the `gnnpls` vendor and `Gnnpls\*` namespaces** (`2026-09-14`):
   - **Question/Prompt**: "Do I have to create also a repo for the helper method of REST/CLI/WP abilities?" → "https://gitlab.motivar.io/tools/wp-kit this is the new repo. please just change the namespace package from motivar to gnnpls for both wp-kit and self test" → "Composer vendor + PHP namespaces" (hook names and command names unchanged).
