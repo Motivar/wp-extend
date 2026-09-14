@@ -1,15 +1,10 @@
-# Version: 1.1.0
+# Version: 1.2.0
 #
-# Tests run through the gnnpls/wp-self-test package's job template
-# (lib/gnnpls/wp-self-test/ci/gitlab-ci.yml): PHP lint, the PHPUnit suite
-# (tests/, toolchain from tests/composer.json) and every self-test manifest
-# through bin/run.php, against a throwaway MariaDB. Locally the same two
-# suites run via `composer test` (tests/run-tests.sh) and the pre-push hook.
+# No test job: the pre-push hook (installed by lib/gnnpls/wp-self-test/bin/install-hooks
+# via `composer install`) runs `composer test` — PHP lint, the PHPUnit suite
+# (tests/) and every self-test manifest — inside DDEV before anything reaches
+# the remote. A push that passed the hook is the gate.
 include:
   - project: "tools/motivar-cicd-files"
     ref: main
     file: ".gitlab-ci-mtv-plugins-wiki.yml"
-  - local: "lib/gnnpls/wp-self-test/ci/gitlab-ci.yml"
-
-variables:
-  MWP_TESTS_DB_NAME: wp_extend_tests

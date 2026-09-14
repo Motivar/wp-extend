@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **CI test job; hardcoded `WP_ENVIRONMENT_TYPE`** (`2026-09-14`):
+  - **Question/Prompt**: "1. please don't include ci at all. remove it from self-test, if pre-push passes then we are fine. 2. please also remove this -> tests/wp-tests-config.php, rely totally on environment."
+  - **Summary**: `.gitlab-ci.yml` no longer includes the package's test job (only the `tools/motivar-cicd-files` wiki template remains); `gnnpls/wp-self-test` 0.5.0 drops `ci/gitlab-ci.yml` and its README section, the pre-push hook (`composer test`) being the gate. The `define('WP_ENVIRONMENT_TYPE', 'development')` added earlier today to `tests/wp-tests-config.php` is removed (and the matching line was taken out of the DDEV site's wp-config): the environment is read only from the `WP_ENVIRONMENT_TYPE` environment variable, set on the DDEV project with `ddev config --web-environment-add="WP_ENVIRONMENT_TYPE=development"` (`.ddev/config.yaml` of the site, outside this repo), which reaches PHP-FPM, WP-CLI, PHPUnit, `bin/run.php` and the hook alike.
+  - **Files**: `.gitlab-ci.yml`, `composer.json` (`gnnpls/wp-self-test` `>=0.5`), `composer.lock`, `lib/gnnpls/wp-self-test/*`, `lib/composer/*`, `tests/wp-tests-config.php`, `docs/self-test.md`, `CLAUDE.md`.
+  - **Backwards compatibility**: a checkout on a machine whose DDEV project lacks the variable reports `production`, so `composer test` fails its self-test half with "no plugin has registered a self-test manifest" until the variable is set — deliberate, per the prompt. Consumers of the package that included `ci/gitlab-ci.yml` must remove that `include:` before upgrading to 0.5.0.
+
 ### Changed
 - **Self-test off on production and on the front end via `mwp_self_test_enabled` (`gnnpls/wp-self-test` 0.4.1); logger read side loads only where a surface needs it** (`2026-09-14`):
   - **Question/Prompt**: "1 -> please proceed and make it true/false based on filter -> default false, but when WP_ENV != production add it as true. 2 -> yes do that [split the logger]. 3 -> please make sure that abilities and cli commands are loaded when asked by their layer".

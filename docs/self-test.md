@@ -2,7 +2,7 @@
 
 One manifest, one runner, five ways to drive it. The self-test suite exercises every REST route, WP-CLI command and Abilities API ability the plugin exposes, **on a real WordPress install**, with test data that is removed afterwards. It complements the PHPUnit suite (`tests/`), which covers the shared implementations in isolation.
 
-Since 1.5.0 the runner, the dashboard, the REST routes, the commands, the abilities, the pre-push hook and the CI job template all come from the **`gnnpls/wp-self-test`** package (`lib/gnnpls/wp-self-test`, [repository](https://gitlab.motivar.io/tools/wp-selft-test)). This plugin contributes only its manifest and cases and registers them on the package's `mwp_self_test_register` action (`includes/classes/ewp-self-test/class-ewp-self-test.php`). Any other plugin can register its own manifest the same way; every surface then shows all of them, grouped by plugin.
+Since 1.5.0 the runner, the dashboard, the REST routes, the commands, the abilities, the pre-push hook all come from the **`gnnpls/wp-self-test`** package (`lib/gnnpls/wp-self-test`, [repository](https://gitlab.motivar.io/tools/wp-selft-test)). This plugin contributes only its manifest and cases and registers them on the package's `mwp_self_test_register` action (`includes/classes/ewp-self-test/class-ewp-self-test.php`). Any other plugin can register its own manifest the same way; every surface then shows all of them, grouped by plugin.
 
 ## Single source of truth
 
@@ -40,8 +40,7 @@ A case is `skipped` when its site requirement is missing (logger off, no Abiliti
 | **wp-admin dashboard** — *Tools → Self-test* | **Preview** the steps, or **Run + remove data**: runs the selected cases with cleanup and shows per-check validation, the summary and a *Download raw data (JSON)* link. Only registered when `WP_DEBUG` is on (`mwp_self_test_ui_enabled`, onto which `ewp_self_test_ui_enabled` is mapped); requires `manage_options` (`mwp_self_test_capability` / `ewp_self_test_capability`). | the live site |
 | **WP-CLI** — `wp mwp self-test list\|preview\|run\|cleanup\|report [--plugin=extend-wp]` | `run --cleanup` exits 1 on any failure. | the live site |
 | **Abilities API** — `mwp-self-test/list-cases`, `preview`, `run`, `cleanup`, `get-report` | `run` and `cleanup` require `confirm: true`. | the live site |
-| **pre-push hook** — `.githooks/pre-push` (a shim to the package's `bin/pre-push`) | `php -l`, then `composer test` (`tests/run-tests.sh`: PHPUnit + `bin/run.php`) | `wp_extend_tests` (isolated) |
-| **GitLab CI** — `.gitlab-ci.yml` includes the package's `ci/gitlab-ci.yml` | same two suites | throwaway `mariadb` service |
+| **pre-push hook** — `.githooks/pre-push` (a shim to the package's `bin/pre-push`) | `php -l`, then `composer test` (`tests/run-tests.sh`: PHPUnit + `bin/run.php`). This is the gate: there is no CI test job. | `wp_extend_tests` (isolated) |
 
 `lib/gnnpls/wp-self-test/bin/run.php` boots WordPress through `tests/bootstrap.php` (same isolated database as PHPUnit) but *without* PHPUnit's per-test transaction wrapper, because the content case creates real tables and `WP_UnitTestCase` would silently turn them into temporary ones. Run it by hand with:
 
@@ -68,7 +67,7 @@ The plugin's CLI classes guard themselves with `class_exists('WP_CLI')`. In a we
 
 ## Request kinds
 
-Self-tests exist for wp-admin (the dashboard), REST (`mwp-self-test/v1`), WP-CLI and the abilities. The `gnnpls/wp-self-test` package boots only when its `mwp_self_test_enabled` filter returns true: the package default is `true` unless the environment is `production` (`WP_ENV` when defined, else `wp_get_environment_type()`), and this plugin returns `false` on plain front-end requests (`EWP\Request_Context::is_front_end()`), where it also skips its own manifest registration. A production site that should run self-tests adds `add_filter('mwp_self_test_enabled', '__return_true')`; a non-production site must declare its environment (`WP_ENVIRONMENT_TYPE` in wp-config, as `tests/wp-tests-config.php` does for PHPUnit). `ewp_request_is_front_end` forces the full load if a front-end integration ever needs it.
+Self-tests exist for wp-admin (the dashboard), REST (`mwp-self-test/v1`), WP-CLI and the abilities. The `gnnpls/wp-self-test` package boots only when its `mwp_self_test_enabled` filter returns true: the package default is `true` unless the environment is `production` (`WP_ENV` when defined, else `wp_get_environment_type()`), and this plugin returns `false` on plain front-end requests (`EWP\Request_Context::is_front_end()`), where it also skips its own manifest registration. A production site that should run self-tests adds `add_filter('mwp_self_test_enabled', '__return_true')`; a non-production site must declare its environment through the **environment variable** `WP_ENVIRONMENT_TYPE` (WordPress reads it before the constant) — on DDEV: `ddev config --web-environment-add="WP_ENVIRONMENT_TYPE=development"`, which covers the site, PHPUnit, `bin/run.php` and the pre-push hook alike; nothing in the repo hardcodes it. `ewp_request_is_front_end` forces the full load if a front-end integration ever needs it.
 
 ## Adding a case
 

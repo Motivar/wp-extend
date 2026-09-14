@@ -40,17 +40,17 @@
         },
         {
             "name": "gnnpls/wp-self-test",
-            "version": "v0.4.1",
-            "version_normalized": "0.4.1.0",
+            "version": "v0.5.0",
+            "version_normalized": "0.5.0.0",
             "source": {
                 "type": "git",
                 "url": "https://gitlab.motivar.io/tools/wp-selft-test.git",
-                "reference": "ac9c5e11113849c5a08ba0dd3b1c6811373da83b"
+                "reference": "b2c90a20e55a7e452b6cf7de3a4cd0ff69845ddc"
             },
             "require": {
                 "php": ">=7.4"
             },
-            "time": "2026-09-14T09:10:08+00:00",
+            "time": "2026-09-14T09:43:10+00:00",
             "bin": [
                 "bin/run.php",
                 "bin/install-hooks"

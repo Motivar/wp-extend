@@ -11,7 +11,7 @@ on five surfaces:
 | REST | `mwp-self-test/v1/{cases,preview,run,cleanup,report}` (same gate) |
 | WP-CLI | `wp mwp self-test list\|preview\|run\|cleanup\|report` |
 | Abilities API | `mwp-self-test/{list-cases,preview,run,cleanup,get-report}` (WordPress 6.9+) |
-| Hook / CI | `bin/pre-push`, `bin/run.php`, `ci/gitlab-ci.yml` |
+| Pre-push hook | `bin/pre-push`, `bin/run.php` |
 
 Several plugins can register manifests; the dashboard, commands and report
 show every case with the plugin it belongs to, and the dashboard can be
@@ -129,7 +129,7 @@ throws instead of exiting. Command classes that `return` early when
 `WP_CLI` is missing are declared again by the `cli_loaders` callables a
 plugin passes to `register()`; the runner calls them once before a run.
 
-## Hooks and CI in a consumer
+## The pre-push hook in a consumer
 
 ```json
 {
@@ -144,15 +144,9 @@ plugin passes to `register()`; the runner calls them once before a run.
 package's `bin/pre-push`), makes it executable and sets
 `core.hooksPath`. On `git push` the hook skips tag-only and delete pushes,
 `php -l`s every tracked PHP file, then runs `composer run-script test`
-(or `tests/pre-push.sh`). `git push --no-verify` bypasses it; CI remains
-the real gate:
-
-```yaml
-include:
-  - local: 'lib/gnnpls/wp-self-test/ci/gitlab-ci.yml'
-variables:
-  MWP_TESTS_DB_NAME: my_plugin_tests
-```
+(or `tests/pre-push.sh`). A push that passes the hook is the gate; the
+package ships no CI template (`git push --no-verify` bypasses the hook, so
+treat that as a deliberate decision).
 
 `bin/run.php` boots WordPress through your PHPUnit bootstrap
 (`--bootstrap=tests/bootstrap.php`, `--autoload=tests/vendor/autoload.php`)
