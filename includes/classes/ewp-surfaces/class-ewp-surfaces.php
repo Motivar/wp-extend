@@ -74,10 +74,37 @@ final class EWP_Surfaces
      */
     public function init()
     {
-        Kit::on_ready([$this, 'boot']);
+        Kit::on_ready([$this, 'attach']);
         add_filter('mwp_operation_capability', [$this, 'reemit_ability_capability'], 10, 4);
         add_filter('mwp_ability_definitions', [$this, 'reemit_logger_definitions'], 10, 2);
         add_filter('ewp_rest_health_runtime_namespaces', [$this, 'report_rest_namespaces']);
+    }
+
+    /**
+     * Defer building the registry until a surface actually needs it.
+     *
+     * Declaring the resources loads ~25 classes and instantiates every
+     * service; a front-end or plain admin request uses none of them. The
+     * registry is built on the first REST server, the first Abilities API
+     * initialisation, under WP-CLI, or when registry() is called.
+     *
+     * Every trigger runs at priority -1 so the adapters' own callbacks
+     * (priority 10/20 on the same actions) still run within that action.
+     *
+     * @return void
+     *
+     * @since 1.5.1
+     */
+    public function attach()
+    {
+        if (defined('WP_CLI') && WP_CLI) {
+            $this->boot();
+            return;
+        }
+
+        add_action('rest_api_init', [$this, 'boot'], -1);
+        add_action('wp_abilities_api_categories_init', [$this, 'boot'], -1);
+        add_action('wp_abilities_api_init', [$this, 'boot'], -1);
     }
 
     /**
@@ -174,7 +201,16 @@ final class EWP_Surfaces
      */
     public function register_adapters(Resource $resource)
     {
-        (new Rest_Adapter($resource))->register();
+        $rest = new Rest_Adapter($resource);
+        if (doing_action('rest_api_init')) {
+            // The registry is being built by the priority -1 trigger: the
+            // adapter's hook fires later in this same action, so calling
+            // register() (which also registers immediately because the
+            // action already started) would add every route twice.
+            add_action('rest_api_init', [$rest, 'register_routes']);
+        } else {
+            $rest->register();
+        }
         (new Cli_Adapter($resource))->register();
         (new Ability_Adapter($resource, ['EWP\\Abilities\\EWP_Abilities', 'is_enabled']))->register();
     }

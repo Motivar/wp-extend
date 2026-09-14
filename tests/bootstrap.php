@@ -34,6 +34,17 @@ tests_add_filter('muplugins_loaded', function () {
  * the site's uploads.
  */
 tests_add_filter('ewp_logger_enabled', '__return_true');
+
+/**
+ * Build the surfaces registry during bootstrap, as WP-CLI does. On web
+ * requests it is built lazily on the first `rest_api_init` / abilities
+ * init, but WP_UnitTestCase restores the hook table after every test, so
+ * a registry booted inside one test would lose its adapter hooks for the
+ * next; booting here makes them part of the baseline hook table.
+ */
+tests_add_filter('plugins_loaded', function () {
+    \EWP\Surfaces\EWP_Surfaces::instance()->boot();
+}, -50);
 tests_add_filter('ewp_logger_file_directory', function () {
     return sys_get_temp_dir() . '/ewp-logs-phpunit-' . getmypid();
 });

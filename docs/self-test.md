@@ -69,7 +69,7 @@ The plugin's CLI classes guard themselves with `class_exists('WP_CLI')`. In a we
 ## Adding a case
 
 1. Create `includes/classes/ewp-self-test/cases/class-<name>-case.php` extending `Gnnpls\SelfTest\Case_Base`; implement `preview()`, `run()`, `validate()`, and `cleanup()` when `run()` creates anything. Use the helpers `rest()`, `cli()`, `ability()`, `check()`, `skip()`, `status()`, `detail()`, `cli_check()`, `cli_check_printed()`, `ability_check()`.
-2. Add it to the list in `EWP_Self_Test::load_cases()`.
+2. Add it to the list in `EWP_Self_Test::load_cases()`. The list is loaded on demand by the `EWP\SelfTest\Cases\*` autoloader registered in `EWP_Self_Test::register()`, so cases cost nothing on requests that never run a self-test.
 3. Add the manifest entry, including `covers`.
 4. Run `composer test` (or `wp mwp self-test run --cases=<id> --cleanup` on a site).
 

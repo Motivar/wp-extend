@@ -11,7 +11,18 @@ projected onto three surfaces:
 | Abilities API | `Gnnpls\WP\Adapters\Ability_Adapter` | `ewp-logger/search` |
 
 The declarations live in `includes/classes/ewp-surfaces/resources/` and are
-registered by `EWP\Surfaces\EWP_Surfaces` on `Gnnpls\WP\Kit::on_ready()`.
+registered by `EWP\Surfaces\EWP_Surfaces`. `Kit::on_ready()` only attaches
+triggers; the registry itself (the resource classes, their services and the
+three adapters) is built lazily by `EWP_Surfaces::boot()` on the first
+`rest_api_init`, the first `wp_abilities_api_categories_init` /
+`wp_abilities_api_init`, immediately under WP-CLI, or when something calls
+`EWP_Surfaces::instance()->registry()`. A front-end or plain admin request
+therefore never loads the resource layer. The `ewp_surfaces_resources`
+filter fires at that moment, not on `plugins_loaded`. Every trigger runs at
+priority -1 so the adapters' own hooks (priority 10/20 on the same actions)
+still fire within that action; inside `rest_api_init` the REST adapter is
+attached with `add_action()` only, because `Rest_Adapter::register()` would
+also register immediately and duplicate every route.
 Each operation names the service method that runs it; the surfaces only
 translate input and output. Parameters, authorization, validation and the
 output schema therefore have exactly one definition.

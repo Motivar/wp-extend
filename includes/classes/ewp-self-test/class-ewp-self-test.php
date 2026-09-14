@@ -89,13 +89,33 @@ final class EWP_Self_Test
      */
     public function register($registry)
     {
-        self::load_cases();
+        spl_autoload_register([__CLASS__, 'autoload_case']);
 
         $registry->register(self::SLUG, __DIR__ . '/manifest.json', [
             'label'        => 'Extend WP',
             'requirements' => ['abilities', 'logger', 'ai'],
             'cli_loaders'  => [[__CLASS__, 'load_cli']],
         ]);
+    }
+
+    /**
+     * Load every case class the first time one of them is autoloaded.
+     *
+     * The manifest is only a file path until the runner (or the manifest
+     * test) resolves a case class, so nothing is loaded on a request that
+     * never runs a self-test.
+     *
+     * @param string $class Fully-qualified class name being autoloaded.
+     *
+     * @return void
+     */
+    public static function autoload_case($class)
+    {
+        if (strpos($class, __NAMESPACE__ . '\\Cases\\') !== 0 && $class !== __NAMESPACE__ . '\\EWP_Self_Test_Case') {
+            return;
+        }
+
+        self::load_cases();
     }
 
     /**
