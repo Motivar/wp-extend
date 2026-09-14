@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-09-14
+
+### Added
+- Dashboard filters: a **Plugin** select (one option per registered manifest) and a **Surface** select (REST / WP-CLI / Abilities). They hide cases outside the selection and keep hidden cases out of the run; the surface filter also narrows the check rows shown in results, with a note counting the hidden ones. Rows carry `data-plugin` and `data-layers`, check rows `data-check-layer`.
+
 ## [0.1.0] - 2026-09-14
 
 ### Added

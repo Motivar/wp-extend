@@ -4,15 +4,15 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1f7ba7f709050b72d3b3f36df557f1a7",
+    "content-hash": "04fb9d9f1b19fbe91078add6b3f0c4e8",
     "packages": [
         {
             "name": "motivar/wp-self-test",
-            "version": "v0.1.0",
+            "version": "v0.2.0",
             "source": {
                 "type": "git",
                 "url": "https://gitlab.motivar.io/tools/wp-selft-test.git",
-                "reference": "9914a7d94cd2468c9ce6f9d0bf550b0b2c4ad93f"
+                "reference": "868a6612175203f55769b25088a8d8618f54e6fe"
             },
             "require": {
                 "php": ">=7.4"
@@ -43,7 +43,7 @@
             ],
             "description": "Manifest-driven self-test suite for WordPress plugins: register a manifest of cases from your plugin folder and run them from wp-admin, WP-CLI, the Abilities API, a pre-push hook and CI.",
             "homepage": "https://gitlab.motivar.io/tools/wp-selft-test",
-            "time": "2026-09-14T07:06:30+00:00"
+            "time": "2026-09-14T07:20:41+00:00"
         }
     ],
     "packages-dev": [],

@@ -38,6 +38,24 @@ if (!defined('ABSPATH')) {
     <?php endif; ?>
 
     <div class="mwp-self-test__toolbar">
+        <label class="mwp-self-test__filter">
+            <span><?php esc_html_e('Plugin', 'wp-self-test'); ?></span>
+            <select data-filter="plugin">
+                <option value=""><?php esc_html_e('All plugins', 'wp-self-test'); ?></option>
+                <?php foreach ($plugins as $slug => $plugin) : ?>
+                    <option value="<?php echo esc_attr($slug); ?>"><?php echo esc_html($plugin['label']); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <label class="mwp-self-test__filter">
+            <span><?php esc_html_e('Surface', 'wp-self-test'); ?></span>
+            <select data-filter="layer">
+                <option value=""><?php esc_html_e('All surfaces', 'wp-self-test'); ?></option>
+                <option value="rest">REST</option>
+                <option value="cli">WP-CLI</option>
+                <option value="ability"><?php esc_html_e('Abilities', 'wp-self-test'); ?></option>
+            </select>
+        </label>
         <label class="mwp-self-test__select-all">
             <input type="checkbox" data-action="select-all" checked>
             <?php esc_html_e('All cases', 'wp-self-test'); ?>
@@ -61,7 +79,7 @@ if (!defined('ABSPATH')) {
         </thead>
         <tbody data-role="cases">
             <?php foreach ($cases as $case) : ?>
-                <tr data-case="<?php echo esc_attr($case['id']); ?>" class="<?php echo $case['available'] ? '' : 'mwp-self-test__case--unavailable'; ?>">
+                <tr data-case="<?php echo esc_attr($case['id']); ?>" data-plugin="<?php echo esc_attr($case['plugin']); ?>" data-layers="<?php echo esc_attr(implode(' ', $case['layers'])); ?>" class="<?php echo $case['available'] ? '' : 'mwp-self-test__case--unavailable'; ?>">
                     <td class="mwp-self-test__col-check">
                         <input type="checkbox" data-role="case-checkbox" value="<?php echo esc_attr($case['id']); ?>" <?php checked($case['available']); ?> <?php disabled(!$case['available']); ?>>
                     </td>
@@ -127,12 +145,13 @@ if (!defined('ABSPATH')) {
             <table class="mwp-self-test__checks">
                 <tbody data-slot="checks"></tbody>
             </table>
+            <p class="mwp-self-test__filtered-note" data-slot="filtered" hidden></p>
             <ul class="mwp-self-test__cleanup-list" data-slot="cleanup" hidden></ul>
         </article>
     </template>
 
     <template data-template="result-check">
-        <tr>
+        <tr data-check-layer="">
             <td class="mwp-self-test__check-status"><span class="mwp-self-test__badge" data-slot="status"></span></td>
             <td class="mwp-self-test__check-layer"><span class="mwp-self-test__layer" data-slot="layer"></span></td>
             <td data-slot="label"></td>

@@ -25,7 +25,7 @@
         }
     ],
     "require": {
-        "motivar/wp-self-test": "^0.1"
+        "motivar/wp-self-test": "^0.2"
     },
     "autoload": {
         "psr-4": {

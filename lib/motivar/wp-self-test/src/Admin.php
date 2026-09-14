@@ -82,6 +82,7 @@ final class Admin
                 'skip'         => __('skipped', Config::TEXT_DOMAIN),
                 'error_status' => __('error', Config::TEXT_DOMAIN),
                 'unavailable'  => __('unavailable', Config::TEXT_DOMAIN),
+                'hiddenChecks' => __('check(s) of other surfaces hidden by the filter', Config::TEXT_DOMAIN),
             ],
         ]);
     }

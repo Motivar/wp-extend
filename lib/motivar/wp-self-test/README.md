@@ -14,7 +14,8 @@ on five surfaces:
 | Hook / CI | `bin/pre-push`, `bin/run.php`, `ci/gitlab-ci.yml` |
 
 Several plugins can register manifests; the dashboard, commands and report
-show every case with the plugin it belongs to.
+show every case with the plugin it belongs to, and the dashboard can be
+filtered by plugin and by surface (REST / WP-CLI / Abilities).
 
 ## Install in a plugin
 

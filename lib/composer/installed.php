@@ -20,9 +20,9 @@
             'dev_requirement' => false,
         ),
         'motivar/wp-self-test' => array(
-            'pretty_version' => 'v0.1.0',
-            'version' => '0.1.0.0',
-            'reference' => '9914a7d94cd2468c9ce6f9d0bf550b0b2c4ad93f',
+            'pretty_version' => 'v0.2.0',
+            'version' => '0.2.0.0',
+            'reference' => '868a6612175203f55769b25088a8d8618f54e6fe',
             'type' => 'library',
             'install_path' => __DIR__ . '/../motivar/wp-self-test',
             'aliases' => array(),

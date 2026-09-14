@@ -50,6 +50,25 @@
         font-style: italic;
     }
 
+    &__filter {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+
+        span {
+            color: var(--mwp-self-test-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+    }
+
+    &__filtered-note {
+        margin: 4px 0 0;
+        color: var(--mwp-self-test-muted);
+        font-size: 12px;
+        font-style: italic;
+    }
+
     &--busy &__toolbar {
         opacity: 0.7;
     }
