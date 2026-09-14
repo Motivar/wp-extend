@@ -25,13 +25,6 @@ if (!defined('ABSPATH')) {
 class EWP_Logger_Diagnose
 {
     /**
-     * REST namespace.
-     *
-     * @var string
-     */
-    private static $namespace = 'extend-wp/v1';
-
-    /**
      * Maximum entries included as context in a single diagnosis.
      *
      * Bounds both prompt size and cost.
@@ -78,7 +71,7 @@ class EWP_Logger_Diagnose
      */
     public function init()
     {
-        add_action('rest_api_init', [$this, 'register_routes']);
+        /* POST extend-wp/v1/logs/diagnose is generated from EWP\Surfaces\Resources\Logger_Resource over diagnose(). */
         add_filter('ewp_logger_viewer_fields', [$this, 'add_viewer_fields'], 50);
         add_filter('ewp_register_dynamic_assets', [$this, 'register_assets']);
     }
@@ -164,64 +157,20 @@ class EWP_Logger_Diagnose
     }
 
     /**
-     * Register the diagnose REST route.
+     * Diagnose an issue against the log.
      *
-     * @return void
+     * @param array $input `issue` (required), `range` (filters|all|24h|7d|30d|90d) and,
+     *                     for `filters`, the viewer's filter values (comma joined
+     *                     or lists): date_from, date_to, owner, action_type,
+     *                     object_type, level, search_text, behaviour and any
+     *                     `ewp_logger_filter_params` extension.
      *
-     * @since 1.3.0
-     */
-    public function register_routes()
-    {
-        register_rest_route(self::$namespace, '/logs/diagnose', [
-            [
-                'methods'             => \WP_REST_Server::CREATABLE,
-                'callback'            => [$this, 'handle_diagnose'],
-                'permission_callback' => [$this, 'check_permission'],
-                'args'                => [
-                    'issue' => [
-                        'type'     => 'string',
-                        'required' => true,
-                    ],
-                    'range' => [
-                        'type'    => 'string',
-                        'enum'    => array_merge(['filters', 'all'], array_keys(self::get_range_presets())),
-                        'default' => 'filters',
-                    ],
-                ],
-            ],
-        ]);
-    }
-
-    /**
-     * Permission callback: same capability as the log viewer.
-     *
-     * @return bool|\WP_Error
+     * @return array|\WP_Error `{answer, context}` or an error (503 when AI is unavailable).
      *
      * @since 1.3.0
+     * @since 1.5.0 Takes the normalised input array instead of a WP_REST_Request.
      */
-    public function check_permission()
-    {
-        if (!current_user_can(EWP_Logger::get_viewer_capability())) {
-            return new \WP_Error(
-                'ewp_logger_forbidden',
-                __('You do not have permission to diagnose logs.', 'extend-wp'),
-                ['status' => 403]
-            );
-        }
-
-        return true;
-    }
-
-    /**
-     * Handle a diagnosis request.
-     *
-     * @param \WP_REST_Request $request The REST request.
-     *
-     * @return \WP_REST_Response|\WP_Error
-     *
-     * @since 1.3.0
-     */
-    public function handle_diagnose(\WP_REST_Request $request)
+    public function diagnose(array $input)
     {
         if (!self::is_available()) {
             return new \WP_Error(
@@ -231,7 +180,7 @@ class EWP_Logger_Diagnose
             );
         }
 
-        $issue = trim((string) $request->get_param('issue'));
+        $issue = trim((string) ($input['issue'] ?? ''));
 
         if ($issue === '') {
             return new \WP_Error(
@@ -243,7 +192,7 @@ class EWP_Logger_Diagnose
 
         $issue = mb_substr(sanitize_textarea_field($issue), 0, self::MAX_ISSUE_CHARS);
 
-        $scope = $this->resolve_scope($request);
+        $scope = $this->resolve_scope($input);
 
         $context = $this->gather_context($issue, $scope);
 
@@ -263,7 +212,7 @@ class EWP_Logger_Diagnose
             return $answer;
         }
 
-        return new \WP_REST_Response([
+        return [
             'answer'  => $answer,
             'context' => [
                 'date_from'       => $context['stats']['date_from'] ?? '',
@@ -272,7 +221,7 @@ class EWP_Logger_Diagnose
                 'entries_used'    => count($context['entries']),
                 'filters_applied' => $context['filters_applied'],
             ],
-        ], 200);
+        ];
     }
 
     /**
@@ -299,15 +248,15 @@ class EWP_Logger_Diagnose
      * current filters, so narrowing the table above also narrows what the
      * model is asked to reason about.
      *
-     * @param \WP_REST_Request $request The REST request.
+     * @param array $input Normalised input.
      *
      * @return array Ability-shaped query input.
      *
      * @since 1.3.0
      */
-    private function resolve_scope(\WP_REST_Request $request)
+    private function resolve_scope(array $input)
     {
-        $range   = (string) $request->get_param('range');
+        $range   = (string) ($input['range'] ?? 'filters');
         $presets = self::get_range_presets();
 
         if (isset($presets[$range])) {
@@ -336,28 +285,28 @@ class EWP_Logger_Diagnose
         $applied = [];
 
         foreach (['date_from', 'date_to'] as $key) {
-            $value = (string) $request->get_param($key);
+            $value = is_scalar($input[$key] ?? null) ? (string) $input[$key] : '';
             if ($value !== '') {
                 $scope[$key] = EWP_Logger_Formatter::normalize_date($value);
             }
         }
 
         foreach (['owner', 'action_type', 'object_type'] as $key) {
-            $value = $this->split_multi((string) $request->get_param($key));
+            $value = $this->split_multi($input[$key] ?? null);
             if (!empty($value)) {
                 $scope[$key] = $value;
                 $applied[]   = $key;
             }
         }
 
-        $level = $this->split_multi((string) $request->get_param('level'));
+        $level = $this->split_multi($input['level'] ?? null);
         if (!empty($level)) {
             // Storage whitelists a single level, so take the first.
             $scope['level'] = is_array($level) ? reset($level) : $level;
             $applied[]      = 'level';
         }
 
-        $search_text = trim((string) $request->get_param('search_text'));
+        $search_text = is_scalar($input['search_text'] ?? null) ? trim((string) $input['search_text']) : '';
         if ($search_text !== '') {
             $scope['search_text'] = $search_text;
             $applied[]            = 'search_text';
@@ -373,7 +322,7 @@ class EWP_Logger_Diagnose
                 continue;
             }
 
-            $value = $this->split_multi((string) $request->get_param($param));
+            $value = $this->split_multi($input[$param] ?? null);
             if ($value === null) {
                 continue;
             }
@@ -383,7 +332,7 @@ class EWP_Logger_Diagnose
         }
 
         // The viewer sends behaviour as storage integers; abilities take labels.
-        $behaviour = $this->split_multi((string) $request->get_param('behaviour'));
+        $behaviour = $this->split_multi($input['behaviour'] ?? null);
         if (!empty($behaviour)) {
             $labels = [];
             foreach ((array) $behaviour as $value) {
@@ -401,7 +350,7 @@ class EWP_Logger_Diagnose
     /**
      * Split a comma-joined multi-select value.
      *
-     * @param string $value Raw request value.
+     * @param string|array|null $value Raw value: comma joined string or a list.
      *
      * @return string|array|null Single value, list, or null when empty.
      *
@@ -409,6 +358,9 @@ class EWP_Logger_Diagnose
      */
     private function split_multi($value)
     {
+        if (is_array($value)) {
+            $value = implode(',', array_map('strval', $value));
+        }
         $value = trim((string) $value);
 
         if ($value === '') {

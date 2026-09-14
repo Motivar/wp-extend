@@ -3,6 +3,7 @@
 namespace EWP\Surfaces\Resources;
 
 use EWP\Logger\EWP_Logger;
+use EWP\Logger\EWP_Logger_Diagnose;
 use EWP\Logger\EWP_Logger_Query;
 use EWP\Logger\EWP_Logger_Settings;
 use Gnnpls\WP\Context;
@@ -212,6 +213,23 @@ final class Logger_Resource extends Resource
                 ->rest('POST', '', 201)
                 ->cli('write', ['success' => 'Logged an entry for %owner% (request %request_id%).'])
                 ->ability('write-entry'),
+
+            'diagnose'   => Operation::write('diagnose')
+                ->on(new EWP_Logger_Diagnose($this->query))
+                ->annotations(['idempotent' => true])
+                ->label(__('Diagnose an issue with AI', 'extend-wp'))
+                ->description(__('Send a plain-language issue description plus a slice of the log to the core AI client and return its diagnosis, for the log viewer\'s Diagnose box.', 'extend-wp'))
+                ->input(array_merge([
+                    Field::string('issue')->required()->describe(__('What went wrong, in your own words.', 'extend-wp')),
+                    Field::enum('range', array_merge(['filters', 'all'], array_keys(EWP_Logger_Diagnose::get_range_presets())))->default_value('filters')->describe(__('Which entries to look at: the viewer\'s current filters, everything retained, or a lookback preset.', 'extend-wp')),
+                ], $this->filter_fields()))
+                ->allow_extra()
+                ->args(function (array $input) {
+                    return [$input];
+                })
+                ->output(['type' => 'object', 'additionalProperties' => true])
+                ->surfaces([$this, 'diagnose_surfaces'], __('an interactive admin feature that spends AI tokens; the same context is available to agents through the read abilities', 'extend-wp'))
+                ->rest('POST', 'diagnose'),
         ];
     }
 
@@ -242,6 +260,21 @@ final class Logger_Resource extends Resource
     public function write_surfaces()
     {
         return EWP_Logger::is_enabled() ? Operation::SURFACES : [Context::ABILITY];
+    }
+
+    /**
+     * The diagnose route exists only while logging, the Abilities API and AI
+     * access to the logs are all enabled (the same gate as its admin box).
+     *
+     * @return string[]
+     */
+    public function diagnose_surfaces()
+    {
+        $abilities = class_exists('EWP\\Abilities\\EWP_Abilities')
+            ? \EWP\Abilities\EWP_Abilities::is_supported()
+            : function_exists('wp_register_ability');
+
+        return EWP_Logger::is_enabled() && $abilities && EWP_Logger_Settings::is_ai_enabled() ? [Context::REST] : [];
     }
 
     /* ---------------------------------------------------------------------

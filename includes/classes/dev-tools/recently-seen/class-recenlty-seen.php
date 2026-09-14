@@ -35,8 +35,8 @@ class EWP_Recently_Seen_UTIL
         add_action('init', array($this, 'registerScripts'), 0);
         // Add frontend scripts when appropriate
         add_action('wp_enqueue_scripts', array($this, 'addScripts'), 10);
-        // Register REST API endpoints
-        add_action('rest_api_init', [$this, 'rest_endpoints'], 10);
+        // POST ewp/v1/recently-seen/{id} is generated from EWP\Surfaces\Resources\Recently_Seen_Resource over record().
+        add_filter('ewp_surfaces_resources', [$this, 'register_resource']);
         // Initialize session handling early in the WordPress init process
         add_action('init', [$this, 'init_session'],1);
  }
@@ -67,81 +67,42 @@ class EWP_Recently_Seen_UTIL
     }
 
     /**
-     * Registers REST API endpoints for the Recently Seen functionality
-     * Creates a POST endpoint at /wp-json/ewp/v1/recently-seen/{id}
-     * Only registers if recently_seen settings are configured
-     */
-    public function rest_endpoints()
-    { 
-        try {
-            // Check if recently_seen has values in dev settings
-            if (empty(self::$post_types)) {
-                return;
-            }
-            
-            // Register the REST API endpoint for updating recently seen items
-            register_rest_route('ewp/v1', '/recently-seen/(?P<id>\d+)', array(
-                'methods' => 'POST',
-                'callback' => [$this, 'recently_seen'],
-                'args' => array(
-                    'id' => array(
-                        'description'       => __('The id of a published post', 'extend-wp'),
-                        'validate_callback' => function($param) { return is_numeric($param) && get_post_status((int) $param) === 'publish'; },
-                        'sanitize_callback' => 'absint',
-                        'required' => true
-                    )
-                ),
-                /*
-                 * Deliberately anonymous: the front-end script records views for
-                 * visitors who are not logged in. It only accepts the id of a
-                 * published post and writes nothing but the visitor's own session.
-                 */
-                'permission_callback' => [$this, 'permission_check']
-            ));
-        } catch (Exception $e) {
-            error_log('REST endpoint registration error: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Permission callback for the recently-seen route.
+     * Expose the recorder as a REST-only kit resource.
      *
-     * @return bool
+     * @param array $resources Resources keyed by name.
+     *
+     * @return array
      *
      * @since 1.5.0
      */
-    public function permission_check()
+    public function register_resource(array $resources)
     {
-        /**
-         * Whether the recently-seen route accepts anonymous requests.
-         *
-         * @param bool $public Default true; return false to require a logged-in user.
-         *
-         * @since 1.5.0
-         */
-        return (bool) apply_filters('ewp_recently_seen_public', true);
+        $resources['recently-seen'] = new \EWP\Surfaces\Resources\Recently_Seen_Resource($this);
+
+        return $resources;
     }
 
     /**
-     * REST API callback for the recently-seen endpoint
-     * Processes the POST request and updates the recently seen items
-     * 
-     * @param WP_REST_Request $request The REST request object containing the post ID
-     * @return bool|WP_Error True on success, WP_Error on failure
+     * Record a viewed post in the visitor's session.
+     *
+     * @param int $id Id of a published post (validated by the resource).
+     *
+     * @return bool|WP_Error True on success.
+     *
+     * @since 1.5.0 Replaces recently_seen(WP_REST_Request).
      */
-    public function recently_seen($request)
+    public function record($id)
     {
         try {
-            $id = absint($request['id']);
-            $post_type = get_post_type($id);
-            $this->update_recently_seen($id, $post_type);
+            $id = absint($id);
+            $this->update_recently_seen($id, get_post_type($id));
             return true;
         } catch (Exception $e) {
             error_log('Recently seen processing error: ' . $e->getMessage());
             return new WP_Error('recently_seen_error', $e->getMessage(), array('status' => 500));
         }
     }
-    
+
     /**
      * Updates the recently seen items in the user's session
      * Organizes items by post type and prevents duplicates

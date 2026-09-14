@@ -8,6 +8,7 @@ use EWP\Surfaces\Resources\Content_Type_Rest_Resource;
 use EWP\Surfaces\Resources\Content_Portability_Resource;
 use EWP\Surfaces\Resources\Object_Search_Resource;
 use EWP\Surfaces\Resources\Rest_Health_Resource;
+use EWP\Surfaces\Resources\Block_Preview_Resource;
 use EWP\Surfaces\Resources\Rest_Health_Probes_Resource;
 use EWP\Surfaces\Resources\Field_Builder_Resource;
 use EWP\Surfaces\Resources\Fields_Resource;
@@ -119,6 +120,8 @@ final class EWP_Surfaces
         require_once __DIR__ . '/class-rest-health-probes.php';
         require_once __DIR__ . '/resources/class-rest-health-probes-resource.php';
         require_once __DIR__ . '/resources/class-field-builder-resource.php';
+        require_once __DIR__ . '/resources/class-recently-seen-resource.php';
+        require_once __DIR__ . '/resources/class-block-preview-resource.php';
 
         $this->service = new Content_Service();
         $this->registry = new Registry();
@@ -198,6 +201,31 @@ final class EWP_Surfaces
         }
 
         $resource = new Content_Type_Rest_Resource($content_type, $prefix, $data_id, $this->service);
+        $registry->add($resource);
+        (new Rest_Adapter($resource))->register();
+    }
+
+    /**
+     * Register the editor preview route of one dynamic block.
+     *
+     * Called by EWP_Dynamic_Blocks on `rest_api_init` for every gathered
+     * block, and by test fixtures for blocks declared on demand.
+     *
+     * @param array               $block  Block definition from gather_blocks().
+     * @param \EWP_Dynamic_Blocks $blocks Block registry that renders it.
+     *
+     * @return void
+     *
+     * @since 1.5.0
+     */
+    public function register_block_preview_routes(array $block, \EWP_Dynamic_Blocks $blocks)
+    {
+        $registry = $this->registry();
+        if ($registry === null || empty($block['namespace']) || empty($block['name'])) {
+            return;
+        }
+
+        $resource = new Block_Preview_Resource($block, $blocks);
         $registry->add($resource);
         (new Rest_Adapter($resource))->register();
     }

@@ -60,10 +60,11 @@ class Test_Self_Test_Manifest extends WP_UnitTestCase
         $missing  = [];
 
         foreach ($registry->all() as $resource) {
-            $per_type = $resource instanceof \EWP\Surfaces\Resources\Content_Type_Rest_Resource;
+            $per_type  = $resource instanceof \EWP\Surfaces\Resources\Content_Type_Rest_Resource;
+            $per_block = $resource instanceof \EWP\Surfaces\Resources\Block_Preview_Resource;
             foreach ($resource->ops() as $op) {
                 foreach (\Gnnpls\WP\Inventory::rest_routes($resource, $op) as $route) {
-                    $path = $this->normalise_route(preg_replace('/^[A-Z]+ /', '', $route), $per_type ? $resource : null);
+                    $path = $this->normalise_route(preg_replace('/^[A-Z]+ /', '', $route), $per_type ? $resource : null, $per_block);
                     if (!in_array($path, $covered['rest'], true)) {
                         $missing[] = 'rest: ' . $path;
                     }
@@ -169,9 +170,17 @@ class Test_Self_Test_Manifest extends WP_UnitTestCase
      *
      * @return string
      */
-    private function normalise_route($route, $content = null)
+    private function normalise_route($route, $content = null, $block = false)
     {
         $path = preg_replace('/\(\?P<([a-z_]+)>[^)]*\)/', '{$1}', trim($route, '/'));
+
+        if ($block) {
+            $segments    = explode('/', $path);
+            $segments[0] = '{namespace}';
+            $segments[1] = '{name}';
+
+            return implode('/', $segments);
+        }
 
         if ($content !== null) {
             $segments = explode('/', $path);

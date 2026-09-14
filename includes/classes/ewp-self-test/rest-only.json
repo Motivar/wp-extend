@@ -1,8 +1,6 @@
 {
     "$comment": "REST routes this plugin registers outside the surfaces registry, each with the reason it stays REST-only. tests/test-self-test-manifest-test.php fails when a registered route is neither generated from a kit resource, covered by a manifest case, nor listed here. Paths are namespace-relative with URL parameters as {name}.",
     "routes": {
-        "extend-wp/v1/logs/diagnose": "sends log context to the core AI client from the log viewer; an interactive admin feature, covered by the ai-abilities case when a provider is configured.",
-        "ewp/v1/recently-seen/{id}": "anonymous front-end view recorder for the recently-seen widget; deliberately public, no other surface makes sense.",
         "ewp-filter/{id}": "front-end search results for one configured filter; covered by the search-filters case through its dynamic id."
     }
 }

@@ -367,6 +367,42 @@
                 "cli": [],
                 "ability": []
             }
+        },
+        {
+            "id": "recently-seen",
+            "label": "Recently-seen recorder",
+            "category": "frontend",
+            "layers": [
+                "rest"
+            ],
+            "class": "EWP\\SelfTest\\Cases\\Recently_Seen_Case",
+            "requires": [],
+            "args": {},
+            "covers": {
+                "rest": [
+                    "ewp/v1/recently-seen/{id}"
+                ],
+                "cli": [],
+                "ability": []
+            }
+        },
+        {
+            "id": "block-preview",
+            "label": "Dynamic block editor preview",
+            "category": "blocks",
+            "layers": [
+                "rest"
+            ],
+            "class": "EWP\\SelfTest\\Cases\\Block_Preview_Case",
+            "requires": [],
+            "args": {},
+            "covers": {
+                "rest": [
+                    "{namespace}/{name}/preview"
+                ],
+                "cli": [],
+                "ability": []
+            }
         }
     ]
 }
