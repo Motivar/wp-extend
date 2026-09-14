@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-09-14
+
+### Fixed
+- `Loader::enabled()` was missing from the 0.4.0 tag (its `boot()` called it and fataled on `plugins_loaded`). 0.4.0 is unusable; require `>=0.4.1`.
+
+## [0.4.0] - 2026-09-14
+
+### Added
+- `Loader::enabled()` and the `mwp_self_test_enabled` filter `(bool $enabled, string $environment)`: the package now boots only when it returns true. Default: `true` unless the environment is `production`, where the environment is `WP_ENV` when defined and `wp_get_environment_type()` otherwise. Evaluated once on `plugins_loaded` (-100), so a plugin adds the filter at load time (e.g. return `false` on front-end requests, or `true` to allow runs on a production site). When disabled nothing is autoloaded and no surface, command, route or ability is registered; `mwp_self_test_booted` does not fire.
+
+### Changed
+- **Breaking for production sites**: a site whose environment type is `production` (WordPress' default when `WP_ENVIRONMENT_TYPE`/`WP_ENV` is unset) no longer gets the `wp mwp self-test` commands, the `mwp-self-test/*` abilities or the dashboard unless `mwp_self_test_enabled` returns true. Set `WP_ENVIRONMENT_TYPE` to `development`/`staging`/`local` on non-production sites (the PHPUnit config of a consumer must do the same, or add the filter in its bootstrap).
+
 ## [0.3.0] - 2026-09-14
 
 ### Changed

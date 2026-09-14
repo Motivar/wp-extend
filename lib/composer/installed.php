@@ -20,9 +20,9 @@
             'dev_requirement' => false,
         ),
         'gnnpls/wp-self-test' => array(
-            'pretty_version' => 'v0.3.0',
-            'version' => '0.3.0.0',
-            'reference' => 'd795f090e3fddfb6621fc49afebb175b7f1b60bd',
+            'pretty_version' => 'v0.4.1',
+            'version' => '0.4.1.0',
+            'reference' => 'ac9c5e11113849c5a08ba0dd3b1c6811373da83b',
             'type' => 'library',
             'install_path' => __DIR__ . '/../gnnpls/wp-self-test',
             'aliases' => array(),

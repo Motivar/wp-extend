@@ -78,9 +78,9 @@ class Setup
   if (!$front_end) {
    require_once 'ewp-options-portability/class-options-portability.php';
   }
-  /*registers manifest.json and the cases with the gnnpls/wp-self-test package (lib/), which boots on plugins_loaded; a front-end request never runs self-tests, so the package boot is unhooked there too*/
+  /*registers manifest.json and the cases with the gnnpls/wp-self-test package (lib/), which boots on plugins_loaded unless `mwp_self_test_enabled` says otherwise (off on production by default); a front-end request never runs self-tests*/
   if ($front_end) {
-   remove_action('plugins_loaded', ['Gnnpls\\SelfTest\\Loader', 'boot'], -100);
+   add_filter('mwp_self_test_enabled', '__return_false');
   } else {
    require_once 'ewp-self-test/class-ewp-self-test.php';
   }

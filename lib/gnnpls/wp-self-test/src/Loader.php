@@ -31,6 +31,9 @@ final class Loader
     /** @var bool */
     private static $hooked = false;
 
+    /** @var bool|null Memoised answer of enabled(). */
+    private static $enabled = null;
+
     /**
      * Register a copy of the package.
      *
@@ -72,7 +75,7 @@ final class Loader
      */
     public static function boot()
     {
-        if (self::$booted !== null) {
+        if (self::$booted !== null || !self::enabled()) {
             return;
         }
 
@@ -95,6 +98,47 @@ final class Loader
          * @since 0.1.0
          */
         do_action('mwp_self_test_booted', $path, self::version());
+    }
+
+    /**
+     * Whether the package boots at all on this request.
+     *
+     * Self-tests create data on the site, so the package is off on
+     * production by default: the environment is `WP_ENV` when defined
+     * (Bedrock-style) and `wp_get_environment_type()` otherwise, and
+     * anything other than `production` enables it. Evaluated once, on
+     * `plugins_loaded` (-100), so plugins add the filter at load time.
+     *
+     * @return bool
+     *
+     * @since 0.4.0
+     */
+    public static function enabled()
+    {
+        if (self::$enabled !== null) {
+            return self::$enabled;
+        }
+
+        $environment = defined('WP_ENV')
+            ? (string) WP_ENV
+            : (function_exists('wp_get_environment_type') ? wp_get_environment_type() : 'production');
+
+        $default = $environment !== 'production';
+
+        /**
+         * Filter whether the self-test package boots on this request
+         * (surfaces, manifests, dashboard, commands and abilities).
+         *
+         * @param bool   $enabled     Default: true unless the environment is `production`.
+         * @param string $environment `WP_ENV` or `wp_get_environment_type()`.
+         *
+         * @since 0.4.0
+         */
+        self::$enabled = function_exists('apply_filters')
+            ? (bool) apply_filters('mwp_self_test_enabled', $default, $environment)
+            : $default;
+
+        return self::$enabled;
     }
 
     /**

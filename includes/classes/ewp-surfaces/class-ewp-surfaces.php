@@ -129,6 +129,7 @@ final class EWP_Surfaces
         // the registry boots (e.g. an abilities call from a front-end request).
         require_once dirname(__DIR__) . '/awm-api/class-awm-api.php';
         require_once dirname(__DIR__) . '/ewp-options-portability/class-options-portability.php';
+        \EWP\Logger\EWP_Logger::load_read_side();
         require_once __DIR__ . '/class-content-schema.php';
         require_once __DIR__ . '/class-library-fields.php';
         require_once __DIR__ . '/class-field-vocabulary.php';

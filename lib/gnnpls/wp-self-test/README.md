@@ -25,9 +25,11 @@ composer require gnnpls/wp-self-test
 
 The package is a runtime dependency because the dashboard, the command and
 the abilities execute inside WordPress. Nothing is exposed on a production
-site: the UI, its REST routes and the WP_CLI shim are off unless `WP_DEBUG`
-is on (filter `mwp_self_test_ui_enabled`), and every surface requires
-`manage_options` (filter `mwp_self_test_capability`).
+site: the package does not boot at all when the environment (`WP_ENV` if
+defined, else `wp_get_environment_type()`) is `production` (filter
+`mwp_self_test_enabled`), the UI, its REST routes and the WP_CLI shim are
+off unless `WP_DEBUG` is on (filter `mwp_self_test_ui_enabled`), and every
+surface requires `manage_options` (filter `mwp_self_test_capability`).
 
 Composer's `autoload.files` loads `bootstrap.php`, which registers this
 copy of the package. When several active plugins bundle copies, the newest
@@ -167,6 +169,7 @@ a bootstrap can point `phpunit.xml` and `bin/run.php` at
 | `mwp_self_test_completed` | action | `(array $report)` |
 | `mwp_self_test_manifest` | filter | `(array $manifest, string $path, string $plugin)` |
 | `mwp_self_test_capability` | filter | `(string $capability)` default `manage_options` |
+| `mwp_self_test_enabled` | filter | `(bool $enabled, string $environment)` — whether the package boots at all on this request; default `true` unless the environment (`WP_ENV` if defined, else `wp_get_environment_type()`) is `production`. Return `false` on e.g. front-end requests, `true` to allow runs on a production site. |
 | `mwp_self_test_ui_enabled` | filter | `(bool $enabled)` default `WP_DEBUG` |
 | `mwp_self_test_shim_enabled` | filter | `(bool $enabled)` default: UI enabled |
 | `mwp_self_test_abilities_available` | filter | `(bool $available)` |

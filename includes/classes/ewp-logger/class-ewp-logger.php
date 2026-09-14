@@ -6,22 +6,13 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Write path and cron: needed on every request that may log something.
 require_once __DIR__ . '/class-ewp-logger-storage.php';
 require_once __DIR__ . '/class-ewp-logger-file.php';
 require_once __DIR__ . '/class-ewp-logger-queue.php';
 require_once __DIR__ . '/class-ewp-logger-settings.php';
 require_once __DIR__ . '/class-ewp-logger-cleanup.php';
-require_once __DIR__ . '/class-ewp-logger-formatter.php';
-require_once __DIR__ . '/class-ewp-logger-query.php';
-require_once __DIR__ . '/class-ewp-logger-api.php';
-require_once __DIR__ . '/class-ewp-logger-diagnose.php';
-require_once __DIR__ . '/class-ewp-logger-viewer.php';
-require_once __DIR__ . '/class-ewp-logger-cli.php';
 require_once __DIR__ . '/logger-functions.php';
-require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health-discovery.php';
-require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health-runner.php';
-require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health-openapi.php';
-require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health.php';
 
 /**
  * Core singleton for the EWP Logger system.
@@ -45,6 +36,38 @@ require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health.php';
  */
 class EWP_Logger
 {
+    /**
+     * Load the read side of the logger: query, formatter, filter params,
+     * AI diagnose, the wp-admin viewer, the WP-CLI wrapper and the REST-health
+     * module that builds on them.
+     *
+     * Skipped on plain front-end requests (nothing there reads logs) and
+     * called again on demand by EWP_Surfaces::boot() — the logger and
+     * REST-health resources need these classes on whichever surface asks
+     * for them — and by EWP_Self_Test::load_cli() for the CLI shim.
+     * Idempotent.
+     *
+     * @return void
+     *
+     * @since 1.5.1
+     */
+    public static function load_read_side()
+    {
+        require_once __DIR__ . '/class-ewp-logger-formatter.php';
+        require_once __DIR__ . '/class-ewp-logger-query.php';
+        require_once __DIR__ . '/class-ewp-logger-api.php';
+        require_once __DIR__ . '/class-ewp-logger-diagnose.php';
+        require_once __DIR__ . '/class-ewp-logger-viewer.php';
+        require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health-discovery.php';
+        require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health-runner.php';
+        require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health-openapi.php';
+        require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health.php';
+
+        if (class_exists('WP_CLI')) {
+            require_once __DIR__ . '/class-ewp-logger-cli.php';
+        }
+    }
+
     /**
      * Singleton instance.
      *
@@ -203,16 +226,20 @@ class EWP_Logger
             ? \EWP\Abilities\EWP_Abilities::is_supported()
             : function_exists('wp_register_ability');
 
-        if (self::$enabled && $abilities_supported && EWP_Logger_Settings::is_ai_enabled()) {
-            // In-admin diagnosis reuses the same query layer, so the model
-            // sees exactly what an external AI agent would see.
-            $diagnose = new EWP_Logger_Diagnose(new EWP_Logger_Query());
-            $diagnose->init();
-        }
+        // The read side (viewer, diagnose box) is not loaded on front-end
+        // requests; see load_read_side().
+        if (class_exists(__NAMESPACE__ . '\\EWP_Logger_Viewer', false)) {
+            if (self::$enabled && $abilities_supported && EWP_Logger_Settings::is_ai_enabled()) {
+                // In-admin diagnosis reuses the same query layer, so the model
+                // sees exactly what an external AI agent would see.
+                $diagnose = new EWP_Logger_Diagnose(new EWP_Logger_Query());
+                $diagnose->init();
+            }
 
-        // Initialize log viewer admin page (always available to view existing logs)
-        $viewer = new EWP_Logger_Viewer();
-        $viewer->init();
+            // Initialize log viewer admin page (always available to view existing logs)
+            $viewer = new EWP_Logger_Viewer();
+            $viewer->init();
+        }
 
         // Register built-in action types and fire the initialized action regardless of
         // enabled state — the viewer needs owner/type metadata even when logging is off.
@@ -1028,4 +1055,8 @@ class EWP_Logger
 
         return array_diff_key($data, array_flip($noise_keys));
     }
+}
+
+if (!class_exists('EWP\\Request_Context') || !\EWP\Request_Context::is_front_end()) {
+    EWP_Logger::load_read_side();
 }

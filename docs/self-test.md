@@ -68,7 +68,7 @@ The plugin's CLI classes guard themselves with `class_exists('WP_CLI')`. In a we
 
 ## Request kinds
 
-Self-tests exist for wp-admin (the dashboard), REST (`mwp-self-test/v1`), WP-CLI and the abilities. On a plain front-end request `Setup.php` neither registers the manifest nor lets the `gnnpls/wp-self-test` package boot (its `plugins_loaded` hook is removed), as decided by `EWP\Request_Context::is_front_end()`; the `ewp_request_is_front_end` filter forces the full load if a front-end integration ever needs it.
+Self-tests exist for wp-admin (the dashboard), REST (`mwp-self-test/v1`), WP-CLI and the abilities. The `gnnpls/wp-self-test` package boots only when its `mwp_self_test_enabled` filter returns true: the package default is `true` unless the environment is `production` (`WP_ENV` when defined, else `wp_get_environment_type()`), and this plugin returns `false` on plain front-end requests (`EWP\Request_Context::is_front_end()`), where it also skips its own manifest registration. A production site that should run self-tests adds `add_filter('mwp_self_test_enabled', '__return_true')`; a non-production site must declare its environment (`WP_ENVIRONMENT_TYPE` in wp-config, as `tests/wp-tests-config.php` does for PHPUnit). `ewp_request_is_front_end` forces the full load if a front-end integration ever needs it.
 
 ## Adding a case
 

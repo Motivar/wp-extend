@@ -173,6 +173,9 @@ final class EWP_Self_Test
     {
         $base = dirname(__DIR__);
 
+        // Declares EWP_Logger_CLI under the shim (class_exists('WP_CLI') is true by now).
+        \EWP\Logger\EWP_Logger::load_read_side();
+
         if (!class_exists('EWP_Content_CLI', false)) {
             include $base . '/awm-content-db-api/custom-content/class-content-cli.php';
         }

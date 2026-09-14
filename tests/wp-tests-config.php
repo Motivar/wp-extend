@@ -30,3 +30,5 @@ define('WP_PHP_BINARY', 'php');
 define('WPLANG', '');
 
 define('WP_DEBUG', true);
+// gnnpls/wp-self-test boots only outside production (filter mwp_self_test_enabled).
+define('WP_ENVIRONMENT_TYPE', 'development');

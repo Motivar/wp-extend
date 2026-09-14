@@ -30,7 +30,7 @@
     ],
     "require": {
         "gnnpls/wp-kit": ">=0.1",
-        "gnnpls/wp-self-test": ">=0.3"
+        "gnnpls/wp-self-test": ">=0.4.1"
     },
     "autoload": {
         "psr-4": {
