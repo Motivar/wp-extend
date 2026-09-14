@@ -6,6 +6,8 @@ set -euo pipefail
 S="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN="$(cd "$S/../.." && pwd)"
 N="${3:-10}"
+# The harness may not exist on the refs under test: stage it outside the tree.
+STAGE="$(mktemp -d)"; cp "$S/probe.php" "$S/report.php" "$STAGE/"; mkdir -p "$STAGE/results"
 ORIG="$(git -C "$PLUGIN" rev-parse --abbrev-ref HEAD)"
 DIRTY=0
 if [ -n "$(git -C "$PLUGIN" status --porcelain --untracked-files=no)" ]; then
@@ -14,6 +16,7 @@ fi
 restore() {
   git -C "$PLUGIN" checkout -q -- . ; git -C "$PLUGIN" checkout -q "$ORIG"
   if [ "$DIRTY" = 1 ]; then git -C "$PLUGIN" stash pop -q; fi
+  mkdir -p "$S/results" && cp "$STAGE"/results/*.jsonl "$S/results/" 2>/dev/null || true
 }
 trap restore EXIT
 checkout_ref() { # "." = original tree with the stashed changes applied
@@ -22,7 +25,7 @@ checkout_ref() { # "." = original tree with the stashed changes applied
   git -C "$PLUGIN" checkout -q "$ORIG"
   if [ "$DIRTY" = 1 ]; then git -C "$PLUGIN" stash apply -q; fi
 }
-ddev exec -d /var/www/html "cat > /tmp/ewp-bench-probe.php" < "$S/probe.php"
+ddev exec -d /var/www/html "cat > /tmp/ewp-bench-probe.php" < "$STAGE/probe.php"
 
 http_ms() { # TTFB in ms for a path, measured inside the web container
   ddev exec curl -s -o /dev/null -w '%{time_starttransfer}' "http://localhost$1" | awk '{printf "%.1f", $1*1000}'
@@ -34,9 +37,9 @@ cli_ms() { # wall-clock ms of a wp-cli command (includes ddev exec overhead)
 for REF in "$1" "$2"; do
   echo "== $REF"
   checkout_ref "$REF"
-  ddev exec -d /var/www/html "cat > /tmp/ewp-bench-probe.php" < "$S/probe.php"
+  ddev exec -d /var/www/html "cat > /tmp/ewp-bench-probe.php" < "$STAGE/probe.php"
   NAME="${REF//\//_}"; [ "$NAME" = "." ] && NAME="worktree"
-  OUT="$S/results/$NAME.jsonl"; : > "$OUT"
+  OUT="$STAGE/results/$NAME.jsonl"; : > "$OUT"
   ddev exec wp cache flush >/dev/null 2>&1 || true
   ddev exec wp eval-file /tmp/ewp-bench-probe.php >/dev/null   # warm-up
   for p in /wp-json/ /wp-json/extend-wp/v1 "/?bench=warm"; do http_ms "$p" >/dev/null; done
@@ -48,4 +51,4 @@ for REF in "$1" "$2"; do
   done
 done
 A="${1//\//_}"; [ "$A" = "." ] && A="worktree"; B="${2//\//_}"; [ "$B" = "." ] && B="worktree"
-php "$S/report.php" "$S/results/$A.jsonl" "$S/results/$B.jsonl"
+php "$STAGE/report.php" "$STAGE/results/$A.jsonl" "$STAGE/results/$B.jsonl"
