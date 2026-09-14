@@ -17,7 +17,10 @@ three adapters) is built lazily by `EWP_Surfaces::boot()` on the first
 `rest_api_init`, the first `wp_abilities_api_categories_init` /
 `wp_abilities_api_init`, immediately under WP-CLI, or when something calls
 `EWP_Surfaces::instance()->registry()`. A front-end or plain admin request
-therefore never loads the resource layer. The `ewp_surfaces_resources`
+therefore never loads the resource layer (Setup.php also skips the
+admin-only modules there — see `EWP\Request_Context`; `boot()` requires the
+ones its resources wrap, `AWM_API` and `EWP_Options_Portability`, on demand).
+The `ewp_surfaces_resources`
 filter fires at that moment, not on `plugins_loaded`. Every trigger runs at
 priority -1 so the adapters' own hooks (priority 10/20 on the same actions)
 still fire within that action; inside `rest_api_init` the REST adapter is

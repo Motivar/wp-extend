@@ -35,6 +35,10 @@ class Setup
    $logger = \EWP\Logger\EWP_Logger::instance();
    $logger->init();
   }, 0);
+  require_once 'class-request-context.php';
+  $front_end = Request_Context::is_front_end();
+  $has_cli   = class_exists('WP_CLI');
+
   require_once 'adminMessages/class-adminMessages.php';
   require_once 'ewp-gallery/class-ewp-gallery.php';
   require_once 'ewp-fields/class-field.php';
@@ -45,31 +49,49 @@ class Setup
   require_once 'ewp-wp-content/class-slug-manager.php';
   require_once 'ewp-wp-content/class-wp-content-installer.php';
   require_once 'ewp-search-filter/class-wp-search.php';
-  require_once 'awm-api/class-awm-api.php';
+  /*field-builder helpers, served only through the REST routes of Field_Builder_Resource; EWP_Surfaces::boot() requires it again on demand*/
+  if (!$front_end) {
+   require_once 'awm-api/class-awm-api.php';
+  }
   require_once 'awm-api/class-awm-dynamic-api.php';
   require_once 'awm-content-db-api/init.php';
   /*shared read/write implementation behind the content REST routes, `wp ewp content` and the content abilities; must follow the content DB api*/
   require_once 'ewp-content/class-content-service.php';
   require_once 'class-extend-wp.php';
   require_once 'awm-db/class-db-creator.php';
-  require_once 'awm-list-tables/class-list-table.php';
+  /*wp-admin list tables and edit forms for custom content; nothing on the front end renders them*/
+  if (!$front_end) {
+   require_once 'awm-list-tables/class-list-table.php';
+  }
   require_once 'awm-customizer/class-customizer.php';
   require_once 'ewp-third-party/class-wpml.php';
   require_once 'ewp-third-party/class-wp-rocket.php';
   require_once 'ewp-gutenburg/class-register.php';
-  require_once 'wp-cli/class-cli-commands.php';
+  /*bails without WP_CLI anyway; the self-test shim re-includes it through EWP_Self_Test::load_cli()*/
+  if ($has_cli) {
+   require_once 'wp-cli/class-cli-commands.php';
+  }
   require_once 'dev-tools/init.php';
   require_once 'class-dynamic-asset-loader.php';
   require_once 'ewp-logger/class-ewp-logger.php';
-  require_once 'ewp-options-portability/class-options-portability.php';
-  /*registers manifest.json and the cases with the gnnpls/wp-self-test package (lib/), which boots on plugins_loaded*/
-  require_once 'ewp-self-test/class-ewp-self-test.php';
+  /*admin page, REST and CLI only; EWP_Surfaces::boot() requires it again on demand for Options_Resource*/
+  if (!$front_end) {
+   require_once 'ewp-options-portability/class-options-portability.php';
+  }
+  /*registers manifest.json and the cases with the gnnpls/wp-self-test package (lib/), which boots on plugins_loaded; a front-end request never runs self-tests, so the package boot is unhooked there too*/
+  if ($front_end) {
+   remove_action('plugins_loaded', ['Gnnpls\\SelfTest\\Loader', 'boot'], -100);
+  } else {
+   require_once 'ewp-self-test/class-ewp-self-test.php';
+  }
   /*must stay after every module it wraps: the abilities read the content type registry, the logger, options portability and the self-test runner*/
   require_once 'ewp-abilities/class-ewp-abilities.php';
   /*declares the plugin's resources with the gnnpls/wp-kit package (lib/, loaded by Composer); REST, WP-CLI and abilities are generated from them (must follow the modules whose services it wraps)*/
   require_once 'ewp-surfaces/class-ewp-surfaces.php';
-  /*uses EWP\Content\Content_Service (loaded above); kept after ewp-abilities so the shim-based self-test loads it in the same order as production*/
-  require_once 'awm-content-db-api/custom-content/class-content-cli.php';
+  /*uses EWP\Content\Content_Service (loaded above); kept after ewp-abilities so the shim-based self-test loads it in the same order as production; bails without WP_CLI*/
+  if ($has_cli) {
+   require_once 'awm-content-db-api/custom-content/class-content-cli.php';
+  }
 
  }
 }

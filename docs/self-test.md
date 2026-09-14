@@ -66,6 +66,10 @@ The plugin's CLI classes guard themselves with `class_exists('WP_CLI')`. In a we
 | `options-portability` | list / export / dry-run import on all layers — never writes an option |
 | `ai-abilities` | every `ewp-*` category (content, fields, wp-content, search, options, system, logger) is registered with core; reports whether an AI provider is configured (skipped, not failed, when it is not; no paid completion is ever requested) |
 
+## Request kinds
+
+Self-tests exist for wp-admin (the dashboard), REST (`mwp-self-test/v1`), WP-CLI and the abilities. On a plain front-end request `Setup.php` neither registers the manifest nor lets the `gnnpls/wp-self-test` package boot (its `plugins_loaded` hook is removed), as decided by `EWP\Request_Context::is_front_end()`; the `ewp_request_is_front_end` filter forces the full load if a front-end integration ever needs it.
+
 ## Adding a case
 
 1. Create `includes/classes/ewp-self-test/cases/class-<name>-case.php` extending `Gnnpls\SelfTest\Case_Base`; implement `preview()`, `run()`, `validate()`, and `cleanup()` when `run()` creates anything. Use the helpers `rest()`, `cli()`, `ability()`, `check()`, `skip()`, `status()`, `detail()`, `cli_check()`, `cli_check_printed()`, `ability_check()`.
