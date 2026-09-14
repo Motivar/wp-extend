@@ -1,6 +1,6 @@
 {
     "name": "motivar/extend-wp",
-    "version": "1.1.2",
+    "version": "1.5.0",
     "description": " Extend WordPress with custom functionality",
     "license": "GPL-2.0-or-later",
     "keywords": ["custom-fields", "advanced-custom-fields", "wordpress"],

@@ -404,10 +404,10 @@
             "properties": {
                 "ids": {
                     "type": "array",
+                    "description": "Ids of the items to delete.",
                     "items": {
                         "type": "integer"
-                    },
-                    "description": "Ids of the items to delete."
+                    }
                 },
                 "confirm": {
                     "type": "boolean",
@@ -515,10 +515,10 @@
             "properties": {
                 "status": {
                     "type": "array",
+                    "description": "Restrict to these statuses. Omit for every status.",
                     "items": {
                         "type": "string"
-                    },
-                    "description": "Restrict to these statuses. Omit for every status."
+                    }
                 },
                 "search": {
                     "type": "string",
@@ -526,25 +526,28 @@
                 },
                 "include": {
                     "type": "array",
+                    "description": "Return only these item ids.",
                     "items": {
                         "type": "integer"
-                    },
-                    "description": "Return only these item ids."
+                    }
                 },
                 "limit": {
                     "type": "integer",
+                    "description": "How many items to return. Defaults to 50, maximum 200.",
                     "minimum": 1,
-                    "maximum": 200,
-                    "description": "How many items to return. Defaults to 50, maximum 200."
+                    "maximum": 200
                 },
                 "order_by": {
                     "type": "object",
+                    "description": "Sort column and direction, for example {\"column\":\"created\",\"type\":\"desc\"}.",
                     "properties": {
                         "column": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Column to sort by, for example created or modified."
                         },
                         "type": {
                             "type": "string",
+                            "description": "Sort direction.",
                             "enum": [
                                 "asc",
                                 "desc",
@@ -1143,10 +1146,10 @@
             "properties": {
                 "status": {
                     "type": "array",
+                    "description": "Restrict to these statuses. Omit for every status.",
                     "items": {
                         "type": "string"
-                    },
-                    "description": "Restrict to these statuses. Omit for every status."
+                    }
                 },
                 "search": {
                     "type": "string",
@@ -1154,25 +1157,28 @@
                 },
                 "include": {
                     "type": "array",
+                    "description": "Return only these item ids.",
                     "items": {
                         "type": "integer"
-                    },
-                    "description": "Return only these item ids."
+                    }
                 },
                 "limit": {
                     "type": "integer",
+                    "description": "How many items to return. Defaults to 50, maximum 200.",
                     "minimum": 1,
-                    "maximum": 200,
-                    "description": "How many items to return. Defaults to 50, maximum 200."
+                    "maximum": 200
                 },
                 "order_by": {
                     "type": "object",
+                    "description": "Sort column and direction, for example {\"column\":\"created\",\"type\":\"desc\"}.",
                     "properties": {
                         "column": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Column to sort by, for example created or modified."
                         },
                         "type": {
                             "type": "string",
+                            "description": "Sort direction.",
                             "enum": [
                                 "asc",
                                 "desc",
@@ -1673,10 +1679,10 @@
             "properties": {
                 "ids": {
                     "type": "array",
+                    "description": "Ids of the items to delete.",
                     "items": {
                         "type": "integer"
-                    },
-                    "description": "Ids of the items to delete."
+                    }
                 },
                 "confirm": {
                     "type": "boolean",
@@ -1717,10 +1723,10 @@
             "properties": {
                 "ids": {
                     "type": "array",
+                    "description": "Ids of the items to delete.",
                     "items": {
                         "type": "integer"
-                    },
-                    "description": "Ids of the items to delete."
+                    }
                 },
                 "confirm": {
                     "type": "boolean",
@@ -1895,10 +1901,10 @@
             "properties": {
                 "status": {
                     "type": "array",
+                    "description": "Restrict to these statuses. Omit for every status.",
                     "items": {
                         "type": "string"
-                    },
-                    "description": "Restrict to these statuses. Omit for every status."
+                    }
                 },
                 "search": {
                     "type": "string",
@@ -1906,25 +1912,28 @@
                 },
                 "include": {
                     "type": "array",
+                    "description": "Return only these item ids.",
                     "items": {
                         "type": "integer"
-                    },
-                    "description": "Return only these item ids."
+                    }
                 },
                 "limit": {
                     "type": "integer",
+                    "description": "How many items to return. Defaults to 50, maximum 200.",
                     "minimum": 1,
-                    "maximum": 200,
-                    "description": "How many items to return. Defaults to 50, maximum 200."
+                    "maximum": 200
                 },
                 "order_by": {
                     "type": "object",
+                    "description": "Sort column and direction, for example {\"column\":\"created\",\"type\":\"desc\"}.",
                     "properties": {
                         "column": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Column to sort by, for example created or modified."
                         },
                         "type": {
                             "type": "string",
+                            "description": "Sort direction.",
                             "enum": [
                                 "asc",
                                 "desc",
@@ -2013,10 +2022,10 @@
             "properties": {
                 "status": {
                     "type": "array",
+                    "description": "Restrict to these statuses. Omit for every status.",
                     "items": {
                         "type": "string"
-                    },
-                    "description": "Restrict to these statuses. Omit for every status."
+                    }
                 },
                 "search": {
                     "type": "string",
@@ -2024,25 +2033,28 @@
                 },
                 "include": {
                     "type": "array",
+                    "description": "Return only these item ids.",
                     "items": {
                         "type": "integer"
-                    },
-                    "description": "Return only these item ids."
+                    }
                 },
                 "limit": {
                     "type": "integer",
+                    "description": "How many items to return. Defaults to 50, maximum 200.",
                     "minimum": 1,
-                    "maximum": 200,
-                    "description": "How many items to return. Defaults to 50, maximum 200."
+                    "maximum": 200
                 },
                 "order_by": {
                     "type": "object",
+                    "description": "Sort column and direction, for example {\"column\":\"created\",\"type\":\"desc\"}.",
                     "properties": {
                         "column": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Column to sort by, for example created or modified."
                         },
                         "type": {
                             "type": "string",
+                            "description": "Sort direction.",
                             "enum": [
                                 "asc",
                                 "desc",

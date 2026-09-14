@@ -1,0 +1,27 @@
+{
+    "$comment": "REST routes this plugin registers outside the surfaces registry, each with the reason it stays REST-only. tests/test-self-test-manifest-test.php fails when a registered route is neither generated from a kit resource, covered by a manifest case, nor listed here. Paths are namespace-relative with URL parameters as {name}.",
+    "routes": {
+        "extend-wp/v1/get-case-fields": "wp-admin field-builder helper rendering form markup for the admin script; no non-browser use.",
+        "extend-wp/v1/get-query-fields": "wp-admin field-builder helper rendering form markup; no non-browser use.",
+        "extend-wp/v1/get-php-code": "wp-admin field-builder helper generating a PHP snippet for display; no non-browser use.",
+        "extend-wp/v1/get-position-fields": "wp-admin field-builder helper rendering form markup; no non-browser use.",
+        "extend-wp/v1/awm-map-options": "Google Maps browser configuration for the admin map field; a secret-bearing helper for the map script only.",
+        "extend-wp/v1/modal-fields": "renders the modal field form markup for the admin modal script.",
+        "extend-wp/v1/modal-save": "saves the modal field form for the admin modal script; the same values are reachable as content/meta through the content surfaces.",
+        "extend-wp/v1/logs/diagnose": "sends log context to the core AI client from the log viewer; an interactive admin feature, covered by the ai-abilities case when a provider is configured.",
+        "extend-wp/v1/rest-health/openapi": "generates an OpenAPI document for the REST-health page; download-only.",
+        "extend-wp/v1/rest-health/test": "runs one HTTP probe from the REST-health page; interactive.",
+        "extend-wp/v1/rest-health/batch": "runs a batch of HTTP probes from the REST-health page; interactive.",
+        "extend-wp/v1/rest-health/history": "per-route probe history for the REST-health page.",
+        "extend-wp/v1/rest-health/monitor": "monitor toggles for the REST-health page.",
+        "extend-wp/v1/rest-health/monitor/payloads": "captured monitor payloads for the REST-health page.",
+        "extend-wp/v1/rest-health/preferences": "REST-health page preferences.",
+        "extend-wp/v1/self-test/cases": "the self-test runner's own surface (moves to its package in Group C).",
+        "extend-wp/v1/self-test/preview": "the self-test runner's own surface (moves to its package in Group C).",
+        "extend-wp/v1/self-test/run": "the self-test runner's own surface (moves to its package in Group C).",
+        "extend-wp/v1/self-test/cleanup": "the self-test runner's own surface (moves to its package in Group C).",
+        "extend-wp/v1/self-test/report": "the self-test runner's own surface (moves to its package in Group C).",
+        "ewp/v1/recently-seen/{id}": "anonymous front-end view recorder for the recently-seen widget; deliberately public, no other surface makes sense.",
+        "ewp-filter/{id}": "front-end search results for one configured filter; covered by the search-filters case through its dynamic id."
+    }
+}

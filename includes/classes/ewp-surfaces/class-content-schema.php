@@ -172,9 +172,9 @@ final class Content_Schema
                     Content_Service::MAX_LIMIT
                 )),
             Field::object('order_by')->properties([
-                Field::string('column'),
-                Field::enum('type', ['asc', 'desc', 'ASC', 'DESC']),
-            ])->additional_properties(false),
+                Field::string('column')->describe(__('Column to sort by, for example created or modified.', 'extend-wp')),
+                Field::enum('type', ['asc', 'desc', 'ASC', 'DESC'])->describe(__('Sort direction.', 'extend-wp')),
+            ])->additional_properties(false)->describe(__('Sort column and direction, for example {"column":"created","type":"desc"}.', 'extend-wp')),
             $with_meta_default ? $with_meta->default_value(true) : $with_meta,
         ];
     }

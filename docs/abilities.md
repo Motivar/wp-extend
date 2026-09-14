@@ -31,13 +31,22 @@ On an older WordPress nothing is hooked, the plugin behaves exactly as before, a
 
 ## Ability inventory
 
-Annotations are shown as read-only / idempotent / destructive.
+Annotations are shown as read-only / idempotent / destructive. Every ability below is generated from a kit resource in `includes/classes/ewp-surfaces/resources/` next to its REST route and WP-CLI command; see `docs/surfaces.md`.
 
 ### `ewp-logger`
 
 | Ability | Annotations | Capability | Input |
 | --- | --- | --- | --- |
 | `ewp-logger/write-entry` | no / no / no | logger viewer capability | `owner`\*, `action_type`\*, `message`\*, `data`, `level` (`editor`\|`developer`), `object_type`, `behaviour` (`error`\|`success`\|`warning`) |
+| `ewp-logger/search` | yes / yes / no | logger viewer capability | date window, `owner`, `action_type`, `object_type`, `behaviour`, `level`, `user_id`, `object_id`, `request_id`, `search_text`, `limit`, `offset`, `order` |
+| `ewp-logger/get-stats` | yes / yes / no | logger viewer capability | `date_from`, `date_to`, `owner` |
+| `ewp-logger/list-vocabulary` | yes / yes / no | logger viewer capability | none |
+| `ewp-logger/get-entry` | yes / yes / no | logger viewer capability | `log_id`\*, `date`, date window |
+| `ewp-logger/get-request-trace` | yes / yes / no | logger viewer capability | `request_id`\*, date window |
+| `ewp-logger/cleanup` | no / yes / **yes** | logger viewer capability | `months`, `confirm`\* |
+| `ewp-logger/delete-entries` | no / yes / **yes** | logger viewer capability | the search filters, `confirm`\* |
+
+The read abilities and `cleanup` exist only while logging is enabled and `ewp_logger_ai_enabled` is true; `write-entry` is always registered and answers 503 when logging is off. All of them are generated from `EWP\Surfaces\Resources\Logger_Resource` together with the `extend-wp/v1/logs*` routes and `wp ewp log *`.
 
 This is the ability behind `flx_log()` and every sibling helper: they all delegate to `ewp_log()` with their own owner slug, so one generic write ability covers them all. It returns `503` when logging is switched off.
 
@@ -51,6 +60,8 @@ This is the ability behind `flx_log()` and every sibling helper: they all delega
 | `ewp-content/create-item` | no / no / no | as above | `content_type`\*, `title`\*, `status`, `meta` |
 | `ewp-content/update-item` | no / yes / no | as above | `content_type`\*, `id`\*, `title`, `status`, `meta` |
 | `ewp-content/delete-item` | no / yes / **yes** | as above | `content_type`\*, `ids`\*, `confirm`\* |
+| `ewp-content/export` | yes / yes / no | `manage_options` | `content_types`\* |
+| `ewp-content/import` | no / no / **yes** | `manage_options` | `content_type`\*, `content`\*, `confirm`\* |
 
 `list-content-types` reports each type's statuses, capability and field keys. Call it first: it is the only reliable source of valid `content_type` and meta key values, since other plugins register their own through `awm_register_content_db`.
 
@@ -96,6 +107,9 @@ WordPress registers the object on the **next** request, after the cache flush th
 | `ewp-options/import` | no / no / **yes** | `manage_options` | `data`\*, `dry_run` (default `true`), `skip_url_replace`, `confirm` |
 | `ewp-system/get-site-info` | yes / yes / no | `read` | none |
 | `ewp-system/flush-cache` | no / yes / no | `manage_options` | none |
+| `ewp-system/search-objects` | yes / yes / no | `awm_object_search_capability` (default `manage_options`) | `object_type`\* (`group:slug`), `search`, `exclude`, `limit`, `search_meta` |
+| `ewp-rest-health/list-plugins` | yes / yes / no | super admin | `refresh` |
+| `ewp-rest-health/list-endpoints` | yes / yes / no | super admin | `plugins`\* |
 
 Search filter rows are decorated with their `shortcode` and `rest_endpoint`. Writing them is deliberately not exposed here; use the generic `ewp-content` abilities if you need it.
 

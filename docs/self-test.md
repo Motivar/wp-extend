@@ -73,3 +73,22 @@ The plugin's CLI classes guard themselves with `class_exists('WP_CLI')`. In a we
 - `ewp_self_test_capability` (string) — default `manage_options`.
 - `ewp_self_test_manifest` (array $manifest, string $path) — append or alter cases.
 - `ewp_self_test_completed` (array $report) — fires after a run.
+
+## Cases added in 1.5.0
+
+- `content-portability`: exports a fixture row through REST, CLI and ability, deletes it and imports it back on each surface (upsert by hash).
+- `object-search`: finds a private post by title through `GET /objects/search`, `wp ewp objects search` and `ewp-system/search-objects`.
+- `rest-health`: the plugin appears in its own inventory on all three surfaces. On a test database with no active plugins it lists itself in `active_plugins` for the duration of the case and removes itself in cleanup; when the plugin runs bundled inside another plugin it skips with a reason.
+
+Cases that need somewhere safe to write use the `Fixture_Content_Type` trait (`cases/trait-fixture-content-type.php`), and the assertion helpers `status()`, `detail()`, `cli_check()`, `cli_check_printed()` and `ability_check()` live on `EWP_Self_Test_Case`. `EWP\Surfaces\EWP_Surfaces::cli($resource, $operation)` returns an in-process callable for any kit command, so a case can run `wp ewp objects search` without a shim class per module.
+
+## Coverage gates
+
+`tests/test-self-test-manifest-test.php` fails when:
+
+- a route, command or ability generated from the surfaces registry (`Motivar\WP\Inventory`) is not listed under some case's `covers`;
+- a registered `wp ewp` command is uncovered;
+- a REST route of this plugin is neither generated from a resource, covered by a case, nor explained in `includes/classes/ewp-self-test/rest-only.json`.
+
+`tests/test-surface-parity-test.php` fails when a declared surface is not actually registered or an operation or field lacks a description. Together they replace hand-maintained lists as the definition of "in sync".
+

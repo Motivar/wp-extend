@@ -44,12 +44,13 @@ final class Rest_Adapter
             return;
         }
 
+        // Future servers (tests rebuild them) get the routes through the action;
+        // a server that already exists gets them now.
+        add_action('rest_api_init', [$this, 'register_routes']);
+
         if (did_action('rest_api_init')) {
             $this->register_routes();
-            return;
         }
-
-        add_action('rest_api_init', [$this, 'register_routes']);
     }
 
     /**

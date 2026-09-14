@@ -65,6 +65,8 @@ See [`docs/abilities.md`](docs/abilities.md) for the full inventory, schemas and
 
 ## For Developers
 
+Every REST route, `wp ewp` command and WordPress Ability the plugin exposes is generated from one resource declaration; see [docs/surfaces.md](docs/surfaces.md) before adding a feature, and [includes/kit/README.md](includes/kit/README.md) for the kit itself.
+
 This toolkit is specifically designed for developers who need:
 - A structured way to handle WordPress customizations
 - Reusable components for common WordPress tasks

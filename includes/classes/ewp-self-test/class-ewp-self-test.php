@@ -23,6 +23,7 @@ require_once __DIR__ . '/cases/class-ai-case.php';
 require_once __DIR__ . '/cases/class-content-portability-case.php';
 require_once __DIR__ . '/cases/class-object-search-case.php';
 require_once __DIR__ . '/cases/class-rest-health-case.php';
+require_once __DIR__ . '/cases/class-typed-content-case.php';
 
 /**
  * Bootstraps the self-test module.

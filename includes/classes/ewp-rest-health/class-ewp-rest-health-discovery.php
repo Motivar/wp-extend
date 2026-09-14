@@ -180,6 +180,22 @@ class EWP_REST_Health_Discovery
             }
         }
 
+        /**
+         * Namespaces registered at runtime by code that owns them, keyed by
+         * namespace with the owning plugin path as value. Routes registered
+         * through a variable (the surfaces registry, the dynamic API) are
+         * invisible to the source scan above, so their owners report here.
+         *
+         * @param array<string,string> $runtime Namespace => plugin path.
+         *
+         * @since 1.5.0
+         */
+        foreach ((array) apply_filters('ewp_rest_health_runtime_namespaces', []) as $ns => $owner) {
+            if (is_string($ns) && is_string($owner) && $owner !== '' && !$this->is_core_namespace($ns)) {
+                $map[$ns] = $owner;
+            }
+        }
+
         set_transient($cache_key, $map, HOUR_IN_SECONDS);
 
         return apply_filters('ewp_rest_health_namespace_plugin_map', $map);

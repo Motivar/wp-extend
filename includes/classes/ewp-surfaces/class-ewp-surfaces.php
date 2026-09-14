@@ -74,6 +74,7 @@ final class EWP_Surfaces
         Kit::on_ready([$this, 'boot']);
         add_filter('mwp_operation_capability', [$this, 'reemit_ability_capability'], 10, 4);
         add_filter('mwp_ability_definitions', [$this, 'reemit_logger_definitions'], 10, 2);
+        add_filter('ewp_rest_health_runtime_namespaces', [$this, 'report_rest_namespaces']);
     }
 
     /**
@@ -242,6 +243,37 @@ final class EWP_Surfaces
     public function service()
     {
         return $this->service;
+    }
+
+    /**
+     * Tell REST-health discovery which namespaces this plugin's resources own.
+     *
+     * Per-type content resources are skipped: a type registered by another
+     * plugin belongs to that plugin, and the registry does not know which.
+     *
+     * @param array<string,string> $runtime Namespace => plugin path.
+     *
+     * @return array<string,string>
+     *
+     * @since 1.5.0
+     */
+    public function report_rest_namespaces(array $runtime)
+    {
+        $registry = $this->registry();
+        if ($registry === null || !defined('awm_path')) {
+            return $runtime;
+        }
+
+        $owner = plugin_basename(awm_path . 'extend-wp.php');
+        foreach ($registry->all() as $resource) {
+            $namespace = $resource->rest_namespace();
+            if ($namespace === null || $namespace === '' || $resource instanceof Content_Type_Rest_Resource) {
+                continue;
+            }
+            $runtime[$namespace] = $owner;
+        }
+
+        return $runtime;
     }
 
     /**

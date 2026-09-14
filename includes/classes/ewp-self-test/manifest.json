@@ -285,6 +285,41 @@
                     "ewp-rest-health/list-endpoints"
                 ]
             }
+        },
+        {
+            "id": "typed-content",
+            "label": "Typed content abilities (field groups, post types, taxonomies)",
+            "category": "content",
+            "layers": [
+                "ability"
+            ],
+            "class": "EWP\\SelfTest\\Cases\\Typed_Content_Case",
+            "requires": [
+                "abilities"
+            ],
+            "args": {},
+            "covers": {
+                "rest": [],
+                "cli": [],
+                "ability": [
+                    "ewp-fields/list-field-vocabulary",
+                    "ewp-fields/list-field-groups",
+                    "ewp-fields/get-field-group",
+                    "ewp-fields/create-field-group",
+                    "ewp-fields/update-field-group",
+                    "ewp-fields/delete-field-group",
+                    "ewp-wp-content/list-post-types",
+                    "ewp-wp-content/get-post-type",
+                    "ewp-wp-content/create-post-type",
+                    "ewp-wp-content/update-post-type",
+                    "ewp-wp-content/delete-post-type",
+                    "ewp-wp-content/list-taxonomies",
+                    "ewp-wp-content/get-taxonomy",
+                    "ewp-wp-content/create-taxonomy",
+                    "ewp-wp-content/update-taxonomy",
+                    "ewp-wp-content/delete-taxonomy"
+                ]
+            }
         }
     ]
 }
