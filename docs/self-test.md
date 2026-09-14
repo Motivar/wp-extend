@@ -37,7 +37,7 @@ A case is `skipped` when its site requirement is missing (logger off, no Abiliti
 
 | layer | how | database |
 | --- | --- | --- |
-| **wp-admin dashboard** — *Tools → Self-test* | **Preview** the steps, or **Run + remove data**: runs the selected cases with cleanup and shows per-check validation, the summary and a *Download raw data (JSON)* link. Only registered when `WP_DEBUG` is on (`mwp_self_test_ui_enabled`, onto which `ewp_self_test_ui_enabled` is mapped); requires `manage_options` (`mwp_self_test_capability` / `ewp_self_test_capability`). | the live site |
+| **wp-admin dashboard** — *Tools → Self-test* | **Preview** the steps, or **Run + remove data**: runs the selected cases with cleanup and shows per-check validation, the summary and a *Download raw data (JSON)* link. Only registered when the environment is not `production` (`mwp_self_test_ui_enabled`, onto which `ewp_self_test_ui_enabled` is mapped); requires `manage_options` (`mwp_self_test_capability` / `ewp_self_test_capability`). | the live site |
 | **WP-CLI** — `wp mwp self-test list\|preview\|run\|cleanup\|report [--plugin=extend-wp]` | `run --cleanup` exits 1 on any failure. | the live site |
 | **Abilities API** — `mwp-self-test/list-cases`, `preview`, `run`, `cleanup`, `get-report` | `run` and `cleanup` require `confirm: true`. | the live site |
 | **pre-push hook** — `.githooks/pre-push` (a shim to the package's `bin/pre-push`) | `php -l`, then `composer test` (`tests/run-tests.sh`: PHPUnit + `bin/run.php`). This is the gate: there is no CI test job. | `wp_extend_tests` (isolated) |
@@ -65,9 +65,11 @@ The plugin's CLI classes guard themselves with `class_exists('WP_CLI')`. In a we
 | `options-portability` | list / export / dry-run import on all layers — never writes an option |
 | `ai-abilities` | every `ewp-*` category (content, fields, wp-content, search, options, system, logger) is registered with core; reports whether an AI provider is configured (skipped, not failed, when it is not; no paid completion is ever requested) |
 
-## Request kinds
+## Request kinds and environments
 
-Self-tests exist for wp-admin (the dashboard), REST (`mwp-self-test/v1`), WP-CLI and the abilities. The `gnnpls/wp-self-test` package boots only when its `mwp_self_test_enabled` filter returns true: the package default is `true` unless the environment is `production` (`WP_ENV` when defined, else `wp_get_environment_type()`), and this plugin returns `false` on plain front-end requests (`EWP\Request_Context::is_front_end()`), where it also skips its own manifest registration. A production site that should run self-tests adds `add_filter('mwp_self_test_enabled', '__return_true')`; a non-production site must declare its environment through the **environment variable** `WP_ENVIRONMENT_TYPE` (WordPress reads it before the constant) — on DDEV: `ddev config --web-environment-add="WP_ENVIRONMENT_TYPE=development"`, which covers the site, PHPUnit, `bin/run.php` and the pre-push hook alike; nothing in the repo hardcodes it. `ewp_request_is_front_end` forces the full load if a front-end integration ever needs it.
+Commands, abilities and manifests are registered in every environment. The dashboard, its `mwp-self-test/v1` routes and the in-process CLI shim are only registered when the environment is not `production` — `WP_ENV` when defined, otherwise `wp_get_environment_type()`, which reads the **`WP_ENVIRONMENT_TYPE` environment variable** (nothing in this repo defines it; on DDEV run `ddev config --web-environment-add="WP_ENVIRONMENT_TYPE=development"`, which covers the site, PHPUnit, `bin/run.php` and the pre-push hook alike). `mwp_self_test_ui_enabled` overrides that.
+
+On a plain front-end request (`EWP\Request_Context::is_front_end()`) `Setup.php` neither registers the manifest nor lets the package boot (`mwp_self_test_enabled` → false); `ewp_request_is_front_end` forces the full load if a front-end integration ever needs it.
 
 ## Adding a case
 

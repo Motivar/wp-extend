@@ -103,15 +103,16 @@ final class Loader
     /**
      * Whether the package boots at all on this request.
      *
-     * Self-tests create data on the site, so the package is off on
-     * production by default: the environment is `WP_ENV` when defined
-     * (Bedrock-style) and `wp_get_environment_type()` otherwise, and
-     * anything other than `production` enables it. Evaluated once, on
-     * `plugins_loaded` (-100), so plugins add the filter at load time.
+     * On by default everywhere (manifests, commands and abilities are
+     * needed on production too); the dashboard has its own environment
+     * gate in Config::ui_enabled(). Evaluated once, on `plugins_loaded`
+     * (-100), so plugins add the filter at load time — e.g. to return
+     * false on front-end requests.
      *
      * @return bool
      *
      * @since 0.4.0
+     * @since 0.6.0 Default true; the environment now gates only the UI.
      */
     public static function enabled()
     {
@@ -119,26 +120,41 @@ final class Loader
             return self::$enabled;
         }
 
-        $environment = defined('WP_ENV')
-            ? (string) WP_ENV
-            : (function_exists('wp_get_environment_type') ? wp_get_environment_type() : 'production');
-
-        $default = $environment !== 'production';
+        $environment = self::environment();
 
         /**
          * Filter whether the self-test package boots on this request
          * (surfaces, manifests, dashboard, commands and abilities).
          *
-         * @param bool   $enabled     Default: true unless the environment is `production`.
+         * @param bool   $enabled     Default: true.
          * @param string $environment `WP_ENV` or `wp_get_environment_type()`.
          *
          * @since 0.4.0
+         * @since 0.6.0 Default true regardless of environment.
          */
         self::$enabled = function_exists('apply_filters')
-            ? (bool) apply_filters('mwp_self_test_enabled', $default, $environment)
-            : $default;
+            ? (bool) apply_filters('mwp_self_test_enabled', true, $environment)
+            : true;
 
         return self::$enabled;
+    }
+
+    /**
+     * The site's environment: `WP_ENV` when defined (Bedrock-style),
+     * otherwise `wp_get_environment_type()` (the `WP_ENVIRONMENT_TYPE`
+     * environment variable or constant; `production` when unset).
+     *
+     * @return string
+     *
+     * @since 0.6.0
+     */
+    public static function environment()
+    {
+        if (defined('WP_ENV')) {
+            return (string) WP_ENV;
+        }
+
+        return function_exists('wp_get_environment_type') ? wp_get_environment_type() : 'production';
     }
 
     /**

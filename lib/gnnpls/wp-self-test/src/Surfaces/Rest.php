@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
 
 /**
  * REST routes behind the self-test dashboard. Thin wrappers over Runner;
- * only registered when the dashboard is enabled (WP_DEBUG) and always
+ * only registered when the dashboard is enabled (non-production) and always
  * limited to Config::capability().
  *
  * Routes (namespace mwp-self-test/v1):
@@ -132,7 +132,7 @@ final class Rest
     public function check_permission()
     {
         if (!Config::ui_enabled()) {
-            return new \WP_Error('mwp_self_test_disabled', __('The self-test dashboard is only available when WP_DEBUG is on.', Config::TEXT_DOMAIN), ['status' => 404]);
+            return new \WP_Error('mwp_self_test_disabled', __('The self-test dashboard is not available on production.', Config::TEXT_DOMAIN), ['status' => 404]);
         }
 
         if (!current_user_can(Config::capability())) {

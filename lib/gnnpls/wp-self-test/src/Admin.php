@@ -3,7 +3,7 @@
  * The wp-admin dashboard: Tools › Self-test.
  *
  * Lists the cases of every registered plugin and drives them through the
- * REST routes. Only instantiated when Config::ui_enabled() (WP_DEBUG) is
+ * REST routes. Only instantiated when Config::ui_enabled() (non-production) is
  * true. Markup comes from templates/dashboard.php, behaviour from
  * assets/self-test.js, both enqueued on this screen only.
  *

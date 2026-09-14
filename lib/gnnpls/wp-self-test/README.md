@@ -7,7 +7,7 @@ on five surfaces:
 
 | Surface | Where |
 |---|---|
-| wp-admin | Tools › Self-test (only when `WP_DEBUG` is on) |
+| wp-admin | Tools › Self-test (only when the environment is not `production`) |
 | REST | `mwp-self-test/v1/{cases,preview,run,cleanup,report}` (same gate) |
 | WP-CLI | `wp mwp self-test list\|preview\|run\|cleanup\|report` |
 | Abilities API | `mwp-self-test/{list-cases,preview,run,cleanup,get-report}` (WordPress 6.9+) |
@@ -24,12 +24,14 @@ composer require gnnpls/wp-self-test
 ```
 
 The package is a runtime dependency because the dashboard, the command and
-the abilities execute inside WordPress. Nothing is exposed on a production
-site: the package does not boot at all when the environment (`WP_ENV` if
-defined, else `wp_get_environment_type()`) is `production` (filter
-`mwp_self_test_enabled`), the UI, its REST routes and the WP_CLI shim are
-off unless `WP_DEBUG` is on (filter `mwp_self_test_ui_enabled`), and every
-surface requires `manage_options` (filter `mwp_self_test_capability`).
+the abilities execute inside WordPress. The commands and abilities exist
+everywhere; the dashboard, its REST routes and the WP_CLI shim are only
+registered when the environment (`WP_ENV` if defined, else
+`wp_get_environment_type()`, i.e. the `WP_ENVIRONMENT_TYPE` environment
+variable) is not `production` (filter `mwp_self_test_ui_enabled`), every
+surface requires `manage_options` (filter `mwp_self_test_capability`), and
+`mwp_self_test_enabled` lets a plugin keep the package from booting at all
+on a given request (e.g. the front end).
 
 Composer's `autoload.files` loads `bootstrap.php`, which registers this
 copy of the package. When several active plugins bundle copies, the newest
@@ -163,8 +165,8 @@ a bootstrap can point `phpunit.xml` and `bin/run.php` at
 | `mwp_self_test_completed` | action | `(array $report)` |
 | `mwp_self_test_manifest` | filter | `(array $manifest, string $path, string $plugin)` |
 | `mwp_self_test_capability` | filter | `(string $capability)` default `manage_options` |
-| `mwp_self_test_enabled` | filter | `(bool $enabled, string $environment)` — whether the package boots at all on this request; default `true` unless the environment (`WP_ENV` if defined, else `wp_get_environment_type()`) is `production`. Return `false` on e.g. front-end requests, `true` to allow runs on a production site. |
-| `mwp_self_test_ui_enabled` | filter | `(bool $enabled)` default `WP_DEBUG` |
+| `mwp_self_test_enabled` | filter | `(bool $enabled, string $environment)` — whether the package boots at all on this request; default `true`. Return `false` on e.g. front-end requests. |
+| `mwp_self_test_ui_enabled` | filter | `(bool $enabled, string $environment)` — dashboard, its REST routes and the shim; default `true` unless the environment (`WP_ENV` if defined, else `wp_get_environment_type()`) is `production`. |
 | `mwp_self_test_shim_enabled` | filter | `(bool $enabled)` default: UI enabled |
 | `mwp_self_test_abilities_available` | filter | `(bool $available)` |
 | `mwp_self_test_ability_definitions` | filter | `(array $definitions)` |

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Self-test: only the UI follows the environment (`gnnpls/wp-self-test` 0.6.1)** (`2026-09-14`):
+  - **Question/Prompt**: "We just need the UI to be available when environment is not production. If we have this package in a repo then install the pre-push checks."
+  - **Summary**: reverses this morning's package-wide gate. The package boots everywhere again (`mwp_self_test_enabled` defaults to `true`; this plugin still returns `false` on front-end requests), so `wp mwp self-test`, the `mwp-self-test/*` abilities and the manifests exist on production too. `Config::ui_enabled()` — the dashboard, its REST routes and the WP_CLI shim — now defaults to "environment is not `production`" (`Loader::environment()`: `WP_ENV`, else `wp_get_environment_type()`) instead of `WP_DEBUG`; `mwp_self_test_ui_enabled` gains a `$environment` argument. Verified with `WP_ENVIRONMENT_TYPE=production` (commands + 5 abilities + 14 cases present, UI off) and `development` (UI on). The pre-push hook is already installed by the package on `composer install` (`post-install-cmd` → `bin/install-hooks` writes `.githooks/pre-push` and sets `core.hooksPath`); confirmed present in this checkout. Consequence for machines without the variable: everything works, only the dashboard is hidden — `composer test` no longer depends on it.
+  - **Files**: `composer.json` (`gnnpls/wp-self-test` `>=0.6.1`), `composer.lock`, `lib/gnnpls/wp-self-test/*`, `lib/composer/*`, `docs/self-test.md`, `CLAUDE.md`.
+  - **Backwards compatibility**: sites that relied on `WP_DEBUG` to show the dashboard now need a non-production environment type instead (or `add_filter('mwp_self_test_ui_enabled', '__return_true')`). Package tags 0.4.0 and 0.6.0 are broken (missing methods); 0.4.1/0.5.0/0.6.1 are the usable ones.
+
 ### Removed
 - **CI test job; hardcoded `WP_ENVIRONMENT_TYPE`** (`2026-09-14`):
   - **Question/Prompt**: "1. please don't include ci at all. remove it from self-test, if pre-push passes then we are fine. 2. please also remove this -> tests/wp-tests-config.php, rely totally on environment."

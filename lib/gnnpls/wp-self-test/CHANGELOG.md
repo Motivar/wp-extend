@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-09-14
+
+### Fixed
+- `Loader::environment()` was missing from the 0.6.0 tag (fatal on `plugins_loaded`). Require `>=0.6.1`.
+
+## [0.6.0] - 2026-09-14
+
+### Changed
+- The environment now gates only the **UI**: `Config::ui_enabled()` (dashboard, its REST routes, the WP_CLI shim) defaults to `true` unless `Loader::environment()` is `production` — previously `WP_DEBUG`. `mwp_self_test_ui_enabled` gains a second `$environment` argument.
+- `Loader::enabled()` / `mwp_self_test_enabled` default to `true` regardless of environment again: manifests, `wp mwp self-test` and the `mwp-self-test/*` abilities are registered on production too (they were in 0.3 and earlier; 0.4–0.5 hid them there). `Loader::environment()` added.
+
 ## [0.5.0] - 2026-09-14
 
 ### Removed

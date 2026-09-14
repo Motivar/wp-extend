@@ -42,7 +42,8 @@ final class Config
     /**
      * Whether the wp-admin dashboard and its REST routes are registered.
      *
-     * Off unless WP_DEBUG is on, because a run creates data on the site.
+     * Off on production, because a run creates data on the site: on
+     * whenever Loader::environment() is anything but `production`.
      *
      * @return bool
      *
@@ -53,11 +54,15 @@ final class Config
         /**
          * Filter whether the self-test dashboard (and its REST routes) are registered.
          *
-         * @param bool $enabled Default: `defined('WP_DEBUG') && WP_DEBUG`.
+         * @param bool   $enabled     Default: true unless the environment is `production`.
+         * @param string $environment `WP_ENV` or `wp_get_environment_type()`.
          *
          * @since 0.1.0
+         * @since 0.6.0 Default follows the environment instead of WP_DEBUG; `$environment` added.
          */
-        return (bool) apply_filters('mwp_self_test_ui_enabled', defined('WP_DEBUG') && WP_DEBUG);
+        $environment = Loader::environment();
+
+        return (bool) apply_filters('mwp_self_test_ui_enabled', $environment !== 'production', $environment);
     }
 
     /**
