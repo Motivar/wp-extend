@@ -6,8 +6,6 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-require_once __DIR__ . '/class-ewp-abilities-schema.php';
-require_once __DIR__ . '/class-ewp-abilities-provider.php';
 require_once dirname(__DIR__) . '/ewp-content/class-content-service.php';
 require_once __DIR__ . '/class-ewp-abilities-audit.php';
 
@@ -72,13 +70,6 @@ class EWP_Abilities
      * @var string
      */
     private static $unsupported_reason = '';
-
-    /**
-     * Registered provider instances.
-     *
-     * @var EWP_Abilities_Provider[]
-     */
-    private $providers = [];
 
     /**
      * Shared content service.
@@ -245,46 +236,12 @@ class EWP_Abilities
             return;
         }
 
-        $this->service   = new EWP_Abilities_Content_Service();
-        $this->providers = $this->build_providers($this->service);
-
-        foreach ($this->providers as $provider) {
-            $provider->init();
-        }
+        $this->service = new EWP_Abilities_Content_Service();
 
         $audit = new EWP_Abilities_Audit();
         $audit->init();
 
         add_action('ewp_logger_initialized', [$this, 'register_log_type']);
-    }
-
-    /**
-     * Build the provider instances.
-     *
-     * @param EWP_Abilities_Content_Service $service Shared content service.
-     *
-     * @return EWP_Abilities_Provider[]
-     *
-     * @since 1.4.0
-     */
-    private function build_providers($service)
-    {
-        /*
-         * Every Extend WP ability is now declared as a kit resource in
-         * ewp-surfaces/. This filter remains for the self-test module until
-         * it moves to its own package.
-         */
-        $providers = [];
-
-        /**
-         * Filter the Extend WP ability providers before they are initialised.
-         *
-         * @param EWP_Abilities_Provider[]      $providers Providers keyed by short slug.
-         * @param EWP_Abilities_Content_Service $service   Shared content service.
-         *
-         * @since 1.4.0
-         */
-        return apply_filters('ewp_abilities_providers', $providers, $service);
     }
 
     /**

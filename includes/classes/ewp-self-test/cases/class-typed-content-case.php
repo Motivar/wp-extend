@@ -2,7 +2,7 @@
 
 namespace EWP\SelfTest\Cases;
 
-use EWP\SelfTest\EWP_Self_Test_Case;
+use Motivar\SelfTest\Case_Base;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
  * @package EWP\SelfTest
  * @since   1.5.0
  */
-class Typed_Content_Case extends EWP_Self_Test_Case
+class Typed_Content_Case extends Case_Base
 {
     /** Title prefix every row this case writes carries, so cleanup can find it. */
     const MARKER = 'Self-test typed ';

@@ -120,7 +120,7 @@ final class EWP_Surfaces
 
         /**
          * Filter the resources Extend WP exposes on REST, WP-CLI and the
-         * Abilities API. Replaces the `ewp_abilities_providers` filter.
+         * Abilities API.
          *
          * @param Resource[]      $resources Resources keyed by name.
          * @param Content_Service $service   Shared content service.

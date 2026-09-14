@@ -2,8 +2,7 @@
 
 namespace EWP\SelfTest\Cases;
 
-use EWP\SelfTest\EWP_Self_Test_Case;
-use EWP\SelfTest\WP_CLI_Shim;
+use Motivar\SelfTest\Case_Base;
 use EWP\Surfaces\EWP_Surfaces;
 
 if (!defined('ABSPATH')) {
@@ -16,7 +15,7 @@ if (!defined('ABSPATH')) {
  * @package EWP\SelfTest
  * @since   1.5.0
  */
-class Content_Portability_Case extends EWP_Self_Test_Case
+class Content_Portability_Case extends Case_Base
 {
     use Fixture_Content_Type;
 
@@ -43,9 +42,6 @@ class Content_Portability_Case extends EWP_Self_Test_Case
         $o       = &$context['observed'];
 
         $this->register_fixture_type($key, 'ewp');
-        if ($this->cli_available()) {
-            WP_CLI_Shim::load_plugin_commands();
-        }
 
         $service = new \EWP\Content\Content_Service();
         $row     = $service->create_item($type, 'Portable row', 'enabled', ['required_field' => 'x']);

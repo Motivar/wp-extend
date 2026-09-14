@@ -2,8 +2,7 @@
 
 namespace EWP\SelfTest\Cases;
 
-use EWP\SelfTest\EWP_Self_Test_Case;
-use EWP\SelfTest\WP_CLI_Shim;
+use Motivar\SelfTest\Case_Base;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -18,7 +17,7 @@ if (!defined('ABSPATH')) {
  * @package EWP\SelfTest
  * @since   1.5.0
  */
-class Logger_Case extends EWP_Self_Test_Case
+class Logger_Case extends Case_Base
 {
     const ACTION_TYPE = 'self_test';
 
@@ -51,9 +50,6 @@ class Logger_Case extends EWP_Self_Test_Case
         \EWP\Logger\EWP_Logger::register_owner(self::OWNER, 'Extend WP self-test');
         \EWP\Logger\EWP_Logger::register_action_type(self::OWNER, self::ACTION_TYPE, 'Self test', 'Entry written by the self-test suite.');
 
-        if ($this->cli_available()) {
-            WP_CLI_Shim::load_plugin_commands();
-        }
 
         $o       = [];
         $message = 'Self-test entry ' . gmdate('c');

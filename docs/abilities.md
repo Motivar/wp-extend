@@ -151,12 +151,11 @@ Read-only abilities run over `GET`, the rest over `POST` with the input in the b
 | --- | --- | --- |
 | `ewp_abilities_supported` | `(bool $supported, string $wp_version)` | Force the whole integration off. |
 | `ewp_abilities_enabled` | `(bool $enabled)` | Switch registration off while keeping the API check honest. |
-| `ewp_abilities_providers` | `(array $providers, EWP_Abilities_Content_Service $service)` | Add or remove providers before they are initialised. |
-| `ewp_abilities_{category}_definitions` | `(array $definitions, EWP_Abilities_Provider $provider)` | Change one provider's abilities, for example `ewp_abilities_ewp-fields_definitions`. |
+| `ewp_surfaces_resources` | `(Resource[] $resources, Content_Service $service)` | Add or replace the kit resources every ability (and route, and command) is generated from. |
 | `ewp_abilities_capability` | `(string $capability, string $ability_name)` | Change the capability an ability enforces. |
 | `ewp_abilities_allow_unknown_meta` | `(bool $allow, string $content_type)` | Accept meta keys a content type does not declare. |
 | `ewp_abilities_audit_enabled` | `(bool $record, string $ability_name)` | Skip audit logging for an ability. |
 
 ## Extending
 
-Adding abilities for a new content type usually needs no code: the generic `ewp-content` abilities pick up anything registered through `awm_register_content_db`. For typed abilities with their own names and schemas, extend `EWP_Abilities_Typed_Provider`, declare your entities in `entities()`, and add the provider through `ewp_abilities_providers`. Input schemas are derived from the field library, so they stay correct as the library changes.
+Adding abilities for a new content type usually needs no code: the generic `ewp-content` abilities pick up anything registered through `awm_register_content_db`. For typed abilities with their own names and schemas, extend `EWP\Surfaces\Resources\Typed_Content_Resource`, declare your entities in `entities()`, and add the resource through `ewp_surfaces_resources`. Input schemas are derived from the field library, so they stay correct as the library changes.

@@ -2,8 +2,7 @@
 
 namespace EWP\SelfTest\Cases;
 
-use EWP\SelfTest\EWP_Self_Test_Case;
-use EWP\SelfTest\WP_CLI_Shim;
+use Motivar\SelfTest\Case_Base;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -19,7 +18,7 @@ if (!defined('ABSPATH')) {
  * @package EWP\SelfTest
  * @since   1.5.0
  */
-class Search_Filter_Case extends EWP_Self_Test_Case
+class Search_Filter_Case extends Case_Base
 {
     /** {@inheritDoc} */
     public function preview()
@@ -42,9 +41,6 @@ class Search_Filter_Case extends EWP_Self_Test_Case
         $id      = !empty($filters[0]['content_id']) ? (int) $filters[0]['content_id'] : 0;
         $o       = ['filter_id' => $id];
 
-        if ($this->cli_available()) {
-            WP_CLI_Shim::load_plugin_commands();
-        }
 
         $routes            = array_keys(rest_get_server()->get_routes());
         $o['rest_list']    = $this->rest('GET', '/ewp/search');

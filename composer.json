@@ -18,6 +18,15 @@
     "support": {
         "issues": "https://motivar.io/"
     },
+    "repositories": [
+        {
+            "type": "git",
+            "url": "https://gitlab.motivar.io/tools/wp-selft-test.git"
+        }
+    ],
+    "require": {
+        "motivar/wp-self-test": "^0.1"
+    },
     "autoload": {
         "psr-4": {
             "EWP\\": "includes/classes/"
@@ -33,8 +42,9 @@
         }
     },
     "scripts": {
+        "test": "bash tests/run-tests.sh",
         "post-install-cmd": [
-            "git config core.hooksPath .githooks || true"
+            "@php lib/motivar/wp-self-test/bin/install-hooks"
         ]
     }
 }

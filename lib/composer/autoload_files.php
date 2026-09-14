@@ -6,6 +6,7 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
+    '3c1c80e3bc3181a084b4b95dd5fab9a2' => $vendorDir . '/motivar/wp-self-test/bootstrap.php',
     'e047688227bba2aaf0f5b41ce3995e34' => $baseDir . '/includes/functions/init.php',
     '3d8cee44d66267b5f3478a6d3904910f' => $baseDir . '/includes/classes/class-encryption.php',
 );

@@ -2,8 +2,7 @@
 
 namespace EWP\SelfTest\Cases;
 
-use EWP\SelfTest\EWP_Self_Test_Case;
-use EWP\SelfTest\WP_CLI_Shim;
+use Motivar\SelfTest\Case_Base;
 use EWP\Surfaces\EWP_Surfaces;
 
 if (!defined('ABSPATH')) {
@@ -16,7 +15,7 @@ if (!defined('ABSPATH')) {
  * @package EWP\SelfTest
  * @since   1.5.0
  */
-class Rest_Health_Case extends EWP_Self_Test_Case
+class Rest_Health_Case extends Case_Base
 {
     /** {@inheritDoc} */
     public function preview()
@@ -35,9 +34,6 @@ class Rest_Health_Case extends EWP_Self_Test_Case
         $context = ['observed' => [], 'activated' => false, 'basename' => $this->plugin_basename()];
         $o       = &$context['observed'];
 
-        if ($this->cli_available()) {
-            WP_CLI_Shim::load_plugin_commands();
-        }
 
         /*
          * The inventory reads the active_plugins option. On a test database

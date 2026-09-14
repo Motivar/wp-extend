@@ -2,8 +2,7 @@
 
 namespace EWP\SelfTest\Cases;
 
-use EWP\SelfTest\EWP_Self_Test_Case;
-use EWP\SelfTest\WP_CLI_Shim;
+use Motivar\SelfTest\Case_Base;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -18,7 +17,7 @@ if (!defined('ABSPATH')) {
  * @package EWP\SelfTest
  * @since   1.5.0
  */
-class Cache_Flush_Case extends EWP_Self_Test_Case
+class Cache_Flush_Case extends Case_Base
 {
     /** {@inheritDoc} */
     public function preview()
@@ -49,7 +48,6 @@ class Cache_Flush_Case extends EWP_Self_Test_Case
         $context = ['observed' => []];
 
         if ($this->cli_available()) {
-            WP_CLI_Shim::load_plugin_commands();
             $context['observed']['cli'] = $this->cli(function () {
                 $integration = new \WP_CLI_Integration();
                 $integration->awm_delete_transient_all();

@@ -1,19 +1,26 @@
 <?php
 /**
  * Guards the self-test manifest (includes/classes/ewp-self-test/manifest.json),
- * the single source of truth shared by the dashboard, `wp ewp self-test`,
- * the ewp-self-test abilities, the pre-push hook and CI.
+ * registered with the motivar/wp-self-test package and shared by Tools >
+ * Self-test, `wp mwp self-test`, the mwp-self-test abilities, the pre-push
+ * hook and CI.
  *
  * The cases themselves are NOT executed here: the content case creates real
  * tables, which WP_UnitTestCase would rewrite into temporary ones. They run
- * through tests/self-test-runner.php instead.
+ * through lib/motivar/wp-self-test/bin/run.php instead.
  */
 class Test_Self_Test_Manifest extends WP_UnitTestCase
 {
-    public function test_manifest_loads_and_every_case_class_exists()
+    private function registry()
     {
-        $manifest    = new \EWP\SelfTest\EWP_Self_Test_Manifest();
-        $definitions = $manifest->definitions();
+        return \Motivar\SelfTest\Self_Test::instance()->registry();
+    }
+
+    public function test_manifest_is_registered_with_the_package_and_every_case_class_exists()
+    {
+        $this->assertArrayHasKey('extend-wp', $this->registry()->plugins(), 'the plugin must register its manifest');
+
+        $definitions = $this->registry()->definitions('extend-wp');
 
         $this->assertIsArray($definitions, is_wp_error($definitions) ? $definitions->get_error_message() : '');
         $this->assertNotEmpty($definitions);
@@ -29,7 +36,7 @@ class Test_Self_Test_Manifest extends WP_UnitTestCase
     {
         global $wpdb;
 
-        $runner = \EWP\SelfTest\EWP_Self_Test::instance()->runner();
+        $runner = \Motivar\SelfTest\Self_Test::instance()->runner();
         $before = count($wpdb->get_col('SHOW TABLES'));
 
         $preview = $runner->preview();
@@ -91,7 +98,7 @@ class Test_Self_Test_Manifest extends WP_UnitTestCase
         $covered    = $this->covered()['cli'];
         $registered = array_unique(array_column(\WP_CLI\StubRecorder::$commands, 'command'));
         $uncovered  = array_filter($registered, function ($command) use ($covered) {
-            return strpos($command, 'ewp self-test') !== 0 && !in_array($command, $covered, true);
+            return strpos($command, 'mwp self-test') !== 0 && !in_array($command, $covered, true);
         });
 
         $this->assertSame([], array_values($uncovered), 'Registered WP-CLI commands missing from manifest.json "covers.cli"');
@@ -142,7 +149,7 @@ class Test_Self_Test_Manifest extends WP_UnitTestCase
     private function covered()
     {
         $covered = ['rest' => [], 'cli' => [], 'ability' => []];
-        foreach ((new \EWP\SelfTest\EWP_Self_Test_Manifest())->definitions() as $entry) {
+        foreach ($this->registry()->definitions('extend-wp') as $entry) {
             foreach (['rest', 'cli', 'ability'] as $layer) {
                 foreach ((array) ($entry['covers'][$layer] ?? []) as $item) {
                     $covered[$layer][] = $layer === 'cli' ? preg_replace('/\s+--.*$/', '', $item) : trim($item, '/');
@@ -202,10 +209,25 @@ class Test_Self_Test_Manifest extends WP_UnitTestCase
     {
         $routes = rest_get_server()->get_routes();
 
-        if (\EWP\SelfTest\EWP_Self_Test::ui_enabled()) {
-            $this->assertArrayHasKey('/extend-wp/v1/self-test/run', $routes);
+        if (\Motivar\SelfTest\Config::ui_enabled()) {
+            $this->assertArrayHasKey('/mwp-self-test/v1/run', $routes);
         } else {
-            $this->assertArrayNotHasKey('/extend-wp/v1/self-test/run', $routes);
+            $this->assertArrayNotHasKey('/mwp-self-test/v1/run', $routes);
+        }
+    }
+
+    public function test_package_surfaces_are_registered()
+    {
+        $this->assertTrue(\Motivar\SelfTest\Loader::is_booted());
+        $this->assertSame(require dirname(__DIR__) . '/lib/motivar/wp-self-test/version.php', \Motivar\SelfTest\Loader::version());
+
+        foreach (['list-cases', 'preview', 'run', 'cleanup', 'get-report'] as $slug) {
+            $this->assertTrue(wp_has_ability('mwp-self-test/' . $slug), "mwp-self-test/{$slug} must be registered");
+        }
+
+        $commands = array_column(\WP_CLI\StubRecorder::$commands, 'command');
+        foreach (['list', 'preview', 'run', 'cleanup', 'report'] as $command) {
+            $this->assertContains('mwp self-test ' . $command, $commands);
         }
     }
 }

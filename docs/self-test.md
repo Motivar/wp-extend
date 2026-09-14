@@ -1,6 +1,8 @@
 # Self-test suite
 
-One manifest, one runner, four ways to drive it. The self-test suite exercises every REST route, WP-CLI command and Abilities API ability the plugin exposes, **on a real WordPress install**, with test data that is removed afterwards. It complements the PHPUnit suite (`tests/`), which covers the shared implementations in isolation.
+One manifest, one runner, five ways to drive it. The self-test suite exercises every REST route, WP-CLI command and Abilities API ability the plugin exposes, **on a real WordPress install**, with test data that is removed afterwards. It complements the PHPUnit suite (`tests/`), which covers the shared implementations in isolation.
+
+Since 1.5.0 the runner, the dashboard, the REST routes, the commands, the abilities, the pre-push hook and the CI job template all come from the **`motivar/wp-self-test`** package (`lib/motivar/wp-self-test`, [repository](https://gitlab.motivar.io/tools/wp-selft-test)). This plugin contributes only its manifest and cases and registers them on the package's `mwp_self_test_register` action (`includes/classes/ewp-self-test/class-ewp-self-test.php`). Any other plugin can register its own manifest the same way; every surface then shows all of them, grouped by plugin.
 
 ## Single source of truth
 
@@ -11,14 +13,14 @@ One manifest, one runner, four ways to drive it. The self-test suite exercises e
 | `id` | case id, used by `--cases=`, `ids[]` and the dashboard |
 | `label`, `category` | display |
 | `layers` | surfaces the case drives: `rest`, `cli`, `ability` |
-| `class` | a class extending `EWP\SelfTest\EWP_Self_Test_Case` |
+| `class` | a class extending `Motivar\SelfTest\Case_Base` (the old `EWP\SelfTest\EWP_Self_Test_Case` name is aliased) |
 | `requires` | site requirements: `abilities`, `logger`, `ai` (reported as *unavailable*, never as failures) |
 | `args` | free-form config passed to the case |
 | `covers` | the routes / commands / abilities the case exercises — the coverage matrix |
 
-`tests/test-self-test-manifest-test.php` fails when a case class is missing, ids collide, or a registered `wp ewp …` command is not listed under `covers.cli`. **Add an entry whenever you add a REST route, CLI command or ability.**
+`tests/test-self-test-manifest-test.php` fails when a case class is missing, ids collide, or a generated surface is not covered (see *Coverage gates*). **Add an entry whenever you add a REST route, CLI command or ability.**
 
-Other plugins can append cases through the `ewp_self_test_manifest` filter.
+Other plugins register their own manifest with the package rather than appending to this one; `ewp_self_test_manifest` still filters this plugin's manifest.
 
 ## The four phases
 
@@ -35,19 +37,23 @@ A case is `skipped` when its site requirement is missing (logger off, no Abiliti
 
 | layer | how | database |
 | --- | --- | --- |
-| **wp-admin dashboard** — *Extend WP → Self test* | **Preview** the steps, or **Run + remove data**: runs the selected cases with cleanup and shows per-check validation, the summary and a *Download raw data (JSON)* link. Only registered when `WP_DEBUG` is on (`ewp_self_test_ui_enabled` filter); requires `manage_options` (`ewp_self_test_capability`). | the live site |
-| **WP-CLI** — `wp ewp self-test list\|preview\|run\|cleanup\|report` | `run --cleanup` exits 1 on any failure. | the live site |
-| **Abilities API** — `ewp-self-test/list-cases`, `preview`, `run`, `cleanup`, `get-report` | `run` and `cleanup` require `confirm: true`. | the live site |
-| **pre-push hook** — `.githooks/pre-push` | runs `tests/self-test-runner.php` after PHPUnit | `wp_extend_tests` (isolated) |
-| **GitLab CI** — `.gitlab-ci.yml` `phpunit` job | same script | throwaway `mariadb` service |
+| **wp-admin dashboard** — *Tools → Self-test* | **Preview** the steps, or **Run + remove data**: runs the selected cases with cleanup and shows per-check validation, the summary and a *Download raw data (JSON)* link. Only registered when `WP_DEBUG` is on (`mwp_self_test_ui_enabled`, onto which `ewp_self_test_ui_enabled` is mapped); requires `manage_options` (`mwp_self_test_capability` / `ewp_self_test_capability`). | the live site |
+| **WP-CLI** — `wp mwp self-test list\|preview\|run\|cleanup\|report [--plugin=extend-wp]` | `run --cleanup` exits 1 on any failure. | the live site |
+| **Abilities API** — `mwp-self-test/list-cases`, `preview`, `run`, `cleanup`, `get-report` | `run` and `cleanup` require `confirm: true`. | the live site |
+| **pre-push hook** — `.githooks/pre-push` (a shim to the package's `bin/pre-push`) | `php -l`, then `composer test` (`tests/run-tests.sh`: PHPUnit + `bin/run.php`) | `wp_extend_tests` (isolated) |
+| **GitLab CI** — `.gitlab-ci.yml` includes the package's `ci/gitlab-ci.yml` | same two suites | throwaway `mariadb` service |
 
-`tests/self-test-runner.php` boots WordPress through `tests/bootstrap.php` (same isolated database as PHPUnit) but *without* PHPUnit's per-test transaction wrapper, because the content case creates real tables and `WP_UnitTestCase` would silently turn them into temporary ones.
+`lib/motivar/wp-self-test/bin/run.php` boots WordPress through `tests/bootstrap.php` (same isolated database as PHPUnit) but *without* PHPUnit's per-test transaction wrapper, because the content case creates real tables and `WP_UnitTestCase` would silently turn them into temporary ones. Run it by hand with:
 
-The REST routes live under `extend-wp/v1/self-test/{cases,preview,run,cleanup,report}`.
+```bash
+ddev exec bash -c "cd wp-content/plugins/wp-extend && WP_CORE_DIR=/var/www/html WP_TESTS_DB_HOST=db php lib/motivar/wp-self-test/bin/run.php"
+```
+
+The REST routes live under `mwp-self-test/v1/{cases,preview,run,cleanup,report}`. The hook is installed by `composer install` (`post-install-cmd` runs the package's `bin/install-hooks`, which writes the shim and sets `core.hooksPath`).
 
 ## Running the CLI layer outside `wp`
 
-The plugin's CLI classes guard themselves with `class_exists('WP_CLI')`. In a web request or under PHPUnit that class does not exist, so `class-ewp-self-test-wp-cli-shim.php` defines a minimal recording `WP_CLI` (and `WP_CLI\Utils\format_items`) and reloads the command classes, letting the exact same handlers run in-process. Under a real `wp` process the runner swaps in WP-CLI's `Execution` logger to capture output instead. `tests/wp-cli-stub.php` just loads the shim.
+The plugin's CLI classes guard themselves with `class_exists('WP_CLI')`. In a web request or under PHPUnit that class does not exist, so the package's `src/Wp_Cli_Shim.php` defines a minimal recording `WP_CLI` (and `WP_CLI\Utils\format_items`); the package loads it on web requests only where the dashboard is enabled. The command classes that bail without `WP_CLI` are declared again by `EWP_Self_Test::load_cli()`, passed to the package as a `cli_loaders` callable and run once before every run. Under a real `wp` process the runner swaps in WP-CLI's `Execution` logger to capture output instead. `tests/wp-cli-stub.php` just loads the package shim.
 
 ## Cases
 
@@ -58,20 +64,22 @@ The plugin's CLI classes guard themselves with `class_exists('WP_CLI')`. In a we
 | `cache-flush` | `wp ewp delete-cache` and `ewp-system/flush-cache` both go through `ewp_flush_cache()` (hooks fire) |
 | `logger` | writes one entry, reads it back on REST / CLI / abilities, runs a no-op retention cleanup; cleanup deletes the `ewp-self-test` entries |
 | `options-portability` | list / export / dry-run import on all layers — never writes an option |
-| `ai-abilities` | every `ewp-*` category is registered with core; reports whether an AI provider is configured (skipped, not failed, when it is not; no paid completion is ever requested) |
+| `ai-abilities` | every `ewp-*` category (content, fields, wp-content, search, options, system, logger) is registered with core; reports whether an AI provider is configured (skipped, not failed, when it is not; no paid completion is ever requested) |
 
 ## Adding a case
 
-1. Create `includes/classes/ewp-self-test/cases/class-<name>-case.php` extending `EWP_Self_Test_Case`; implement `preview()`, `run()`, `validate()`, and `cleanup()` when `run()` creates anything. Use the helpers `rest()`, `cli()`, `ability()`, `check()`, `skip()`.
-2. Require it in `class-ewp-self-test.php`.
+1. Create `includes/classes/ewp-self-test/cases/class-<name>-case.php` extending `Motivar\SelfTest\Case_Base`; implement `preview()`, `run()`, `validate()`, and `cleanup()` when `run()` creates anything. Use the helpers `rest()`, `cli()`, `ability()`, `check()`, `skip()`, `status()`, `detail()`, `cli_check()`, `cli_check_printed()`, `ability_check()`.
+2. Add it to the list in `EWP_Self_Test::load_cases()`.
 3. Add the manifest entry, including `covers`.
-4. Run `wp ewp self-test run --cases=<id> --cleanup` and the PHPUnit suite.
+4. Run `composer test` (or `wp mwp self-test run --cases=<id> --cleanup` on a site).
 
 ## Hooks
 
+Package hooks (`mwp_self_test_*`, see the package README) are the primary API. This plugin keeps its own names mapped onto them:
+
 - `ewp_self_test_ui_enabled` (bool) — default `defined('WP_DEBUG') && WP_DEBUG`.
 - `ewp_self_test_capability` (string) — default `manage_options`.
-- `ewp_self_test_manifest` (array $manifest, string $path) — append or alter cases.
+- `ewp_self_test_manifest` (array $manifest, string $path) — alter this plugin's cases.
 - `ewp_self_test_completed` (array $report) — fires after a run.
 
 ## Cases added in 1.5.0
@@ -80,7 +88,7 @@ The plugin's CLI classes guard themselves with `class_exists('WP_CLI')`. In a we
 - `object-search`: finds a private post by title through `GET /objects/search`, `wp ewp objects search` and `ewp-system/search-objects`.
 - `rest-health`: the plugin appears in its own inventory on all three surfaces. On a test database with no active plugins it lists itself in `active_plugins` for the duration of the case and removes itself in cleanup; when the plugin runs bundled inside another plugin it skips with a reason.
 
-Cases that need somewhere safe to write use the `Fixture_Content_Type` trait (`cases/trait-fixture-content-type.php`), and the assertion helpers `status()`, `detail()`, `cli_check()`, `cli_check_printed()` and `ability_check()` live on `EWP_Self_Test_Case`. `EWP\Surfaces\EWP_Surfaces::cli($resource, $operation)` returns an in-process callable for any kit command, so a case can run `wp ewp objects search` without a shim class per module.
+Cases that need somewhere safe to write use the `Fixture_Content_Type` trait (`cases/trait-fixture-content-type.php`), and the assertion helpers `status()`, `detail()`, `cli_check()`, `cli_check_printed()` and `ability_check()` live on the package's `Case_Base`. `EWP\Surfaces\EWP_Surfaces::cli($resource, $operation)` returns an in-process callable for any kit command, so a case can run `wp ewp objects search` without a shim class per module.
 
 ## Coverage gates
 

@@ -2,8 +2,7 @@
 
 namespace EWP\SelfTest\Cases;
 
-use EWP\SelfTest\EWP_Self_Test_Case;
-use EWP\SelfTest\WP_CLI_Shim;
+use Motivar\SelfTest\Case_Base;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -22,7 +21,7 @@ if (!defined('ABSPATH')) {
  * @package EWP\SelfTest
  * @since   1.5.0
  */
-class Content_Crud_Case extends EWP_Self_Test_Case
+class Content_Crud_Case extends Case_Base
 {
     use Fixture_Content_Type;
 
@@ -59,9 +58,6 @@ class Content_Crud_Case extends EWP_Self_Test_Case
 
         $this->register_fixture_type($key, $prefix);
 
-        if ($this->cli_available()) {
-            WP_CLI_Shim::load_plugin_commands();
-        }
 
         $route = '/' . $prefix . '/' . $key;
         $o     = &$context['observed'];

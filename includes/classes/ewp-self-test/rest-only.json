@@ -16,11 +16,6 @@
         "extend-wp/v1/rest-health/monitor": "monitor toggles for the REST-health page.",
         "extend-wp/v1/rest-health/monitor/payloads": "captured monitor payloads for the REST-health page.",
         "extend-wp/v1/rest-health/preferences": "REST-health page preferences.",
-        "extend-wp/v1/self-test/cases": "the self-test runner's own surface (moves to its package in Group C).",
-        "extend-wp/v1/self-test/preview": "the self-test runner's own surface (moves to its package in Group C).",
-        "extend-wp/v1/self-test/run": "the self-test runner's own surface (moves to its package in Group C).",
-        "extend-wp/v1/self-test/cleanup": "the self-test runner's own surface (moves to its package in Group C).",
-        "extend-wp/v1/self-test/report": "the self-test runner's own surface (moves to its package in Group C).",
         "ewp/v1/recently-seen/{id}": "anonymous front-end view recorder for the recently-seen widget; deliberately public, no other surface makes sense.",
         "ewp-filter/{id}": "front-end search results for one configured filter; covered by the search-filters case through its dynamic id."
     }

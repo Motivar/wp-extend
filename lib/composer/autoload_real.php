@@ -22,6 +22,8 @@ class ComposerAutoloaderInitfb3118450273b47d95f6da240d881eb0
             return self::$loader;
         }
 
+        require __DIR__ . '/platform_check.php';
+
         spl_autoload_register(array('ComposerAutoloaderInitfb3118450273b47d95f6da240d881eb0', 'loadClassLoader'), true, true);
         self::$loader = $loader = new \Composer\Autoload\ClassLoader(\dirname(__DIR__));
         spl_autoload_unregister(array('ComposerAutoloaderInitfb3118450273b47d95f6da240d881eb0', 'loadClassLoader'));
@@ -29,7 +31,7 @@ class ComposerAutoloaderInitfb3118450273b47d95f6da240d881eb0
         require __DIR__ . '/autoload_static.php';
         call_user_func(\Composer\Autoload\ComposerStaticInitfb3118450273b47d95f6da240d881eb0::getInitializer($loader));
 
-        $loader->setApcuPrefix('25160109d6482826d036');
+        $loader->setApcuPrefix('80d20f86be7dd238257e');
         $loader->register(true);
 
         $filesToLoad = \Composer\Autoload\ComposerStaticInitfb3118450273b47d95f6da240d881eb0::$files;

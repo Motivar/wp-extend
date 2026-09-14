@@ -2,20 +2,19 @@
 /**
  * In-process WP-CLI shim.
  *
- * The plugin's CLI wrappers (EWP_Content_CLI, EWP_Logger_CLI,
- * EWP_Options_Portability_CLI, WP_CLI_Integration) guard themselves with
- * `class_exists('WP_CLI')`. Outside a real `wp` process — a PHPUnit run, or
- * the self-test dashboard running inside a wp-admin/REST request — that
- * class does not exist, so the wrappers either never get declared or
- * cannot call WP_CLI::success()/error(). This file defines a minimal
- * WP_CLI that records output instead of printing it and throws
- * \WP_CLI\ExitException instead of exiting, so the exact same command
- * handlers can be exercised in-process and their result asserted.
+ * Plugin CLI wrappers guard themselves with `class_exists('WP_CLI')`.
+ * Outside a real `wp` process (a PHPUnit run, or the self-test dashboard
+ * inside a wp-admin/REST request) that class does not exist, so the
+ * wrappers either never get declared or cannot call WP_CLI::success() /
+ * error(). This file defines a minimal WP_CLI that records output instead
+ * of printing it and throws \WP_CLI\ExitException instead of exiting, so
+ * the same command handlers can be exercised in-process and asserted.
  *
- * Nothing here is defined when real WP-CLI is present.
+ * Nothing here is defined when real WP-CLI is present. Loadable without an
+ * autoloader (a PHPUnit bootstrap requires it before WordPress).
  *
- * @package EWP\SelfTest
- * @since   1.5.0
+ * @package Motivar\SelfTest
+ * @since   0.1.0
  */
 
 namespace WP_CLI {
@@ -121,17 +120,14 @@ namespace WP_CLI\Utils {
     }
 }
 
-namespace EWP\SelfTest {
+namespace Motivar\SelfTest {
 
     /**
-     * Loads the plugin's CLI wrapper classes on top of the shim.
+     * Helpers for code that must know whether the shim is what defines WP_CLI.
      *
-     * Files that `return` early when WP_CLI is missing never declared their
-     * class on plugin load, so they are included again here — plain
-     * `include`, not `include_once`, because PHP already marked them as
-     * included the first time.
+     * @since 0.1.0
      */
-    class WP_CLI_Shim
+    final class Wp_Cli_Shim
     {
         /**
          * Whether the shim (not real WP-CLI) is what defines WP_CLI.
@@ -144,29 +140,13 @@ namespace EWP\SelfTest {
         }
 
         /**
-         * Make every plugin CLI command class callable in-process.
+         * Define the shim when no WP_CLI exists yet.
          *
-         * @return void
+         * @return bool Whether the shim is active afterwards.
          */
-        public static function load_plugin_commands()
+        public static function load()
         {
-            $base = dirname(__DIR__);
-
-            if (!class_exists('EWP_Content_CLI', false)) {
-                include $base . '/awm-content-db-api/custom-content/class-content-cli.php';
-            }
-
-            if (!class_exists('WP_CLI_Integration', false)) {
-                include $base . '/wp-cli/class-cli-commands.php';
-            }
-
-            if (!class_exists('EWP_Options_Portability_CLI', false)) {
-                include_once $base . '/ewp-options-portability/class-options-portability-cli.php';
-            }
-
-            if (class_exists('EWP_Options_Portability', false) && class_exists('EWP_Options_Portability_CLI', false)) {
-                \EWP_Options_Portability_CLI::init(\EWP_Options_Portability::instance());
-            }
+            return self::is_stub();
         }
     }
 }

@@ -62,7 +62,7 @@ class Setup
   require_once 'class-dynamic-asset-loader.php';
   require_once 'ewp-logger/class-ewp-logger.php';
   require_once 'ewp-options-portability/class-options-portability.php';
-  /*must stay right before ewp-abilities: it hooks ewp_abilities_providers, which class-ewp-abilities.php applies at require time*/
+  /*registers manifest.json and the cases with the motivar/wp-self-test package (lib/), which boots on plugins_loaded*/
   require_once 'ewp-self-test/class-ewp-self-test.php';
   /*must stay after every module it wraps: the abilities read the content type registry, the logger, options portability and the self-test runner*/
   require_once 'ewp-abilities/class-ewp-abilities.php';

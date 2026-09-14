@@ -1,35 +1,38 @@
 <?php
 
-namespace EWP\SelfTest;
+namespace Motivar\SelfTest\Surfaces;
+
+use Motivar\SelfTest\Config;
+use Motivar\SelfTest\Runner;
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
 /**
- * REST routes behind the self-test dashboard. Thin wrappers over
- * EWP_Self_Test_Runner; only registered when the dashboard is enabled
- * (WP_DEBUG) and always limited to EWP_Self_Test::capability().
+ * REST routes behind the self-test dashboard. Thin wrappers over Runner;
+ * only registered when the dashboard is enabled (WP_DEBUG) and always
+ * limited to Config::capability().
  *
- * Routes (namespace extend-wp/v1):
- *   GET  /self-test/cases            → runner->cases()
- *   GET  /self-test/preview?ids=a,b  → runner->preview()
- *   POST /self-test/run              → runner->run()   {ids: [], cleanup: bool}
- *   POST /self-test/cleanup          → runner->cleanup() {ids: []}
- *   GET  /self-test/report           → runner->report()
+ * Routes (namespace mwp-self-test/v1):
+ *   GET  /cases?ids=a,b&plugin=x   → runner->cases()
+ *   GET  /preview?ids=a,b&plugin=x → runner->preview()
+ *   POST /run                      → runner->run()   {ids: [], cleanup: bool, plugin: string}
+ *   POST /cleanup                  → runner->cleanup() {ids: []}
+ *   GET  /report                   → runner->report()
  *
- * @package EWP\SelfTest
- * @since   1.5.0
+ * @package Motivar\SelfTest
+ * @since   0.1.0
  */
-class EWP_Self_Test_REST
+final class Rest
 {
     /** @var string */
-    private static $namespace = 'extend-wp/v1';
+    private static $namespace = 'mwp-self-test/v1';
 
-    /** @var EWP_Self_Test_Runner */
+    /** @var Runner */
     private $runner;
 
-    public function __construct(EWP_Self_Test_Runner $runner)
+    public function __construct(Runner $runner)
     {
         $this->runner = $runner;
     }
@@ -45,7 +48,7 @@ class EWP_Self_Test_REST
     {
         $ids_arg = [
             'ids' => [
-                'description'       => __('Case ids from manifest.json. Empty for every case.', 'extend-wp'),
+                'description'       => __('Case ids from the registered manifests. Empty for every case.', Config::TEXT_DOMAIN),
                 'type'              => 'array',
                 'items'             => ['type' => 'string'],
                 'required'          => false,
@@ -55,29 +58,37 @@ class EWP_Self_Test_REST
                     return is_array($value) || is_string($value);
                 },
             ],
+            'plugin' => [
+                'description'       => __('Restrict to the cases of one registered plugin slug.', Config::TEXT_DOMAIN),
+                'type'              => 'string',
+                'required'          => false,
+                'default'           => '',
+                'sanitize_callback' => 'sanitize_key',
+                'validate_callback' => 'rest_validate_request_arg',
+            ],
         ];
 
-        register_rest_route(self::$namespace, '/self-test/cases', [
+        register_rest_route(self::$namespace, '/cases', [
             'methods'             => \WP_REST_Server::READABLE,
             'callback'            => [$this, 'cases'],
             'permission_callback' => [$this, 'check_permission'],
             'args'                => $ids_arg,
         ]);
 
-        register_rest_route(self::$namespace, '/self-test/preview', [
+        register_rest_route(self::$namespace, '/preview', [
             'methods'             => \WP_REST_Server::READABLE,
             'callback'            => [$this, 'preview'],
             'permission_callback' => [$this, 'check_permission'],
             'args'                => $ids_arg,
         ]);
 
-        register_rest_route(self::$namespace, '/self-test/run', [
+        register_rest_route(self::$namespace, '/run', [
             'methods'             => \WP_REST_Server::CREATABLE,
             'callback'            => [$this, 'run'],
             'permission_callback' => [$this, 'check_permission'],
             'args'                => $ids_arg + [
                 'cleanup' => [
-                    'description'       => __('Remove the test data right after each case instead of keeping it for "Remove test data".', 'extend-wp'),
+                    'description'       => __('Remove the test data right after each case instead of keeping it for "Remove test data".', Config::TEXT_DOMAIN),
                     'type'              => 'boolean',
                     'required'          => false,
                     'default'           => false,
@@ -87,14 +98,14 @@ class EWP_Self_Test_REST
             ],
         ]);
 
-        register_rest_route(self::$namespace, '/self-test/cleanup', [
+        register_rest_route(self::$namespace, '/cleanup', [
             'methods'             => \WP_REST_Server::CREATABLE,
             'callback'            => [$this, 'cleanup'],
             'permission_callback' => [$this, 'check_permission'],
             'args'                => $ids_arg,
         ]);
 
-        register_rest_route(self::$namespace, '/self-test/report', [
+        register_rest_route(self::$namespace, '/report', [
             'methods'             => \WP_REST_Server::READABLE,
             'callback'            => [$this, 'report'],
             'permission_callback' => [$this, 'check_permission'],
@@ -120,12 +131,12 @@ class EWP_Self_Test_REST
     /** @return true|\WP_Error */
     public function check_permission()
     {
-        if (!EWP_Self_Test::ui_enabled()) {
-            return new \WP_Error('ewp_self_test_disabled', __('The self-test dashboard is only available when WP_DEBUG is on.', 'extend-wp'), ['status' => 404]);
+        if (!Config::ui_enabled()) {
+            return new \WP_Error('mwp_self_test_disabled', __('The self-test dashboard is only available when WP_DEBUG is on.', Config::TEXT_DOMAIN), ['status' => 404]);
         }
 
-        if (!current_user_can(EWP_Self_Test::capability())) {
-            return new \WP_Error('ewp_self_test_forbidden', __('You are not allowed to run the self-tests.', 'extend-wp'), ['status' => 403]);
+        if (!current_user_can(Config::capability())) {
+            return new \WP_Error('mwp_self_test_forbidden', __('You are not allowed to run the self-tests.', Config::TEXT_DOMAIN), ['status' => is_user_logged_in() ? 403 : 401]);
         }
 
         return true;
@@ -133,17 +144,17 @@ class EWP_Self_Test_REST
 
     public function cases(\WP_REST_Request $request)
     {
-        return rest_ensure_response($this->runner->cases((array) $request->get_param('ids')));
+        return rest_ensure_response($this->runner->cases((array) $request->get_param('ids'), (string) $request->get_param('plugin')));
     }
 
     public function preview(\WP_REST_Request $request)
     {
-        return rest_ensure_response($this->runner->preview((array) $request->get_param('ids')));
+        return rest_ensure_response($this->runner->preview((array) $request->get_param('ids'), (string) $request->get_param('plugin')));
     }
 
     public function run(\WP_REST_Request $request)
     {
-        return rest_ensure_response($this->runner->run((array) $request->get_param('ids'), (bool) $request->get_param('cleanup')));
+        return rest_ensure_response($this->runner->run((array) $request->get_param('ids'), (bool) $request->get_param('cleanup'), (string) $request->get_param('plugin')));
     }
 
     public function cleanup(\WP_REST_Request $request)

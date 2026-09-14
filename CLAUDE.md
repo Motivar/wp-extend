@@ -38,26 +38,32 @@ WP-CLI inside the DDEV site (run from anywhere in the project):
 ddev wp ewp log stats
 ```
 
-Plugin WP-CLI commands: `ewp delete-cache`, `ewp system info`, `ewp log list|get|trace|stats|types|write|delete|cleanup`, `ewp options export|import|list`, `ewp content types|list|get|create|update|delete|export|import`, `ewp objects search`, `ewp rest-health plugins|endpoints`, `ewp self-test list|preview|run|cleanup|report`. All but `ewp self-test` are generated from kit resources (`docs/surfaces.md`).
+Plugin WP-CLI commands: `ewp delete-cache`, `ewp system info`, `ewp log list|get|trace|stats|types|write|delete|cleanup`, `ewp options export|import|list`, `ewp content types|list|get|create|update|delete|export|import`, `ewp objects search`, `ewp rest-health plugins|endpoints`, all generated from kit resources (`docs/surfaces.md`); plus `mwp self-test list|preview|run|cleanup|report` from the `motivar/wp-self-test` package.
 
-There is no linter config or PHPCS ruleset. There **are** two test layers, and both must pass before a change is done (the pre-push hook and GitLab CI run both):
+There is no linter config or PHPCS ruleset. There **are** two test layers, and both must pass before a change is done. One command runs both inside DDEV (this is what the pre-push hook and GitLab CI run):
+
+```bash
+composer test
+```
+
+Or individually:
 
 ```bash
 ddev exec bash -c "cd wp-content/plugins/wp-extend && WP_CORE_DIR=/var/www/html WP_TESTS_DB_HOST=db tests/vendor/bin/phpunit -c phpunit.xml.dist"
 ```
 
 ```bash
-ddev exec bash -c "cd wp-content/plugins/wp-extend && WP_CORE_DIR=/var/www/html WP_TESTS_DB_HOST=db php tests/self-test-runner.php"
+ddev exec bash -c "cd wp-content/plugins/wp-extend && WP_CORE_DIR=/var/www/html WP_TESTS_DB_HOST=db php lib/motivar/wp-self-test/bin/run.php"
 ```
 
-Against the live DDEV site instead of the test database: `ddev exec wp ewp self-test run --cleanup --user=1`. One-time setup: `cd tests && composer install` (own vendor dir, never `lib/`), and the `wp_extend_tests` database (the pre-push hook creates it).
+Against the live DDEV site instead of the test database: `ddev exec wp mwp self-test run --cleanup --user=1`. One-time setup: `cd tests && composer install` (own vendor dir, never `lib/`), and the `wp_extend_tests` database (`tests/run-tests.sh` creates it).
 
 ## Testing (required for every code change)
 
 - **PHPUnit** (`tests/`, wp-phpunit + a real WordPress core) tests the shared implementations in isolation. Test files end in `-test.php`. Create custom tables only in `setUpBeforeClass()` — `WP_UnitTestCase` rewrites `CREATE TABLE` into `CREATE TEMPORARY TABLE` inside a test (see `tests/includes/trait-content-fixture.php`).
-- **Self-test suite** (`includes/classes/ewp-self-test/`, docs in `docs/self-test.md`) exercises every REST route, CLI command and ability on a real install with removable test data. `manifest.json` there is the single source of truth for what is tested; the dashboard (*Extend WP → Self test*, `WP_DEBUG` only), `wp ewp self-test`, the `ewp-self-test/*` abilities, the pre-push hook and CI all read it.
+- **Self-test suite** (`includes/classes/ewp-self-test/`, docs in `docs/self-test.md`) exercises every REST route, CLI command and ability on a real install with removable test data. The runner and its surfaces come from the `motivar/wp-self-test` Composer package in `lib/`; this plugin registers `manifest.json` (the single source of truth for what is tested) and its `cases/`. The dashboard (*Tools → Self-test*, `WP_DEBUG` only), `wp mwp self-test`, the `mwp-self-test/*` abilities, the pre-push hook and CI all read it.
 - **When you add or change a REST route, WP-CLI command or ability**: declare it on a kit resource (never by hand), add/extend a case and list it under that case's `covers` in `manifest.json`, add PHPUnit coverage for the shared implementation, then run both commands above. `tests/test-self-test-manifest-test.php` fails for any generated surface that no case covers and for any REST route not generated, covered or explained in `rest-only.json`; `tests/test-surface-parity-test.php` fails for any declared surface that is missing or undocumented. A feature is not done until both pass.
-- The CLI wrappers cannot run without `WP_CLI`; in PHPUnit and the dashboard they run on the in-process shim in `class-ewp-self-test-wp-cli-shim.php`.
+- The CLI wrappers cannot run without `WP_CLI`; in PHPUnit and the dashboard they run on the package's in-process shim (`lib/motivar/wp-self-test/src/Wp_Cli_Shim.php`); classes that bail without `WP_CLI` are re-declared by `EWP_Self_Test::load_cli()`.
 
 ## Architecture
 
@@ -101,14 +107,14 @@ Canonical namespace is `extend-wp/v1` (logger, options portability, object searc
 ### Other modules
 
 - `ewp-logger/` — activity log with file storage, viewer UI, REST (`extend-wp/v1/logs`), WP-CLI, and read-only WordPress Abilities API integration plus an AI "Diagnose" box (gated by `EWP\Abilities\EWP_Abilities::is_supported()` / `wp_supports_ai()`). The log *write* ability lives in `ewp-abilities/`, not here.
-- `ewp-abilities/` — Abilities API support detection (`EWP_Abilities::has_api_support()`, WordPress 6.9+), the admin notice when unsupported, the `ability_write` audit log type and `EWP_Abilities_Audit`. It registers no abilities itself any more: every `ewp-*` ability is generated from a resource in `ewp-surfaces/`. `EWP_Abilities_Provider`/`EWP_Abilities_Schema` remain only because the self-test module's provider extends them until it moves to its own package. Docs: `docs/abilities.md`.
+- `ewp-abilities/` — Abilities API support detection (`EWP_Abilities::has_api_support()`, WordPress 6.9+), the admin notice when unsupported, the `ability_write` audit log type and `EWP_Abilities_Audit`. It registers no abilities itself: every `ewp-*` ability is generated from a resource in `ewp-surfaces/`. Docs: `docs/abilities.md`.
 - `ewp-surfaces/` — declares the plugin's features as `Motivar\WP` kit resources (`includes/kit/`, see its README) and generates the REST routes, `wp ewp` commands and abilities from them: `Content_Resource` (generic content), `Content_Type_Rest_Resource` (one per content type, registered by `AWM_Add_Content_DB_Setup::rest_endpoints()`), `Fields_Resource`, `WP_Content_Resource`, `Search_Resource` (typed content, abilities only), `Logger_Resource`, `Options_Resource`, `System_Resource`, `Content_Portability_Resource`, `Object_Search_Resource`, `Rest_Health_Resource`. Services they wrap: `EWP\Content\Content_Service`, `Content_Portability`, `EWP\Logger\EWP_Logger_Query`, `EWP_Options_Portability`, `EWP\Search\Object_Search`, `System_Service`, `Rest_Health_Inventory`. Resource classes load inside `EWP_Surfaces::boot()` (on `Kit::on_ready()`), never at require time, because they extend kit classes that only autoload once the kit booted. Per-surface differences (defaults, response bodies the admin scripts rely on) live in the resource's argument mappers, transforms and CLI presenters. To add a feature, declare a resource and add it through `ewp_surfaces_resources`; do not hand-write a route, command or ability. Docs: `docs/surfaces.md`.
 - `ewp-rest-health/` — route inventory and probes for the REST-health admin page; the inventory (`plugins`, `endpoints`) is a kit resource, the probes stay REST-only (`rest-only.json`). Discovery attributes namespaces to plugins by scanning sources and merges runtime namespaces reported through `ewp_rest_health_runtime_namespaces`.
 - `ewp-search-filter/` — UI-configured front-end filters, `[ewp_search id="…"]` shortcode, REST-backed; templates in `templates/frontend/search/`.
 - `ewp-wp-content/` — UI-registered post types/taxonomies, slug manager, meta inheritance, and `EWP_Template_Resolver` (a post type can reuse another object's theme template; the `ewp_template_source_path` filter lets the owning plugin supply its own path).
 - `ewp-options-portability/` — export/import options pages (REST + CLI).
 - `class-encryption.php` — `EWP_Encryption` with `is_encrypted()`/`is_masked()` guards; encrypts flagged meta/option values on save via `update_*_meta` / `updated_option` hooks. Decryption is explicit at read time by the consumer, not via an `option_` filter.
-- `ewp-self-test/` — manifest-driven self-test suite (`EWP\SelfTest`): `EWP_Self_Test_Runner` is the one implementation behind the wp-admin dashboard + REST (`extend-wp/v1/self-test/*`, `WP_DEBUG` only), `wp ewp self-test`, the `ewp-self-test/*` abilities and `tests/self-test-runner.php`. Cases extend `EWP_Self_Test_Case` (preview / run / validate / cleanup). Must load right before `ewp-abilities` (it hooks `ewp_abilities_providers`, applied at require time). Docs: `docs/self-test.md`.
+- `ewp-self-test/` — this plugin's self-test manifest and cases, registered with the `motivar/wp-self-test` package (`lib/motivar/wp-self-test`; runner, Tools → Self-test dashboard, `mwp-self-test/v1` REST, `wp mwp self-test`, `mwp-self-test/*` abilities, hook and CI templates). Cases extend `Motivar\SelfTest\Case_Base` and are loaded lazily in `EWP_Self_Test::load_cases()` on `mwp_self_test_register`, because the package autoloads only after it boots on `plugins_loaded`. Docs: `docs/self-test.md`.
 - `ewp-third-party/` — WPML and WP Rocket compatibility. `ewp-ai-content/` is present but **not loaded** (its `require_once` in `Setup.php` is commented out).
 
 ## Conventions

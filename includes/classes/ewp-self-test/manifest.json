@@ -1,5 +1,5 @@
 {
-    "$comment": "Single source of truth for the Extend WP self-test suite. Every entry is one feature exercised through each surface it is exposed on (REST, WP-CLI, Abilities API). Consumed identically by the wp-admin dashboard (Tools > Self test, WP_DEBUG only), `wp ewp self-test`, the ewp-self-test/* abilities, the .githooks/pre-push hook and .gitlab-ci.yml (both via tests/run-self-test.php). Add an entry here whenever a new REST route, CLI command or ability is added; tests/test-self-test-manifest-test.php fails when an entry's class is missing or ids collide.",
+    "$comment": "Single source of truth for the Extend WP self-test suite, registered with the motivar/wp-self-test package (lib/motivar/wp-self-test). Every entry is one feature exercised through each surface it is exposed on (REST, WP-CLI, Abilities API). Consumed identically by Tools > Self-test (WP_DEBUG only), `wp mwp self-test`, the mwp-self-test/* abilities, the pre-push hook and GitLab CI (both via `composer test`). Add an entry here whenever a new REST route, CLI command or ability is added; tests/test-self-test-manifest-test.php fails when a generated surface is not covered.",
     "version": 1,
     "cases": [
         {
@@ -193,8 +193,7 @@
                     "ewp-search",
                     "ewp-options",
                     "ewp-system",
-                    "ewp-logger",
-                    "ewp-self-test"
+                    "ewp-logger"
                 ]
             },
             "covers": {

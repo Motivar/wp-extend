@@ -2,7 +2,7 @@
 
 namespace EWP\SelfTest\Cases;
 
-use EWP\SelfTest\EWP_Self_Test_Case;
+use Motivar\SelfTest\Case_Base;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
  * @package EWP\SelfTest
  * @since   1.5.0
  */
-class Ai_Case extends EWP_Self_Test_Case
+class Ai_Case extends Case_Base
 {
     /** {@inheritDoc} */
     public function availability()

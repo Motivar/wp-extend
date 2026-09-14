@@ -1,6 +1,6 @@
 <?php
 
-namespace EWP\SelfTest;
+namespace Motivar\SelfTest;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -9,49 +9,47 @@ if (!defined('ABSPATH')) {
 /**
  * The one implementation every surface calls.
  *
- * The dashboard's REST routes, `wp ewp self-test`, the ewp-self-test/*
- * abilities and tests/run-self-test.php (pre-push + CI) are thin wrappers
- * around these five methods: cases(), preview(), run(), cleanup(),
- * report(). State (the last report and the contexts still awaiting
- * cleanup) is kept in one option so "Remove test data" can run in a later
- * request than the run that created the data.
+ * The dashboard's REST routes, `wp mwp self-test`, the mwp-self-test/*
+ * abilities and bin/run.php (pre-push + CI) are thin wrappers around these
+ * five methods: cases(), preview(), run(), cleanup(), report(). State (the
+ * last report and the contexts still awaiting cleanup) is kept in one
+ * option so "Remove test data" can run in a later request than the run
+ * that created the data.
  *
- * @package EWP\SelfTest
- * @since   1.5.0
+ * @package Motivar\SelfTest
+ * @since   0.1.0
  */
-class EWP_Self_Test_Runner
+final class Runner
 {
-    /** Option holding the last report and pending cleanup contexts. */
-    const STATE_OPTION = 'ewp_self_test_state';
-
-    /** @var EWP_Self_Test_Manifest */
-    private $manifest;
+    /** @var Registry */
+    private $registry;
 
     /**
-     * @param EWP_Self_Test_Manifest|null $manifest Defaults to the bundled manifest.
+     * @param Registry $registry The registered manifests.
      */
-    public function __construct(?EWP_Self_Test_Manifest $manifest = null)
+    public function __construct(Registry $registry)
     {
-        $this->manifest = $manifest ?: new EWP_Self_Test_Manifest();
+        $this->registry = $registry;
     }
 
-    /** @return EWP_Self_Test_Manifest */
-    public function manifest()
+    /** @return Registry */
+    public function registry()
     {
-        return $this->manifest;
+        return $this->registry;
     }
 
     /**
      * Describe the cases: manifest data plus live availability and
      * whether a previous run left data waiting for cleanup.
      *
-     * @param string[] $ids Empty for all.
+     * @param string[] $ids    Empty for all.
+     * @param string   $plugin Restrict to one plugin slug; empty for all.
      *
      * @return array[]|\WP_Error
      */
-    public function cases(array $ids = [])
+    public function cases(array $ids = [], $plugin = '')
     {
-        $cases = $this->manifest->cases($ids);
+        $cases = $this->registry->cases($ids, $plugin);
 
         if (is_wp_error($cases)) {
             return $cases;
@@ -62,10 +60,11 @@ class EWP_Self_Test_Runner
 
         foreach ($cases as $id => $case) {
             $availability = $case->availability();
-            $definition   = $this->manifest->definitions()[$id];
+            $definition   = $case->definition();
 
             $list[] = [
                 'id'              => $id,
+                'plugin'          => $case->plugin(),
                 'label'           => $case->label(),
                 'category'        => $case->category(),
                 'layers'          => $case->layers(),
@@ -83,13 +82,14 @@ class EWP_Self_Test_Runner
     /**
      * Steps each case would take. No side effects.
      *
-     * @param string[] $ids Empty for all.
+     * @param string[] $ids    Empty for all.
+     * @param string   $plugin Restrict to one plugin slug; empty for all.
      *
      * @return array[]|\WP_Error
      */
-    public function preview(array $ids = [])
+    public function preview(array $ids = [], $plugin = '')
     {
-        $cases = $this->manifest->cases($ids);
+        $cases = $this->registry->cases($ids, $plugin);
 
         if (is_wp_error($cases)) {
             return $cases;
@@ -101,6 +101,7 @@ class EWP_Self_Test_Runner
             $availability = $case->availability();
             $out[] = [
                 'id'        => $id,
+                'plugin'    => $case->plugin(),
                 'label'     => $case->label(),
                 'available' => !empty($availability['available']),
                 'reason'    => isset($availability['reason']) ? (string) $availability['reason'] : '',
@@ -116,12 +117,13 @@ class EWP_Self_Test_Runner
      *
      * @param string[] $ids     Empty for all.
      * @param bool     $cleanup Remove test data straight after each case.
+     * @param string   $plugin  Restrict to one plugin slug; empty for all.
      *
      * @return array|\WP_Error Report.
      */
-    public function run(array $ids = [], $cleanup = false)
+    public function run(array $ids = [], $cleanup = false, $plugin = '')
     {
-        $cases = $this->manifest->cases($ids);
+        $cases = $this->registry->cases($ids, $plugin);
 
         if (is_wp_error($cases)) {
             return $cases;
@@ -131,6 +133,8 @@ class EWP_Self_Test_Runner
         if (is_wp_error($user)) {
             return $user;
         }
+
+        $this->registry->load_cli();
 
         $state   = $this->state();
         $started = microtime(true);
@@ -155,6 +159,8 @@ class EWP_Self_Test_Runner
             'duration_ms' => (int) round((microtime(true) - $started) * 1000),
             'user_id'     => get_current_user_id(),
             'site'        => home_url(),
+            'package'     => Loader::version(),
+            'plugin'      => (string) $plugin,
             'cleanup'     => (bool) $cleanup,
             'summary'     => $this->summarise($results),
             'results'     => $results,
@@ -168,9 +174,9 @@ class EWP_Self_Test_Runner
          *
          * @param array $report The report that was stored.
          *
-         * @since 1.5.0
+         * @since 0.1.0
          */
-        do_action('ewp_self_test_completed', $report);
+        do_action('mwp_self_test_completed', $report);
 
         return $report;
     }
@@ -192,7 +198,7 @@ class EWP_Self_Test_Runner
             return [];
         }
 
-        $cases = $this->manifest->cases($targets);
+        $cases = $this->registry->cases($targets);
 
         if (is_wp_error($cases)) {
             return $cases;
@@ -203,6 +209,7 @@ class EWP_Self_Test_Runner
             return $user;
         }
 
+        $this->registry->load_cli();
         $out = [];
 
         foreach ($cases as $id => $case) {
@@ -211,7 +218,7 @@ class EWP_Self_Test_Runner
             try {
                 $messages = $case->cleanup($context);
             } catch (\Throwable $e) {
-                $messages = [sprintf(__('Cleanup failed: %s', 'extend-wp'), $e->getMessage())];
+                $messages = [sprintf(__('Cleanup failed: %s', Config::TEXT_DOMAIN), $e->getMessage())];
             }
 
             unset($state['pending'][$id]);
@@ -260,16 +267,17 @@ class EWP_Self_Test_Runner
     /**
      * Execute one case through its phases.
      *
-     * @param EWP_Self_Test_Case $case    Case.
+     * @param Case_Base $case    Case.
      * @param bool               $cleanup Whether to clean up immediately.
      *
      * @return array Result entry.
      */
-    private function run_case(EWP_Self_Test_Case $case, $cleanup)
+    private function run_case(Case_Base $case, $cleanup)
     {
         $started = microtime(true);
         $entry   = [
             'id'        => $case->id(),
+            'plugin'    => $case->plugin(),
             'label'     => $case->label(),
             'category'  => $case->category(),
             'layers'    => $case->layers(),
@@ -309,7 +317,7 @@ class EWP_Self_Test_Runner
                 $entry['cleanup'] = $case->cleanup($entry['context']);
                 $entry['cleaned'] = true;
             } catch (\Throwable $e) {
-                $entry['cleanup'] = [sprintf(__('Cleanup failed: %s', 'extend-wp'), $e->getMessage())];
+                $entry['cleanup'] = [sprintf(__('Cleanup failed: %s', Config::TEXT_DOMAIN), $e->getMessage())];
             }
         }
 
@@ -371,18 +379,18 @@ class EWP_Self_Test_Runner
      */
     private function ensure_user()
     {
-        if (current_user_can(EWP_Self_Test::capability())) {
+        if (current_user_can(Config::capability())) {
             return true;
         }
 
         if (!$this->is_cli_context()) {
-            return new \WP_Error('ewp_self_test_forbidden', __('You are not allowed to run the self-tests.', 'extend-wp'), ['status' => 403]);
+            return new \WP_Error('mwp_self_test_forbidden', __('You are not allowed to run the self-tests.', Config::TEXT_DOMAIN), ['status' => 403]);
         }
 
         $admins = get_users(['role' => 'administrator', 'number' => 1, 'fields' => 'ID']);
 
         if (empty($admins)) {
-            return new \WP_Error('ewp_self_test_no_admin', __('No administrator user exists to run the self-tests as.', 'extend-wp'));
+            return new \WP_Error('mwp_self_test_no_admin', __('No administrator user exists to run the self-tests as.', Config::TEXT_DOMAIN));
         }
 
         wp_set_current_user((int) $admins[0]);
@@ -399,7 +407,7 @@ class EWP_Self_Test_Runner
     /** @return array{report: array|null, pending: array} */
     private function state()
     {
-        $state = get_option(self::STATE_OPTION, []);
+        $state = get_option(Config::STATE_OPTION, []);
 
         return [
             'report'  => isset($state['report']) && is_array($state['report']) ? $state['report'] : null,
@@ -409,6 +417,6 @@ class EWP_Self_Test_Runner
 
     private function save_state(array $state)
     {
-        update_option(self::STATE_OPTION, $state, false);
+        update_option(Config::STATE_OPTION, $state, false);
     }
 }

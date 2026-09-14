@@ -1,6 +1,6 @@
 <?php
 
-namespace EWP\SelfTest;
+namespace Motivar\SelfTest;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -23,16 +23,28 @@ if (!defined('ABSPATH')) {
  * The context must be JSON-serialisable: the runner stores it so cleanup can
  * happen in a later request (the "Remove test data" button).
  *
- * @package EWP\SelfTest
- * @since   1.5.0
+ * @package Motivar\SelfTest
+ * @since   0.1.0
  */
-abstract class EWP_Self_Test_Case
+abstract class Case_Base
 {
-    /** Owner slug used for every log entry and label written by a case. */
-    const OWNER = 'ewp-self-test';
+    /** Owner slug a case may use for every log entry and label it writes. */
+    const OWNER = 'mwp-self-test';
 
-    /** @var array Definition from the manifest (id, label, category, layers, args, requires). */
+    /** @var array Definition from the manifest (id, plugin, label, category, layers, args, requires). */
     protected $definition = [];
+
+    /** @return array The manifest entry this case was configured from. */
+    public function definition()
+    {
+        return $this->definition;
+    }
+
+    /** @return string Slug of the plugin that registered the manifest. */
+    public function plugin()
+    {
+        return isset($this->definition['plugin']) ? (string) $this->definition['plugin'] : '';
+    }
 
     /**
      * Attach the manifest definition.
@@ -207,9 +219,7 @@ abstract class EWP_Self_Test_Case
      */
     protected function abilities_available()
     {
-        return class_exists('EWP\\Abilities\\EWP_Abilities')
-            && \EWP\Abilities\EWP_Abilities::is_enabled()
-            && function_exists('wp_get_ability');
+        return Config::abilities_available();
     }
 
     /**
@@ -254,7 +264,7 @@ abstract class EWP_Self_Test_Case
     /**
      * Run a plugin CLI command handler in-process and capture its output.
      *
-     * @param callable $callable   e.g. ['EWP_Content_CLI', 'create'].
+     * @param callable $callable   Command handler, e.g. ['My_CLI', 'create'].
      * @param array    $args       Positional args.
      * @param array    $assoc_args Named args.
      *
@@ -274,7 +284,7 @@ abstract class EWP_Self_Test_Case
     }
 
     /**
-     * In-process shim (dashboard, PHPUnit, tests/self-test-runner.php).
+     * In-process shim (dashboard, PHPUnit, bin/run.php).
      */
     private function cli_via_stub($callable, array $args, array $assoc_args)
     {
@@ -401,7 +411,7 @@ abstract class EWP_Self_Test_Case
     protected function detail(array $o, $key)
     {
         if (!isset($o[$key])) {
-            return __('not executed', 'extend-wp');
+            return __('not executed', Config::TEXT_DOMAIN);
         }
 
         return 'HTTP ' . $this->status($o, $key) . ' ' . wp_json_encode($o[$key]['data']);
@@ -410,49 +420,49 @@ abstract class EWP_Self_Test_Case
     protected function cli_check(array $o, $key, $label, $expected_fragment = null)
     {
         if (!$this->cli_available()) {
-            return $this->skip('cli', $label, __('WP-CLI wrappers are not loaded in this process.', 'extend-wp'));
+            return $this->skip('cli', $label, __('WP-CLI wrappers are not loaded in this process.', Config::TEXT_DOMAIN));
         }
 
         if (!isset($o[$key])) {
-            return $this->check('cli', $label, false, __('not executed', 'extend-wp'));
+            return $this->check('cli', $label, false, __('not executed', Config::TEXT_DOMAIN));
         }
 
         $r    = $o[$key];
         $pass = !empty($r['ok']) && ($expected_fragment === null || (!empty($r['success'][0]) && strpos($r['success'][0], $expected_fragment) !== false));
 
-        return $this->check('cli', $label, $pass, $pass ? (!empty($r['success'][0]) ? $r['success'][0] : __('ok', 'extend-wp')) : ($r['error'] ?: wp_json_encode($r['success'])));
+        return $this->check('cli', $label, $pass, $pass ? (!empty($r['success'][0]) ? $r['success'][0] : __('ok', Config::TEXT_DOMAIN)) : ($r['error'] ?: wp_json_encode($r['success'])));
     }
 
     protected function cli_check_printed(array $o, $key, $label, callable $predicate)
     {
         if (!$this->cli_available()) {
-            return $this->skip('cli', $label, __('WP-CLI wrappers are not loaded in this process.', 'extend-wp'));
+            return $this->skip('cli', $label, __('WP-CLI wrappers are not loaded in this process.', Config::TEXT_DOMAIN));
         }
 
         $r    = isset($o[$key]) ? $o[$key] : ['ok' => false, 'printed' => [], 'error' => 'not executed'];
         $pass = !empty($r['ok']) && $predicate(isset($r['printed']) ? $r['printed'] : []);
 
-        return $this->check('cli', $label, $pass, $pass ? __('ok', 'extend-wp') : ($r['error'] ?: __('expected row not found in output', 'extend-wp')));
+        return $this->check('cli', $label, $pass, $pass ? __('ok', Config::TEXT_DOMAIN) : ($r['error'] ?: __('expected row not found in output', Config::TEXT_DOMAIN)));
     }
 
     protected function ability_check(array $o, $key, $label, callable $predicate)
     {
         if (!$this->abilities_available()) {
-            return $this->skip('ability', $label, __('Abilities API not available on this site.', 'extend-wp'));
+            return $this->skip('ability', $label, __('Abilities API not available on this site.', Config::TEXT_DOMAIN));
         }
 
         if (!isset($o[$key])) {
-            return $this->check('ability', $label, false, __('not executed — an earlier step it depends on failed', 'extend-wp'));
+            return $this->check('ability', $label, false, __('not executed — an earlier step it depends on failed', Config::TEXT_DOMAIN));
         }
 
         $r = $o[$key];
 
         if (empty($r['found'])) {
-            return $this->check('ability', $label, false, __('ability is not registered', 'extend-wp'));
+            return $this->check('ability', $label, false, __('ability is not registered', Config::TEXT_DOMAIN));
         }
 
         $pass = !empty($r['ok']) && $predicate(is_array($r['data']) ? $r['data'] : []);
 
-        return $this->check('ability', $label, $pass, $pass ? __('ok', 'extend-wp') : ($r['error'] ?: wp_json_encode($r['data'])));
+        return $this->check('ability', $label, $pass, $pass ? __('ok', Config::TEXT_DOMAIN) : ($r['error'] ?: wp_json_encode($r['data'])));
     }
 }

@@ -2,8 +2,7 @@
 
 namespace EWP\SelfTest\Cases;
 
-use EWP\SelfTest\EWP_Self_Test_Case;
-use EWP\SelfTest\WP_CLI_Shim;
+use Motivar\SelfTest\Case_Base;
 use EWP\Surfaces\EWP_Surfaces;
 
 if (!defined('ABSPATH')) {
@@ -16,7 +15,7 @@ if (!defined('ABSPATH')) {
  * @package EWP\SelfTest
  * @since   1.5.0
  */
-class Object_Search_Case extends EWP_Self_Test_Case
+class Object_Search_Case extends Case_Base
 {
     /** {@inheritDoc} */
     public function preview()
@@ -38,9 +37,6 @@ class Object_Search_Case extends EWP_Self_Test_Case
         $context = ['post_id' => (int) $post_id, 'title' => $title, 'observed' => []];
         $o       = &$context['observed'];
 
-        if ($this->cli_available()) {
-            WP_CLI_Shim::load_plugin_commands();
-        }
 
         $o['rest']    = $this->rest('GET', '/extend-wp/v1/objects/search', ['object_type' => 'post_type:post', 'search' => $title]);
         $o['ability'] = $this->ability('ewp-system/search-objects', ['object_type' => 'post_type:post', 'search' => $title]);

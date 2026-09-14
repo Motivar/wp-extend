@@ -1,39 +1,41 @@
 <?php
 
-namespace EWP\SelfTest;
+namespace Motivar\SelfTest\Surfaces;
+
+use Motivar\SelfTest\Runner;
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
 /**
- * `wp ewp self-test` — the CLI face of EWP_Self_Test_Runner. Used by the
- * pre-push hook and CI through tests/run-self-test.php as well as by hand.
+ * `wp mwp self-test` — the CLI face of Runner. Used by hand and, through
+ * bin/run.php, by the pre-push hook and CI.
  *
  * Commands:
- *   wp ewp self-test list                       — cases from manifest.json with availability.
- *   wp ewp self-test preview [--cases=<ids>]    — the steps each case would run.
- *   wp ewp self-test run [--cases=<ids>] [--cleanup] [--format=<f>]
+ *   wp mwp self-test list [--plugin=<slug>]     — cases from every registered manifest.
+ *   wp mwp self-test preview [--cases=<ids>]    — the steps each case would run.
+ *   wp mwp self-test run [--cases=<ids>] [--cleanup] [--format=<f>]
  *                                               — run + validate; exits 1 when any case fails.
- *   wp ewp self-test cleanup [--cases=<ids>]    — remove test data left by earlier runs.
- *   wp ewp self-test report [--format=<f>]      — the last stored report.
+ *   wp mwp self-test cleanup [--cases=<ids>]    — remove test data left by earlier runs.
+ *   wp mwp self-test report [--format=<f>]      — the last stored report.
  *
- * @package EWP\SelfTest
- * @since   1.5.0
+ * @package Motivar\SelfTest
+ * @since   0.1.0
  */
-class EWP_Self_Test_CLI
+final class Cli
 {
-    /** @var EWP_Self_Test_Runner */
+    /** @var Runner */
     private static $runner;
 
     /**
      * Register commands.
      *
-     * @param EWP_Self_Test_Runner $runner Shared runner.
+     * @param Runner $runner Shared runner.
      *
      * @return void
      */
-    public static function init(EWP_Self_Test_Runner $runner)
+    public static function init(Runner $runner)
     {
         if (!class_exists('WP_CLI')) {
             return;
@@ -41,11 +43,11 @@ class EWP_Self_Test_CLI
 
         self::$runner = $runner;
 
-        \WP_CLI::add_command('ewp self-test list', [__CLASS__, 'list_cases']);
-        \WP_CLI::add_command('ewp self-test preview', [__CLASS__, 'preview']);
-        \WP_CLI::add_command('ewp self-test run', [__CLASS__, 'run']);
-        \WP_CLI::add_command('ewp self-test cleanup', [__CLASS__, 'cleanup']);
-        \WP_CLI::add_command('ewp self-test report', [__CLASS__, 'report']);
+        \WP_CLI::add_command('mwp self-test list', [__CLASS__, 'list_cases']);
+        \WP_CLI::add_command('mwp self-test preview', [__CLASS__, 'preview']);
+        \WP_CLI::add_command('mwp self-test run', [__CLASS__, 'run']);
+        \WP_CLI::add_command('mwp self-test cleanup', [__CLASS__, 'cleanup']);
+        \WP_CLI::add_command('mwp self-test report', [__CLASS__, 'report']);
     }
 
     /**
@@ -53,12 +55,16 @@ class EWP_Self_Test_CLI
      *
      * ## OPTIONS
      *
+     * [--plugin=<slug>]
+     * : Only the cases registered by this plugin.
+     *
      * [--format=<format>]
      * : Output format (table, json, csv). Default table.
      *
      * ## EXAMPLES
      *
-     *     wp ewp self-test list
+     *     wp mwp self-test list
+     *     wp mwp self-test list --plugin=extend-wp
      *
      * @param array $args       Positional arguments.
      * @param array $assoc_args Named arguments.
@@ -67,10 +73,11 @@ class EWP_Self_Test_CLI
      */
     public static function list_cases($args, $assoc_args)
     {
-        $cases = self::unwrap(self::$runner->cases());
+        $cases = self::unwrap(self::$runner->cases([], self::plugin($assoc_args)));
         $rows  = array_map(function ($case) {
             return [
                 'ID'        => $case['id'],
+                'Plugin'    => $case['plugin'],
                 'Label'     => $case['label'],
                 'Category'  => $case['category'],
                 'Layers'    => implode(',', $case['layers']),
@@ -79,7 +86,7 @@ class EWP_Self_Test_CLI
             ];
         }, $cases);
 
-        \WP_CLI\Utils\format_items(isset($assoc_args['format']) ? $assoc_args['format'] : 'table', $rows, ['ID', 'Label', 'Category', 'Layers', 'Available', 'Pending']);
+        \WP_CLI\Utils\format_items(isset($assoc_args['format']) ? $assoc_args['format'] : 'table', $rows, ['ID', 'Plugin', 'Label', 'Category', 'Layers', 'Available', 'Pending']);
     }
 
     /**
@@ -90,9 +97,12 @@ class EWP_Self_Test_CLI
      * [--cases=<ids>]
      * : Comma-separated case ids. Default: all.
      *
+     * [--plugin=<slug>]
+     * : Only the cases registered by this plugin.
+     *
      * ## EXAMPLES
      *
-     *     wp ewp self-test preview --cases=content-crud,logger
+     *     wp mwp self-test preview --cases=content-crud,logger
      *
      * @param array $args       Positional arguments.
      * @param array $assoc_args Named arguments.
@@ -101,7 +111,7 @@ class EWP_Self_Test_CLI
      */
     public static function preview($args, $assoc_args)
     {
-        foreach (self::unwrap(self::$runner->preview(self::ids($assoc_args))) as $case) {
+        foreach (self::unwrap(self::$runner->preview(self::ids($assoc_args), self::plugin($assoc_args))) as $case) {
             \WP_CLI::log(sprintf('%s — %s%s', $case['id'], $case['label'], $case['available'] ? '' : ' [unavailable: ' . $case['reason'] . ']'));
             foreach ($case['steps'] as $i => $step) {
                 \WP_CLI::log(sprintf('  %d. %s', $i + 1, $step));
@@ -117,6 +127,9 @@ class EWP_Self_Test_CLI
      * [--cases=<ids>]
      * : Comma-separated case ids. Default: all.
      *
+     * [--plugin=<slug>]
+     * : Only the cases registered by this plugin.
+     *
      * [--cleanup]
      * : Remove the test data right after each case (what pre-push and CI use).
      *
@@ -125,8 +138,8 @@ class EWP_Self_Test_CLI
      *
      * ## EXAMPLES
      *
-     *     wp ewp self-test run --cleanup
-     *     wp ewp self-test run --cases=logger --format=json
+     *     wp mwp self-test run --cleanup
+     *     wp mwp self-test run --cases=logger --format=json
      *
      * @param array $args       Positional arguments.
      * @param array $assoc_args Named arguments.
@@ -135,7 +148,7 @@ class EWP_Self_Test_CLI
      */
     public static function run($args, $assoc_args)
     {
-        $report = self::unwrap(self::$runner->run(self::ids($assoc_args), isset($assoc_args['cleanup'])));
+        $report = self::unwrap(self::$runner->run(self::ids($assoc_args), isset($assoc_args['cleanup']), self::plugin($assoc_args)));
         $format = isset($assoc_args['format']) ? $assoc_args['format'] : 'table';
 
         if ($format === 'json') {
@@ -163,7 +176,7 @@ class EWP_Self_Test_CLI
      *
      * ## EXAMPLES
      *
-     *     wp ewp self-test cleanup
+     *     wp mwp self-test cleanup
      *
      * @param array $args       Positional arguments.
      * @param array $assoc_args Named arguments.
@@ -199,7 +212,7 @@ class EWP_Self_Test_CLI
      *
      * ## EXAMPLES
      *
-     *     wp ewp self-test report --format=json
+     *     wp mwp self-test report --format=json
      *
      * @param array $args       Positional arguments.
      * @param array $assoc_args Named arguments.
@@ -211,7 +224,7 @@ class EWP_Self_Test_CLI
         $report = self::$runner->report();
 
         if (!$report) {
-            \WP_CLI::warning('No self-test report stored yet. Run "wp ewp self-test run".');
+            \WP_CLI::warning('No self-test report stored yet. Run "wp mwp self-test run".');
             return;
         }
 
@@ -224,6 +237,11 @@ class EWP_Self_Test_CLI
     }
 
     /* ------------------------------------------------------------------ */
+
+    private static function plugin(array $assoc_args)
+    {
+        return isset($assoc_args['plugin']) ? sanitize_key((string) $assoc_args['plugin']) : '';
+    }
 
     private static function ids(array $assoc_args)
     {
@@ -248,7 +266,7 @@ class EWP_Self_Test_CLI
         \WP_CLI::log(sprintf('Self-test report — %s (%d ms)', $report['finished_at'], $report['duration_ms']));
 
         foreach ($report['results'] as $result) {
-            \WP_CLI::log(sprintf('[%s] %s — %s%s', strtoupper($result['status']), $result['id'], $result['label'], $result['message'] ? ' (' . $result['message'] . ')' : ''));
+            \WP_CLI::log(sprintf('[%s] %s/%s — %s%s', strtoupper($result['status']), $result['plugin'], $result['id'], $result['label'], $result['message'] ? ' (' . $result['message'] . ')' : ''));
 
             foreach ($result['checks'] as $check) {
                 \WP_CLI::log(sprintf('    %s %-8s %s%s', ['pass' => '✓', 'fail' => '✗', 'skip' => '-'][$check['status']], $check['layer'], $check['label'], $check['detail'] !== '' ? ' — ' . $check['detail'] : ''));

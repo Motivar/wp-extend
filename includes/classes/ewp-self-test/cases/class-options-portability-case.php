@@ -2,8 +2,7 @@
 
 namespace EWP\SelfTest\Cases;
 
-use EWP\SelfTest\EWP_Self_Test_Case;
-use EWP\SelfTest\WP_CLI_Shim;
+use Motivar\SelfTest\Case_Base;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -19,7 +18,7 @@ if (!defined('ABSPATH')) {
  * @package EWP\SelfTest
  * @since   1.5.0
  */
-class Options_Portability_Case extends EWP_Self_Test_Case
+class Options_Portability_Case extends Case_Base
 {
     /** {@inheritDoc} */
     public function availability()
@@ -53,9 +52,6 @@ class Options_Portability_Case extends EWP_Self_Test_Case
         $page        = !empty($pages) && is_array($pages) ? (string) array_key_first($pages) : '';
         $o           = ['page' => $page, 'page_count' => is_array($pages) ? count($pages) : 0];
 
-        if ($this->cli_available()) {
-            WP_CLI_Shim::load_plugin_commands();
-        }
 
         $o['rest_pages']    = $this->rest('GET', '/extend-wp/v1/options-portability/pages');
         $o['cli_list']      = $this->cli(['EWP_Options_Portability_CLI', 'list_pages'], [], ['format' => 'json']);
