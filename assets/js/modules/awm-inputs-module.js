@@ -133,7 +133,16 @@ function awm_selectr_box(elem) {
  */
 function awm_select_box_values(option, selected_options) {
 
-    var html_value = option.getAttribute('data-html') ? JSON.parse(option.getAttribute('data-html').replace(/(^'|'$)/g, '\"')) : '';
+    var raw_html = option.getAttribute('data-html');
+    var html_value = '';
+    if (raw_html) {
+        try {
+            html_value = JSON.parse(raw_html.replace(/(^'|'$)/g, '\"'));
+        } catch (e) {
+            // SlimSelect writes the decoded html back to data-html, so a re-init sees a non-JSON value.
+            html_value = raw_html;
+        }
+    }
 
     var selected = selected_options.includes(option.value) ? true : false;
     var placeholder = option.getAttribute('data-placeholder') ? (option.getAttribute('data-placeholder') === 'true' ? true : false) : false;
@@ -144,7 +153,7 @@ function awm_select_box_values(option, selected_options) {
     var obj = {
         text: text,
         value: option.value,
-        innerHTML: html_value,
+        html: html_value,
         selected: selected,
         placeholder: placeholder
     };

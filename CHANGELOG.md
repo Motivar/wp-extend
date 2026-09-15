@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **SlimSelect options now receive their `data-html` label** (`2026-09-15`):
+  - **Question/Prompt**: "in awm_select_box_values() if i change innerHTML: html_value to html: html_value, is there danger to break something?" → "ok make the change and build"
+  - **Summary**: `awm_select_box_values()` passed each option's `data-html` value to SlimSelect under `innerHTML`, which was the SlimSelect v1 key. The bundled SlimSelect is v2 (2.13.1), which only reads `html`, so the value was silently ignored and every option rendered from `option.text`. The key is now `html`, so SlimSelect renders the HTML-escaped label that `awm_show_content()` writes into `data-html`.
+  - **Hardened parsing**: when SlimSelect is given explicit `data` it rebuilds the native `<option>` elements and writes `html` back as a plain, non-JSON `data-html` attribute. Now that `html` is non-empty, re-initialising the same select (after `slim.destroy()`, on a repeater clone that lost `data-id`, or when another plugin calls `window.awm_selectr_box()` directly) would have made `JSON.parse()` throw and left the select uninitialised. The parse is now wrapped in `try/catch` and falls back to the raw attribute value.
+  - **Visible behaviour changes**:
+    - The empty placeholder option carries the field label in `data-html`, and SlimSelect v2 prefers a placeholder option's `html` over `settings.placeholderText`. A closed select with no value therefore shows the **field label** instead of `awmGlobals.strings.placeholderText`. Fields with `removeEmpty` have no placeholder option and are unaffected.
+    - Labels are `htmlspecialchars()`-escaped server-side, so a label that contains markup (e.g. a dashicon `<span>`) now shows the literal tags in the dropdown, where the native option text previously dropped them. Plain labels with `&`, quotes or accents render as before.
+    - With search highlighting, SlimSelect highlights inside `html`, so a search term matching part of an entity (e.g. `amp` in `&amp;`) can garble that option while searching. Cosmetic only.
+  - **Unaffected**: optgroup labels (built separately under `label`), selects rendered with `no_style` (no `data-html`), and the object-ID filter module (builds its own SlimSelect data).
+  - **Security**: the value reaches `innerHTML` but is escaped in PHP (`library.php`), so no markup can be injected. Keep that escaping if HTML labels are ever wanted.
+  - **Affected Files**:
+    - `assets/js/modules/awm-inputs-module.js`
+    - `build/awm-inputs-module.chunk.js` (rebuilt)
+  - **New hooks/routes/settings**: none.
+  - **Backwards compatibility**: no API change. The placeholder and markup-label differences above are visible changes; nothing in PHP or the option markup changed.
+
 ### Added
 - **Plugin functionality exposed through the WordPress Abilities API** (`2026-09-08`):
   - **Question/Prompt**: "Can you register to wp abilities regarding the functionality of the plugin? Like all functions related to flx_log, creating custom fields/content/post types etc?" → "before inserting the abilities can you add a check if current wp version supports it?"
