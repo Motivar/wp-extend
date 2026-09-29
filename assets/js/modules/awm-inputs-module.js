@@ -153,6 +153,7 @@ function awm_select_box_values(option, selected_options) {
     var obj = {
         text: text,
         value: option.value,
+        innerHTML: html_value,
         html: html_value,
         selected: selected,
         placeholder: placeholder
