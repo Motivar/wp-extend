@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Fatal `TypeError` when a metabox is registered without `postTypes` / `taxonomies`** (`2026-09-28`):
+  - **Question/Prompt**: "can you apply the fix?" (follow-up to the onpelion.gr staging pipeline failure, where `wp eval` crashed during bootstrap).
+  - **Summary**: `awm_get_metabox_info()` called `in_array($content_type, $metabox_data['postTypes'])` (and the same for `taxonomies`). On PHP 8, a box without that key passes `null` and throws a fatal `TypeError`. `filox-advanced-search` reaches this through `fxa_get_metaboxes()` on `widgets_init`, so every request crashed once its 72 h transient cache was empty. On onpelion.gr the incomplete box is `mtv_auto_update`: the theme adds `postTypes`, so it crashes whenever the theme is not loaded (for example `wp … --skip-themes`). All unguarded reads now use `(array) ($box['postTypes'] ?? array())`, so an incomplete box is skipped instead of taking the site down. The same guard is applied in `AWM_Meta`: the admin-list column loop, the `restrict_manage_posts` options loop, and `add_meta_boxes` (whose later `add_meta_box(…, $metaBoxData['postTypes'], …)` is only reached when the key matched).
+  - **Affected Files**: `includes/functions/main.php`, `includes/classes/class-extend-wp.php`.
+  - **Backwards Compatibility**: No behaviour change for complete boxes; `in_array` stays non-strict. Boxes without `postTypes`/`taxonomies` used to fatal and are now ignored for those content types. No new hooks.
+  - **Tests**: The PHPUnit regression test (`tests/test-metabox-info-test.php`) is on `feature/self-test-suite`, because the PHPUnit setup only exists on that branch.
 - **SlimSelect options now receive their `data-html` label** (`2026-09-15`):
   - **Question/Prompt**: "in awm_select_box_values() if i change innerHTML: html_value to html: html_value, is there danger to break something?" → "ok make the change and build"
   - **Summary**: `awm_select_box_values()` passed each option's `data-html` value to SlimSelect under `innerHTML`, which was the SlimSelect v1 key. The bundled SlimSelect is v2 (2.13.1), which only reads `html`, so the value was silently ignored and every option rendered from `option.text`. The key is now `html`, so SlimSelect renders the HTML-escaped label that `awm_show_content()` writes into `data-html`.
