@@ -44,6 +44,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Files**: `includes/classes/ewp-surfaces/class-ewp-surfaces.php` (`attach()` new, `boot()` unchanged in effect, `register_adapters()`), `includes/classes/ewp-self-test/class-ewp-self-test.php` (`autoload_case()` new, `register()`), `tests/bootstrap.php`, `docs/surfaces.md`, `docs/self-test.md`.
   - **Backwards compatibility**: routes, commands, abilities and their bodies are unchanged; both test layers pass unmodified. The `ewp_surfaces_resources` filter now fires on the first REST/abilities initialisation (or under WP-CLI at `plugins_loaded -100` as before) instead of always at `plugins_loaded -100`; callers that add the filter on `plugins_loaded` or earlier are unaffected. Code that needs the registry outside those moments must call `EWP_Surfaces::instance()->registry()`, which boots on demand (all existing callers already did).
 
+### Fixed
+- **Fatal `TypeError` when a metabox is registered without `postTypes` / `taxonomies`** (`2026-09-28`):
+  - **Question/Prompt**: "can you apply the fix?" (follow-up to the onpelion.gr staging pipeline failure, where `wp eval` crashed during bootstrap).
+  - **Summary**: `awm_get_metabox_info()` called `in_array($content_type, $metabox_data['postTypes'])` (and the same for `taxonomies`). On PHP 8, a box without that key passes `null` and throws a fatal `TypeError`. `filox-advanced-search` reaches this through `fxa_get_metaboxes()` on `widgets_init`, so every request crashed once its 72 h transient cache was empty. On onpelion.gr the incomplete box is `mtv_auto_update`: the theme adds `postTypes`, so it crashes whenever the theme is not loaded (for example `wp … --skip-themes`). All unguarded reads now use `(array) ($box['postTypes'] ?? array())`, so an incomplete box is skipped instead of taking the site down. The same guard is applied in `AWM_Meta`: the admin-list column loop, the `restrict_manage_posts` options loop, and `add_meta_boxes` (whose later `add_meta_box(…, $metaBoxData['postTypes'], …)` is only reached when the key matched).
+  - **Affected Files**: `includes/functions/main.php`, `includes/classes/class-extend-wp.php`.
+  - **Backwards Compatibility**: No behaviour change for complete boxes; `in_array` stays non-strict. Boxes without `postTypes`/`taxonomies` used to fatal and are now ignored for those content types. No new hooks.
+  - **Tests**: The PHPUnit regression test (`tests/test-metabox-info-test.php`) is on `feature/self-test-suite`, because the PHPUnit setup only exists on that branch.
+- **SlimSelect options now receive their `data-html` label** (`2026-09-15`):
+  - **Question/Prompt**: "in awm_select_box_values() if i change innerHTML: html_value to html: html_value, is there danger to break something?" → "ok make the change and build"
+  - **Summary**: `awm_select_box_values()` passed each option's `data-html` value to SlimSelect under `innerHTML`, which was the SlimSelect v1 key. The bundled SlimSelect is v2 (2.13.1), which only reads `html`, so the value was silently ignored and every option rendered from `option.text`. The key is now `html`, so SlimSelect renders the HTML-escaped label that `awm_show_content()` writes into `data-html`.
+  - **Hardened parsing**: when SlimSelect is given explicit `data` it rebuilds the native `<option>` elements and writes `html` back as a plain, non-JSON `data-html` attribute. Now that `html` is non-empty, re-initialising the same select (after `slim.destroy()`, on a repeater clone that lost `data-id`, or when another plugin calls `window.awm_selectr_box()` directly) would have made `JSON.parse()` throw and left the select uninitialised. The parse is now wrapped in `try/catch` and falls back to the raw attribute value.
+  - **Visible behaviour changes**:
+    - The empty placeholder option carries the field label in `data-html`, and SlimSelect v2 prefers a placeholder option's `html` over `settings.placeholderText`. A closed select with no value therefore shows the **field label** instead of `awmGlobals.strings.placeholderText`. Fields with `removeEmpty` have no placeholder option and are unaffected.
+    - Labels are `htmlspecialchars()`-escaped server-side, so a label that contains markup (e.g. a dashicon `<span>`) now shows the literal tags in the dropdown, where the native option text previously dropped them. Plain labels with `&`, quotes or accents render as before.
+    - With search highlighting, SlimSelect highlights inside `html`, so a search term matching part of an entity (e.g. `amp` in `&amp;`) can garble that option while searching. Cosmetic only.
+  - **Unaffected**: optgroup labels (built separately under `label`), selects rendered with `no_style` (no `data-html`), and the object-ID filter module (builds its own SlimSelect data).
+  - **Security**: the value reaches `innerHTML` but is escaped in PHP (`library.php`), so no markup can be injected. Keep that escaping if HTML labels are ever wanted.
+  - **Affected Files**:
+    - `assets/js/modules/awm-inputs-module.js`
+    - `build/awm-inputs-module.chunk.js` (rebuilt)
+  - **New hooks/routes/settings**: none.
+  - **Backwards compatibility**: no API change. The placeholder and markup-label differences above are visible changes; nothing in PHP or the option markup changed.
+
 ### Added
 - **Branch-vs-branch performance benchmark** (`2026-09-14`):
   - **Question/Prompt**: "Can we somehow test the performance of main branch against the new code?"

@@ -116,7 +116,7 @@ class AWM_Meta
                             foreach ($metaBoxData['library'] as $meta => $data) {
                                 if (isset($data['admin_list']) && $data['admin_list']) {
                                     $data['key'] = $meta;
-                                    foreach ($metaBoxData['postTypes'] as $postType) {
+                                    foreach ((array) ($metaBoxData['postTypes'] ?? array()) as $postType) {
                                         if (isset($_GET['post_type']) && $_GET['post_type'] == $postType) {
                                             /*add post columns*/
                                             add_filter('manage_' . $postType . '_posts_columns', function ($columns) use ($data) {
@@ -533,7 +533,7 @@ class AWM_Meta
             $post_type = isset($_GET['post_type']) ? $_GET['post_type'] : 'post';
 
             foreach ($restrict_post_forms as $optionKey => $optionData) {
-                if (in_array($post_type, $optionData['postTypes']) && !empty($optionData['library'])) {
+                if (in_array($post_type, (array) ($optionData['postTypes'] ?? array())) && !empty($optionData['library'])) {
                     $library = array();
                     foreach ($optionData['library'] as $key => $data) {
                         $library[$key] = $data;
@@ -879,7 +879,7 @@ class AWM_Meta
 
         if (!empty($metaBoxes)) {
             foreach ($metaBoxes as $metaBoxKey => $metaBoxData) {
-                if (in_array($postType, $metaBoxData['postTypes'])) {
+                if (in_array($postType, (array) ($metaBoxData['postTypes'] ?? array()))) {
 
                     $metaBoxData['library'] = awm_callback_library(awm_callback_library_options($metaBoxData), $metaBoxKey);
                     if (!empty($metaBoxData['library'])) {

@@ -287,14 +287,14 @@ if (!function_exists('awm_get_metabox_info')) {
                     switch ($case) {
                         case 'post':
                         case 'post_type':
-                            if (in_array($content_type, $metabox_data['postTypes'])) {
+                            if (in_array($content_type, (array) ($metabox_data['postTypes'] ?? array()))) {
                                 $allMetaBoxes[$metabox_id] = $metabox_data;
                                 $allMetaBoxes[$metabox_id]['library'] = awm_callback_library(awm_callback_library_options($metabox_data), $id);
                             }
                             break;
                         case 'term':
                         case 'taxonomy':
-                            if (in_array($content_type, $metabox_data['taxonomies'])) {
+                            if (in_array($content_type, (array) ($metabox_data['taxonomies'] ?? array()))) {
                                 $allMetaBoxes[$metabox_id] = $metabox_data;
                                 $allMetaBoxes[$metabox_id]['library'] = awm_callback_library(awm_callback_library_options($metabox_data), $id);
                             }
