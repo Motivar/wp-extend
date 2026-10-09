@@ -19,17 +19,30 @@
 
     const cfg     = window.ewpRestHealth || {};
     const POLL_MS = 4000;
+    // Swagger UI is a sibling dynamic asset that may finish loading after this file.
+    const SWAGGER_WAIT_MS   = 100;
+    const SWAGGER_MAX_WAITS = 100; // ~10 s before reporting "Swagger UI not loaded"
 
-    document.addEventListener('DOMContentLoaded', () => {
+    /**
+     * Instantiate the shell on the REST Health page, if present.
+     *
+     * @return {void}
+     */
+    function boot() {
         const wrap = document.querySelector('.ewp-rest-health-wrap');
         if (!wrap) return;
         new EWPRestHealth(wrap);
-    });
+    }
 
     // =========================================================================
 
     class EWPRestHealth {
 
+        /**
+         * Build the shell, bind events and load preferences, monitor state and payloads.
+         *
+         * @param {HTMLElement} wrap The .ewp-rest-health-wrap container (carries data-nonce and data-rest-url).
+         */
         constructor(wrap) {
             this.wrap           = wrap;
             this.nonce          = wrap.dataset.nonce   || '';
@@ -39,6 +52,9 @@
             this.currentSpecUrl = null;
             this.monitorPoller  = null;
             this.countdownTimer = null;
+            this.swaggerWaits     = 0;    // retries while SwaggerUIBundle is still loading
+            this.swaggerWaitTimer = null;
+            this.prefsLoaded      = false; // plugin-select changes are ignored until true
 
             // ── DOM refs ────────────────────────────────────────────────────
             this.$search        = wrap.querySelector('#ewp-rh-search');
@@ -70,14 +86,22 @@
         // Events
         // -------------------------------------------------------------------------
 
+        /**
+         * Wire the plugin select, method filters, search, monitor and payload controls.
+         *
+         * @return {void}
+         */
         bindEvents() {
             // Prevent AWM form from submitting (Swagger Execute can bubble)
             const form = this.wrap.closest('form');
             if (form) form.addEventListener('submit', ev => ev.preventDefault());
 
             // Plugin selection → save preferences + reload spec
+            // Ignored until preferences load: SlimSelect dispatches a change while it
+            // initialises, which would otherwise save an empty selection over the user's.
             if (this.$plugins) {
                 this.$plugins.addEventListener('change', () => {
+                    if (!this.prefsLoaded) return;
                     this.savePreferences();
                     this.initSwagger();
                 });
@@ -117,6 +141,11 @@
         // User preferences — stored in user meta via REST
         // -------------------------------------------------------------------------
 
+        /**
+         * Restore the saved plugin/method selection from user meta, then render Swagger.
+         *
+         * @return {Promise<void>}
+         */
         async loadPreferences() {
             try {
                 const prefs = await this.get('preferences');
@@ -124,6 +153,9 @@
                     Array.from(this.$plugins.options).forEach(opt => {
                         opt.selected = prefs.plugins.includes(opt.value);
                     });
+                    // SlimSelect keeps its own state; when it is already up, show the
+                    // restored selection. When it is not, it reads the options on init.
+                    if (this.$plugins.slim) this.$plugins.slim.setSelected(this.getSelected());
                 }
                 if (Array.isArray(prefs.methods) && prefs.methods.length) {
                     this.$methodCbs.forEach(cb => {
@@ -131,9 +163,17 @@
                     });
                 }
                 if (this.getSelected().length) this.initSwagger();
-            } catch (_) {}
+            } catch (_) {
+            } finally {
+                this.prefsLoaded = true;
+            }
         }
 
+        /**
+         * Persist the current plugin/method selection to user meta (fire-and-forget).
+         *
+         * @return {void}
+         */
         savePreferences() {
             // Fire-and-forget — don't await, UI shouldn't wait for this
             this.post('preferences', {
@@ -142,12 +182,22 @@
             }).catch(() => {});
         }
 
+        /**
+         * Read the selected plugin paths from the plugin multiselect.
+         *
+         * @return {string[]} Plugin paths, e.g. "wp-extend/extend-wp.php".
+         */
         getSelected()   {
             return this.$plugins
                 ? Array.from(this.$plugins.selectedOptions).map(o => o.value)
                 : [];
         }
 
+        /**
+         * Read the checked HTTP method filters.
+         *
+         * @return {string[]} Upper-case HTTP methods.
+         */
         getSelectedMethods() {
             return this.$methodCbs.filter(cb => cb.checked).map(cb => cb.value);
         }
@@ -156,6 +206,12 @@
         // Swagger UI — only reinit when spec URL changes
         // -------------------------------------------------------------------------
 
+        /**
+         * Render Swagger UI for the current selection, reinitialising only when the spec URL changes.
+         * Retries while SwaggerUIBundle is still loading (see SWAGGER_MAX_WAITS).
+         *
+         * @return {void}
+         */
         initSwagger() {
             const selected = this.getSelected();
 
@@ -170,6 +226,12 @@
             }
 
             if (typeof SwaggerUIBundle === 'undefined') {
+                if (this.swaggerWaits < SWAGGER_MAX_WAITS) {
+                    this.swaggerWaits++;
+                    clearTimeout(this.swaggerWaitTimer);
+                    this.swaggerWaitTimer = setTimeout(() => this.initSwagger(), SWAGGER_WAIT_MS);
+                    return;
+                }
                 if (this.$swaggerPanel) {
                     this.$swaggerPanel.innerHTML = '<p class="ewp-rh-hint notice notice-error">'
                         + e(this.str.swaggerError || 'Swagger UI not loaded.') + '</p>';
@@ -199,6 +261,12 @@
                 tryItOutEnabled:  true,
                 filter:           false,   // we supply our own search box above
                 deepLinking:      false,
+                /**
+                 * Attach the REST nonce to every request Swagger UI sends.
+                 *
+                 * @param {Object} req Swagger UI request object.
+                 * @return {Object} The same request, with X-WP-Nonce set.
+                 */
                 requestInterceptor(req) {
                     req.headers['X-WP-Nonce'] = nonce;
                     return req;
@@ -216,6 +284,12 @@
         // Route search — DOM filter (no spec reload)
         // -------------------------------------------------------------------------
 
+        /**
+         * Show only the Swagger operations whose path or summary contains the text.
+         *
+         * @param {string} text Search text; empty shows every operation.
+         * @return {void}
+         */
         filterSwaggerOps(text) {
             const q = text.toLowerCase();
             const panel = this.wrap.querySelector('#ewp-rh-swagger-panel');
@@ -240,6 +314,11 @@
         // Swagger inline test injection
         // -------------------------------------------------------------------------
 
+        /**
+         * Observe the Swagger panel and inject the inline test area into expanded operations.
+         *
+         * @return {void}
+         */
         setupSwaggerInjection() {
             if (this.swaggerObserver) this.swaggerObserver.disconnect();
 
@@ -265,6 +344,12 @@
             this.swaggerObserver.observe(panel, { childList: true, subtree: true });
         }
 
+        /**
+         * Add the inline "Quick test" textarea and Execute button to an operation body once.
+         *
+         * @param {HTMLElement} body Expanded Swagger operation body.
+         * @return {void}
+         */
         injectTestArea(body) {
             if (!body || body.querySelector('.ewp-rh-inline-test')) return;
 
@@ -320,6 +405,16 @@
             });
         }
 
+        /**
+         * Probe one route through POST /rest-health/test and render the response.
+         *
+         * @param {string}      route    REST route path.
+         * @param {string}      method   HTTP method.
+         * @param {Object}      params   Request parameters.
+         * @param {HTMLElement} resultEl Element that receives the rendered result.
+         * @param {HTMLElement} btn      Execute button, disabled while the request runs.
+         * @return {Promise<void>}
+         */
         async executeInlineTest(route, method, params, resultEl, btn) {
             const orig = btn.textContent;
             btn.disabled     = true;
@@ -353,6 +448,11 @@
         // Monitor — Start / Stop / Poll
         // -------------------------------------------------------------------------
 
+        /**
+         * Fetch the traffic monitor state and sync the controls and polling.
+         *
+         * @return {Promise<void>}
+         */
         async loadMonitorStatus() {
             try {
                 const data = await this.get('monitor');
@@ -365,6 +465,11 @@
             } catch (_) {}
         }
 
+        /**
+         * Start the live traffic monitor for the selected plugins.
+         *
+         * @return {Promise<void>}
+         */
         async startMonitor() {
             const plugins = this.getSelected();
             if (!plugins.length) {
@@ -378,6 +483,11 @@
             } catch (_) {}
         }
 
+        /**
+         * Stop the live traffic monitor.
+         *
+         * @return {Promise<void>}
+         */
         async stopMonitor() {
             try {
                 const data = await this.post('monitor', { action: 'stop', plugins: [] });
@@ -388,6 +498,11 @@
             } catch (_) {}
         }
 
+        /**
+         * Poll the monitor state and captured payloads every POLL_MS.
+         *
+         * @return {void}
+         */
         startPolling() {
             this.stopPolling();
             this._lastCapturedCount = -1; // track count to avoid redundant payload fetches
@@ -406,6 +521,11 @@
             }, POLL_MS);
         }
 
+        /**
+         * Stop polling the monitor.
+         *
+         * @return {void}
+         */
         stopPolling() {
             if (this.monitorPoller) {
                 clearInterval(this.monitorPoller);
@@ -417,6 +537,12 @@
             }
         }
 
+        /**
+         * Sync the monitor buttons, status badge, countdown and polling with a monitor state.
+         *
+         * @param {Object} data Monitor state from GET /rest-health/monitor (active, remaining_sec, ...).
+         * @return {void}
+         */
         applyMonitorState(data) {
             const active    = !!data.active;
             const count     = data.captured_count || 0;
@@ -456,9 +582,20 @@
             }
         }
 
+        /**
+         * Start the visible auto-stop countdown.
+         *
+         * @param {number} initialSecs Seconds remaining.
+         * @return {void}
+         */
         runCountdown(initialSecs) {
             this.stopCountdown();
             let secs = initialSecs;
+            /**
+             * Render the remaining seconds and stop at zero.
+             *
+             * @return {void}
+             */
             const tick = () => {
                 if (!this.$countdown) return;
                 const m = Math.floor(secs / 60);
@@ -474,6 +611,11 @@
             this.countdownTimer = setInterval(tick, 1000);
         }
 
+        /**
+         * Stop the auto-stop countdown timer.
+         *
+         * @return {void}
+         */
         stopCountdown() {
             if (this.countdownTimer) {
                 clearInterval(this.countdownTimer);
@@ -485,6 +627,11 @@
         // Captured Payloads
         // -------------------------------------------------------------------------
 
+        /**
+         * Fetch the captured monitor payloads and render them.
+         *
+         * @return {Promise<void>}
+         */
         async loadPayloads() {
             try {
                 const payloads = await this.get('monitor/payloads');
@@ -493,6 +640,12 @@
             } catch (_) {}
         }
 
+        /**
+         * Render the captured payloads panel, grouped by route.
+         *
+         * @param {Object[]} payloads Captured requests from GET /rest-health/monitor/payloads.
+         * @return {void}
+         */
         renderPayloads(payloads) {
             if (!this.$payloadsPanel || !this.$payloadsList) return;
 
@@ -579,6 +732,12 @@
         }
 
         // ── Toggle a collapsible block
+        /**
+         * Expand or collapse the block an aria-controls toggle points to.
+         *
+         * @param {HTMLElement} el Toggle element with aria-controls/aria-expanded.
+         * @return {void}
+         */
         toggleBlock(el) {
             const target   = document.getElementById(el.getAttribute('aria-controls'));
             const expanded = el.getAttribute('aria-expanded') === 'true';
@@ -596,6 +755,12 @@
             }
         }
 
+        /**
+         * Copy the button's data-json value to the clipboard and flash a confirmation.
+         *
+         * @param {HTMLElement} btn Button carrying data-json.
+         * @return {void}
+         */
         copyToClipboard(btn) {
             navigator.clipboard.writeText(btn.dataset.json || '').then(() => {
                 const orig = btn.textContent;
@@ -609,6 +774,15 @@
         //   2. Expand it via Swagger UI's own layoutActions (most reliable) or summary-control click
         //   3. Once expanded, our MutationObserver has already injected the Quick Test section
         //   4. Pre-fill that textarea + auto-click our own Execute button (plain button, not React)
+        /**
+         * Open the matching Swagger operation and run its Quick Test with a captured payload.
+         *
+         * @param {string}      route      REST route path.
+         * @param {string}      method     HTTP method.
+         * @param {Object}      params     Captured request parameters.
+         * @param {HTMLElement} triggerBtn Button that triggered the action (for feedback).
+         * @return {void}
+         */
         useInSwagger(route, method, params, triggerBtn) {
             const panel = document.querySelector('#ewp-rh-swagger-panel');
             if (!panel) return;
@@ -658,6 +832,11 @@
 
             // 4. After expansion, fill our Quick Test textarea and click our Execute button.
             //    We target OUR injected elements (plain DOM, not React) — no event simulation needed.
+            /**
+             * Fill the Quick Test textarea with the payload and run it.
+             *
+             * @return {void}
+             */
             const fillAndRun = () => {
                 // If Quick Test section not injected yet (race), inject it now
                 if (!block.querySelector('.ewp-rh-inline-test')) {
@@ -690,6 +869,11 @@
             setTimeout(fillAndRun, alreadyOpen ? 50 : 700);
         }
 
+        /**
+         * Delete every captured payload after confirmation.
+         *
+         * @return {Promise<void>}
+         */
         async clearPayloads() {
             if (!confirm('Clear all captured payloads?')) return;
             try {
@@ -706,6 +890,11 @@
         // -------------------------------------------------------------------------
 
         // ── Export the current OpenAPI spec as a downloadable JSON file
+        /**
+         * Download the OpenAPI spec for the current selection as JSON.
+         *
+         * @return {Promise<void>}
+         */
         async exportSpec() {
             if (!this.currentSpecUrl) return;
 
@@ -737,6 +926,11 @@
             }
         }
 
+        /**
+         * Download the captured payloads as a JSON file.
+         *
+         * @return {void}
+         */
         downloadPayloads() {
             if (!this.capturedPayloads || !this.capturedPayloads.length) return;
             const json = JSON.stringify(this.capturedPayloads, null, 2);
@@ -755,12 +949,25 @@
         // HTTP helpers
         // -------------------------------------------------------------------------
 
+        /**
+         * GET a path under the rest-health REST base.
+         *
+         * @param {string} path Path relative to restUrl, may include a query string.
+         * @return {Promise<*>} Decoded JSON; rejects on a non-2xx status.
+         */
         async get(path) {
             const res = await fetch(this.restUrl + path, { headers: { 'X-WP-Nonce': this.nonce } });
             if (!res.ok) throw new Error(res.statusText);
             return res.json();
         }
 
+        /**
+         * POST JSON to a path under the rest-health REST base.
+         *
+         * @param {string} path Path relative to restUrl.
+         * @param {Object} body Request body, JSON-encoded.
+         * @return {Promise<*>} Decoded JSON; rejects on a non-2xx status.
+         */
         async post(path, body) {
             const res = await fetch(this.restUrl + path, {
                 method:  'POST',
@@ -771,6 +978,12 @@
             return res.json();
         }
 
+        /**
+         * DELETE a path under the rest-health REST base.
+         *
+         * @param {string} path Path relative to restUrl.
+         * @return {Promise<*>} Decoded JSON; rejects on a non-2xx status.
+         */
         async delete_(path) {
             const res = await fetch(this.restUrl + path, {
                 method:  'DELETE',
@@ -785,12 +998,27 @@
     // Utility: HTML-escape
     // =========================================================================
 
+    /**
+     * HTML-escape a value for safe insertion into markup.
+     *
+     * @param {*} str Value to escape; null/undefined become an empty string.
+     * @return {string} Escaped string.
+     */
     function e(str) {
         return String(str ?? '')
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
+    }
+
+    // Boot last: `class EWPRestHealth` is not hoisted, so calling boot() above its
+    // declaration throws. The Dynamic Asset Loader usually injects this file after
+    // DOMContentLoaded has already fired, so only wait while the document is parsing.
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+    } else {
+        boot();
     }
 
 })();

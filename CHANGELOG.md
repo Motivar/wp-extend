@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **REST API Health page intermittently did nothing, and lost the saved plugin selection** (`2026-10-09`):
+  - **Question/Prompt**: "then fix the REST-health race" (found while testing every admin page of `feat/unified-surfaces` in Chrome; the page initialised on only 2–3 of 5 reloads on both `main` and the branch).
+  - **Summary**: three races in `assets/js/admin/ewp-rest-health.js`, all caused by the Dynamic Asset Loader injecting the script late. (1) The shell was created in a `DOMContentLoaded` listener, but the loader usually injects the file after that event has fired, so nothing ran (no preferences, monitor or spec requests; Refresh did nothing). It now boots immediately when `document.readyState !== 'loading'`; the boot call sits at the end of the IIFE because `class EWPRestHealth` is not hoisted. (2) `swagger-ui-bundle` is a sibling dynamic asset that can finish after the shell, so a restored selection could hit "Swagger UI not loaded"; `initSwagger()` now retries every 100 ms for up to ~10 s before showing that message (the loader's `dependencies` can't be used: it treats a dependency as loaded as soon as its `<script>` tag exists). (3) SlimSelect dispatches a `change` on the plugin select while it initialises; when that happened before the saved preferences arrived, `savePreferences()` stored an empty selection over the user's. Plugin-select changes are now ignored until `loadPreferences()` settles, and the restored selection is pushed into SlimSelect with `setSelected()` when it is already initialised, so the dropdown shows it instead of "Select Value".
+  - **Verified**: in Chrome, 6/6 reloads restored the selection, showed it in the dropdown and rendered the spec (75 operations) with no console errors; clearing the selection by hand still saves `[]`.
+  - **Also**: JSDoc added to every function in the file (required by the docblock hook); `EWP_REST_Health::ASSET_VERSION` bumped to `1.0.1` so browsers fetch the new script and stylesheet.
+  - **Affected Files**: `assets/js/admin/ewp-rest-health.js`, `includes/classes/ewp-rest-health/class-ewp-rest-health.php`, `CHANGELOG.md`.
+  - **New hooks/routes/settings**: none.
+  - **Backwards Compatibility**: no API change; the REST routes, the preference format and the page markup are unchanged.
+
 ### Changed
 - **Self-test: only the UI follows the environment (`gnnpls/wp-self-test` 0.6.1)** (`2026-09-14`):
   - **Question/Prompt**: "We just need the UI to be available when environment is not production. If we have this package in a repo then install the pre-push checks."

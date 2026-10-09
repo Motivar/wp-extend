@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
  */
 class EWP_REST_Health
 {
-    const ASSET_VERSION = '1.0.0';
+    const ASSET_VERSION = '1.0.1';
 
     public function __construct()
     {
