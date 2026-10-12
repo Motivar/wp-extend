@@ -64,7 +64,7 @@ final class Cli
      * ## EXAMPLES
      *
      *     wp mwp self-test list
-     *     wp mwp self-test list --plugin=extend-wp
+     *     wp mwp self-test list --plugin=my-plugin
      *
      * @param array $args       Positional arguments.
      * @param array $assoc_args Named arguments.

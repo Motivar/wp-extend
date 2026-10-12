@@ -6,10 +6,10 @@ authorization, validation and output shape live in one place, so the three
 surfaces cannot drift apart.
 
 The kit has no dependency on any plugin. Install it with
-`composer require gnnpls/wp-kit` (repository
-`https://gitlab.motivar.io/tools/wp-kit`); it is a runtime dependency,
+`composer require gnnpls/wp-kit` (source:
+`https://github.com/gnnpls/wp-kit`); it is a runtime dependency,
 because the adapters register routes, commands and abilities inside
-WordPress. Its first consumer is `motivar/extend-wp`.
+WordPress.
 
 ## Loading
 
@@ -121,7 +121,11 @@ Modifiers: `required()`, `default_value()`, `min()`, `max()`, `max_length()`,
 `Operation::run()` is the only path every surface uses:
 
 1. normalise input against the fields and apply defaults
-2. validate (`mwp_invalid_param`, 400)
+2. validate (`mwp_invalid_param`, 400). Nested `properties()` of an object
+   field are validated the same way (required, bounds, enum, `validate_with()`),
+   and `additional_properties(false)` rejects undeclared keys. Only the kit
+   enforces these: the surfaces advertise the schema but do not validate
+   against it.
 3. authorise (`mwp_forbidden`, 403). A resolver is `true`, `false`, a
    capability string, or `fn(Operation, array $input, Context)` returning one
    of those. An unattended WP-CLI run (no `--user`) is trusted as an
@@ -129,8 +133,12 @@ Modifiers: `required()`, `default_value()`, `min()`, `max()`, `max_length()`,
 4. confirm destructive calls where required (`mwp_confirm_required`, 400).
    Abilities pass `confirm: true`; the CLI passes `--yes`.
 5. `do_action('mwp_operation_before_run', $op, $input, $ctx)`
-6. call the service method (arguments matched by parameter name; leftover
-   keys go to the first array-typed parameter), or use `->args(callable)`
+6. call the service method: declared fields are matched to parameters by
+   name; with `->allow_extra()` the undeclared keys go to the first
+   array-typed parameter and never bind by name. Use `->args(callable)` to
+   take over the mapping. A handler exception becomes `mwp_operation_failed`
+   (500) with a generic message; the exception text is logged and only
+   attached as `detail` on the CLI or when `WP_DEBUG` is on.
 7. `apply_filters('mwp_operation_result', $result, $op, $input, $ctx)`
 
 ## Hooks
@@ -143,6 +151,8 @@ Modifiers: `required()`, `default_value()`, `min()`, `max()`, `max_length()`,
 | `mwp_operation_before_run` | action | `(Operation $op, array $input, Context $ctx)` |
 | `mwp_operation_result` | filter | `($result, Operation $op, array $input, Context $ctx)` |
 | `mwp_ability_definitions` | filter | `(array $definitions, Resource $resource)` |
+
+Full descriptions, parameters and firing points are in [HOOKS.md](HOOKS.md).
 
 ## Inventory
 

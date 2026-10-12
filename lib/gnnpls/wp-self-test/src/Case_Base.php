@@ -225,7 +225,7 @@ abstract class Case_Base
     /**
      * Execute a registered ability.
      *
-     * @param string $name  Ability name, e.g. `ewp-content/get-item`.
+     * @param string $name  Ability name, e.g. `my-plugin/get-item`.
      * @param array  $input Ability input.
      *
      * @return array{found: bool, ok: bool, data: mixed, error: string}

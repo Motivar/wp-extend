@@ -13,24 +13,18 @@
     "config": {
         "vendor-dir": "lib",
         "optimize-autoloader": true,
-        "apcu-autoloader": true
+        "apcu-autoloader": true,
+        "preferred-install": {
+            "gnnpls/*": "dist",
+            "*": "auto"
+        }
     },
     "support": {
         "issues": "https://motivar.io/"
     },
-    "repositories": [
-        {
-            "type": "git",
-            "url": "https://gitlab.motivar.io/tools/wp-kit.git"
-        },
-        {
-            "type": "git",
-            "url": "https://gitlab.motivar.io/tools/wp-selft-test.git"
-        }
-    ],
     "require": {
-        "gnnpls/wp-kit": ">=0.1",
-        "gnnpls/wp-self-test": ">=0.6.1"
+        "gnnpls/wp-kit": "dev-main",
+        "gnnpls/wp-self-test": "dev-main"
     },
     "autoload": {
         "psr-4": {

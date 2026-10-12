@@ -42,7 +42,7 @@ if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
 }
 
 $existing = file_exists($hook) ? (string) file_get_contents($hook) : '';
-$managed  = strpos($existing, $marker) !== false || strpos($existing, '# managed by motivar/wp-self-test') !== false;
+$managed  = strpos($existing, $marker) !== false;
 
 if ($existing !== '' && !$managed) {
     fwrite(STDOUT, "[wp-self-test] {$hook} exists and is not managed by this package; left untouched.\n");

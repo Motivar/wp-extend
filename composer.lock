@@ -4,54 +4,78 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b47ad2b3480fe0b54976f0d8a4664059",
+    "content-hash": "f47b09b56a21d9ec6042008d0c5a71cc",
     "packages": [
         {
             "name": "gnnpls/wp-kit",
-            "version": "v0.2.0",
+            "version": "dev-main",
             "source": {
                 "type": "git",
-                "url": "https://gitlab.motivar.io/tools/wp-kit.git",
-                "reference": "7a7b245498c73f9faf1c97640b391eb2b6285d6d"
+                "url": "https://github.com/gnnpls/wp-kit.git",
+                "reference": "ee32f70e905b1443d7e8d5d1cab1270f926cd240"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/gnnpls/wp-kit/zipball/ee32f70e905b1443d7e8d5d1cab1270f926cd240",
+                "reference": "ee32f70e905b1443d7e8d5d1cab1270f926cd240",
+                "shasum": ""
             },
             "require": {
                 "php": ">=7.4"
             },
+            "default-branch": true,
             "type": "library",
             "autoload": {
                 "files": [
                     "bootstrap.php"
                 ]
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Gnnpls\\WP\\": "src/"
-                }
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "GPL-2.0-or-later"
             ],
             "authors": [
                 {
-                    "name": "Motivar",
-                    "email": "info@motivar.io"
+                    "name": "Nikos Giannopoulos",
+                    "email": "nikos@gnnpls.com",
+                    "homepage": "https://gnnpls.com"
                 }
             ],
             "description": "Declare a WordPress feature once and expose it as a REST route, a WP-CLI command and a WordPress Ability from the same definition.",
-            "homepage": "https://gitlab.motivar.io/tools/wp-kit",
-            "time": "2026-09-14T07:59:50+00:00"
+            "homepage": "https://gnnpls.com",
+            "keywords": [
+                "abilities-api",
+                "library",
+                "rest-api",
+                "validation",
+                "wordpress",
+                "wp-cli"
+            ],
+            "support": {
+                "email": "nikos@gnnpls.com",
+                "issues": "https://github.com/gnnpls/wp-kit/issues",
+                "source": "https://github.com/gnnpls/wp-kit"
+            },
+            "time": "2026-10-12T09:26:28+00:00"
         },
         {
             "name": "gnnpls/wp-self-test",
-            "version": "v0.6.1",
+            "version": "dev-main",
             "source": {
                 "type": "git",
-                "url": "https://gitlab.motivar.io/tools/wp-selft-test.git",
-                "reference": "a895575847a7b192dd3367541b3b455136a65f4f"
+                "url": "https://github.com/gnnpls/wp-self-test.git",
+                "reference": "393aa9e035340550c3f4f16518865b46c47b826a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/gnnpls/wp-self-test/zipball/393aa9e035340550c3f4f16518865b46c47b826a",
+                "reference": "393aa9e035340550c3f4f16518865b46c47b826a",
+                "shasum": ""
             },
             "require": {
                 "php": ">=7.4"
             },
+            "default-branch": true,
             "bin": [
                 "bin/run.php",
                 "bin/install-hooks"
@@ -62,29 +86,43 @@
                     "bootstrap.php"
                 ]
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Gnnpls\\SelfTest\\": "src/"
-                }
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "GPL-2.0-or-later"
             ],
             "authors": [
                 {
-                    "name": "Motivar",
-                    "email": "info@motivar.io"
+                    "name": "Nikos Giannopoulos",
+                    "email": "nikos@gnnpls.com",
+                    "homepage": "https://gnnpls.com"
                 }
             ],
-            "description": "Manifest-driven self-test suite for WordPress plugins: register a manifest of cases from your plugin folder and run them from wp-admin, WP-CLI, the Abilities API, a pre-push hook and CI.",
-            "homepage": "https://gitlab.motivar.io/tools/wp-selft-test",
-            "time": "2026-09-14T10:16:29+00:00"
+            "description": "Manifest-driven self-test suite for WordPress plugins: register a manifest of cases from your plugin folder and run them from wp-admin, WP-CLI, the Abilities API and a pre-push hook.",
+            "homepage": "https://gnnpls.com",
+            "keywords": [
+                "abilities-api",
+                "pre-push",
+                "rest-api",
+                "self-test",
+                "testing",
+                "wordpress",
+                "wp-cli"
+            ],
+            "support": {
+                "email": "nikos@gnnpls.com",
+                "issues": "https://github.com/gnnpls/wp-self-test/issues",
+                "source": "https://github.com/gnnpls/wp-self-test"
+            },
+            "time": "2026-10-12T09:07:57+00:00"
         }
     ],
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "gnnpls/wp-kit": 20,
+        "gnnpls/wp-self-test": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {},

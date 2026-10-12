@@ -38,6 +38,10 @@ final class Confirm
     /**
      * Check the confirmation flag in the input.
      *
+     * The flag is coerced like any boolean field, so only `true`, `1`,
+     * `"true"`, `"yes"` or `"on"` confirm; `"no"`, `"off"` and arbitrary
+     * strings do not.
+     *
      * @param array $input Raw or normalised input.
      *
      * @return true|\WP_Error
@@ -46,7 +50,8 @@ final class Confirm
      */
     public static function check(array $input)
     {
-        if (!empty($input[self::FIELD]) && $input[self::FIELD] !== 'false') {
+        $flag = isset($input[self::FIELD]) ? self::field()->normalize($input[self::FIELD]) : null;
+        if ($flag === true) {
             return true;
         }
 

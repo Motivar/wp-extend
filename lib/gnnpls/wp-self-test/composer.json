@@ -1,15 +1,30 @@
 {
     "name": "gnnpls/wp-self-test",
-    "description": "Manifest-driven self-test suite for WordPress plugins: register a manifest of cases from your plugin folder and run them from wp-admin, WP-CLI, the Abilities API, a pre-push hook and CI.",
+    "description": "Manifest-driven self-test suite for WordPress plugins: register a manifest of cases from your plugin folder and run them from wp-admin, WP-CLI, the Abilities API and a pre-push hook.",
     "type": "library",
     "license": "GPL-2.0-or-later",
-    "homepage": "https://gitlab.motivar.io/tools/wp-selft-test",
+    "keywords": [
+        "wordpress",
+        "self-test",
+        "testing",
+        "wp-cli",
+        "rest-api",
+        "abilities-api",
+        "pre-push"
+    ],
+    "homepage": "https://gnnpls.com",
     "authors": [
         {
-            "name": "Motivar",
-            "email": "info@motivar.io"
+            "name": "Nikos Giannopoulos",
+            "email": "nikos@gnnpls.com",
+            "homepage": "https://gnnpls.com"
         }
     ],
+    "support": {
+        "issues": "https://github.com/gnnpls/wp-self-test/issues",
+        "source": "https://github.com/gnnpls/wp-self-test",
+        "email": "nikos@gnnpls.com"
+    },
     "require": {
         "php": ">=7.4"
     },

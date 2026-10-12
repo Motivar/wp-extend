@@ -288,56 +288,111 @@ final class Field
      * Getters
      * ------------------------------------------------------------------ */
 
+    /**
+     * Parameter name.
+     *
+     * @return string
+     */
     public function name()
     {
         return $this->name;
     }
 
+    /**
+     * One of the T_* constants.
+     *
+     * @return string
+     */
     public function type()
     {
         return $this->type;
     }
 
+    /**
+     * Whether the field must be provided.
+     *
+     * @return bool
+     */
     public function is_required()
     {
         return $this->required;
     }
 
+    /**
+     * Whether a default value was declared.
+     *
+     * @return bool
+     */
     public function has_default()
     {
         return $this->has_default;
     }
 
+    /**
+     * Declared default value.
+     *
+     * @return mixed
+     */
     public function default_of()
     {
         return $this->default;
     }
 
+    /**
+     * Lower bound for integers.
+     *
+     * @return int|float|null
+     */
     public function min_of()
     {
         return $this->min;
     }
 
+    /**
+     * Upper bound for integers.
+     *
+     * @return int|float|null
+     */
     public function max_of()
     {
         return $this->max;
     }
 
+    /**
+     * Maximum string length.
+     *
+     * @return int|null
+     */
     public function max_length_of()
     {
         return $this->max_length;
     }
 
+    /**
+     * Human readable description.
+     *
+     * @return string
+     */
     public function description()
     {
         return $this->description;
     }
 
+    /**
+     * Whether an enum accepts several values.
+     *
+     * @return bool
+     */
     public function is_multiple()
     {
         return $this->multiple;
     }
 
+    /**
+     * Whether the CLI reads this field positionally.
+     *
+     * @return bool
+     */
     public function is_positional()
     {
         return $this->positional;
@@ -361,6 +416,11 @@ final class Field
         return $this->additional_properties;
     }
 
+    /**
+     * Item type of an array field.
+     *
+     * @return string
+     */
     public function items_type()
     {
         return $this->items_type;
@@ -503,6 +563,9 @@ final class Field
         if (is_bool($raw)) {
             return $raw;
         }
+        if (!is_scalar($raw)) {
+            return $this->error('type', 'must be true or false');
+        }
 
         $token = strtolower(trim((string) $raw));
         if (in_array($token, ['1', 'true', 'yes', 'on'], true)) {
@@ -545,10 +608,27 @@ final class Field
                 $items[] = (int) $item;
                 continue;
             }
+            if (!is_scalar($item) && !self::items_may_nest($type)) {
+                return $this->error('type', sprintf('must contain %s values only', $type));
+            }
             $items[] = is_scalar($item) ? (string) $item : $item;
         }
 
         return $items;
+    }
+
+    /**
+     * Whether a list item type admits non-scalar items.
+     *
+     * @param string $type Declared item type.
+     *
+     * @return bool
+     *
+     * @since 0.3.0
+     */
+    private static function items_may_nest($type)
+    {
+        return in_array($type, ['object', 'array', 'mixed'], true);
     }
 
     /**
@@ -595,18 +675,59 @@ final class Field
             return $this->error('type', 'must be an object');
         }
 
+        $undeclared = $this->check_undeclared_keys($raw);
+        if ($undeclared !== true) {
+            return $undeclared;
+        }
+
         foreach ($this->properties as $child) {
-            if (!array_key_exists($child->name(), $raw)) {
-                continue;
-            }
-            $value = $child->normalize($raw[$child->name()]);
+            $value = $child->normalize(array_key_exists($child->name(), $raw) ? $raw[$child->name()] : null);
             if ($value instanceof \WP_Error) {
                 return $value;
             }
-            $raw[$child->name()] = $value;
+
+            $valid = $child->validate($value);
+            if ($valid instanceof \WP_Error) {
+                return $valid;
+            }
+
+            if ($value !== null) {
+                $raw[$child->name()] = $value;
+            }
         }
 
         return $raw;
+    }
+
+    /**
+     * Reject keys outside the declared properties when the object is closed.
+     *
+     * Enforces the `additionalProperties: false` the schema advertises; the
+     * surfaces do not validate against the schema themselves.
+     *
+     * @param array $raw Decoded object.
+     *
+     * @return true|\WP_Error
+     *
+     * @since 0.3.0
+     */
+    private function check_undeclared_keys(array $raw)
+    {
+        if ($this->additional_properties || $this->properties === []) {
+            return true;
+        }
+
+        $declared = [];
+        foreach ($this->properties as $child) {
+            $declared[$child->name()] = true;
+        }
+
+        $extra = array_diff_key($raw, $declared);
+        if ($extra === []) {
+            return true;
+        }
+
+        return $this->error('additional_properties', sprintf('does not accept: %s', implode(', ', array_keys($extra))));
     }
 
     /**

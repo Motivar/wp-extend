@@ -15,7 +15,7 @@
 #        - otherwise tests/pre-push.sh when it exists,
 #        - otherwise warns that no test command is configured and passes.
 #
-# `git push --no-verify` bypasses any client hook; CI remains the real gate.
+# `git push --no-verify` bypasses any client hook, so treat that as a deliberate decision.
 #
 # @package Gnnpls\SelfTest
 # @since   0.1.0

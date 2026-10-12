@@ -1,6 +1,6 @@
 <?php
 /**
- * Motivar WP self-test bootstrap.
+ * wp-self-test bootstrap.
  *
  * The only file a consumer ever requires (Composer's autoload.files does
  * it). Safe to include from several active plugins that each bundle a copy:

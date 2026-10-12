@@ -310,21 +310,41 @@ final class Operation
      * Getters
      * ------------------------------------------------------------------ */
 
+    /**
+     * Operation kind (read|write|destructive).
+     *
+     * @return string
+     */
     public function kind()
     {
         return $this->kind;
     }
 
+    /**
+     * Whether the operation only reads data.
+     *
+     * @return bool
+     */
     public function is_read()
     {
         return $this->kind === self::KIND_READ;
     }
 
+    /**
+     * Service method name.
+     *
+     * @return string
+     */
     public function handler()
     {
         return $this->handler;
     }
 
+    /**
+     * Operation key within its resource.
+     *
+     * @return string
+     */
     public function name()
     {
         return $this->name;
@@ -336,11 +356,21 @@ final class Operation
         return $this->resource;
     }
 
+    /**
+     * Human readable label, derived from the name when unset.
+     *
+     * @return string
+     */
     public function label_of()
     {
         return $this->label !== '' ? $this->label : ucfirst(str_replace(['_', '-'], ' ', $this->name));
     }
 
+    /**
+     * Longer description for help output and schemas.
+     *
+     * @return string
+     */
     public function description_of()
     {
         return $this->description;
@@ -352,6 +382,11 @@ final class Operation
         return $this->fields;
     }
 
+    /**
+     * JSON Schema of the result.
+     *
+     * @return array
+     */
     public function output_schema()
     {
         return $this->output;
@@ -402,6 +437,13 @@ final class Operation
         return $reasons;
     }
 
+    /**
+     * Whether the operation is exposed on a surface.
+     *
+     * @param string $surface One of the Context surface constants.
+     *
+     * @return bool
+     */
     public function is_on($surface)
     {
         return in_array($surface, $this->enabled_surfaces(), true);
@@ -581,13 +623,44 @@ final class Operation
 
             return call_user_func_array([$service, $this->handler], (array) $args);
         } catch (\Throwable $e) {
-            return new \WP_Error('mwp_operation_failed', $e->getMessage(), ['status' => 500]);
+            return $this->failure($e, $ctx);
         }
     }
 
     /**
-     * Default argument mapping: match parameters by name; leftover input keys
-     * go to the first array-typed parameter that was not matched by name.
+     * Wrap a handler exception without leaking its message to remote callers.
+     *
+     * The full message is logged. It is returned in the error data only to
+     * the CLI (the operator already has shell access) or when WP_DEBUG is on.
+     *
+     * @param \Throwable $e   Exception thrown by the handler.
+     * @param Context    $ctx Invocation context.
+     *
+     * @return \WP_Error
+     *
+     * @since 0.3.0
+     */
+    private function failure(\Throwable $e, Context $ctx)
+    {
+        $detail = sprintf('%s: %s in %s:%d', get_class($e), $e->getMessage(), $e->getFile(), $e->getLine());
+        error_log(sprintf('[wp-kit] operation "%s" failed: %s', $this->name, $detail));
+
+        $data = ['status' => 500];
+        if ($ctx->surface() === Context::CLI || (defined('WP_DEBUG') && WP_DEBUG)) {
+            $data['detail'] = $detail;
+        }
+
+        return new \WP_Error('mwp_operation_failed', sprintf('Operation "%s" failed.', $this->name), $data);
+    }
+
+    /**
+     * Default argument mapping: declared fields match parameters by name;
+     * every other input key goes to the first array-typed parameter that
+     * was not matched by name.
+     *
+     * Undeclared keys (present only with allow_extra()) never bind by name,
+     * so a caller cannot reach handler parameters the operation did not
+     * expose.
      *
      * @param object $service Service instance.
      * @param array  $input   Normalised input.
@@ -601,11 +674,12 @@ final class Operation
         $leftover = $input;
         unset($leftover[Confirm::FIELD]);
         $catch_all = null;
+        $declared  = $this->declared_names();
 
         foreach ($method->getParameters() as $parameter) {
             $name = $parameter->getName();
 
-            if (array_key_exists($name, $input)) {
+            if (isset($declared[$name]) && array_key_exists($name, $input)) {
                 $args[] = $input[$name];
                 unset($leftover[$name]);
                 continue;
@@ -626,6 +700,23 @@ final class Operation
         }
 
         return $args;
+    }
+
+    /**
+     * Names allowed to bind to handler parameters: declared fields and confirm.
+     *
+     * @return array<string,bool>
+     *
+     * @since 0.3.0
+     */
+    private function declared_names()
+    {
+        $names = [Confirm::FIELD => true];
+        foreach ($this->fields as $field) {
+            $names[$field->name()] = true;
+        }
+
+        return $names;
     }
 
     /**
