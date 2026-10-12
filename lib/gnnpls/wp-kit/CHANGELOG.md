@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2026-10-12
+
+Prompt: CI jobs failing on `gnnpls/wp-self-test` (same loader pattern) — "does the latest wp-kit code have this fix?" → "please update both repos now".
+
+### Fixed
+- `Kit::register()` no longer boots immediately when it runs before `wp-includes/plugin.php` (Composer `autoload.files` included from `wp-config.php`, i.e. Bedrock root installs and every WP-CLI command). It treated a missing `add_action()` as "past `plugins_loaded`", installed the autoloader and flushed `on_ready()` callbacks before WordPress existed. It now pre-seeds `$wp_filter['plugins_loaded'][-100]` (the same mechanism as `WP_CLI::add_wp_hook()`), so boot happens on `plugins_loaded` as documented.
+
+### Backwards compatibility
+- No public API change. `on_ready()` callbacks now run on `plugins_loaded` in the early case instead of during `wp-config.php`.
+
 ## [0.3.1] - 2026-10-12
 
 Prompt: publish like gnnpls/wp-self-test — connect the code to GitHub and Packagist, drop the old vendor, always use gnnpls.com and nikos@gnnpls.com, and remove the history.

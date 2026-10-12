@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.3] - 2026-10-12
+
+Prompt: CI jobs failing (motivar.io 446911, onpelion.gr 446919) — "why this happened?" → "please update both repos now".
+
+### Fixed
+- Fatal `Call to undefined function Gnnpls\SelfTest\apply_filters()` on every WP-CLI command in Bedrock sites that require the package from the project root. Composer's `autoload.files` runs `bootstrap.php` from `wp-config.php`, where WP-CLI has already defined `ABSPATH` but `wp-includes/plugin.php` is not loaded yet; `Loader::register()` treated a missing `add_action()` as "past `plugins_loaded`" and booted immediately. It now pre-seeds `$wp_filter['plugins_loaded'][-100]` (the same mechanism as `WP_CLI::add_wp_hook()`), so boot happens on `plugins_loaded` as documented.
+
+### Backwards compatibility
+- No public API change. Boot timing changes only for the early case above, which previously fataled.
+
 ## [0.6.2] - 2026-10-12
 
 ### Added

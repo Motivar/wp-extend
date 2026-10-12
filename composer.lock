@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/gnnpls/wp-kit.git",
-                "reference": "ee32f70e905b1443d7e8d5d1cab1270f926cd240"
+                "reference": "eab32cfd4608ec33e2ea55f489b2a172b7e5370b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/gnnpls/wp-kit/zipball/ee32f70e905b1443d7e8d5d1cab1270f926cd240",
-                "reference": "ee32f70e905b1443d7e8d5d1cab1270f926cd240",
+                "url": "https://api.github.com/repos/gnnpls/wp-kit/zipball/eab32cfd4608ec33e2ea55f489b2a172b7e5370b",
+                "reference": "eab32cfd4608ec33e2ea55f489b2a172b7e5370b",
                 "shasum": ""
             },
             "require": {
@@ -56,7 +56,7 @@
                 "issues": "https://github.com/gnnpls/wp-kit/issues",
                 "source": "https://github.com/gnnpls/wp-kit"
             },
-            "time": "2026-10-12T09:26:28+00:00"
+            "time": "2026-10-12T11:34:09+00:00"
         },
         {
             "name": "gnnpls/wp-self-test",
@@ -64,12 +64,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/gnnpls/wp-self-test.git",
-                "reference": "393aa9e035340550c3f4f16518865b46c47b826a"
+                "reference": "04be3dd315f483e95cf7acf3afe210f09387c4f0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/gnnpls/wp-self-test/zipball/393aa9e035340550c3f4f16518865b46c47b826a",
-                "reference": "393aa9e035340550c3f4f16518865b46c47b826a",
+                "url": "https://api.github.com/repos/gnnpls/wp-self-test/zipball/04be3dd315f483e95cf7acf3afe210f09387c4f0",
+                "reference": "04be3dd315f483e95cf7acf3afe210f09387c4f0",
                 "shasum": ""
             },
             "require": {
@@ -113,7 +113,7 @@
                 "issues": "https://github.com/gnnpls/wp-self-test/issues",
                 "source": "https://github.com/gnnpls/wp-self-test"
             },
-            "time": "2026-10-12T09:07:57+00:00"
+            "time": "2026-10-12T11:34:06+00:00"
         }
     ],
     "packages-dev": [],

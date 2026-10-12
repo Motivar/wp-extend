@@ -13,7 +13,7 @@
         'gnnpls/wp-kit' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'ee32f70e905b1443d7e8d5d1cab1270f926cd240',
+            'reference' => 'eab32cfd4608ec33e2ea55f489b2a172b7e5370b',
             'type' => 'library',
             'install_path' => __DIR__ . '/../gnnpls/wp-kit',
             'aliases' => array(
@@ -24,7 +24,7 @@
         'gnnpls/wp-self-test' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '393aa9e035340550c3f4f16518865b46c47b826a',
+            'reference' => '04be3dd315f483e95cf7acf3afe210f09387c4f0',
             'type' => 'library',
             'install_path' => __DIR__ . '/../gnnpls/wp-self-test',
             'aliases' => array(

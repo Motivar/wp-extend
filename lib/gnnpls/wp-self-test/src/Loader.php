@@ -58,12 +58,31 @@ final class Loader
         }
         self::$hooked = true;
 
-        if (!function_exists('add_action') || did_action('plugins_loaded')) {
+        if (function_exists('did_action') && did_action('plugins_loaded')) {
             self::boot();
             return;
         }
 
-        add_action('plugins_loaded', [self::class, 'boot'], -100);
+        if (function_exists('add_action')) {
+            add_action('plugins_loaded', [self::class, 'boot'], -100);
+            return;
+        }
+
+        /*
+         * Too early for the Plugin API: Composer's autoload.files runs from
+         * wp-config.php (Bedrock, and every WP-CLI command) before
+         * wp-includes/plugin.php is loaded. Booting now would call
+         * apply_filters()/add_action() that do not exist yet, so pre-seed
+         * the hook the way WP-CLI's add_wp_hook() does; plugin.php turns
+         * pre-initialised $wp_filter entries into WP_Hook objects.
+         */
+        if (!isset($GLOBALS['wp_filter']) || !is_array($GLOBALS['wp_filter'])) {
+            $GLOBALS['wp_filter'] = [];
+        }
+        $GLOBALS['wp_filter']['plugins_loaded'][-100][] = [
+            'function'      => [self::class, 'boot'],
+            'accepted_args' => 1,
+        ];
     }
 
     /**
