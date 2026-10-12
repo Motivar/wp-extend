@@ -28,12 +28,13 @@ near-duplicate.
 **Filter.** Whether the package boots at all on this request (surfaces,
 manifests, dashboard, commands and abilities). Evaluated once, on
 `plugins_loaded` (priority -100), and memoised, so add the filter at plugin
-load time. Return `false` on e.g. front-end requests. When it returns
+load time. Return `false` on e.g. front-end requests, `true` to run on a
+production site. When it returns
 `false`, nothing is autoloaded and `mwp_self_test_booted` does not fire.
 
 | Param | Type | Description |
 |---|---|---|
-| `$enabled` | `bool` | Default `true` regardless of environment (since 0.6.0). |
+| `$enabled` | `bool` | Default `true` unless the environment is `production` (since 0.7.0; 0.6.x defaulted to `true` everywhere). |
 | `$environment` | `string` | `WP_ENV` when defined, else `wp_get_environment_type()`. |
 
 ### `mwp_self_test_booted`

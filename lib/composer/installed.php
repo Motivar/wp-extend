@@ -24,7 +24,7 @@
         'gnnpls/wp-self-test' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '04be3dd315f483e95cf7acf3afe210f09387c4f0',
+            'reference' => '88fa15ea7334e7997e6c0d9f998abf8f4c29132d',
             'type' => 'library',
             'install_path' => __DIR__ . '/../gnnpls/wp-self-test',
             'aliases' => array(

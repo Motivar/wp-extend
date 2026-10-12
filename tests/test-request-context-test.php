@@ -10,6 +10,11 @@ class Test_Request_Context extends WP_UnitTestCase
 {
     private $uri;
 
+    /**
+     * Remember the request URI and clear the memoised request kind.
+     *
+     * @return void
+     */
     public function set_up()
     {
         parent::set_up();
@@ -17,6 +22,11 @@ class Test_Request_Context extends WP_UnitTestCase
         Request_Context::reset();
     }
 
+    /**
+     * Restore the request URI and clear the memoised request kind.
+     *
+     * @return void
+     */
     public function tear_down()
     {
         $_SERVER['REQUEST_URI'] = $this->uri;
@@ -25,6 +35,11 @@ class Test_Request_Context extends WP_UnitTestCase
         parent::tear_down();
     }
 
+    /**
+     * REST URIs are detected in pretty, index and ?rest_route= forms only.
+     *
+     * @return void
+     */
     public function test_rest_uri_detection_covers_pretty_index_and_query_forms()
     {
         foreach (['/wp-json', '/wp-json/', '/wp-json/extend-wp/v1/logs', '/site/wp-json?x=1'] as $uri) {
@@ -41,6 +56,11 @@ class Test_Request_Context extends WP_UnitTestCase
         $this->assertTrue(Request_Context::is_rest_uri());
     }
 
+    /**
+     * The WP_CLI shim counts as tooling, never as a front-end request.
+     *
+     * @return void
+     */
     public function test_tooling_requests_are_never_front_end()
     {
         // The suite runs under the WP_CLI shim, which counts as tooling.
@@ -48,6 +68,11 @@ class Test_Request_Context extends WP_UnitTestCase
         $this->assertFalse(Request_Context::is_front_end());
     }
 
+    /**
+     * ewp_request_is_front_end overrides detection and the answer is memoised.
+     *
+     * @return void
+     */
     public function test_filter_can_override_and_the_answer_is_memoised()
     {
         add_filter('ewp_request_is_front_end', '__return_true');
@@ -57,5 +82,28 @@ class Test_Request_Context extends WP_UnitTestCase
 
         Request_Context::reset();
         $this->assertFalse(Request_Context::is_front_end());
+    }
+
+    /**
+     * The self-test package defaults to off on production (0.7.0+).
+     *
+     * @return void
+     */
+    public function test_self_test_package_is_off_on_production_by_default()
+    {
+        $this->assertTrue(defined('Gnnpls\\SelfTest\\Loader::GATES_PRODUCTION'));
+
+        $seen = null;
+        $spy = function ($enabled, $environment) use (&$seen) {
+            $seen = [$enabled, $environment];
+            return $enabled;
+        };
+        add_filter('mwp_self_test_enabled', $spy, 10, 2);
+        \Gnnpls\SelfTest\Config::enabled();
+        remove_filter('mwp_self_test_enabled', $spy, 10);
+
+        $this->assertSame([$seen[1] !== 'production', \Gnnpls\SelfTest\Loader::environment()], $seen);
+        // The suite runs with WP_ENVIRONMENT_TYPE=development, so the package is on.
+        $this->assertTrue($seen[0]);
     }
 }

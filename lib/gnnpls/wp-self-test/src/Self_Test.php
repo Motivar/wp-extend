@@ -75,6 +75,10 @@ final class Self_Test
         }
         $this->booted = true;
 
+        if (!defined(Loader::class . '::GATES_PRODUCTION') && !Config::enabled()) {
+            return;
+        }
+
         if (Config::shim_enabled() && !class_exists('WP_CLI')) {
             require_once __DIR__ . '/Wp_Cli_Shim.php';
         }

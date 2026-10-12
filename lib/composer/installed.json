@@ -62,18 +62,18 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/gnnpls/wp-self-test.git",
-                "reference": "04be3dd315f483e95cf7acf3afe210f09387c4f0"
+                "reference": "88fa15ea7334e7997e6c0d9f998abf8f4c29132d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/gnnpls/wp-self-test/zipball/04be3dd315f483e95cf7acf3afe210f09387c4f0",
-                "reference": "04be3dd315f483e95cf7acf3afe210f09387c4f0",
+                "url": "https://api.github.com/repos/gnnpls/wp-self-test/zipball/88fa15ea7334e7997e6c0d9f998abf8f4c29132d",
+                "reference": "88fa15ea7334e7997e6c0d9f998abf8f4c29132d",
                 "shasum": ""
             },
             "require": {
                 "php": ">=7.4"
             },
-            "time": "2026-10-12T11:34:06+00:00",
+            "time": "2026-10-12T12:16:21+00:00",
             "default-branch": true,
             "bin": [
                 "bin/run.php",

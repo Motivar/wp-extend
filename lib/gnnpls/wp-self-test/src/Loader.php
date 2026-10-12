@@ -22,6 +22,13 @@ final class Loader
 {
     const PREFIX = 'Gnnpls\\SelfTest\\';
 
+    /**
+     * Marks a Loader whose enabled() is off on production (0.7.0+).
+     * Self_Test::boot() checks it, because an older Loader declared by
+     * another plugin's copy still defaults to true everywhere.
+     */
+    const GATES_PRODUCTION = true;
+
     /** @var array<string,string> Path => version. */
     private static $copies = [];
 
@@ -122,16 +129,17 @@ final class Loader
     /**
      * Whether the package boots at all on this request.
      *
-     * On by default everywhere (manifests, commands and abilities are
-     * needed on production too); the dashboard has its own environment
-     * gate in Config::ui_enabled(). Evaluated once, on `plugins_loaded`
-     * (-100), so plugins add the filter at load time — e.g. to return
-     * false on front-end requests.
+     * Off on production, because a run creates data on the site: on
+     * whenever environment() is anything but `production`. Evaluated
+     * once, on `plugins_loaded` (-100), so plugins add the filter at load
+     * time — e.g. to return false on front-end requests, or true to
+     * smoke-test a production site.
      *
      * @return bool
      *
      * @since 0.4.0
      * @since 0.6.0 Default true; the environment now gates only the UI.
+     * @since 0.7.0 Default false on production again.
      */
     public static function enabled()
     {
@@ -145,15 +153,16 @@ final class Loader
          * Filter whether the self-test package boots on this request
          * (surfaces, manifests, dashboard, commands and abilities).
          *
-         * @param bool   $enabled     Default: true.
+         * @param bool   $enabled     Default: true unless the environment is `production`.
          * @param string $environment `WP_ENV` or `wp_get_environment_type()`.
          *
          * @since 0.4.0
          * @since 0.6.0 Default true regardless of environment.
+         * @since 0.7.0 Default false on production.
          */
         self::$enabled = function_exists('apply_filters')
-            ? (bool) apply_filters('mwp_self_test_enabled', true, $environment)
-            : true;
+            ? (bool) apply_filters('mwp_self_test_enabled', $environment !== 'production', $environment)
+            : $environment !== 'production';
 
         return self::$enabled;
     }

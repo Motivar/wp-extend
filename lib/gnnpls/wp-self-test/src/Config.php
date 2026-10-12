@@ -40,6 +40,44 @@ final class Config
     }
 
     /**
+     * The production gate for a site where an older Loader (< 0.7.0,
+     * declared by another plugin's copy) booted this copy: same filter
+     * and default as Loader::enabled() in 0.7.0+.
+     *
+     * @return bool
+     *
+     * @since 0.7.0
+     */
+    public static function enabled()
+    {
+        $environment = self::environment();
+
+        /** This filter is documented in src/Loader.php */
+        return (bool) apply_filters('mwp_self_test_enabled', $environment !== 'production', $environment);
+    }
+
+    /**
+     * The site's environment, also when an older Loader (< 0.6.1) without
+     * Loader::environment() is the one declared.
+     *
+     * @return string
+     *
+     * @since 0.7.0
+     */
+    public static function environment()
+    {
+        if (method_exists(Loader::class, 'environment')) {
+            return Loader::environment();
+        }
+
+        if (defined('WP_ENV')) {
+            return (string) WP_ENV;
+        }
+
+        return function_exists('wp_get_environment_type') ? wp_get_environment_type() : 'production';
+    }
+
+    /**
      * Whether the wp-admin dashboard and its REST routes are registered.
      *
      * Off on production, because a run creates data on the site: on
@@ -60,7 +98,7 @@ final class Config
          * @since 0.1.0
          * @since 0.6.0 Default follows the environment instead of WP_DEBUG; `$environment` added.
          */
-        $environment = Loader::environment();
+        $environment = self::environment();
 
         return (bool) apply_filters('mwp_self_test_ui_enabled', $environment !== 'production', $environment);
     }

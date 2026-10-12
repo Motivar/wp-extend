@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-10-12
+
+Prompt: "in wp-extend can we use the plugin only in development environments and not in productions?" → "please commit to gnnpls-self test and then update the wp-extend also".
+
+### Changed
+- **Nothing boots on production.** `Loader::enabled()` (`mwp_self_test_enabled`) now defaults to `environment !== 'production'` (environment = `WP_ENV`, else `wp_get_environment_type()`, `production` when unset), so on production there are no `wp mwp self-test` commands, no `mwp-self-test/*` abilities, no dashboard and no manifests. Reverses the 0.6.0 default. Return `true` from `mwp_self_test_enabled` to smoke-test a production site.
+
+### Added
+- `Loader::GATES_PRODUCTION` and `Config::enabled()` / `Config::environment()`: when an older Loader (< 0.7.0, declared by another plugin's copy) boots this copy, `Self_Test::boot()` applies the same production gate itself, so the newest copy's rule wins regardless of load order.
+
+### Backwards compatibility
+- Breaking for anyone running self-tests on production (fleet or CI smoke tests): target staging, or add `add_filter('mwp_self_test_enabled', '__return_true');`. Sites with no `WP_ENV` / `WP_ENVIRONMENT_TYPE` count as production — set the variable on development and staging machines.
+
 ## [0.6.3] - 2026-10-12
 
 Prompt: CI jobs failing (motivar.io 446911, onpelion.gr 446919) — "why this happened?" → "please update both repos now".

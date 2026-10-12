@@ -67,9 +67,15 @@ The plugin's CLI classes guard themselves with `class_exists('WP_CLI')`. In a we
 
 ## Request kinds and environments
 
-Commands, abilities and manifests are registered in every environment. The dashboard, its `mwp-self-test/v1` routes and the in-process CLI shim are only registered when the environment is not `production` — `WP_ENV` when defined, otherwise `wp_get_environment_type()`, which reads the **`WP_ENVIRONMENT_TYPE` environment variable** (nothing in this repo defines it; on DDEV run `ddev config --web-environment-add="WP_ENVIRONMENT_TYPE=development"`, which covers the site, PHPUnit, `bin/run.php` and the pre-push hook alike). `mwp_self_test_ui_enabled` overrides that.
+**Production loads no self-tests.** Since `gnnpls/wp-self-test` 0.7.0 the package does not boot when the environment is `production` — `WP_ENV` when defined, otherwise `wp_get_environment_type()`, which reads the **`WP_ENVIRONMENT_TYPE` environment variable** (nothing in this repo defines it; on DDEV run `ddev config --web-environment-add="WP_ENVIRONMENT_TYPE=development"`, which covers the site, PHPUnit, `bin/run.php` and the pre-push hook alike; a site with no value counts as `production`). Then `mwp_self_test_register` never fires, so this plugin's manifest and cases are not loaded, and `wp mwp self-test`, the `mwp-self-test/*` abilities and the dashboard are absent — for every plugin's manifest on that site. To smoke-test a production site anyway, return true from `mwp_self_test_enabled` (e.g. in an mu-plugin):
 
-On a plain front-end request (`EWP\Request_Context::is_front_end()`) `Setup.php` neither registers the manifest nor lets the package boot (`mwp_self_test_enabled` → false); `ewp_request_is_front_end` forces the full load if a front-end integration ever needs it.
+```php
+add_filter('mwp_self_test_enabled', '__return_true');
+```
+
+In every other environment (`development`, `local`, `staging`, …) commands, abilities and manifests are registered; the dashboard, its `mwp-self-test/v1` routes and the in-process CLI shim follow the package's own gate (`mwp_self_test_ui_enabled`, also "not `production`").
+
+On a plain front-end request (`EWP\Request_Context::is_front_end()`) the self-tests are skipped in every environment; `ewp_request_is_front_end` forces the full load if a front-end integration ever needs it.
 
 ## Adding a case
 

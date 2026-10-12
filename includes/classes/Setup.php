@@ -17,6 +17,11 @@ if (!defined('ABSPATH')) {
 
 class Setup
 {
+ /**
+  * Load every module in dependency order and register the core hooks.
+  *
+  * @return void
+  */
  public function __construct()
  {
   // Register encryption hooks for meta and options
@@ -78,7 +83,7 @@ class Setup
   if (!$front_end) {
    require_once 'ewp-options-portability/class-options-portability.php';
   }
-  /*registers manifest.json and the cases with the gnnpls/wp-self-test package (lib/), which boots on plugins_loaded unless `mwp_self_test_enabled` says otherwise (off on production by default); a front-end request never runs self-tests*/
+  /*registers manifest.json and the cases with the gnnpls/wp-self-test package (lib/), which boots on plugins_loaded unless `mwp_self_test_enabled` says otherwise (off on production since package 0.7.0); a front-end request never runs self-tests*/
   if ($front_end) {
    add_filter('mwp_self_test_enabled', '__return_false');
   } else {

@@ -24,14 +24,16 @@ composer require gnnpls/wp-self-test
 ```
 
 The package is a runtime dependency because the dashboard, the command and
-the abilities execute inside WordPress. The commands and abilities exist
-everywhere; the dashboard, its REST routes and the WP_CLI shim are only
-registered when the environment (`WP_ENV` if defined, else
-`wp_get_environment_type()`, i.e. the `WP_ENVIRONMENT_TYPE` environment
-variable) is not `production` (filter `mwp_self_test_ui_enabled`), every
-surface requires `manage_options` (filter `mwp_self_test_capability`), and
-`mwp_self_test_enabled` lets a plugin keep the package from booting at all
-on a given request (e.g. the front end).
+the abilities execute inside WordPress. Nothing boots when the environment
+(`WP_ENV` if defined, else `wp_get_environment_type()`, i.e. the
+`WP_ENVIRONMENT_TYPE` environment variable; `production` when unset) is
+`production`, because a run creates data on the site: no commands,
+abilities, dashboard or manifests. `mwp_self_test_enabled` overrides that
+per request — return `true` to smoke-test a production site, or `false` to
+skip e.g. front-end requests. Elsewhere the commands and abilities always
+register, the dashboard, its REST routes and the WP_CLI shim follow
+`mwp_self_test_ui_enabled` (also off on `production`), and every surface
+requires `manage_options` (filter `mwp_self_test_capability`).
 
 Composer's `autoload.files` loads `bootstrap.php`, which registers this
 copy of the package. When several active plugins bundle copies, the newest
@@ -165,7 +167,7 @@ a bootstrap can point `phpunit.xml` and `bin/run.php` at
 | `mwp_self_test_completed` | action | `(array $report)` |
 | `mwp_self_test_manifest` | filter | `(array $manifest, string $path, string $plugin)` |
 | `mwp_self_test_capability` | filter | `(string $capability)` default `manage_options` |
-| `mwp_self_test_enabled` | filter | `(bool $enabled, string $environment)` — whether the package boots at all on this request; default `true`. Return `false` on e.g. front-end requests. |
+| `mwp_self_test_enabled` | filter | `(bool $enabled, string $environment)` — whether the package boots at all on this request; default `true` unless the environment is `production` (since 0.7.0). Return `false` on e.g. front-end requests, `true` to run on production. |
 | `mwp_self_test_ui_enabled` | filter | `(bool $enabled, string $environment)` — dashboard, its REST routes and the shim; default `true` unless the environment (`WP_ENV` if defined, else `wp_get_environment_type()`) is `production`. |
 | `mwp_self_test_shim_enabled` | filter | `(bool $enabled)` default: UI enabled |
 | `mwp_self_test_abilities_available` | filter | `(bool $available)` |
