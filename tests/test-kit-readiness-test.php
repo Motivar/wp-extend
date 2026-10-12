@@ -46,17 +46,26 @@ class Test_Kit_Readiness extends WP_UnitTestCase
         }
     }
 
-    /** The bundled copy in lib/ is the version composer.lock pins. */
+    /**
+     * The bundled copy in lib/ is the package composer.lock pins: the same
+     * tag when a release is locked, the same commit when a dev-* branch is.
+     */
     public function test_kit_version_matches_the_locked_package()
     {
-        $composer = json_decode(file_get_contents(dirname(__DIR__) . self::KIT . '/composer.json'), true);
-        $lock     = json_decode(file_get_contents(dirname(__DIR__) . '/composer.lock'), true);
-        $locked   = array_values(array_filter($lock['packages'], function ($package) {
+        $composer  = json_decode(file_get_contents(dirname(__DIR__) . self::KIT . '/composer.json'), true);
+        $lock      = json_decode(file_get_contents(dirname(__DIR__) . '/composer.lock'), true);
+        $installed = require dirname(__DIR__) . '/lib/composer/installed.php';
+        $version   = require dirname(__DIR__) . self::KIT . '/version.php';
+        $locked    = array_values(array_filter($lock['packages'], function ($package) {
             return $package['name'] === 'gnnpls/wp-kit';
         }));
 
         $this->assertNotEmpty($locked, 'gnnpls/wp-kit must be in composer.lock');
-        $this->assertSame('v' . require dirname(__DIR__) . self::KIT . '/version.php', $locked[0]['version']);
+        $this->assertMatchesRegularExpression('/^\d+\.\d+\.\d+$/', $version, 'wp-kit version.php must return a semver string');
+        $this->assertSame($locked[0]['dist']['reference'], $installed['versions']['gnnpls/wp-kit']['reference'], 'lib/ must hold the commit composer.lock pins');
+        if (strpos($locked[0]['version'], 'dev-') !== 0) {
+            $this->assertSame('v' . $version, $locked[0]['version']);
+        }
         $this->assertSame('gnnpls/wp-kit', $composer['name']);
         $this->assertSame(['bootstrap.php'], $composer['autoload']['files']);
         $this->assertArrayNotHasKey('psr-4', $composer['autoload'], 'production autoload must stay loader-owned');
