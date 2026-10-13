@@ -144,6 +144,24 @@ abstract class Resource
     }
 
     /**
+     * Whether this resource's abilities are flagged public for MCP.
+     *
+     * Sets `meta.mcp.public` on every ability the resource registers, which
+     * is what MCP servers built on wordpress/mcp-adapter (its default server,
+     * Agent Connector, …) read to list an ability as a tool. Execution still
+     * goes through the ability, so capability and confirm checks are unchanged.
+     * Return false to keep the abilities off MCP.
+     *
+     * @return bool
+     *
+     * @since 0.4.0
+     */
+    public function mcp()
+    {
+        return true;
+    }
+
+    /**
      * Operations with names and resource bound, memoised.
      *
      * @return array<string,Operation>

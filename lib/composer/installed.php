@@ -13,7 +13,7 @@
         'gnnpls/wp-kit' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'eab32cfd4608ec33e2ea55f489b2a172b7e5370b',
+            'reference' => '56d0632779787a8d5e0de8e04a59fecde3c26f19',
             'type' => 'library',
             'install_path' => __DIR__ . '/../gnnpls/wp-kit',
             'aliases' => array(

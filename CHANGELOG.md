@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **wp-kit 0.4.0: EWP abilities are visible to MCP servers** (`2026-10-13`):
+  - **Question/Prompt**: "push to main and then run composer update on wp-extend, commit-push and run composer update on filox" (follow-up to adding MCP exposure in wp-kit rather than per plugin).
+  - **Summary**: `composer update gnnpls/wp-kit` (dev-main → 0.4.0, via 0.3.3). Every ability registered through wp-kit now carries `meta.mcp.public`, so an MCP server built on `wordpress/mcp-adapter` (its default server, Agent Connector) lists the `ewp-*` abilities as tools. 0.3.3 also keeps a service's own non-200 `WP_REST_Response` status on REST.
+  - **Affected Files**: `composer.lock`, `lib/gnnpls/wp-kit/*`, `lib/composer/*`, `CHANGELOG.md`.
+  - **New hooks/routes/settings**: none (`Resource::mcp()` in wp-kit opts a resource out).
+  - **Backwards Compatibility**: no API change; abilities keep their own permission and confirm checks over MCP.
+
 ### Fixed
 - **Pre-push hook blocked by the `dev-main` lock: kit version test now accepts branch locks** (`2026-10-12`):
   - **Question/Prompt**: "why this happened?" (the `git push` of the Packagist migration was rejected twice by the pre-push hook) → "I want not to have fixed version but dev-main or *".

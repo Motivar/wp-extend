@@ -103,6 +103,19 @@ The reason travels into `Inventory::export()` so parity tests can tell a
 deliberate omission from a missing registration. Both accept a callable for
 decisions that depend on runtime state.
 
+### MCP
+
+Every ability the kit registers carries `meta.mcp.public = true`, so any MCP
+server built on [`wordpress/mcp-adapter`](https://github.com/WordPress/mcp-adapter)
+(its default server, Agent Connector, …) lists it as a tool with the field
+schema and the read/write/destructive annotations. The kit ships no MCP server
+and no dependency; the tool call runs the ability, so capability and
+`confirm` checks apply unchanged. Keep a resource off MCP with:
+
+```php
+public function mcp() { return false; }
+```
+
 ## What one field becomes
 
 | `Field::int('limit')->default_value(50)->max(200)` | Output |
@@ -140,6 +153,13 @@ Modifiers: `required()`, `default_value()`, `min()`, `max()`, `max_length()`,
    (500) with a generic message; the exception text is logged and only
    attached as `detail` on the CLI or when `WP_DEBUG` is on.
 7. `apply_filters('mwp_operation_result', $result, $op, $input, $ctx)`
+
+On REST, a `WP_Error` result keeps its own status. Any other result is sent
+with the status declared in `->rest($method, $path, $status)` (default 200),
+unless the service returns a `WP_REST_Response` with a status other than 200:
+that status and its headers are kept (0.3.3). This lets an operation wrap a
+legacy handler that answers `new WP_REST_Response($body, 503)` without
+changing what clients receive.
 
 ## Hooks
 

@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/gnnpls/wp-kit.git",
-                "reference": "eab32cfd4608ec33e2ea55f489b2a172b7e5370b"
+                "reference": "56d0632779787a8d5e0de8e04a59fecde3c26f19"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/gnnpls/wp-kit/zipball/eab32cfd4608ec33e2ea55f489b2a172b7e5370b",
-                "reference": "eab32cfd4608ec33e2ea55f489b2a172b7e5370b",
+                "url": "https://api.github.com/repos/gnnpls/wp-kit/zipball/56d0632779787a8d5e0de8e04a59fecde3c26f19",
+                "reference": "56d0632779787a8d5e0de8e04a59fecde3c26f19",
                 "shasum": ""
             },
             "require": {
@@ -56,7 +56,7 @@
                 "issues": "https://github.com/gnnpls/wp-kit/issues",
                 "source": "https://github.com/gnnpls/wp-kit"
             },
-            "time": "2026-10-12T11:34:09+00:00"
+            "time": "2026-10-13T18:39:27+00:00"
         },
         {
             "name": "gnnpls/wp-self-test",

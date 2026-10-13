@@ -136,6 +136,7 @@ final class Ability_Adapter
             'meta'                => [
                 'annotations'  => $operation->annotations_of(),
                 'show_in_rest' => true,
+                'mcp'          => ['public' => (bool) $this->resource->mcp(), 'type' => 'tool'],
             ],
         ];
     }

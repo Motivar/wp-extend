@@ -107,9 +107,14 @@ final class Rest_Adapter
     /**
      * Run the operation and shape the response.
      *
+     * A WP_Error passes through with its own status. Any other result gets the operation's declared
+     * success status, except a \WP_HTTP_Response the service built with a status other than 200:
+     * that status (and the response's headers) is the service's answer and is kept, so a wrapped
+     * legacy handler returning e.g. `new WP_REST_Response($body, 503)` still answers 503 (0.3.3).
+     *
      * @param Operation        $operation Operation.
      * @param \WP_REST_Request $request   Request.
-     * @param int              $status    Success status.
+     * @param int              $status    Declared success status.
      *
      * @return \WP_REST_Response|\WP_Error
      */
@@ -122,9 +127,28 @@ final class Rest_Adapter
         }
 
         $response = rest_ensure_response($result);
-        $response->set_status($status);
+        if (!self::has_own_status($result)) {
+            $response->set_status($status);
+        }
 
         return $response;
+    }
+
+    /**
+     * Whether a service result carries a status of its own that must not be replaced.
+     *
+     * 200 is the \WP_HTTP_Response default, so it counts as "no status chosen" and the declared
+     * success status (e.g. 201 or 204) still applies.
+     *
+     * @param mixed $result Operation result.
+     *
+     * @return bool
+     *
+     * @since 0.3.3
+     */
+    private static function has_own_status($result)
+    {
+        return $result instanceof \WP_HTTP_Response && (int) $result->get_status() !== 200;
     }
 
     /**

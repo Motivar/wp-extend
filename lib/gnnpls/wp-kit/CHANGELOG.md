@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-10-13
+
+Prompt: expose wp-kit consumers (EWP, Filox) to MCP clients at once — "go ahead with the mcp.public change", after comparing an own MCP server with Agent Connector.
+
+### Added
+- Abilities registered by `Ability_Adapter` now carry `meta.mcp.public` (and `meta.mcp.type = 'tool'`), so MCP servers built on `wordpress/mcp-adapter` (its default server, Agent Connector) list them as tools. Input schema and `readonly`/`destructive`/`idempotent` annotations map to the MCP tool as they are.
+- `Resource::mcp()` (default `true`): return `false` to keep a resource's abilities off MCP.
+
+### Backwards compatibility
+- No signature change. Abilities that were not MCP-visible become visible to MCP servers on sites that run one; execution still goes through the ability's own permission and confirm checks. Override `Resource::mcp()` or use `mwp_ability_definitions` to opt out.
+
+## [0.3.3] - 2026-10-13
+
+Prompt: moving a plugin's remaining legacy REST routes (session-bound handlers, payment webhooks) onto REST-only resources — "proceed to the fix in wp-kit".
+
+### Fixed
+- `Rest_Adapter` no longer overwrites the status of a `WP_REST_Response` the service built itself. A response with any status other than 200 is sent as returned, headers included, so a wrapped handler's `400`/`404`/`422`/`503` (e.g. a payment webhook telling the provider to retry) is no longer turned into the declared success status. A result with status 200 (the `WP_HTTP_Response` default), a plain value, or an array still gets the declared status, so `->rest('POST', '', 201)` behaves as before.
+
+### Backwards compatibility
+- No public API change. Only services that returned a non-200 `WP_REST_Response` see a difference: they now get the status they asked for instead of the declared one.
+
 ## [0.3.2] - 2026-10-12
 
 Prompt: CI jobs failing on `gnnpls/wp-self-test` (same loader pattern) — "does the latest wp-kit code have this fix?" → "please update both repos now".
