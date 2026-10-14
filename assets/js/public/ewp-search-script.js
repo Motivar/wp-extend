@@ -47,8 +47,35 @@ function ewp_search_remove_filter(id, form_id) {
             }
             filter.value = skip_reset_value ? filter.value : '';
         });
+        ewp_search_sync_apply_all(form);
         ewp_search_action(form, options, show_results, 1);
     }
+}
+
+/**
+ * re-check the exclusive "All" option of checkbox_multiple fields whose
+ * options were cleared programmatically (remove filter / reset), and keep the
+ * labels' selected class in step with the checkboxes
+ * @param {HTMLFormElement} form the search form
+ */
+function ewp_search_sync_apply_all(form) {
+    form.querySelectorAll('input[data-value="awm_apply_all"][data-apply-all-mode="exclusive"]').forEach(function (applyAll) {
+        var field = applyAll.closest('.awm-options-wrapper');
+        if (!field) {
+            return;
+        }
+        var boxes = field.querySelectorAll('input[type="checkbox"]');
+        var hasSelection = Array.prototype.some.call(boxes, function (box) {
+            return box !== applyAll && box.checked;
+        });
+        applyAll.checked = !hasSelection;
+        boxes.forEach(function (box) {
+            var label = box.closest('label');
+            if (label) {
+                label.classList.toggle('selected', box.checked);
+            }
+        });
+    });
 }
 
 /**
@@ -78,6 +105,7 @@ function ewp_reset_search_form(id) {
     var show_results = document.querySelector(options.show_results);
     if (show_results !== null) {
         form.reset();
+        ewp_search_sync_apply_all(form);
         ewp_search_action(form, options, show_results, 1);
     }
 }

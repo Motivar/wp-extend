@@ -16,6 +16,30 @@ class Extend_WP_Search_Filters
     add_shortcode('ewp_search', [$this, 'ewp_display_search']);
     add_filter('ewp_register_dynamic_assets', [$this, 'register_dynamic_assets']);
     add_action('rest_api_init', [$this, 'rest_endpoints'], 10);
+    add_filter('awm_case_fields_choices_filter', [$this, 'case_fields_choices'], 10, 2);
+  }
+
+  /**
+   * add the apply-all settings to the term and checkbox_multiple inputs of search filter rows
+   *
+   * @param array $fields awmInputFields()
+   * @param string $meta the meta key holding the rows; only query_fields is changed
+   * @return array
+   *
+   * @hook awm_case_fields_choices_filter
+   */
+  public function case_fields_choices($fields, $meta)
+  {
+    if ($meta !== 'query_fields') {
+      return $fields;
+    }
+    foreach (array('term', 'checkbox_multiple') as $case) {
+      if (isset($fields[$case])) {
+        $choices = isset($fields[$case]['field-choices']) ? $fields[$case]['field-choices'] : array();
+        $fields[$case]['field-choices'] = $choices + ewp_search_apply_all_choices();
+      }
+    }
+    return $fields;
   }
 
   /**
@@ -127,9 +151,16 @@ class Extend_WP_Search_Filters
 
     foreach ($conf['query_fields'] as $constructor) {
       $request_key = $constructor['query_key'];
-      if (isset($params[$request_key]) && !empty($params[$request_key])) {
-        $search_terms = is_array($params[$request_key]) ? array_filter($params[$request_key]) : array($params[$request_key]);
-        $search_term = $params[$request_key];
+      $param_value = isset($params[$request_key]) ? $params[$request_key] : '';
+      /*drop empty entries (e.g. key[]= from an apply-all checkbox), so an all-empty array means "no filter"*/
+      if (is_array($param_value)) {
+        $param_value = array_values(array_filter($param_value, function ($value) {
+          return $value !== '' && $value !== null;
+        }));
+      }
+      if (!empty($param_value)) {
+        $search_terms = is_array($param_value) ? array_filter($param_value) : array($param_value);
+        $search_term = $param_value;
         switch ($constructor['query_type']) {
           case 'taxonomy':
             $operator = $this->taxonomy_operator($constructor);
@@ -151,27 +182,27 @@ class Extend_WP_Search_Filters
             $args['meta_query'][] = array(
               'key' => $constructor['meta_key'],
               'compare' => $constructor['meta_compare'],
-              'value' => $params[$request_key],
+              'value' => $param_value,
             );
             break;
           case 'post':
             switch ($constructor['search_type']) {
               case 'orderby':
-                $args['orderby'] = $params[$request_key];
+                $args['orderby'] = $param_value;
                 break;
               case 'order':
-                $args['order'] = $params[$request_key];
+                $args['order'] = $param_value;
                 break;
               case 'search':
-                $args['s'] = $params[$request_key];
+                $args['s'] = $param_value;
                 break;
               case 'date_from':
-                $args['date_query']['after'] = date('c', strtotime($params[$request_key]));
+                $args['date_query']['after'] = date('c', strtotime($param_value));
                 break;
               case 'date_to':
                 $args['date_query']['before'] = date(
                   'c',
-                  strtotime($params[$request_key])
+                  strtotime($param_value)
                 );
                 break;
             }
@@ -271,7 +302,7 @@ class Extend_WP_Search_Filters
    */
   public function register_dynamic_assets($assets)
   {
-    $version = 0.02;
+    $version = 0.03;
 
     $assets[] = array(
       'handle' => 'ewp-search',
@@ -300,6 +331,36 @@ class Extend_WP_Search_Filters
     return $assets;
   }
 
+  /**
+   * normalize the apply-all settings of a query field (checkbox_multiple views) as stored by the admin UI
+   *
+   * - disable_apply_all: the admin checkbox stores '' when unchecked, but the field
+   *   renderer tests isset(), so an empty value is removed;
+   * - apply_all_mode: 'toggle' (default) or 'exclusive'; anything else is removed;
+   * - apply_all_label: translated through the extend-wp text domain like the
+   *   other search-filter labels; removed when empty.
+   *
+   * @param array $field the query field configuration
+   * @return array
+   */
+  private function prepare_apply_all($field)
+  {
+    if (isset($field['disable_apply_all']) && empty($field['disable_apply_all'])) {
+      unset($field['disable_apply_all']);
+    }
+    if (isset($field['apply_all_mode']) && !in_array($field['apply_all_mode'], array('toggle', 'exclusive'), true)) {
+      unset($field['apply_all_mode']);
+    }
+    if (isset($field['apply_all_label'])) {
+      if ($field['apply_all_label'] === '') {
+        unset($field['apply_all_label']);
+      } else {
+        $field['apply_all_label'] = __($field['apply_all_label'], 'extend-wp');
+      }
+    }
+    return $field;
+  }
+
   private function prepare_form_fields($input_fields, $id, $hash)
   {
     $form_fields = array();
@@ -320,6 +381,7 @@ class Extend_WP_Search_Filters
         }
       }
       $field['attributes'] = $attributes;
+      $field = $this->prepare_apply_all($field);
 
 
       switch ($field['case']) {

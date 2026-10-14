@@ -65,7 +65,9 @@ module.exports = {
   ...defaultConfig.output,
   path: path.resolve(__dirname, 'build'),
   filename: '[name].js',
-   chunkFilename: '[name].chunk.js',
+   // Content hash in chunk names: lazily imported chunks get no ?ver= query
+   // string, so a changed chunk needs a new URL to get past browser/CDN caches.
+   chunkFilename: '[name].[contenthash:8].chunk.js',
    publicPath: 'auto',
  },
   resolve: {

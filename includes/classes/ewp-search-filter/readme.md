@@ -120,6 +120,22 @@ Add a `lang` parameter to REST API requests or include a hidden `lang` field in 
   ewp_search_forms();
   ```
 
+### "All" option of multiple-checkbox filters
+
+A filter input of type **Multiple checkbox**, or **Taxonomies** with view *Multiple checkbox*, has three extra settings in its "Filter type configuration":
+
+| Setting | Field key | Values |
+|---|---|---|
+| All option behaviour | `apply_all_mode` | `toggle` (default): the apply-all option checks/unchecks every option and switches to "Deselect All". `exclusive`: an "All" tab that means "no filter" — checked when nothing else is, checking it unchecks the other options, checking any option unchecks it, unchecking the last option re-checks it. |
+| All option label | `apply_all_label` | Text of the apply-all option (default "Select All"). Translated through the `extend-wp` text domain like the filter labels (WPML String Translation). |
+| Hide the All option | `disable_apply_all` | Do not show the apply-all option. |
+
+`prepare_form_fields()` passes them to the field (an empty `disable_apply_all`, an unknown `apply_all_mode` or an empty `apply_all_label` is dropped), so `ewp_search_prepare_form_fields_filter` receives them on the field array and can set them from code too.
+
+The apply-all checkbox has no `name`, so it never posts a value; when only "All" is checked the field sends nothing and the search runs without a filter for it. Empty entries in an array parameter (`?cat[]=`) are ignored by the query, and an all-empty array adds no `tax_query` clause. On the front end, exclusive fields carry `data-apply-all-mode="exclusive"` on the field wrapper and the apply-all input (for CSS), and the labels' `selected` class follows the checkboxes. On a taxonomy archive the current term is pre-selected, so "All" renders unchecked there.
+
+The settings are added to search filter rows only, through the `awm_case_fields_choices_filter` filter (see `HOOKS.md`); field groups are unchanged.
+
 ## Configuration Example
 
 ### Field Configuration

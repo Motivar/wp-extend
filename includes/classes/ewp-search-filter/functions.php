@@ -37,6 +37,45 @@ if (!function_exists('ewp_search_sorting_filter')) {
 }
 
 
+if (!function_exists('ewp_search_apply_all_choices')) {
+ /**
+  * settings of the apply-all option, offered for the term and checkbox_multiple
+  * filter inputs of a search filter (they apply when the input renders as
+  * checkbox_multiple). Stored on the query_fields row and passed to the field
+  * as disable_apply_all / apply_all_mode / apply_all_label.
+  *
+  * @return array field library
+  */
+ function ewp_search_apply_all_choices()
+ {
+  return array(
+   'apply_all_mode' => array(
+    'label' => __('All option behaviour', 'extend-wp'),
+    'case' => 'select',
+    'removeEmpty' => true,
+    'options' => array(
+     'toggle' => array('label' => __('Toggle all', 'extend-wp')),
+     'exclusive' => array('label' => __('Exclusive "All" tab', 'extend-wp')),
+    ),
+    'explanation' => __('Multiple checkbox only. Toggle all checks/unchecks every option. Exclusive "All" tab: "All" is checked when nothing else is, unchecks the other options and searches with no filter for this field.', 'extend-wp'),
+   ),
+   'apply_all_label' => array(
+    'label' => __('All option label', 'extend-wp'),
+    'case' => 'input',
+    'type' => 'text',
+    'attributes' => array('placeholder' => __('Select All', 'extend-wp')),
+    'explanation' => __('Multiple checkbox only. Translatable through the extend-wp text domain (WPML String Translation).', 'extend-wp'),
+   ),
+   'disable_apply_all' => array(
+    'label' => __('Hide the All option', 'extend-wp'),
+    'case' => 'input',
+    'type' => 'checkbox',
+    'explanation' => __('Multiple checkbox only. Do not show the apply-all option.', 'extend-wp'),
+   ),
+  );
+ }
+}
+
 if (!function_exists('ewp_query_fields')) {
  function ewp_query_fields()
  {

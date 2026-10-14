@@ -403,11 +403,22 @@ function awmMultipleCheckBox() {
     if (elems) {
         elems.forEach(function (elem) {
             var inputs = elem.querySelectorAll('input[type="checkbox"]');
+            var applyAll = elem.querySelector('input[data-value="awm_apply_all"]');
+
+            if (applyAll && applyAll.getAttribute('data-apply-all-mode') === 'exclusive') {
+                awmExclusiveApplyAll(elem, applyAll, inputs);
+                return;
+            }
 
             if (inputs) {
                 inputs.forEach(function (input) {
                     var dataValue = input.getAttribute('data-value');
                     if (dataValue == 'awm_apply_all') {
+                        /*the function runs from more than one entry point: bind once*/
+                        if (input.dataset.awmApplyAllBound) {
+                            return;
+                        }
+                        input.dataset.awmApplyAllBound = '1';
                         input.addEventListener('change', function (e) {
                             var checked = input.checked;
                             var text = input.getAttribute('data-extra');
@@ -426,6 +437,61 @@ function awmMultipleCheckBox() {
             }
         });
     }
+}
+
+/**
+ * Exclusive "All" mode of a checkbox_multiple field (apply_all_mode => 'exclusive').
+ *
+ * The apply-all checkbox has no name, so when it is the only checked box the
+ * field posts nothing ("no filter"). It runs in each input's own change
+ * handler, so the state is final before change listeners on the form (e.g.
+ * the search filter) read it:
+ * - checking "All" unchecks every other option; "All" cannot be unchecked directly;
+ * - checking an option unchecks "All";
+ * - unchecking the last checked option re-checks "All".
+ *
+ * @param {HTMLElement} elem the field wrapper
+ * @param {HTMLInputElement} applyAll the apply-all checkbox
+ * @param {NodeList} inputs every checkbox of the field
+ */
+function awmExclusiveApplyAll(elem, applyAll, inputs) {
+    if (applyAll.dataset.awmApplyAllBound) {
+        return;
+    }
+    applyAll.dataset.awmApplyAllBound = '1';
+
+    var options = Array.prototype.filter.call(inputs, function (input) {
+        return input !== applyAll;
+    });
+
+    var syncLabels = function () {
+        inputs.forEach(function (input) {
+            var label = input.closest('label');
+            if (label) {
+                label.classList.toggle('selected', input.checked);
+            }
+        });
+    };
+
+    applyAll.addEventListener('change', function () {
+        /*clicking "All" while already checked keeps it checked: no empty state*/
+        applyAll.checked = true;
+        options.forEach(function (option) {
+            option.checked = false;
+        });
+        syncLabels();
+    });
+
+    options.forEach(function (option) {
+        option.addEventListener('change', function () {
+            applyAll.checked = !options.some(function (other) {
+                return other.checked;
+            });
+            syncLabels();
+        });
+    });
+
+    syncLabels();
 }
 
 /**

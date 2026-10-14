@@ -124,6 +124,14 @@ class AWM_Field_Examples {
             ),
             
             // Multiple checkboxes
+            // An apply-all option is prepended unless 'disable_apply_all' is set. Optional keys:
+            // - 'disable_apply_all' => true: no apply-all option.
+            // - 'apply_all_mode' => 'toggle' (default: checks/unchecks every option and swaps its
+            //   label with "Deselect All") | 'exclusive' (an "All" choice meaning "no value": checked
+            //   while nothing else is, unchecks the other options, never posts a value; the field
+            //   wrapper and the input get data-apply-all-mode="exclusive").
+            // - 'apply_all_label' => string: label of the apply-all option (default "Select All").
+            // The apply-all input has no name in either mode, so it never posts a value.
             'checkbox_multiple_field' => array(
                 'case' => 'checkbox_multiple',
                 'label' => 'Multiple Checkboxes',
@@ -133,6 +141,19 @@ class AWM_Field_Examples {
                     'option1' => array('label' => 'Option 1'),
                     'option2' => array('label' => 'Option 2'),
                     'option3' => array('label' => 'Option 3')
+                )
+            ),
+
+            // Multiple checkboxes as category tabs: "All" means "no filter"
+            'checkbox_multiple_tabs_field' => array(
+                'case' => 'checkbox_multiple',
+                'label' => 'Category tabs',
+                'order' => 41,
+                'apply_all_mode' => 'exclusive',
+                'apply_all_label' => __('All', 'extend-wp'),
+                'options' => array(
+                    'news' => array('label' => 'News'),
+                    'events' => array('label' => 'Events')
                 )
             ),
             

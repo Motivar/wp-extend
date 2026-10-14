@@ -172,7 +172,21 @@ class AWM_API
     }
     $meta = sanitize_text_field($meta);
     $db = $meta === 'query_fields' ? 'ewp_search' : 'ewp_fields';
-    return $this->get_awm_metas_configuration(sanitize_text_field($field), sanitize_text_field($name), $meta, absint($id), awmInputFields(), $db, 'case');
+    /**
+     * Filter: 'awm_case_fields_choices_filter'
+     *
+     * The field cases (and their `field-choices` settings) offered by the
+     * "Field type configuration" box of a field row. The search filter uses it
+     * to add its apply-all settings to the rows of `query_fields` only.
+     *
+     * @param array  $fields awmInputFields() — case => array('label' => …, 'field-choices' => array(…)).
+     * @param string $meta   Meta key holding the rows (awm_fields or query_fields).
+     * @param string $db     Content type the rows are stored in (ewp_fields or ewp_search).
+     *
+     * @since 1.5.1
+     */
+    $all_fields = apply_filters('awm_case_fields_choices_filter', awmInputFields(), $meta, $db);
+    return $this->get_awm_metas_configuration(sanitize_text_field($field), sanitize_text_field($name), $meta, absint($id), $all_fields, $db, 'case');
   }
 
   private function get_awm_metas_configuration($field, $name, $meta, $postId, $all_fields, $db, $replace)

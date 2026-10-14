@@ -1265,19 +1265,44 @@ if (!function_exists('awm_show_content')) {
                             $checkboxOptions = array();
                             $ins .= '<div class="awm-options-wrapper">';
                             if (isset($a['options']) && !empty($a['options'])) {
+                                /*
+                                 * apply_all_mode: 'toggle' (default) checks/unchecks every option;
+                                 * 'exclusive' makes the apply-all option an "All" choice that
+                                 * means "no filter" and is mutually exclusive with the others.
+                                 * apply_all_label: custom label for the apply-all option.
+                                 */
+                                $apply_all_mode = (isset($a['apply_all_mode']) && $a['apply_all_mode'] === 'exclusive') ? 'exclusive' : 'toggle';
+                                $apply_all_label = (isset($a['apply_all_label']) && $a['apply_all_label'] !== '') ? $a['apply_all_label'] : __('Select All', 'extend-wp');
+                                $val = !is_array($val) ? array($val) : $val;
                                 if (!isset($a['disable_apply_all'])) {
-                                    $checkboxOptions['awm_apply_all'] = array('label' => __('Select All', 'extend-wp'), 'extra_label' => __('Deselect All', 'extend-wp'));
+                                    $checkboxOptions['awm_apply_all'] = array('label' => $apply_all_label);
+                                    if ($apply_all_mode === 'toggle') {
+                                        $checkboxOptions['awm_apply_all']['extra_label'] = __('Deselect All', 'extend-wp');
+                                    } else {
+                                        $label_attrs[] = 'data-apply-all-mode="exclusive"';
+                                    }
                                 }
                                 $checkboxOptions = $checkboxOptions + $a['options'];
-                                $val = !is_array($val) ? array($val) : $val;
+                                /*exclusive mode: "All" is checked while none of the real options is*/
+                                $has_selection = false;
+                                foreach ($a['options'] as $option_key => $option_data) {
+                                    if (in_array($option_key, $val)) {
+                                        $has_selection = true;
+                                        break;
+                                    }
+                                }
                                 foreach ($checkboxOptions as $dlm => $dlmm) {
                                     $chk_ex = $chk_label_class = '';
-                                    if (is_array($val) && in_array($dlm, $val)) {
+                                    $is_apply_all = $dlm === 'awm_apply_all';
+                                    if ($is_apply_all ? ($apply_all_mode === 'exclusive' && !$has_selection) : in_array($dlm, $val)) {
                                         $chk_ex = ' checked';
                                         $chk_label_class = ' selected';
                                     }
-                                    $value_name = $dlm != 'amw_apply_all' ? $original_meta . '[]' : '';
-                                    $extraLabel = ($dlm == 'awm_apply_all' && isset($dlmm['extra_label'])) ? 'data-extra="' . $dlmm['extra_label'] . '"' : '';
+                                    $value_name = !$is_apply_all ? $original_meta . '[]' : '';
+                                    $extraLabel = '';
+                                    if ($is_apply_all) {
+                                        $extraLabel = $apply_all_mode === 'exclusive' ? 'data-apply-all-mode="exclusive"' : (isset($dlmm['extra_label']) ? 'data-extra="' . $dlmm['extra_label'] . '"' : '');
+                                    }
                                     $valueInside = $dlm != 'awm_apply_all' ? $dlm : '';
                                     $input_id = $original_meta_id . '_' . $dlm . '_' . rand(10, 100);
                                     global $ewp_input_vars;
