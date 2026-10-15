@@ -10,7 +10,8 @@ if (!defined('ABSPATH')) {
  * - `ewp-admin-ui` on every options page rendered by templates/settings.php
  *   (registered through `awm_add_options_boxes_filter` without an
  *   `ext_callback`): the whole page.
- * - `ewp-admin-ui-fields` on post, term and user edit screens: only the
+ * - `ewp-admin-ui-fields` on post, term and user edit screens and on Extend
+ *   WP's content edit forms (Fields, Post Types, Search Filters…): only the
  *   controls and repeaters inside Extend WP's own fields, compact.
  *
  * Every rule in the stylesheet hangs off one of the two body classes, so
@@ -141,15 +142,34 @@ class EWP_Admin_UI
      *
      * @param bool      $enabled True on post, term and user edit screens
      *                           (screen base `post`, `term`, `edit-tags`,
-     *                           `profile`, `user-edit`), false elsewhere.
+     *                           `profile`, `user-edit`) and on Extend WP's
+     *                           content edit forms (is_content_form()), false
+     *                           elsewhere.
      * @param WP_Screen $screen  The current admin screen.
      * @return bool
      *
      * @since 1.5.4
      */
-    self::$fields_enabled = (bool) apply_filters('ewp_admin_ui_fields_enabled', in_array($screen->base, self::FIELDS_SCREEN_BASES, true), $screen);
+    $enabled = in_array($screen->base, self::FIELDS_SCREEN_BASES, true) || self::is_content_form();
+    self::$fields_enabled = (bool) apply_filters('ewp_admin_ui_fields_enabled', $enabled, $screen);
 
     return self::$fields_enabled;
+  }
+
+  /**
+   * Whether the current screen is an Extend WP content edit form (Fields,
+   * Post Types, Taxonomies, Search Filters, Content Types and any custom
+   * content type): meta boxes in #poststuff, like a post screen.
+   *
+   * @return bool
+   */
+  public static function is_content_form()
+  {
+    $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+    if (!$screen || !class_exists('AWM_Add_Custom_List')) {
+      return false;
+    }
+    return in_array($screen->id, AWM_Add_Custom_List::$form_hooks, true);
   }
 
   /**

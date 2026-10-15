@@ -76,11 +76,24 @@ class AWM_Add_Custom_List
 
   private $show_delete;
 
+  /**
+   * Hook suffixes of every registered edit form page (`{id}_form`), so other
+   * modules can tell these screens apart (EWP_Admin_UI styles their fields).
+   *
+   * @var string[]
+   *
+   * @since 1.5.4
+   */
+  public static $form_hooks = array();
+
   public function __construct($args)
   {
     $this->custom_id = $args['custom_id'];
     $this->custom_list = $args['custom_list'];
     $this->flx_register_custom_list_view($this->custom_id, $this->custom_list);
+    if (!empty($this->pagehook)) {
+      self::$form_hooks[] = $this->pagehook;
+    }
     add_action('load-' . $this->pagehook, array($this, 'on_load_page'));
     add_action('admin_footer-' . $this->pagehook, array($this, 'on_page_footer'), 100);
     add_action('admin_init', array($this, 'save_page'), 10);

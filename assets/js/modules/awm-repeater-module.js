@@ -166,36 +166,8 @@ function updateInputAttributes(elem, repeater, oldCounter, newCounter) {
     });
 
 
-    var inputs = elem.querySelectorAll('textarea.wp-editor-area');
-    if (inputs) {
-        inputs.forEach(function (input) {
-            // At this point, IDs have been updated and content restored to NEW IDs
-            var content = input.value || '';
-            var editorId = input.id; // This is the NEW ID
-
-            EWPDynamicAssetLoader.log('[AWM Reorder] Queueing editor with NEW ID for reinitialization:', editorId, 'Content length:', content.length);
-            if (content.length > 0) {
-                var queuePreview = content.substring(0, 100);
-                EWPDynamicAssetLoader.log('[AWM Reorder] Queue content preview:', queuePreview);
-            } else {
-                EWPDynamicAssetLoader.log('[AWM Reorder] WARNING: Queueing with EMPTY content!');
-            }
-
-            if (window.awmRepeaterEditorQueue) {
-                window.awmRepeaterEditorQueue.add(editorId, content);
-                // Process this single editor after a short delay
-                // Use captured values in closure to avoid stale references
-                setTimeout(function () {
-                    window.awmRepeaterEditorQueue.initEditor(editorId, content);
-                }, 300);
-            } else {
-                // Fallback to direct initialization if queue not available
-                if (typeof awm_initialize_repeater_wp_editor === 'function') {
-                    awm_initialize_repeater_wp_editor(editorId);
-                }
-            }
-        });
-    }
+    // wp_editor fields are detached before a reorder and rebuilt after it
+    // (awm_execute_reorder_actions()), so nothing to re-initialise here.
 }
 
 /**
@@ -262,6 +234,12 @@ function awm_execute_reorder_actions(repeater_div, targetElement, repeater, coun
     repeater_div.id = 'awm-' + repeater + '-' + targetCounter;
     targetElement.id = 'awm-' + repeater + '-' + counter;
 
+    // wp_editor fields: a live TinyMCE iframe loses its document when moved
+    // in the DOM, so detach both rows' editors (their content is saved into
+    // the textareas) and rebuild them once the rows are in place.
+    var template = repeater_div.parentNode.querySelector('.awm-repeater-content.temp-source[data-id="' + repeater + '"]');
+    var detached = awm_repeater_detach_wp_editors([repeater_div, targetElement], template);
+
     console.log('Step 4: Swapping input attributes...');
     // Preserve all input values and update their names/ids
     swapInputAttributes(repeater_div, targetElement, repeater, counter, targetCounter);
@@ -269,6 +247,10 @@ function awm_execute_reorder_actions(repeater_div, targetElement, repeater, coun
     console.log('Step 5: Moving DOM elements...');
     // Move the DOM elements
     repeater_div.parentNode.insertBefore(repeater_div, nextSibling);
+
+    awm_repeater_init_wp_editors(detached.map(function (item) {
+        return { id: item.area.id, templateId: item.templateId, mediaButtons: item.mediaButtons };
+    }), null);
 
     console.log('Step 6: All DOM operations completed');
 }
@@ -375,6 +357,9 @@ function repeater(elem, prePopulated = []) {
                 });
             }
             cloned = awm_repeater_clone(cloned, new_counter, repeater);
+            // wp_editor fields: drop the editor markup cloned from the template
+            // (a live TinyMCE) and keep a bare textarea, initialised below.
+            var newEditors = awm_repeater_prepare_wp_editors(cloned, template, new_counter);
             cloned.querySelector(':scope > .awm-actions .awm-repeater-add').innerHTML = '';
             cloned.querySelector('input[input-key="awm_key"]').value = new Date().getTime() + new_counter;
             jQuery('.awm-repeater[data-id="' + repeater + '"] .awm-repeater-content.temp-source[data-id="' + repeater + '"]').before(cloned);
@@ -402,28 +387,19 @@ function repeater(elem, prePopulated = []) {
                 }
             }
 
+            awm_repeater_init_wp_editors(newEditors, prePopulated);
+
             var inputs = cloned.querySelectorAll('input,select,textarea');
 
             if (inputs) {
                 inputs.forEach(function (input) {
                     if (input.classList.contains('wp-editor-area')) {
-                        // Queue the editor for delayed initialization to preserve content
-                        var content = input.value || '';
-                        if (window.awmRepeaterEditorQueue) {
-                            window.awmRepeaterEditorQueue.add(input.id, content);
-                            // Process this single editor after a short delay
-                            setTimeout(function () {
-                                window.awmRepeaterEditorQueue.initEditor(input.id, content);
-                            }, 300);
-                        } else {
-                        // Fallback to direct initialization if queue not available
-                            if (typeof awm_initialize_repeater_wp_editor === 'function') {
-                                awm_initialize_repeater_wp_editor(input.id);
-                            }
-                        }
+                        // Filled (from prePopulated) before its editor was built.
+                        return;
                     }
                     var inputKey = input.getAttribute('input-key') || '';
-                    if (inputKey && prePopulated[inputKey]) {
+                    // A cloned row keeps its own new key, not its source's.
+                    if (inputKey && inputKey !== 'awm_key' && prePopulated[inputKey]) {
                         input.value = prePopulated[inputKey];
                         input.dispatchEvent(new Event('change'));
                     }
@@ -433,6 +409,7 @@ function repeater(elem, prePopulated = []) {
         }
     } else {
         var rep_wrapper = elem.closest('.awm-repeater[data-id="' + repeater + '"] .awm-repeater-content[data-id="' + repeater + '"]');
+        awm_repeater_remove_wp_editors(rep_wrapper);
         rep_wrapper.querySelectorAll('input,select,textarea').forEach(function (input) {
             input.value = 0;
             input.dispatchEvent(new Event('change'));
@@ -448,6 +425,263 @@ function repeater(elem, prePopulated = []) {
         last.dispatchEvent(new Event('change'));
     }
     return true;
+}
+
+/**
+ * Replace the wp_editor markup a new row cloned from the template row with a
+ * bare textarea, ready for awm_repeater_init_wp_editors().
+ *
+ * The template row's editor is a live TinyMCE instance, so its clone carries
+ * the TinyMCE UI, a Quicktags toolbar and Visual/Code tabs whose ids no longer
+ * match the textarea (awm_repeater_clone() renames the textarea from its name,
+ * the rest is renamed by text replacement). WordPress's switchEditors then
+ * finds no `wp-{id}-wrap` and the tabs do nothing, and Quicktags ends up
+ * twice. The editor is rebuilt instead, the way wp_editor() builds a saved
+ * row.
+ *
+ * Must run before the row is inserted.
+ *
+ * @param {HTMLElement} cloned     The new row (not yet in the document).
+ * @param {HTMLElement} template   The template row it was cloned from.
+ * @param {number}      newCounter The new row's index.
+ * @return {Array<{id: string, templateId: string, mediaButtons: boolean}>}
+ */
+function awm_repeater_prepare_wp_editors(cloned, template, newCounter) {
+    var prepared = [];
+    var templateAreas = template.querySelectorAll('textarea.wp-editor-area');
+
+    cloned.querySelectorAll('.wp-editor-wrap').forEach(function (wrap, index) {
+        var area = wrap.querySelector('textarea.wp-editor-area');
+        var templateArea = templateAreas[index];
+        if (!area || !templateArea || !templateArea.id) {
+            return;
+        }
+        // The id wp_editor() gives a saved row: the template's, with the index.
+        var id = templateArea.id.replace(/template/g, newCounter);
+
+        var fresh = document.createElement('textarea');
+        Array.prototype.forEach.call(area.attributes, function (attr) {
+            if (['id', 'style', 'aria-hidden', 'disabled', 'readonly'].indexOf(attr.name) === -1) {
+                fresh.setAttribute(attr.name, attr.value);
+            }
+        });
+        fresh.id = id;
+        fresh.value = '';
+
+        prepared.push({
+            id: id,
+            templateId: templateArea.id,
+            mediaButtons: !!wrap.querySelector('.wp-media-buttons')
+        });
+        wrap.parentNode.replaceChild(fresh, wrap);
+    });
+
+    return prepared;
+}
+
+/**
+ * Build the editors prepared by awm_repeater_prepare_wp_editors() with
+ * wp.editor.initialize(), using the template editor's settings (the toolbar
+ * and options its field asked for), and register them in tinyMCEPreInit as
+ * wp_editor() does, so Visual/Code switching and Add Media work at once.
+ *
+ * @param {Array}  editors      Result of awm_repeater_prepare_wp_editors().
+ * @param {Object} prePopulated Values by input-key (a cloned row's content).
+ */
+function awm_repeater_init_wp_editors(editors, prePopulated) {
+    if (!editors || !editors.length) {
+        return;
+    }
+    var canInit = window.wp && wp.editor && typeof wp.editor.initialize === 'function';
+    var preInit = window.tinyMCEPreInit || { mceInit: {}, qtInit: {} };
+
+    editors.forEach(function (editor) {
+        var area = document.getElementById(editor.id);
+        if (!area) {
+            return;
+        }
+        var key = area.getAttribute('input-key') || '';
+        if (key && prePopulated && prePopulated[key]) {
+            area.value = prePopulated[key];
+        }
+
+        if (!canInit) {
+            // Without wp.editor the field stays a plain textarea.
+            return;
+        }
+
+        var mce = preInit.mceInit && preInit.mceInit[editor.templateId];
+        var qt = preInit.qtInit && preInit.qtInit[editor.templateId];
+        var settings = {
+            mediaButtons: editor.mediaButtons,
+            tinymce: mce ? awm_repeater_editor_settings(mce, editor.templateId, editor.id) : true,
+            quicktags: qt ? jQuery.extend({}, qt, { id: editor.id }) : true
+        };
+
+        if (preInit.mceInit && typeof settings.tinymce === 'object') {
+            preInit.mceInit[editor.id] = jQuery.extend({}, settings.tinymce, { selector: '#' + editor.id });
+        }
+        if (preInit.qtInit && typeof settings.quicktags === 'object') {
+            preInit.qtInit[editor.id] = settings.quicktags;
+        }
+
+        // wp.editor.initialize() nests the editor inside its tools bar, where
+        // the floated Visual/Code tabs end up under the TinyMCE toolbar. Give
+        // it wp_editor()'s structure and ids before TinyMCE renders into it.
+        var matchMarkup = function (event, init) {
+            if (init && init.selector === '#' + editor.id) {
+                jQuery(document).off('wp-before-tinymce-init', matchMarkup);
+                awm_repeater_match_editor_markup(editor.id);
+            }
+        };
+        jQuery(document).on('wp-before-tinymce-init', matchMarkup);
+        wp.editor.initialize(editor.id, settings);
+        jQuery(document).off('wp-before-tinymce-init', matchMarkup);
+
+        // Keep the textarea current, so a save without leaving the editor
+        // still sends what was typed.
+        if (window.tinymce) {
+            var ed = tinymce.get(editor.id);
+            if (ed) {
+                ed.on('change input blur', function () {
+                    ed.save();
+                });
+            }
+        }
+    });
+}
+
+/**
+ * Move stylesheets printed inside some markup to <head> before that markup is
+ * removed. wp_editor() prints the editor's stylesheets (editor-buttons,
+ * dashicons) inline, inside the first editor on the page; removing that
+ * editor (a deleted or reordered row) would otherwise unstyle every editor.
+ *
+ * @param {HTMLElement} container Markup about to be removed.
+ */
+function awm_repeater_keep_styles(container) {
+    if (!container) {
+        return;
+    }
+    container.querySelectorAll('link[rel="stylesheet"], style').forEach(function (sheet) {
+        if (sheet.id && document.head.querySelector('#' + CSS.escape(sheet.id)) !== null) {
+            return;
+        }
+        document.head.appendChild(sheet);
+    });
+}
+
+/**
+ * Rearrange the markup wp.editor.initialize() built for an editor into the
+ * structure wp_editor() prints: tools bar (media buttons and tabs) and editor
+ * container as siblings, with the same ids.
+ *
+ * @param {string} id The editor's textarea id.
+ */
+function awm_repeater_match_editor_markup(id) {
+    var wrap = document.getElementById('wp-' + id + '-wrap');
+    if (!wrap) {
+        return;
+    }
+    var tools = wrap.querySelector('.wp-editor-tools');
+    var container = wrap.querySelector('.wp-editor-container');
+    var media = wrap.querySelector('.wp-media-buttons');
+    if (tools) {
+        tools.id = 'wp-' + id + '-editor-tools';
+        tools.classList.add('hide-if-no-js');
+        if (container && tools.contains(container)) {
+            tools.parentNode.insertBefore(container, tools.nextSibling);
+        }
+    }
+    if (container) {
+        container.id = 'wp-' + id + '-editor-container';
+    }
+    if (media) {
+        media.id = 'wp-' + id + '-media-buttons';
+    }
+}
+
+/**
+ * The template editor's TinyMCE settings for another editor: string values
+ * naming the template id (selector, body_class) name the new id instead, and
+ * the template's `readonly` is dropped.
+ *
+ * @param {Object} settings tinyMCEPreInit.mceInit entry of the template.
+ * @param {string} fromId   Template editor id.
+ * @param {string} toId     New editor id.
+ * @return {Object}
+ */
+function awm_repeater_editor_settings(settings, fromId, toId) {
+    var copy = {};
+    Object.keys(settings).forEach(function (name) {
+        var value = settings[name];
+        copy[name] = typeof value === 'string' ? value.split(fromId).join(toId) : value;
+    });
+    // The template row is read-only (it only holds the markup for new rows);
+    // its rows are not.
+    delete copy.readonly;
+    return copy;
+}
+
+/**
+ * Detach the wp_editor instances of some rows, leaving their textareas (with
+ * the current content) in place, for awm_repeater_init_wp_editors() to rebuild.
+ *
+ * @param {HTMLElement[]}    rows     Repeater rows.
+ * @param {HTMLElement|null} template The repeater's template row (its editors'
+ *                                    settings are reused).
+ * @return {Array<{area: HTMLTextAreaElement, templateId: string, mediaButtons: boolean}>}
+ */
+function awm_repeater_detach_wp_editors(rows, template) {
+    var detached = [];
+    if (!(window.wp && wp.editor && typeof wp.editor.remove === 'function')) {
+        return detached;
+    }
+    var templateAreas = template ? template.querySelectorAll('textarea.wp-editor-area') : [];
+
+    rows.forEach(function (row) {
+        row.querySelectorAll('textarea.wp-editor-area').forEach(function (area, index) {
+            if (!area.id) {
+                return;
+            }
+            var wrap = document.getElementById('wp-' + area.id + '-wrap') || area.closest('.wp-editor-wrap');
+            detached.push({
+                area: area,
+                templateId: templateAreas[index] ? templateAreas[index].id : '',
+                mediaButtons: !!(wrap && wrap.querySelector('.wp-media-buttons'))
+            });
+            awm_repeater_keep_styles(wrap);
+            wp.editor.remove(area.id);
+            if (window.tinyMCEPreInit) {
+                delete tinyMCEPreInit.mceInit[area.id];
+                delete tinyMCEPreInit.qtInit[area.id];
+            }
+        });
+    });
+
+    return detached;
+}
+
+/**
+ * Remove the wp_editor instances of a row about to be deleted, so TinyMCE and
+ * Quicktags keep no instance bound to removed markup.
+ *
+ * @param {HTMLElement} row The repeater row.
+ */
+function awm_repeater_remove_wp_editors(row) {
+    awm_repeater_keep_styles(row);
+    if (!row || !(window.wp && wp.editor && typeof wp.editor.remove === 'function')) {
+        return;
+    }
+    row.querySelectorAll('textarea.wp-editor-area').forEach(function (area) {
+        if (area.id) {
+            wp.editor.remove(area.id);
+            if (window.tinyMCEPreInit) {
+                delete tinyMCEPreInit.mceInit[area.id];
+                delete tinyMCEPreInit.qtInit[area.id];
+            }
+        }
+    });
 }
 
 /**

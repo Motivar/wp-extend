@@ -157,4 +157,28 @@ class Test_Admin_UI extends WP_UnitTestCase
         $this->assertStringContainsString(' ewp-admin-ui-fields ', $classes);
         $this->assertStringNotContainsString(' ewp-admin-ui ', $classes);
     }
+
+    public function test_fields_scope_is_on_for_content_edit_forms()
+    {
+        $hooks = AWM_Add_Custom_List::$form_hooks;
+        AWM_Add_Custom_List::$form_hooks = ['extend-wp_page_ewp-test_form'];
+        unset($_GET['page']);
+        set_current_screen('extend-wp_page_ewp-test_form');
+
+        $this->assertTrue(EWP_Admin_UI::is_content_form());
+        $this->assertTrue(EWP_Admin_UI::is_fields_enabled());
+
+        AWM_Add_Custom_List::$form_hooks = $hooks;
+    }
+
+    public function test_content_list_screens_are_not_forms()
+    {
+        $hooks = AWM_Add_Custom_List::$form_hooks;
+        AWM_Add_Custom_List::$form_hooks = ['extend-wp_page_ewp-test_form'];
+        set_current_screen('extend-wp_page_ewp-test');
+
+        $this->assertFalse(EWP_Admin_UI::is_content_form());
+
+        AWM_Add_Custom_List::$form_hooks = $hooks;
+    }
 }
