@@ -3,6 +3,7 @@ const { InspectorControls } = wp.blockEditor || wp.editor;
 const { PanelBody, TextControl, ToggleControl, RangeControl, SelectControl, TextareaControl, ColorPicker, Button } = wp.components;
 const { useEffect, useState } = wp.element;
 const { apiFetch } = wp;
+const { useSelect } = wp.data;
 const { RichText } = wp.blockEditor;
 const { MediaUpload, MediaUploadCheck } = wp.blockEditor;
 
@@ -18,6 +19,126 @@ const ewpLog = (message, data) => {
   if (typeof EWPDynamicAssetLoader !== 'undefined' && typeof EWPDynamicAssetLoader.log === 'function') {
     EWPDynamicAssetLoader.log('[EWP Blocks] ' + message, data);
   }
+};
+
+/**
+ * `filter_options_by` values that name the editor context instead of another
+ * attribute. `@post_type` is the post type whose content is being edited.
+ */
+const CONTEXT_POST_TYPE = '@post_type';
+
+/**
+ * Post types that hold editor structure rather than content. While one of them
+ * is edited, only a template's slug can say which post type it is for.
+ */
+const STRUCTURE_POST_TYPES = ['wp_template', 'wp_template_part', 'wp_block', 'wp_navigation', 'wp_global_styles'];
+
+/**
+ * The post being edited, as a stable string for useSelect: `{type}|{slug}`.
+ *
+ * In the Site Editor the edited post is the template (`wp_template`), and its
+ * slug changes as the user opens other templates, so the result follows
+ * client-side navigation.
+ *
+ * @param {Function} select Registry select.
+ * @return {string}
+ */
+const selectEditedPost = (select) => {
+  const editor = select('core/editor');
+  if (!editor || typeof editor.getCurrentPostType !== 'function') {
+    return '|';
+  }
+  const type = editor.getCurrentPostType() || '';
+  let slug = '';
+  if (type === 'wp_template') {
+    slug = (typeof editor.getEditedPostAttribute === 'function' && editor.getEditedPostAttribute('slug')) || '';
+    if (!slug) {
+      // Template ids are `{theme}//{slug}`.
+      const id = String(editor.getCurrentPostId() || '');
+      slug = id.includes('//') ? id.split('//').pop() : '';
+    }
+  }
+  return `${type}|${slug}`;
+};
+
+/**
+ * Test for an option's `filter_values` entry against the edited post, or null
+ * when the edited post does not say which post type it is for (a page
+ * template, a template part, no editor), in which case nothing is filtered.
+ *
+ * - Content (post editor): the post's own type.
+ * - Templates: `single-{type}`, `single-{type}-{slug}` and `archive-{type}`.
+ *
+ * @param {string} editedPost Result of selectEditedPost().
+ * @return {?Function} value => boolean
+ */
+const postTypeMatcher = (editedPost) => {
+  const [type, slug] = String(editedPost || '|').split('|');
+  if (!type) {
+    return null;
+  }
+  if (!STRUCTURE_POST_TYPES.includes(type)) {
+    return (value) => value === type;
+  }
+  if (type !== 'wp_template' || !/^(single|archive)-./.test(slug)) {
+    return null;
+  }
+  return (value) => slug === `single-${value}` || slug.startsWith(`single-${value}-`) || slug === `archive-${value}`;
+};
+
+/**
+ * Options of a select field that apply to the given attribute values.
+ *
+ * A field with `filter_options_by` (another attribute key) only offers the
+ * options whose `filter_values` contain that attribute's current value.
+ * With `filter_options_by => '@post_type'` the options follow the post type
+ * being edited instead (see postTypeMatcher()), and are all offered when it
+ * cannot be told. Options without `filter_values` (e.g. a "Select…"
+ * placeholder) are always offered, and a field without `filter_options_by`
+ * is returned unfiltered.
+ *
+ * @param {Object} data         Prepared field definition.
+ * @param {Object} values       Current attribute values of the block.
+ * @param {string} [editedPost] Result of selectEditedPost(), for `@post_type`.
+ * @return {Array} Options in EWP's `{ option, label }` shape.
+ */
+const getSelectOptions = (data, values, editedPost) => {
+  const options = Array.isArray(data.options) ? data.options : [];
+  const filterBy = data.filter_options_by;
+  if (!filterBy) {
+    return options;
+  }
+  let matches;
+  if (filterBy === CONTEXT_POST_TYPE) {
+    matches = postTypeMatcher(editedPost);
+    if (!matches) {
+      return options;
+    }
+  } else {
+    const current = values[filterBy];
+    matches = (value) => current != null && current !== '' && value === String(current);
+  }
+  return options.filter((opt) => !Array.isArray(opt.filter_values) || opt.filter_values.some(matches));
+};
+
+/**
+ * Offered options plus the ones holding the stored value, in their original
+ * order, so the control shows what is saved even when a filter would hide it
+ * (e.g. a value saved in another template). Values are not cleared on load.
+ *
+ * @param {Object} data    Prepared field definition.
+ * @param {Array}  offered Result of getSelectOptions().
+ * @param {*}      value   Stored attribute value.
+ * @return {Array}
+ */
+const withStoredOptions = (data, offered, value) => {
+  const stored = (Array.isArray(value) ? value : [value])
+    .filter((v) => v != null && v !== '')
+    .map(String);
+  if (!stored.length || !Array.isArray(data.options)) {
+    return offered;
+  }
+  return data.options.filter((opt) => offered.includes(opt) || stored.includes(String(opt.option)));
 };
 
 if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components && wp.element && typeof ewp_blocks !== 'undefined') {
@@ -38,6 +159,8 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
       },
       edit: function EditBlock(props) {
         const { attributes, setAttributes } = props;
+        // Only read by selects with `filter_options_by => '@post_type'`.
+        const editedPost = useSelect(selectEditedPost, []);
 
         // Initialize inputValues with default or initial values from block.attributes
         const initialValues = Object.keys(block.attributes).reduce((acc, attrKey) => {
@@ -55,15 +178,43 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
         const handleInputChange = (identifier, newValue) => {
           // For select controls, we're now receiving the direct value (not an object)
           // because we transformed the options format to use value/label pairs
-          const attributeData = block.attributes[identifier];
-          
+          const changes = { [identifier]: newValue };
+
+          // Drop values of dependent selects (filter_options_by) that are no
+          // longer offered: a single select is cleared, a multiple select keeps
+          // only its offered values. Repeats for the fields that changed, so
+          // clearing a field also updates the fields that depend on it.
+          let changedKeys = [identifier];
+          while (changedKeys.length) {
+            const nextValues = { ...props.attributes, ...changes };
+            const updatedKeys = [];
+            Object.entries(block.attributes).forEach(([dependentKey, dependentData]) => {
+              if (!changedKeys.includes(dependentData.filter_options_by)) {
+                return;
+              }
+              const currentValue = nextValues[dependentKey];
+              const offered = getSelectOptions(dependentData, nextValues).map((opt) => String(opt.option));
+              if (Array.isArray(currentValue)) {
+                const kept = currentValue.filter((value) => offered.includes(String(value)));
+                if (kept.length !== currentValue.length) {
+                  changes[dependentKey] = kept;
+                  updatedKeys.push(dependentKey);
+                }
+              } else if (currentValue != null && currentValue !== '' && !offered.includes(String(currentValue))) {
+                changes[dependentKey] = '';
+                updatedKeys.push(dependentKey);
+              }
+            });
+            changedKeys = updatedKeys;
+          }
+
           setInputValues({
             ...inputValues,
-            [identifier]: newValue, // Store the value in UI state
+            ...changes, // Store the values in UI state
           });
-          
-          // Save the value directly to block attributes
-          setAttributes({ [identifier]: newValue });
+
+          // Save the values directly to block attributes
+          setAttributes(changes);
 
           // Validate field upon change
           validateField(identifier, newValue);
@@ -268,17 +419,24 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                 );
               case 'select':
                 // Transform options to the format expected by WordPress SelectControl
-                const selectOptions = Array.isArray(data.options) ? data.options.map(opt => ({
+                const selectOptions = withStoredOptions(
+                  data,
+                  getSelectOptions(data, props.attributes, editedPost),
+                  props.attributes[key]
+                ).map(opt => ({
                   value: opt.option,
                   label: opt.label
-                })) : [];
+                }));
                 
                 return (
                   <div key={key}>
                     <label style={{ display: 'block', marginBottom: '4px' }}>{label}</label>
                     {explanation} {/* Explanation text between the label and input */}
                     <SelectControl
-                      value={props.attributes[key] || ''}
+                      multiple={!!data.multiple}
+                      value={data.multiple
+                        ? (Array.isArray(props.attributes[key]) ? props.attributes[key].map(String) : [])
+                        : (props.attributes[key] || '')}
                       options={selectOptions}
                       onChange={(value) => handleInputChange(key, value)}
                     />

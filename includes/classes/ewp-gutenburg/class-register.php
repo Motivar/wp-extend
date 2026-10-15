@@ -305,7 +305,15 @@ class EWP_Dynamic_Blocks
           $render_type = 'select';
           $options = array();
           foreach ($attribute['options'] as $option_key => $option) {
-            $options[] = array('option' => $option_key, 'label' => $option['label']);
+            $prepared_option = array('option' => $option_key, 'label' => $option['label']);
+            // Dependent options: when the field sets `filter_options_by` (another
+            // attribute key), an option with `filter_values` is only offered while
+            // that attribute holds one of these values. Options without it are
+            // always offered. Applied client-side in src/index.js.
+            if (isset($option['filter_values']) && is_array($option['filter_values'])) {
+              $prepared_option['filter_values'] = array_values(array_map('strval', $option['filter_values']));
+            }
+            $options[] = $prepared_option;
           }
           $attribute['options'] = $options;
           // Detect multiple attribute and propagate to JS

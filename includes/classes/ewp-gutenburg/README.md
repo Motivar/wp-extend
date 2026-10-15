@@ -51,6 +51,43 @@ add_filter('ewp_gutenburg_blocks_filter', 'my_custom_blocks');
 - `version`: The version of your block.
 - `dependencies`: An array of script dependencies required by your block.
 
+### Select attributes in the block sidebar
+
+A `select` attribute renders a `SelectControl` in the block sidebar. Three optional keys (since 1.5.2) make it react to the rest of the block and to the editor. They apply to block sidebars only; options pages and meta boxes ignore them.
+
+**Dependent options: `filter_options_by` + `filter_values`.** Set `filter_options_by` to another attribute key and give options a `filter_values` array. An option is offered only while that attribute holds one of its values; options without `filter_values` (e.g. an empty "Select…" entry) are always offered. When the other attribute changes, a stored value that is no longer offered is reset in the same update, and the reset continues down the chain (post type → taxonomy → term).
+
+```php
+'post_type' => array(
+    'label' => __('Post type', 'text-domain'),
+    'case' => 'select',
+    'options' => array(
+        'post' => array('label' => __('Posts', 'text-domain')),
+        'page' => array('label' => __('Pages', 'text-domain')),
+    ),
+),
+'taxonomy' => array(
+    'label' => __('Taxonomy', 'text-domain'),
+    'case' => 'select',
+    'filter_options_by' => 'post_type',
+    'options' => array(
+        ''         => array('label' => __('Select taxonomy', 'text-domain')),
+        'category' => array('label' => __('Categories', 'text-domain'), 'filter_values' => array('post')),
+        'post_tag' => array('label' => __('Tags', 'text-domain'), 'filter_values' => array('post')),
+    ),
+),
+```
+
+**Options that follow the edited post type: `filter_options_by => '@post_type'`.** `filter_values` then lists post types, and the sidebar offers the options matching the post type being edited. In the post editor that is the post's own type. In the Site Editor it comes from the template slug (`single-{type}`, `single-{type}-{slug}`, `archive-{type}`) and follows template navigation without a reload. Where the post type cannot be told (a page or index template, a template part, a pattern), every option is offered. Values starting with `@` name the editor context, not an attribute.
+
+**Multiple selects: `'attributes' => array('multiple' => true)`.** The attribute is typed `array` and the control is a multiple select whose value is an array of strings. Dependent filtering keeps only the items still offered. The editor preview request sends arrays as a comma-separated string, so a render callback must accept both shapes:
+
+```php
+$ids = is_array($attributes['post_ids']) ? $attributes['post_ids'] : explode(',', (string) $attributes['post_ids']);
+```
+
+A filtered select always lists the option holding its stored value, so the control shows what is saved. Stored values are never cleared on load, only when the attribute they depend on changes.
+
 ### Example
 
 ```php
