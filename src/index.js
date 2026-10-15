@@ -1,6 +1,6 @@
 const { registerBlockType } = wp.blocks;
 const { InspectorControls } = wp.blockEditor || wp.editor;
-const { PanelBody, TextControl, ToggleControl, RangeControl, SelectControl, TextareaControl, ColorPicker, Button } = wp.components;
+const { PanelBody, TextControl, ToggleControl, RangeControl, SelectControl, FormTokenField, VisuallyHidden, TextareaControl, ColorPicker, Button } = wp.components;
 const { useEffect, useState } = wp.element;
 const { apiFetch } = wp;
 const { useSelect } = wp.data;
@@ -139,6 +139,40 @@ const withStoredOptions = (data, offered, value) => {
     return offered;
   }
   return data.options.filter((opt) => offered.includes(opt) || stored.includes(String(opt.option)));
+};
+
+/**
+ * Label <-> value maps for a multiple select rendered as a FormTokenField.
+ *
+ * FormTokenField works on strings and matches typed text against the
+ * suggestion strings, so tokens are labels. A label shared by several options
+ * gets its value appended ("Test (#12)") so every token maps back to one value.
+ * Options with an empty value (placeholders such as "Select…") are left out.
+ *
+ * @param {Array} options Options as { value, label }.
+ * @return {{ labels: string[], toLabel: Function, toValue: Function }}
+ */
+const tokenMaps = (options) => {
+  const usable = options.filter((opt) => opt.value !== '' && opt.value != null);
+  const counts = {};
+  usable.forEach((opt) => {
+    const label = String(opt.label);
+    counts[label] = (counts[label] || 0) + 1;
+  });
+  const byValue = {};
+  const byLabel = {};
+  usable.forEach((opt) => {
+    const label = String(opt.label);
+    const token = counts[label] > 1 ? `${label} (#${opt.value})` : label;
+    byValue[String(opt.value)] = token;
+    byLabel[token] = String(opt.value);
+  });
+  return {
+    labels: Object.keys(byLabel),
+    // A stored value with no option left shows as its raw value.
+    toLabel: (value) => byValue[String(value)] ?? String(value),
+    toValue: (token) => byLabel[token] ?? String(token),
+  };
 };
 
 if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components && wp.element && typeof ewp_blocks !== 'undefined') {
@@ -427,7 +461,35 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                   value: opt.option,
                   label: opt.label
                 }));
-                
+
+                // Multiple selects: chips with a searchable suggestion list,
+                // like the SlimSelect multiselect on classic fields. Only
+                // offered options can be added; the value stays an array of
+                // option values.
+                if (data.multiple) {
+                  const tokens = tokenMaps(selectOptions);
+                  const stored = Array.isArray(props.attributes[key]) ? props.attributes[key].map(String) : [];
+                  return (
+                    <div key={key} className="ewp-block-token-field">
+                      <label style={{ display: 'block', marginBottom: '4px' }} aria-hidden="true">{label}</label>
+                      {explanation} {/* Same label and explanation layout as the other fields */}
+                      <FormTokenField
+                        // The field's own label stays for screen readers; the visible one is above.
+                        label={<VisuallyHidden>{label}</VisuallyHidden>}
+                        value={stored.map(tokens.toLabel)}
+                        suggestions={tokens.labels}
+                        onChange={(next) => handleInputChange(key, [...new Set(next.map((token) => tokens.toValue(typeof token === 'string' ? token : token.value)))])}
+                        __experimentalExpandOnFocus={true}
+                        __experimentalValidateInput={(token) => tokens.labels.includes(token)}
+                        __experimentalShowHowTo={false}
+                        maxSuggestions={500}
+                        __nextHasNoMarginBottom={true}
+                        __next40pxDefaultSize={true}
+                      />
+                    </div>
+                  );
+                }
+
                 return (
                   <div key={key}>
                     <label style={{ display: 'block', marginBottom: '4px' }}>{label}</label>
