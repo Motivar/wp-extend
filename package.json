@@ -1,6 +1,6 @@
 {
   "name": "wp-extend",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "description": "library to include for wordpress developers with easy meta handling",
   "main": "index.js",
   "directories": {
@@ -8,7 +8,8 @@
   },
   "scripts": {
     "build": "wp-scripts build",
-    "start": "wp-scripts start"
+    "start": "wp-scripts start",
+    "build:css": "sass --style=compressed --no-source-map assets/css/admin/ewp-admin-ui.scss assets/css/admin/ewp-admin-ui.min.css"
   },
   "keywords": [],
   "author": "",

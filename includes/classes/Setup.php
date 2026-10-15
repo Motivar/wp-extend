@@ -64,6 +64,10 @@ class Setup
   require_once 'ewp-content/class-content-service.php';
   require_once 'class-extend-wp.php';
   require_once 'awm-db/class-db-creator.php';
+  /*options-page admin look (body.ewp-admin-ui + ewp-admin-ui.min.css); needs AWM_Meta's options registry, so after class-extend-wp.php*/
+  if (!$front_end) {
+   require_once 'ewp-admin-ui/class-ewp-admin-ui.php';
+  }
   /*wp-admin list tables and edit forms for custom content; nothing on the front end renders them*/
   if (!$front_end) {
    require_once 'awm-list-tables/class-list-table.php';

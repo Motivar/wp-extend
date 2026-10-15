@@ -1,0 +1,819 @@
+// Extend WP admin look — options pages rendered by templates/settings.php.
+//
+// Compiled to ewp-admin-ui.min.css (`npm run build:css`) and loaded by
+// EWP_Admin_UI (includes/classes/ewp-admin-ui/), which adds
+// `body.ewp-admin-ui` to those screens. Every rule hangs off that class, so
+// meta boxes, term and user screens and every other admin page keep
+// awm-admin-style.css untouched. Plugins opt other screens in (or out) with
+// the `ewp_admin_ui_enabled` filter.
+//
+// Theming: every colour, the font, corners and field height are custom
+// properties set on the body class below, each with a default. A plugin that
+// wants its own palette sets them on its screens, e.g.
+//
+//   body.ewp-admin-ui.my-plugin-screen { --ewp-ui-accent: #283891; }
+//
+// The accent defaults to the user's admin colour scheme
+// (--wp-admin-theme-color). Tints are mixed from the accent with color-mix().
+//
+// Field rules are anchored on #wpbody-content: awm-admin-style.css styles
+// admin forms with long class chains (`.wp-admin .awm-form .awm-show-content
+// .awm-meta-field…`, a 3-column grid, `[count]` column counts, field padding,
+// checkboxes at 18px with !important), and one id outranks them.
+//
+// Buttons with the class `ewp-admin-ui-skip` keep their own look (e.g. a
+// plugin's red "delete everything" button).
+
+body.ewp-admin-ui {
+  --ewp-ui-accent: var(--wp-admin-theme-color, #2271b1);
+  --ewp-ui-on-accent: #ffffff;
+  --ewp-ui-accent-hover: color-mix(in srgb, var(--ewp-ui-accent) 82%, #000);
+  --ewp-ui-accent-tint: color-mix(in srgb, var(--ewp-ui-accent) 6%, #fff);
+  --ewp-ui-accent-line: color-mix(in srgb, var(--ewp-ui-accent) 28%, #fff);
+  --ewp-ui-accent-ring: color-mix(in srgb, var(--ewp-ui-accent) 18%, transparent);
+  --ewp-ui-ink: #1f2340;
+  --ewp-ui-text: #4b5163;
+  --ewp-ui-muted: #6b7185;
+  --ewp-ui-placeholder: #9aa0b2;
+  --ewp-ui-line: #e3e6ee;
+  --ewp-ui-field-line: #d5d9e2;
+  --ewp-ui-surface: #ffffff;
+  --ewp-ui-page: #f3f4f7;
+  --ewp-ui-soft: #f7f8fb;
+  --ewp-ui-track: #eef0f4;
+  --ewp-ui-error: #cc1f1f;
+  --ewp-ui-ok: #1f8a4c;
+  --ewp-ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  --ewp-ui-radius: 10px;
+  --ewp-ui-card-radius: 20px;
+  --ewp-ui-field-height: 52px;
+
+  // Slim Select reads its colours from these (its dropdown opens at the end
+  // of <body>, outside the form, so they are set here).
+  --ss-primary-color: var(--ewp-ui-accent);
+  --ss-focus-color: var(--ewp-ui-accent);
+  --ss-font-color: var(--ewp-ui-ink);
+  --ss-border-color: var(--ewp-ui-field-line);
+  --ss-error-color: var(--ewp-ui-error);
+  --ss-border-radius: 8px;
+
+  background: var(--ewp-ui-page);
+
+  #wpbody-content {
+    font-family: var(--ewp-ui-font);
+    color: var(--ewp-ui-ink);
+
+    input,
+    select,
+    textarea,
+    button,
+    .button {
+      font-family: var(--ewp-ui-font);
+    }
+  }
+
+  .wrap.awm-settings-form {
+    max-width: 1560px;
+    margin: 0 20px 40px 20px;
+
+    // The page title EWP prints above the form.
+    > h2:first-child {
+      margin: 28px 0 20px;
+      padding: 0;
+      font-size: 26px;
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--ewp-ui-ink);
+    }
+  }
+}
+
+/* ---- The card ------------------------------------------------------------ */
+
+body.ewp-admin-ui .wrap.awm-settings-form > form.awm-form {
+  background: var(--ewp-ui-surface);
+  border: 1px solid var(--ewp-ui-line);
+  border-radius: var(--ewp-ui-card-radius);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 24px -12px rgba(16, 24, 40, 0.08);
+  padding: 36px 44px;
+}
+
+// A tabbed page: the tab bar and each tab's footer run to the card's edges.
+body.ewp-admin-ui .wrap.awm-settings-form > form.awm-form:has(.awm-tab-wrapper) {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ---- Tabs ---------------------------------------------------------------- */
+
+body.ewp-admin-ui .awm-tab-wrapper {
+  .awm-tab {
+    // awm-admin-style makes the bar a full-width table with !important.
+    display: flex !important;
+    width: auto !important;
+    // One row at every width: the tabs share it when they fit and it scrolls
+    // sideways when they do not.
+    flex-wrap: nowrap;
+    gap: 4px;
+    margin: 20px 24px 0;
+    padding: 5px;
+    background: var(--ewp-ui-track);
+    border-radius: 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .awm_tablinks {
+    flex: 1 1 0;
+    min-width: max-content;
+    float: none;
+    display: block;
+    padding: 12px 18px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 16px;
+    color: var(--ewp-ui-text);
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    &::before {
+      display: none !important;
+    }
+
+    &:hover {
+      color: var(--ewp-ui-ink);
+    }
+
+    &.active {
+      background: var(--ewp-ui-surface);
+      color: var(--ewp-ui-accent);
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08);
+    }
+  }
+
+  // One tab only: a bar with one entry says nothing.
+  .awm-tab:not(:has(.awm_tablinks + .awm_tablinks)) {
+    display: none !important;
+
+    + .awm_tabcontent {
+      margin-top: 0;
+      border-top: 0;
+    }
+  }
+
+  .awm_tabcontent {
+    margin-top: 20px;
+    background: var(--ewp-ui-surface);
+    padding: 44px 44px 0;
+    border-top: 1px solid var(--ewp-ui-line);
+  }
+}
+
+/* ---- Buttons ------------------------------------------------------------- */
+
+body.ewp-admin-ui #wpbody-content {
+  .button-primary:not(.ewp-admin-ui-skip) {
+    min-height: 48px;
+    padding: 0 28px;
+    border: 0;
+    border-radius: var(--ewp-ui-radius);
+    background: var(--ewp-ui-accent);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ewp-ui-on-accent);
+    box-shadow: none;
+    text-shadow: none;
+
+    &:hover,
+    &:focus {
+      background: var(--ewp-ui-accent-hover);
+      color: var(--ewp-ui-on-accent);
+    }
+
+    &:focus-visible {
+      box-shadow: 0 0 0 3px var(--ewp-ui-accent-ring);
+    }
+  }
+
+  .button:not(.button-primary):not(.ewp-admin-ui-skip) {
+    min-height: 44px;
+    padding: 0 20px;
+    border: 1px solid var(--ewp-ui-accent);
+    border-radius: var(--ewp-ui-radius);
+    background: var(--ewp-ui-surface);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ewp-ui-accent);
+
+    &:hover,
+    &:focus {
+      background: var(--ewp-ui-accent-tint);
+      color: var(--ewp-ui-accent);
+    }
+  }
+
+  // Action buttons printed as raw HTML fields.
+  .awm-meta-html > button:not(.ewp-admin-ui-skip) {
+    // Fields are flex columns, which would stretch the button across the row.
+    align-self: flex-start;
+    width: auto;
+    display: inline-flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 0 28px;
+    border: 0;
+    border-radius: var(--ewp-ui-radius);
+    background: var(--ewp-ui-accent);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ewp-ui-on-accent);
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background: var(--ewp-ui-accent-hover);
+    }
+  }
+
+  // The page-wide Save button.
+  .awm-form-submit-area {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+    padding-top: 24px;
+    border-top: 1px solid var(--ewp-ui-line);
+  }
+}
+
+/* ---- Repeaters ----------------------------------------------------------- */
+
+body.ewp-admin-ui #wpbody-content .awm-repeater {
+  .awm-repeater-title {
+    margin-bottom: 16px;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ewp-ui-ink);
+  }
+
+  .awm-repeater-contents {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  // One row: a soft card with its fields on top and its actions below.
+  .awm-repeater-content {
+    margin: 0;
+    padding: 20px 22px 16px;
+    border: 1px solid var(--ewp-ui-line);
+    border-radius: 14px;
+    background: var(--ewp-ui-soft);
+
+    .awm-meta-field {
+      margin: 0;
+      padding: 0;
+    }
+  }
+
+  .awm-repeater-inputs {
+    gap: 20px 24px;
+  }
+
+  .awm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--ewp-ui-line);
+
+    > div {
+      display: block;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: none;
+
+      // awm-admin-style draws a "|" separator after every action.
+      &::after {
+        content: none !important;
+        display: none;
+      }
+    }
+
+    // Remove sits at the far end, away from the others.
+    > .awm-repeater-remove {
+      margin-left: auto;
+    }
+
+    // Empty in a real row: Add lives in the template row only.
+    > .awm-repeater-add:empty {
+      display: none;
+    }
+  }
+
+  .awm_action {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 14px;
+    border: 1px solid var(--ewp-ui-line);
+    border-radius: 8px;
+    background: var(--ewp-ui-surface);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ewp-ui-accent);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+
+    &:hover {
+      opacity: 1;
+      background: var(--ewp-ui-accent-tint);
+    }
+
+    &.awm-remove {
+      color: var(--ewp-ui-error);
+
+      &:hover {
+        border-color: color-mix(in srgb, var(--ewp-ui-error) 35%, #fff);
+        background: color-mix(in srgb, var(--ewp-ui-error) 6%, #fff);
+      }
+    }
+  }
+
+  // The template row holds only the Add button: no card, no outline (the
+  // square around "Add Row"), right-aligned under the rows.
+  .awm-repeater-content.temp-source {
+    float: none;
+    display: flex;
+    justify-content: flex-end;
+    width: auto;
+    padding: 0;
+    border: 0;
+    background: none;
+
+    .awm-actions {
+      width: auto;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .awm_action.awm-add {
+      min-height: 40px;
+      padding: 0 18px;
+      border-color: var(--ewp-ui-accent);
+      font-size: 15px;
+    }
+  }
+}
+
+/* ---- The field grid ------------------------------------------------------ */
+
+// Columns follow the width the grid has, not the window's (the admin menu
+// takes a different share of the window at every size): the box around each
+// grid is a container, and the queries after this block cap the column count
+// so every column keeps 250px or more. Set --ewp-ui-columns (1–4) to change
+// the count; 3 by default.
+body.ewp-admin-ui #wpbody-content .awm-settings-form {
+  .awm_tabcontent,
+  > form.awm-form:not(:has(.awm-tab-wrapper)),
+  .awm-meta-field.awm-section-field {
+    container: ewp-admin-grid / inline-size;
+  }
+
+  .awm-show-content {
+    display: grid;
+    grid-template-columns: repeat(var(--ewp-ui-columns, 3), minmax(0, 1fr));
+    gap: 28px 36px;
+    align-items: start;
+  }
+
+  // Whole rows: html, sections, long inputs.
+  .awm-show-content > {
+    .awm-meta-html,
+    .awm-section-field,
+    .awm-cls-100,
+    [data-type="awm_tab"],
+    [data-type="textarea"],
+    [data-type="map"],
+    [data-type="repeater"],
+    [data-type="section"] {
+      grid-column: 1 / -1;
+    }
+  }
+
+  // The outer wrapper of a tabbed page holds only the tabs.
+  .awm-show-content:has(> [data-type="awm_tab"]) {
+    display: block;
+  }
+}
+
+// 250px columns and 36px gaps: three need 822px, two 536px. (A page that asks
+// for four columns caps them at 1107px itself.)
+@container ewp-admin-grid (max-width: 821px) {
+  body.ewp-admin-ui #wpbody-content .awm-settings-form .awm-show-content {
+    --ewp-ui-columns: 2 !important;
+  }
+}
+
+@container ewp-admin-grid (max-width: 535px) {
+  body.ewp-admin-ui #wpbody-content .awm-settings-form .awm-show-content {
+    --ewp-ui-columns: 1 !important;
+  }
+}
+
+/* ---- Fields -------------------------------------------------------------- */
+
+body.ewp-admin-ui #wpbody-content .awm-settings-form .awm-meta-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  float: none;
+
+  > label.awm-input-label {
+    order: 0;
+    margin: 0;
+    padding: 0 !important;
+    font-size: 15px;
+    font-weight: 600 !important;
+    color: var(--ewp-ui-ink);
+  }
+
+  > .input-wrapper,
+  > select,
+  > textarea,
+  > .ss-main,
+  > .awm-media-field,
+  > .awm-custom-image-meta {
+    order: 1;
+  }
+
+  // Under the control, wherever EWP printed it.
+  > .awm-explanation {
+    order: 2;
+  }
+
+  .input-wrapper {
+    margin: 0;
+  }
+
+  .awm-explanation,
+  .awm-after-message {
+    display: block;
+    margin: 0;
+    padding: 0;
+    max-width: none;
+    font-size: 14px;
+    font-style: normal;
+    line-height: 1.5;
+    color: var(--ewp-ui-muted);
+    opacity: 1;
+
+    label {
+      font-weight: 400 !important;
+    }
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="url"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="password"],
+  input[type="search"],
+  input[type="date"],
+  input:not([type]),
+  select,
+  textarea {
+    width: 100%;
+    max-width: none;
+    min-height: var(--ewp-ui-field-height);
+    margin: 0;
+    padding: 0 16px;
+    border: 1px solid var(--ewp-ui-field-line);
+    border-radius: var(--ewp-ui-radius);
+    background-color: var(--ewp-ui-surface);
+    font-size: 16px;
+    line-height: 1.4;
+    color: var(--ewp-ui-ink);
+    box-shadow: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &::placeholder {
+      color: var(--ewp-ui-placeholder);
+    }
+
+    &:focus {
+      border-color: var(--ewp-ui-accent);
+      box-shadow: 0 0 0 3px var(--ewp-ui-accent-ring);
+      outline: none;
+    }
+  }
+
+  textarea {
+    min-height: 120px;
+    padding: 14px 16px;
+  }
+
+  select {
+    padding-right: 44px;
+    -webkit-appearance: none;
+    appearance: none;
+    // A chevron in the muted text colour (a data URI cannot read the accent).
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 6l4.5 4.5L12.5 6' fill='none' stroke='%236b7185' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 16px;
+    cursor: pointer;
+
+    &[multiple] {
+      padding: 8px 16px;
+      background-image: none;
+    }
+  }
+
+  // Slim Select (EWP's enhanced selects). The minimum width keeps a short
+  // value, its clear button and the arrow readable in a narrow slot (the log
+  // viewer's "Per page").
+  .ss-main {
+    min-width: 110px;
+    min-height: var(--ewp-ui-field-height);
+    padding: 0 12px 0 16px;
+    border: 1px solid var(--ewp-ui-field-line);
+    border-radius: var(--ewp-ui-radius);
+    font-size: 16px;
+    color: var(--ewp-ui-ink);
+
+    &.ss-open-below,
+    &.ss-open-above,
+    &:focus-within {
+      border-color: var(--ewp-ui-accent);
+      box-shadow: 0 0 0 3px var(--ewp-ui-accent-ring);
+    }
+
+    .ss-values .ss-placeholder {
+      color: var(--ewp-ui-placeholder);
+    }
+
+    .ss-arrow path {
+      stroke: var(--ewp-ui-accent);
+    }
+
+    // One line, cut with an ellipsis, never under the clear and arrow icons.
+    .ss-values {
+      flex: 1 1 auto;
+      min-width: 0;
+      flex-wrap: nowrap;
+    }
+
+    .ss-single {
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .ss-deselect,
+    .ss-arrow {
+      flex: 0 0 auto;
+    }
+
+    // Chosen values of a multiple select: accent-tinted chips.
+    .ss-value {
+      border-radius: 6px;
+      background: var(--ewp-ui-accent-tint);
+      border: 1px solid var(--ewp-ui-accent-line);
+
+      .ss-value-text {
+        padding: 4px 8px;
+        font-size: 14px;
+        color: var(--ewp-ui-accent);
+      }
+
+      .ss-value-delete {
+        border-left-color: var(--ewp-ui-accent-line);
+
+        svg path {
+          stroke: var(--ewp-ui-accent);
+        }
+      }
+    }
+  }
+
+  // An invalid field (EWP marks it; the browser too, after a submit).
+  &.awm-form-error {
+    background: transparent;
+
+    input,
+    select,
+    textarea,
+    .ss-main {
+      border-color: var(--ewp-ui-error);
+    }
+  }
+}
+
+/* ---- Switch cards (checkboxes) ------------------------------------------- */
+
+body.ewp-admin-ui #wpbody-content .awm-settings-form .awm-meta-field.checkbox {
+  position: relative;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  grid-template-areas:
+    "switch title"
+    "switch text";
+  align-content: start;
+  column-gap: 18px;
+  row-gap: 6px;
+  min-height: 100%;
+  padding: 22px 24px;
+  border: 1px solid var(--ewp-ui-line);
+  border-radius: 14px;
+  background: var(--ewp-ui-surface);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+
+  > label.awm-input-label {
+    grid-area: title;
+    font-size: 17px;
+    font-weight: 600 !important;
+    line-height: 1.35;
+    cursor: pointer;
+
+    // The whole card toggles the checkbox, not only the words.
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+    }
+  }
+
+  .input-wrapper {
+    display: contents;
+  }
+
+  input[type="checkbox"] {
+    grid-area: switch;
+    position: relative;
+    z-index: 1;
+    // awm-admin-style sizes every checkbox at 18px with !important.
+    width: 52px !important;
+    height: 30px !important;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: #d6d9e1;
+    box-shadow: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 22px;
+      height: 22px;
+      margin: 0;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.2);
+      transition: transform 0.2s ease;
+    }
+
+    &:checked {
+      background: var(--ewp-ui-accent);
+
+      &::before {
+        content: "";
+        transform: translateX(22px);
+      }
+    }
+
+    &:focus-visible {
+      box-shadow: 0 0 0 3px var(--ewp-ui-accent-ring);
+      outline: none;
+    }
+  }
+
+  .awm-after-message {
+    grid-area: text;
+    font-size: 15px;
+    color: var(--ewp-ui-muted);
+  }
+
+  &:has(input:checked) {
+    background: var(--ewp-ui-accent-tint);
+    border-color: var(--ewp-ui-accent-line);
+  }
+}
+
+/* ---- Sections ------------------------------------------------------------ */
+
+body.ewp-admin-ui #wpbody-content .awm-settings-form .awm-meta-field.awm-section-field {
+  display: block;
+  padding: 28px 30px;
+  border: 1px solid var(--ewp-ui-line) !important;
+  border-radius: 16px;
+
+  .section-header {
+    display: block;
+    margin: 0 0 24px;
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--ewp-ui-ink);
+
+    .awm-explanation {
+      margin-top: 6px;
+      font-size: 15px;
+      font-weight: 400;
+    }
+  }
+
+  .awm-meta-field {
+    border: 0;
+  }
+
+  // Inside a section the section is the card: a switch lines up with the
+  // other fields instead of drawing a card of its own.
+  .awm-meta-field.checkbox {
+    min-height: 0;
+    padding: 0;
+    background: none;
+
+    &:has(input:checked) {
+      background: none;
+    }
+  }
+}
+
+/* ---- Tablets and phones -------------------------------------------------- */
+
+// 782px is where WordPress switches the admin to its mobile layout.
+@media screen and (max-width: 782px) {
+  body.ewp-admin-ui {
+    .wrap.awm-settings-form {
+      margin: 0 12px 24px;
+    }
+
+    #wpbody-content .wrap.awm-settings-form > form.awm-form:not(:has(.awm-tab-wrapper)) {
+      padding: 22px 18px;
+    }
+
+    .awm-tab-wrapper {
+      .awm-tab {
+        margin: 14px 12px 0;
+      }
+
+      .awm_tablinks {
+        flex: 0 0 auto;
+        padding: 10px 14px;
+        font-size: 15px;
+      }
+
+      .awm_tabcontent {
+        margin-top: 14px;
+        padding: 26px 18px 0;
+      }
+    }
+
+    #wpbody-content .awm-form-submit-area .button-primary {
+      width: 100%;
+    }
+
+    // awm-admin-style forces every admin form to two columns (one below
+    // 430px) with !important from 600px down; the container queries decide.
+    #wpbody-content .awm-settings-form .awm-show-content {
+      grid-template-columns: repeat(var(--ewp-ui-columns, 3), minmax(0, 1fr)) !important;
+      gap: 20px;
+    }
+
+    #wpbody-content .awm-settings-form .awm-meta-field.checkbox {
+      padding: 18px;
+      column-gap: 14px;
+    }
+
+    #wpbody-content .awm-settings-form .awm-meta-field.awm-section-field {
+      padding: 20px 18px;
+    }
+
+    #wpbody-content .awm-repeater .awm-repeater-content {
+      padding: 16px;
+    }
+  }
+}
