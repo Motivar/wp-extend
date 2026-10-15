@@ -4,29 +4,43 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * The Extend WP admin look for options pages.
+ * The Extend WP admin look, in two scopes, both styled by
+ * assets/css/admin/ewp-admin-ui.min.css:
  *
- * Adds `ewp-admin-ui` to the body of every options page rendered by
- * templates/settings.php (registered through `awm_add_options_boxes_filter`
- * without an `ext_callback`) and loads assets/css/admin/ewp-admin-ui.min.css
- * there. Every rule in that stylesheet hangs off the body class, so meta
- * boxes, term and user screens, pages with their own markup (`ext_callback`)
- * and every other admin page keep their current look.
+ * - `ewp-admin-ui` on every options page rendered by templates/settings.php
+ *   (registered through `awm_add_options_boxes_filter` without an
+ *   `ext_callback`): the whole page.
+ * - `ewp-admin-ui-fields` on post, term and user edit screens: only the
+ *   controls and repeaters inside Extend WP's own fields, compact.
  *
- * A plugin can turn the look on for its own screens, or off for an options
- * page, with the `ewp_admin_ui_enabled` filter, and can restyle it by setting
- * the `--ewp-ui-*` custom properties on its screens (see the top of
- * ewp-admin-ui.scss).
+ * Every rule in the stylesheet hangs off one of the two body classes, so
+ * pages with their own markup (`ext_callback`) and every other admin page keep
+ * their current look.
+ *
+ * A plugin can turn either scope on or off for a screen with the
+ * `ewp_admin_ui_enabled` / `ewp_admin_ui_fields_enabled` filters, and can
+ * restyle both by setting the `--ewp-ui-*` custom properties on its screens
+ * (see the top of ewp-admin-ui.scss).
  *
  * @since 1.5.4
  */
 class EWP_Admin_UI
 {
   const BODY_CLASS = 'ewp-admin-ui';
+  const FIELDS_BODY_CLASS = 'ewp-admin-ui-fields';
   const HANDLE = 'ewp-admin-ui';
+
+  /**
+   * Screen bases whose Extend WP fields get the compact field look: post,
+   * term and user edit screens.
+   */
+  const FIELDS_SCREEN_BASES = array('post', 'term', 'edit-tags', 'profile', 'user-edit');
 
   /** @var bool|null Cached result of is_enabled() for this request. */
   private static $enabled = null;
+
+  /** @var bool|null Cached result of is_fields_enabled() for this request. */
+  private static $fields_enabled = null;
 
   public function __construct()
   {
@@ -105,12 +119,52 @@ class EWP_Admin_UI
   }
 
   /**
+   * Whether the current screen's Extend WP fields get the compact field look
+   * (`body.ewp-admin-ui-fields`): controls and repeaters only, inside
+   * Extend WP's own fields; the rest of the screen is untouched.
+   *
+   * @return bool
+   */
+  public static function is_fields_enabled()
+  {
+    if (self::$fields_enabled !== null) {
+      return self::$fields_enabled;
+    }
+    $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+    if (!$screen) {
+      return false;
+    }
+
+    /**
+     * Filter whether an admin screen's Extend WP fields get the compact field
+     * look (`body.ewp-admin-ui-fields` and ewp-admin-ui.min.css).
+     *
+     * @param bool      $enabled True on post, term and user edit screens
+     *                           (screen base `post`, `term`, `edit-tags`,
+     *                           `profile`, `user-edit`), false elsewhere.
+     * @param WP_Screen $screen  The current admin screen.
+     * @return bool
+     *
+     * @since 1.5.4
+     */
+    self::$fields_enabled = (bool) apply_filters('ewp_admin_ui_fields_enabled', in_array($screen->base, self::FIELDS_SCREEN_BASES, true), $screen);
+
+    return self::$fields_enabled;
+  }
+
+  /**
    * @param string $classes Space-separated admin body classes.
    * @return string
    */
   public function body_class($classes)
   {
-    return self::is_enabled() ? $classes . ' ' . self::BODY_CLASS . ' ' : $classes;
+    if (self::is_enabled()) {
+      $classes .= ' ' . self::BODY_CLASS . ' ';
+    }
+    if (self::is_fields_enabled()) {
+      $classes .= ' ' . self::FIELDS_BODY_CLASS . ' ';
+    }
+    return $classes;
   }
 
   /**
@@ -118,7 +172,7 @@ class EWP_Admin_UI
    */
   public function enqueue()
   {
-    if (!self::is_enabled()) {
+    if (!self::is_enabled() && !self::is_fields_enabled()) {
       return;
     }
     wp_enqueue_style(self::HANDLE);
