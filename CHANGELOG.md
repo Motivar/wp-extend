@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **No `strip_tags()` deprecation on hidden edit pages (Fields, Post Types, Taxonomies, Search Filters, content UI)** (`2026-10-16`):
+  - **Question/Prompt**: "Also there is a message warning in wp-extend fields registration page. Can we fix it ? Deprecated: strip_tags(): Passing null to parameter #1 ($string) of type string is deprecated in /var/www/html/web/wp-admin/admin-header.php on line 41"
+  - **Cause**: with `show_new => false`, `AWM_List_Form` registers the `{id}_form` edit page with an empty parent so it stays out of the menu. `get_admin_page_title()` looks the title up in the menus, finds nothing and leaves the global `$title` null, which `admin-header.php` passes to `strip_tags()`. The browser tab title was empty too.
+  - **Fix** (`includes/classes/awm-list-tables/class-list-form.php`): for hidden pages, a `load-{pagehook}` callback sets `$title` to the page title ("New Field", "New Post type"…) when WordPress found none.
+  - **Tests**: logged-in requests to `ewp_fields_form` and `ewp_post_types_form` on filox-test: no deprecation notice, `<title>` "New Field" / "New Post type".
+  - **Affected Files**: `includes/classes/awm-list-tables/class-list-form.php`, `CHANGELOG.md`.
+  - **Backwards Compatibility**: only sets a title where there was none; pages in a menu are unchanged.
 - **Repeater row actions no longer run past the row on content edit forms** (`2026-10-16`):
   - **Question/Prompt**: "in wp-extend plugin last commit we added styling for input fields forms. In fields registration page the "Remove" button is stuck on the right" (screenshot: Fields → Attributes repeater, "Remove Attribute" flush with the row's right edge).
   - **Cause**: the meta-box spacing added on 2026-10-15 gave `.awm-repeater .awm-actions` a 10px side margin, while `awm-admin-style` sets that bar to `width: 100%`; the bar overflowed the row by 20px, so its top rule and the right-aligned Remove button touched the row's edge instead of lining up with the fields.

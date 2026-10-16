@@ -184,6 +184,20 @@ class AWM_Add_Custom_List
         }
       );
 
+      /**
+       * A hidden page (show_new false) is in no menu, so get_admin_page_title()
+       * finds no title and admin-header.php passes null to strip_tags()
+       * (deprecated since PHP 8.1). Give it the page title before the header.
+       */
+      if ($this->pagehook && $parent_menu === '') {
+        add_action('load-' . $this->pagehook, function () use ($page_title) {
+          global $title;
+          if (empty($title)) {
+            $title = $page_title;
+          }
+        });
+      }
+
       $this->meta_boxes = apply_filters('awm_content_db_metaboxes_filter', isset($args['metaboxes']) ? $args['metaboxes'] : array(), $id);
 
       $this->page_hook = $this->pagehook;
