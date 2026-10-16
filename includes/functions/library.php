@@ -1166,7 +1166,7 @@ if (!function_exists('awm_show_content')) {
                     $hide_label = isset($a['hide-label']) ? $a['hide-label'] : false;
                     if (!$hide_label && $label && !in_array($a['case'], array('checkbox_multiple', 'repeater', 'awm_tab', 'button'))) {
                         if (($a['case'] == 'input' && isset($a['type']) && $view != 'none' && !in_array($a['type'], array('submit', 'hidden', 'button'))) || ($a['case'] == 'select' || $a['case'] == 'textarea' || $a['case'] == 'radio')) {
-                            $ins .= '<label for="' . $original_meta_id . '" class="awm-input-label"><span>' . $label . '</span></label>' . $explanation;
+                            $ins .= '<label for="' . esc_attr($original_meta_id) . '" class="awm-input-label"><span>' . wp_kses_post($label) . '</span></label>' . $explanation;
                         }
                     }
                     if (isset($a['show-when']) && !empty($a['show-when']) && is_array($a['show-when'])) {
@@ -1184,7 +1184,7 @@ if (!function_exists('awm_show_content')) {
                             if ($k == 'placeholder') {
                                 $v = __($v, 'extend-wp');
                             }
-                            $extra_fields2[] = $k . '="' . $v . '"';
+                            $extra_fields2[] = esc_attr($k) . '="' . esc_attr($v) . '"';
                             if ($k == 'min' && $val == 0) {
                                 $val = $v;
                             }
@@ -1215,7 +1215,7 @@ if (!function_exists('awm_show_content')) {
                             break;
                         case 'button':
                             $link = isset($a['link']) ? $a['link'] : '#';
-                            $ins = '<a href="' . $link . '" id="' . $n . '" title="' . $a['label'] . '" class="' . $class . '" ' . $extraa . '>' . $a['label'] . '</a>';
+                            $ins = '<a href="' . esc_url($link) . '" id="' . esc_attr($n) . '" title="' . esc_attr(wp_strip_all_tags($a['label'])) . '" class="' . esc_attr($class) . '" ' . $extraa . '>' . wp_kses_post($a['label']) . '</a>';
                             break;
                         case 'input':
                             $input_type = $a['type'];
@@ -1237,14 +1237,14 @@ if (!function_exists('awm_show_content')) {
                                     }
                                     break;
                                 case 'hidden':
-                                    $ins .= '<input type="' . $input_type . '" name="' . $original_meta . '" id="' . $original_meta_id . '" value="' . $val . '" ' . $extraa . ' class="' . $class . '" ' . $required . '/>';
+                                    $ins .= '<input type="' . esc_attr($input_type) . '" name="' . esc_attr($original_meta) . '" id="' . esc_attr($original_meta_id) . '" value="' . esc_attr($val) . '" ' . $extraa . ' class="' . esc_attr($class) . '" ' . $required . '/>';
                                     $display_wrapper = false;
                                     break;
                                 default:
                                     break;
                             }
                             if ($display_wrapper) {
-                                $input_html = '<input type="' . $input_type . '" name="' . $original_meta . '" id="' . $original_meta_id . '" value="' . $val . '" ' . $extraa . ' class="' . $class . '" ' . $required . '/>';
+                                $input_html = '<input type="' . esc_attr($input_type) . '" name="' . esc_attr($original_meta) . '" id="' . esc_attr($original_meta_id) . '" value="' . esc_attr($val) . '" ' . $extraa . ' class="' . esc_attr($class) . '" ' . $required . '/>';
 
                                 $ins .= '<div class="input-wrapper">';
                                 $ins .=  $input_html . $after_message;
@@ -1432,7 +1432,7 @@ if (!function_exists('awm_show_content')) {
                                 if (isset($a['awm_strip_html'])) {
                                     $val = strip_tags($val);
                                 }
-                                $ins .= '<textarea rows="5" name="' . $original_meta . '" id="' . $original_meta_id . '" class="' . $class . '" ' . $required . ' ' . $extraa . '>' . $val . '</textarea>';
+                                $ins .= '<textarea rows="5" name="' . esc_attr($original_meta) . '" id="' . esc_attr($original_meta_id) . '" class="' . esc_attr($class) . '" ' . $required . ' ' . $extraa . '>' . esc_textarea($val) . '</textarea>';
                             }
 
                             break;
@@ -1656,7 +1656,7 @@ if (!function_exists('awm_show_content')) {
 
                             // --- Type selector (reuses the standard optgroup select markup) ---
                             $ins .= '<div class="awm-object-type-field">';
-                            $ins .= '<label for="' . $original_meta_id . '" class="awm-input-label"><span>' . $label . '</span></label>' . $explanation;
+                            $ins .= '<label for="' . esc_attr($original_meta_id) . '" class="awm-input-label"><span>' . wp_kses_post($label) . '</span></label>' . $explanation;
                             $ins .= '<select name="' . $original_meta . '" id="' . $original_meta_id . '" class="awm-object-type-select" awm-skip-selectr="1">';
                             $ins .= '<option value="" data-placeholder="true">' . __('— Select type —', 'extend-wp') . '</option>';
                             foreach ($type_optgroups as $group_id => $group_data) {
@@ -1940,6 +1940,10 @@ function awm_custom_meta_update_vars($meta, $metaa, $id, $view)
 
     foreach ($meta as $k) {
         $chk = '';
+        // Roles and capabilities are never written through a field save, whoever calls this.
+        if (class_exists('EWP_Meta_Save_Guard') && EWP_Meta_Save_Guard::is_blocked_key($k)) {
+            continue;
+        }
 
         if (strpos($k, '[') !== false) {
             $keys = explode('[', $k);
@@ -2216,13 +2220,13 @@ function awm_create_form($options)
 
     ob_start();
 ?>
-<form id="<?php echo $settings['id']; ?>" action="<?php echo $settings['action']; ?>" method="<?php echo $post; ?>">
+<form id="<?php echo esc_attr($settings['id']); ?>" action="<?php echo esc_url($settings['action']); ?>" method="<?php echo esc_attr($settings['method']); ?>">
  <?php
         if ($settings['nonce']) {
             wp_nonce_field($settings['id'], 'awm_form_nonce_field');
         }
         ?>
- <?php echo awm_show_content($library); ?>
+ <?php $form_fields = awm_show_content($library); echo is_string($form_fields) ? $form_fields : ''; ?>
  <?php if ($settings['submit']) {
         ?>
  <input type="submit" id="awm-submit-<?php echo $settings['id'] ?>" value="<?php echo $settings['submit_label']; ?>" />

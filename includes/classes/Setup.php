@@ -62,6 +62,7 @@ class Setup
   require_once 'awm-content-db-api/init.php';
   /*shared read/write implementation behind the content REST routes, `wp ewp content` and the content abilities; must follow the content DB api*/
   require_once 'ewp-content/class-content-service.php';
+  require_once 'class-meta-save-guard.php';
   require_once 'class-extend-wp.php';
   require_once 'awm-db/class-db-creator.php';
   /*options-page admin look (body.ewp-admin-ui + ewp-admin-ui.min.css); needs AWM_Meta's options registry, so after class-extend-wp.php*/

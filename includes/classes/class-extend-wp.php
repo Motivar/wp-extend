@@ -35,9 +35,7 @@ class AWM_Meta
             'save_post',
             function ($post_id) {
                 if ((!wp_is_post_revision($post_id) && 'auto-draft' != get_post_status($post_id) && 'trash' != get_post_status($post_id))) {
-                    if (isset($_POST['awm_custom_meta'])) {
-                        awm_save_custom_meta($_POST['awm_custom_meta'], $_POST, $post_id, 'post', get_post_type($post_id));
-                    }
+                    EWP_Meta_Save_Guard::save('post', $post_id, get_post_type($post_id));
                 }
             },
             100
@@ -45,19 +43,21 @@ class AWM_Meta
 
         add_action('profile_update', 'awm_profile_update', 10, 10);
         add_action('user_register', 'awm_profile_update', 10, 10);
+        /**
+         * Save the AWM user fields posted with a profile or new-user form.
+         *
+         * @param int $user_id Required. ID of the user being saved.
+         * @return void
+         */
         function awm_profile_update($user_id)
         {
-            if (isset($_POST['awm_custom_meta'])) {
-                awm_save_custom_meta($_POST['awm_custom_meta'], $_POST, $user_id, 'user');
-            }
+            EWP_Meta_Save_Guard::save('user', $user_id);
         }
 
         add_action(
             'edit_term',
             function ($term_id, $taxonomy) {
-                if (isset($_POST['awm_custom_meta'])) {
-                    awm_save_custom_meta($_POST['awm_custom_meta'], $_POST, $term_id, 'term');
-                }
+                EWP_Meta_Save_Guard::save('term', $term_id, $taxonomy);
             },
             100,
             2
@@ -66,9 +66,7 @@ class AWM_Meta
         add_action(
             'create_term',
             function ($term_id, $taxonomy) {
-                if (isset($_POST['awm_custom_meta'])) {
-                    awm_save_custom_meta($_POST['awm_custom_meta'], $_POST, $term_id, 'term');
-                }
+                EWP_Meta_Save_Guard::save('term', $term_id, $taxonomy);
             },
             100,
             2
