@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Repeater row actions no longer run past the row on content edit forms** (`2026-10-16`):
+  - **Question/Prompt**: "in wp-extend plugin last commit we added styling for input fields forms. In fields registration page the "Remove" button is stuck on the right" (screenshot: Fields → Attributes repeater, "Remove Attribute" flush with the row's right edge).
+  - **Cause**: the meta-box spacing added on 2026-10-15 gave `.awm-repeater .awm-actions` a 10px side margin, while `awm-admin-style` sets that bar to `width: 100%`; the bar overflowed the row by 20px, so its top rule and the right-aligned Remove button touched the row's edge instead of lining up with the fields.
+  - **Fix** (`assets/css/admin/ewp-admin-ui.scss`): the rule (now `.awm-repeater .awm-repeater-content .awm-actions`, to outrank the base rule) sets `width: auto`. Remove stays at the far end of the bar, as designed; it now ends where the fields do.
+  - **Affected Files**: `assets/css/admin/ewp-admin-ui.scss`, `assets/css/admin/ewp-admin-ui.min.css`, `CHANGELOG.md`.
+  - **Backwards Compatibility**: CSS only, scoped to `body.ewp-admin-ui-fields #poststuff .postbox`.
 - **`wp_editor` textareas in repeater rows work as soon as a row is added** (`2026-10-15`):
   - **Question/Prompt**: "there is a pre existing bug i want to fix in wp-extend. When i use textarea field with wp_editor in repeater, the texarea editor is not working well. It starts responding correctly after saved at least one. That happens every time user adds a row. Cannot switch from visual to code tab."
   - **Cause**: a new row was cloned from the template row, whose editor is a live TinyMCE instance, so the clone carried TinyMCE's UI, a Quicktags toolbar and Visual/Code tabs. `awm_repeater_clone()` renamed the textarea from its name (`items_0__text_`) while text replacement renamed the wrapper and tabs (`items_0_text`), so WordPress's `switchEditors` found no `wp-{id}-wrap` and the tabs did nothing. The editor was then started with a hand-built `tinymce.init()` and never registered in `tinyMCEPreInit`, and Quicktags ended up twice. After a save, PHP's `wp_editor()` rendered the row properly, which is why it then worked.

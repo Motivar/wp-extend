@@ -871,7 +871,10 @@ body.ewp-admin-ui-fields #poststuff .postbox {
     padding: 8px 10px;
   }
 
-  .awm-repeater .awm-actions {
+  // width: auto drops awm-admin-style's 100%, which with the side margin
+  // ran the bar (and Remove, at its far end) 20px past the row's edge.
+  .awm-repeater .awm-repeater-content .awm-actions {
+    width: auto;
     margin: 8px 10px 0;
   }
 }
