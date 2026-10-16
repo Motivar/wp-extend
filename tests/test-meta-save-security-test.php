@@ -319,6 +319,68 @@ class Test_Meta_Save_Security extends WP_UnitTestCase
     }
 
     /**
+     * Register a term box on `category` with one text field.
+     *
+     * @return void
+     */
+    private function register_term_box()
+    {
+        add_filter('awm_add_term_meta_boxes_filter', function ($boxes) {
+            $boxes['ewp_sec_term_box'] = array(
+                'title'      => 'Security term box',
+                'taxonomies' => array('category'),
+                'library'    => array('ewp_sec_term_field' => array('label' => 'Term field', 'case' => 'input', 'type' => 'text')),
+            );
+            return $boxes;
+        });
+    }
+
+    /**
+     * A registered term field saves when a category is edited (edit_term
+     * passes the term-taxonomy ID second and the taxonomy third).
+     *
+     * @return void
+     */
+    public function test_registered_term_field_saves_on_edit()
+    {
+        $this->register_term_box();
+        wp_set_current_user(self::factory()->user->create(array('role' => 'administrator')));
+        $term_id = self::factory()->category->create();
+        $this->set_request(array(
+            '_wpnonce'           => wp_create_nonce('update-tag_' . $term_id),
+            'awm_custom_meta'    => array('ewp_sec_term_field', '_ewp_unregistered_key'),
+            'ewp_sec_term_field' => 'term value',
+            '_ewp_unregistered_key' => 'injected',
+        ));
+
+        wp_update_term($term_id, 'category', array('description' => 'updated'));
+
+        $this->assertSame('term value', get_term_meta($term_id, 'ewp_sec_term_field', true));
+        $this->assertSame('', get_term_meta($term_id, '_ewp_unregistered_key', true));
+    }
+
+    /**
+     * A registered term field saves when a category is created from the
+     * add-term form (add-tag nonce).
+     *
+     * @return void
+     */
+    public function test_registered_term_field_saves_on_create()
+    {
+        $this->register_term_box();
+        wp_set_current_user(self::factory()->user->create(array('role' => 'administrator')));
+        $this->set_request(array(
+            '_wpnonce_add-tag'   => wp_create_nonce('add-tag'),
+            'awm_custom_meta'    => array('ewp_sec_term_field'),
+            'ewp_sec_term_field' => 'new term value',
+        ));
+
+        $term = wp_insert_term('Security term ' . wp_generate_password(4, false), 'category');
+
+        $this->assertSame('new term value', get_term_meta($term['term_id'], 'ewp_sec_term_field', true));
+    }
+
+    /**
      * The ewp_allowed_meta_keys filter can allow an extra key, but never a
      * capability or role key.
      *

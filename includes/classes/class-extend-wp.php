@@ -56,20 +56,20 @@ class AWM_Meta
 
         add_action(
             'edit_term',
-            function ($term_id, $taxonomy) {
-                EWP_Meta_Save_Guard::save('term', $term_id, $taxonomy);
+            function ($term_id, $tt_id, $taxonomy) {
+                EWP_Meta_Save_Guard::save('term', $term_id, (string) $taxonomy);
             },
             100,
-            2
+            3
         );
 
         add_action(
             'create_term',
-            function ($term_id, $taxonomy) {
-                EWP_Meta_Save_Guard::save('term', $term_id, $taxonomy);
+            function ($term_id, $tt_id, $taxonomy) {
+                EWP_Meta_Save_Guard::save('term', $term_id, (string) $taxonomy);
             },
             100,
-            2
+            3
         );
         add_action('rest_api_init', array($this, 'awm_dynamic_routes'), 10);
     }
