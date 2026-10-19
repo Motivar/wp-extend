@@ -227,10 +227,20 @@ class EWP_Dynamic_Blocks
         'title' => isset($block['title']) ? $block['title'] : $block['name'],
         'description' => (isset($block['description']) && !empty($block['description'])) ? $block['description'] : '',
         'category' => (isset($block['category']) && !empty($block['category'])) ? $block['category'] : 'common',
-        'icon' => (isset($block['icon ']) && !empty($block['icon '])) ? $block['icon'] : 'admin-site',
+        'icon' => $this->block_icon($block),
       ));
     }
     return $blocks;
+  }
+  /**
+   * The icon a block registers with: its own `icon`, or `admin-site` when unset or empty.
+   *
+   * @param array $block Block definition from gather_blocks().
+   * @return string|array Dashicon slug, SVG markup or icon object.
+   */
+  private function block_icon(array $block)
+  {
+    return !empty($block['icon']) ? $block['icon'] : 'admin-site';
   }
   /*
     * Check if the callback is valid

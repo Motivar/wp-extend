@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Blocks register with their own `icon`** (`2026-10-19`):
+  - **Question/Prompt**: Teamwork task 41996077 ("Extend-WP Todo", raised from the Filox block work), item 3: "trailing-space typo in the block icon key" → "yes proceed".
+  - **Summary**: `EWP_Dynamic_Blocks::register_blocks()` checked `$block['icon ']` (trailing space) but read `$block['icon']`, so the guard never passed and every block registered with `admin-site`. The choice now lives in a private `block_icon()` helper that reads `icon` and falls back to `admin-site` only when it is unset or empty.
+  - **Files**: `includes/classes/ewp-gutenburg/class-register.php`, `tests/test-block-icon-test.php` (new, 2 tests).
+  - **Backwards compatibility**: blocks that declare `icon` now show it in the inserter instead of `admin-site`; blocks without one are unchanged. Consumers that set the icon client-side as a workaround (Filox) keep working and can drop it. No hooks, routes or settings changed. Items 1 and 2 of the same task were already on `main` (block select enhancements, 2026-10-15; the block preview route no longer takes a `php_callback` argument since it moved to `Block_Preview_Resource`).
+
 ### Security
 - **Meta saves no longer trust the request's key list; field output is escaped (1.5.5)** (`2026-10-16`):
   - **Question/Prompt**: "can you check on this?" (a third-party audit artifact of Extend WP) → "yes please first check the critical issues" → "Regarding the risk, can you first audit filox to check if something will fail?" → "first register the tests in both wp-extend and filox, so they can fail, then do the changes you proposed".
