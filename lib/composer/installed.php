@@ -1,8 +1,8 @@
 <?php return array(
     'root' => array(
         'name' => 'motivar/extend-wp',
-        'pretty_version' => '1.5.0',
-        'version' => '1.5.0.0',
+        'pretty_version' => '1.5.5',
+        'version' => '1.5.5.0',
         'reference' => null,
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
@@ -11,30 +11,44 @@
     ),
     'versions' => array(
         'gnnpls/wp-kit' => array(
+            'dev_requirement' => false,
+            'replaced' => array(
+                0 => '9999999-dev',
+                1 => 'dev-main',
+            ),
+        ),
+        'gnnpls/wp-self-test' => array(
+            'dev_requirement' => false,
+            'replaced' => array(
+                0 => '9999999-dev',
+                1 => 'dev-main',
+            ),
+        ),
+        'mammothwp/wp-kit' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '56d0632779787a8d5e0de8e04a59fecde3c26f19',
+            'reference' => 'df98db44126e6eda9532b7c6e19fd1df2b032b05',
             'type' => 'library',
-            'install_path' => __DIR__ . '/../gnnpls/wp-kit',
+            'install_path' => __DIR__ . '/../mammothwp/wp-kit',
             'aliases' => array(
                 0 => '9999999-dev',
             ),
             'dev_requirement' => false,
         ),
-        'gnnpls/wp-self-test' => array(
+        'mammothwp/wp-self-test' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '88fa15ea7334e7997e6c0d9f998abf8f4c29132d',
+            'reference' => 'e934368704bc977dcde31268b69bfa0dc4a4e63e',
             'type' => 'library',
-            'install_path' => __DIR__ . '/../gnnpls/wp-self-test',
+            'install_path' => __DIR__ . '/../mammothwp/wp-self-test',
             'aliases' => array(
                 0 => '9999999-dev',
             ),
             'dev_requirement' => false,
         ),
         'motivar/extend-wp' => array(
-            'pretty_version' => '1.5.0',
-            'version' => '1.5.0.0',
+            'pretty_version' => '1.5.5',
+            'version' => '1.5.5.0',
             'reference' => null,
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',

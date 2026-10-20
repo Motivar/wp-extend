@@ -2,10 +2,10 @@
 
 namespace EWP\Surfaces\Resources;
 
-use Gnnpls\WP\Context;
-use Gnnpls\WP\Field;
-use Gnnpls\WP\Operation;
-use Gnnpls\WP\Resource;
+use MammothWP\WpKit\Context;
+use MammothWP\WpKit\Field;
+use MammothWP\WpKit\Operation;
+use MammothWP\WpKit\Resource;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -222,7 +222,7 @@ final class Options_Resource extends Resource
         $dry_run = array_key_exists('dry_run', $input) ? (bool) $input['dry_run'] : $ctx->surface() === Context::ABILITY;
 
         if ($ctx->surface() === Context::ABILITY && !$dry_run && empty($input['confirm'])) {
-            return new \WP_Error('mwp_confirm_required', __('This import overwrites stored options. Pass confirm: true, or keep dry_run true to preview.', 'extend-wp'), ['status' => 400]);
+            return new \WP_Error('mmwp_confirm_required', __('This import overwrites stored options. Pass confirm: true, or keep dry_run true to preview.', 'extend-wp'), ['status' => 400]);
         }
 
         return [$data, [

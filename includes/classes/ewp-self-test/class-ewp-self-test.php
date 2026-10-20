@@ -7,11 +7,11 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Registers the Extend WP self-test suite with the gnnpls/wp-self-test
- * package (lib/gnnpls/wp-self-test, loaded by Composer).
+ * Registers the Extend WP self-test suite with the mammothwp/wp-self-test
+ * package (lib/mammothwp/wp-self-test, loaded by Composer).
  *
- * The runner, the Tools › Self-test dashboard, the `mwp-self-test/v1`
- * REST routes, the `wp mwp self-test` commands and the `mwp-self-test/*`
+ * The runner, the Tools › Self-test dashboard, the `mmwp/v1/self-test`
+ * REST routes, the `wp mmwp self-test` commands and the `mmwp/self-test-*`
  * abilities all live in the package; this plugin only contributes its
  * manifest (manifest.json) and cases (cases/), the CLI classes that must
  * be re-declared under the package's WP_CLI shim, and its own gates.
@@ -41,14 +41,14 @@ final class EWP_Self_Test
      * Whether the dashboard and its REST routes are available.
      *
      * Kept as a plugin-level entry point; the package decides through
-     * `mwp_self_test_ui_enabled`, onto which the legacy
+     * `mmwp_self_test_ui_enabled`, onto which the legacy
      * `ewp_self_test_ui_enabled` filter is mapped.
      *
      * @return bool
      */
     public static function ui_enabled()
     {
-        return class_exists('Gnnpls\\SelfTest\\Config') && \Gnnpls\SelfTest\Config::ui_enabled();
+        return class_exists('MammothWP\\SelfTest\\Config') && \MammothWP\SelfTest\Config::ui_enabled();
     }
 
     /**
@@ -58,7 +58,7 @@ final class EWP_Self_Test
      */
     public static function capability()
     {
-        return class_exists('Gnnpls\\SelfTest\\Config') ? \Gnnpls\SelfTest\Config::capability() : 'manage_options';
+        return class_exists('MammothWP\\SelfTest\\Config') ? \MammothWP\SelfTest\Config::capability() : 'manage_options';
     }
 
     /**
@@ -68,22 +68,22 @@ final class EWP_Self_Test
      */
     public function init()
     {
-        if (!class_exists('Gnnpls\\SelfTest\\Loader')) {
+        if (!class_exists('MammothWP\\SelfTest\\Loader')) {
             return;
         }
 
-        add_action('mwp_self_test_register', [$this, 'register']);
-        add_filter('mwp_self_test_ui_enabled', [$this, 'legacy_ui_enabled']);
-        add_filter('mwp_self_test_capability', [$this, 'legacy_capability']);
-        add_filter('mwp_self_test_abilities_available', [$this, 'abilities_available']);
-        add_filter('mwp_self_test_manifest', [$this, 'legacy_manifest'], 10, 3);
-        add_action('mwp_self_test_completed', [$this, 'legacy_completed']);
+        add_action('mmwp_self_test_register', [$this, 'register']);
+        add_filter('mmwp_self_test_ui_enabled', [$this, 'legacy_ui_enabled']);
+        add_filter('mmwp_self_test_capability', [$this, 'legacy_capability']);
+        add_filter('mmwp_self_test_abilities_available', [$this, 'abilities_available']);
+        add_filter('mmwp_self_test_manifest', [$this, 'legacy_manifest'], 10, 3);
+        add_action('mmwp_self_test_completed', [$this, 'legacy_completed']);
     }
 
     /**
      * Register manifest.json with the package.
      *
-     * @param \Gnnpls\SelfTest\Registry $registry The package registry.
+     * @param \MammothWP\SelfTest\Registry $registry The package registry.
      *
      * @return void
      */
@@ -121,7 +121,7 @@ final class EWP_Self_Test
     /**
      * Load the case classes.
      *
-     * They extend Gnnpls\SelfTest\Case_Base, which the package's loader
+     * They extend MammothWP\SelfTest\Case_Base, which the package's loader
      * only autoloads after it booted on `plugins_loaded`, so they cannot be
      * required when Setup.php loads this file.
      *
@@ -135,7 +135,7 @@ final class EWP_Self_Test
 
         if (!class_exists(__NAMESPACE__ . '\\EWP_Self_Test_Case', false)) {
             // Cases written against the pre-1.5 base class keep working.
-            class_alias('Gnnpls\\SelfTest\\Case_Base', __NAMESPACE__ . '\\EWP_Self_Test_Case');
+            class_alias('MammothWP\\SelfTest\\Case_Base', __NAMESPACE__ . '\\EWP_Self_Test_Case');
         }
 
         foreach ([
@@ -199,7 +199,7 @@ final class EWP_Self_Test
         /**
          * Filter whether the self-test dashboard (and its REST routes) are registered.
          *
-         * @param bool $enabled Default: the package's `mwp_self_test_ui_enabled` value (WP_DEBUG).
+         * @param bool $enabled Default: the package's `mmwp_self_test_ui_enabled` value (WP_DEBUG).
          *
          * @since 1.5.0
          */

@@ -88,15 +88,15 @@ class Setup
   if (!$front_end) {
    require_once 'ewp-options-portability/class-options-portability.php';
   }
-  /*registers manifest.json and the cases with the gnnpls/wp-self-test package (lib/), which boots on plugins_loaded unless `mwp_self_test_enabled` says otherwise (off on production since package 0.7.0); a front-end request never runs self-tests*/
+  /*registers manifest.json and the cases with the mammothwp/wp-self-test package (lib/), which boots on plugins_loaded unless `mmwp_self_test_enabled` says otherwise (off on production since package 0.7.0); a front-end request never runs self-tests*/
   if ($front_end) {
-   add_filter('mwp_self_test_enabled', '__return_false');
+   add_filter('mmwp_self_test_enabled', '__return_false');
   } else {
    require_once 'ewp-self-test/class-ewp-self-test.php';
   }
   /*must stay after every module it wraps: the abilities read the content type registry, the logger, options portability and the self-test runner*/
   require_once 'ewp-abilities/class-ewp-abilities.php';
-  /*declares the plugin's resources with the gnnpls/wp-kit package (lib/, loaded by Composer); REST, WP-CLI and abilities are generated from them (must follow the modules whose services it wraps)*/
+  /*declares the plugin's resources with the mammothwp/wp-kit package (lib/, loaded by Composer); REST, WP-CLI and abilities are generated from them (must follow the modules whose services it wraps)*/
   require_once 'ewp-surfaces/class-ewp-surfaces.php';
   /*uses EWP\Content\Content_Service (loaded above); kept after ewp-abilities so the shim-based self-test loads it in the same order as production; bails without WP_CLI*/
   if ($has_cli) {

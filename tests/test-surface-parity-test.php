@@ -6,17 +6,17 @@
  */
 
 use EWP\Surfaces\EWP_Surfaces;
-use Gnnpls\WP\Adapters\Cli_Adapter;
-use Gnnpls\WP\Context;
-use Gnnpls\WP\Field;
-use Gnnpls\WP\Field_Map;
-use Gnnpls\WP\Inventory;
+use MammothWP\WpKit\Adapters\Cli_Adapter;
+use MammothWP\WpKit\Context;
+use MammothWP\WpKit\Field;
+use MammothWP\WpKit\Field_Map;
+use MammothWP\WpKit\Inventory;
 
 class Test_Surface_Parity extends WP_UnitTestCase
 {
     use EWP_Test_Content_Fixture;
 
-    /** @var \Gnnpls\WP\Registry */
+    /** @var \MammothWP\WpKit\Registry */
     private $registry;
 
     public function set_up()
@@ -125,7 +125,7 @@ class Test_Surface_Parity extends WP_UnitTestCase
      * the static registry after WP_UnitTestCase restored the hooks that
      * registered their routes; they are covered by tests/test-content-rest-test.php.
      *
-     * @param \Gnnpls\WP\Resource $resource Resource.
+     * @param \MammothWP\WpKit\Resource $resource Resource.
      *
      * @return bool
      */

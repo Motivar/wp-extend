@@ -126,7 +126,7 @@ class Test_Logger_Surfaces extends WP_UnitTestCase
         $refused = wp_get_ability('ewp-logger/delete-entries')->execute(['owner' => self::OWNER]);
         $this->assertWPError($refused);
         // Core rejects the missing required `confirm` at the schema level before the kit's own check runs.
-        $this->assertContains($refused->get_error_code(), ['ability_invalid_input', 'mwp_confirm_required']);
+        $this->assertContains($refused->get_error_code(), ['ability_invalid_input', 'mmwp_confirm_required']);
 
         $this->expectException(\WP_CLI\ExitException::class);
         EWP_Logger_CLI::delete([], ['owner' => self::OWNER]);

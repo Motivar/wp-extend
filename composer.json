@@ -1,6 +1,6 @@
 {
     "name": "motivar/extend-wp",
-    "version": "1.5.4",
+    "version": "1.5.6",
     "description": " Extend WordPress with custom functionality",
     "license": "GPL-2.0-or-later",
     "keywords": ["custom-fields", "advanced-custom-fields", "wordpress"],
@@ -8,14 +8,16 @@
     "type": "wordpress-plugin",
     "authors": [{
         "name": "Motivar",
-        "email": "info@motivar.cio"
+        "email": "info@motivar.io"
     }],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "config": {
         "vendor-dir": "lib",
         "optimize-autoloader": true,
         "apcu-autoloader": true,
         "preferred-install": {
-            "gnnpls/*": "dist",
+            "mammothwp/*": "dist",
             "*": "auto"
         }
     },
@@ -23,8 +25,8 @@
         "issues": "https://motivar.io/"
     },
     "require": {
-        "gnnpls/wp-kit": "dev-main",
-        "gnnpls/wp-self-test": "dev-main"
+        "mammothwp/wp-kit": "dev-main",
+        "mammothwp/wp-self-test": "dev-main"
     },
     "autoload": {
         "psr-4": {
@@ -38,7 +40,7 @@
     "scripts": {
         "test": "bash tests/run-tests.sh",
         "post-install-cmd": [
-            "@php lib/gnnpls/wp-self-test/bin/install-hooks"
+            "@php lib/mammothwp/wp-self-test/bin/install-hooks"
         ]
     }
 }

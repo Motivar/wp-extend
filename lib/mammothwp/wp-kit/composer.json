@@ -1,0 +1,65 @@
+{
+    "name": "mammothwp/wp-kit",
+    "description": "Declare a WordPress feature once and expose it as a REST route, a WP-CLI command and a WordPress Ability from the same definition.",
+    "type": "library",
+    "license": "GPL-2.0-or-later",
+    "keywords": [
+        "wp",
+        "rest-api",
+        "wp-cli",
+        "abilities-api",
+        "validation",
+        "library"
+    ],
+    "homepage": "https://mammothwp.com",
+    "authors": [
+        {
+            "name": "Mammoth WP",
+            "email": "info@mammothwp.com",
+            "homepage": "https://mammothwp.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/mammothwp/wp-kit/issues",
+        "source": "https://github.com/mammothwp/wp-kit",
+        "email": "info@mammothwp.com"
+    },
+    "require": {
+        "php": ">=7.4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6",
+        "phpstan/phpstan": "^1.10",
+        "squizlabs/php_codesniffer": "^3.7",
+        "wp-coding-standards/wpcs": "^3.0",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+        "php-stubs/wordpress-stubs": "^6.9",
+        "php-stubs/wp-cli-stubs": "^2.12"
+    },
+    "replace": {
+        "gnnpls/wp-kit": "self.version"
+    },
+    "autoload": {
+        "files": [
+            "bootstrap.php",
+            "compat.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "MammothWP\\WpKit\\": "src/",
+            "MammothWP\\WpKit\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "scripts": {
+        "lint": "git ls-files -z -- '*.php' | xargs -0 -n1 php -l",
+        "test": "phpunit",
+        "phpcs": "phpcs",
+        "phpstan": "phpstan analyse --memory-limit=512M"
+    }
+}

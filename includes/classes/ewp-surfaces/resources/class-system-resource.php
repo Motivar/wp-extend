@@ -3,8 +3,8 @@
 namespace EWP\Surfaces\Resources;
 
 use EWP\Surfaces\System_Service;
-use Gnnpls\WP\Operation;
-use Gnnpls\WP\Resource;
+use MammothWP\WpKit\Operation;
+use MammothWP\WpKit\Resource;
 
 if (!defined('ABSPATH')) {
     exit;

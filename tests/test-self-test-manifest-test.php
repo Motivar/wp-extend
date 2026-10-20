@@ -1,19 +1,19 @@
 <?php
 /**
  * Guards the self-test manifest (includes/classes/ewp-self-test/manifest.json),
- * registered with the gnnpls/wp-self-test package and shared by Tools >
- * Self-test, `wp mwp self-test`, the mwp-self-test abilities, the pre-push
+ * registered with the mammothwp/wp-self-test package and shared by Tools >
+ * Self-test, `wp mmwp self-test`, the mmwp self-test abilities, the pre-push
  * hook and CI.
  *
  * The cases themselves are NOT executed here: the content case creates real
  * tables, which WP_UnitTestCase would rewrite into temporary ones. They run
- * through lib/gnnpls/wp-self-test/bin/run.php instead.
+ * through lib/mammothwp/wp-self-test/bin/run.php instead.
  */
 class Test_Self_Test_Manifest extends WP_UnitTestCase
 {
     private function registry()
     {
-        return \Gnnpls\SelfTest\Self_Test::instance()->registry();
+        return \MammothWP\SelfTest\Self_Test::instance()->registry();
     }
 
     public function test_manifest_is_registered_with_the_package_and_every_case_class_exists()
@@ -36,7 +36,7 @@ class Test_Self_Test_Manifest extends WP_UnitTestCase
     {
         global $wpdb;
 
-        $runner = \Gnnpls\SelfTest\Self_Test::instance()->runner();
+        $runner = \MammothWP\SelfTest\Self_Test::instance()->runner();
         $before = count($wpdb->get_col('SHOW TABLES'));
 
         $preview = $runner->preview();
@@ -63,18 +63,18 @@ class Test_Self_Test_Manifest extends WP_UnitTestCase
             $per_type  = $resource instanceof \EWP\Surfaces\Resources\Content_Type_Rest_Resource;
             $per_block = $resource instanceof \EWP\Surfaces\Resources\Block_Preview_Resource;
             foreach ($resource->ops() as $op) {
-                foreach (\Gnnpls\WP\Inventory::rest_routes($resource, $op) as $route) {
+                foreach (\MammothWP\WpKit\Inventory::rest_routes($resource, $op) as $route) {
                     $path = $this->normalise_route(preg_replace('/^[A-Z]+ /', '', $route), $per_type ? $resource : null, $per_block);
                     if (!in_array($path, $covered['rest'], true)) {
                         $missing[] = 'rest: ' . $path;
                     }
                 }
-                foreach (\Gnnpls\WP\Inventory::cli_commands($resource, $op) as $command) {
+                foreach (\MammothWP\WpKit\Inventory::cli_commands($resource, $op) as $command) {
                     if (!in_array($command, $covered['cli'], true)) {
                         $missing[] = 'cli: ' . $command;
                     }
                 }
-                foreach (\Gnnpls\WP\Inventory::abilities($resource, $op) as $ability) {
+                foreach (\MammothWP\WpKit\Inventory::abilities($resource, $op) as $ability) {
                     if (!in_array($ability, $covered['ability'], true)) {
                         $missing[] = 'ability: ' . $ability;
                     }
@@ -93,13 +93,13 @@ class Test_Self_Test_Manifest extends WP_UnitTestCase
     {
         \WP_CLI\StubRecorder::reset();
         foreach (\EWP\Surfaces\EWP_Surfaces::instance()->registry()->all() as $resource) {
-            (new \Gnnpls\WP\Adapters\Cli_Adapter($resource))->register_commands();
+            (new \MammothWP\WpKit\Adapters\Cli_Adapter($resource))->register_commands();
         }
 
         $covered    = $this->covered()['cli'];
         $registered = array_unique(array_column(\WP_CLI\StubRecorder::$commands, 'command'));
         $uncovered  = array_filter($registered, function ($command) use ($covered) {
-            return strpos($command, 'mwp self-test') !== 0 && !in_array($command, $covered, true);
+            return strpos($command, 'mmwp self-test') !== 0 && !in_array($command, $covered, true);
         });
 
         $this->assertSame([], array_values($uncovered), 'Registered WP-CLI commands missing from manifest.json "covers.cli"');
@@ -122,7 +122,7 @@ class Test_Self_Test_Manifest extends WP_UnitTestCase
         foreach ($registry->all() as $resource) {
             $per_type = $resource instanceof \EWP\Surfaces\Resources\Content_Type_Rest_Resource;
             foreach ($resource->ops() as $op) {
-                foreach (\Gnnpls\WP\Inventory::rest_routes($resource, $op) as $route) {
+                foreach (\MammothWP\WpKit\Inventory::rest_routes($resource, $op) as $route) {
                     $generated[] = $this->normalise_route(preg_replace('/^[A-Z]+ /', '', $route), $per_type ? $resource : null);
                 }
             }
@@ -218,25 +218,25 @@ class Test_Self_Test_Manifest extends WP_UnitTestCase
     {
         $routes = rest_get_server()->get_routes();
 
-        if (\Gnnpls\SelfTest\Config::ui_enabled()) {
-            $this->assertArrayHasKey('/mwp-self-test/v1/run', $routes);
+        if (\MammothWP\SelfTest\Config::ui_enabled()) {
+            $this->assertArrayHasKey('/mmwp/v1/self-test/run', $routes);
         } else {
-            $this->assertArrayNotHasKey('/mwp-self-test/v1/run', $routes);
+            $this->assertArrayNotHasKey('/mmwp/v1/self-test/run', $routes);
         }
     }
 
     public function test_package_surfaces_are_registered()
     {
-        $this->assertTrue(\Gnnpls\SelfTest\Loader::is_booted());
-        $this->assertSame(require dirname(__DIR__) . '/lib/gnnpls/wp-self-test/version.php', \Gnnpls\SelfTest\Loader::version());
+        $this->assertTrue(\MammothWP\SelfTest\Loader::is_booted());
+        $this->assertSame(require dirname(__DIR__) . '/lib/mammothwp/wp-self-test/version.php', \MammothWP\SelfTest\Loader::version());
 
         foreach (['list-cases', 'preview', 'run', 'cleanup', 'get-report'] as $slug) {
-            $this->assertTrue(wp_has_ability('mwp-self-test/' . $slug), "mwp-self-test/{$slug} must be registered");
+            $this->assertTrue(wp_has_ability('mmwp/self-test-' . $slug), "mmwp/self-test-{$slug} must be registered");
         }
 
         $commands = array_column(\WP_CLI\StubRecorder::$commands, 'command');
         foreach (['list', 'preview', 'run', 'cleanup', 'report'] as $command) {
-            $this->assertContains('mwp self-test ' . $command, $commands);
+            $this->assertContains('mmwp self-test ' . $command, $commands);
         }
     }
 }
