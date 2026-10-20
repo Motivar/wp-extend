@@ -2,8 +2,6 @@
 
 namespace MammothWP\SelfTest;
 
-use MammothWP\SelfTest\Compat\Hooks;
-
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -178,7 +176,7 @@ final class Runner
          *
          * @since 0.1.0
          */
-        Hooks::action('mmwp_self_test_completed', [$report]);
+        do_action_ref_array('mmwp_self_test_completed', [$report]);
 
         return $report;
     }
@@ -409,10 +407,7 @@ final class Runner
     /** @return array{report: array|null, pending: array} */
     private function state()
     {
-        $state = get_option(Config::STATE_OPTION, null);
-        if ($state === null) {
-            $state = get_option(Config::LEGACY_STATE_OPTION, []);
-        }
+        $state = get_option(Config::STATE_OPTION, []);
         $state = is_array($state) ? $state : [];
 
         return [

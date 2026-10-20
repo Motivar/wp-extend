@@ -137,27 +137,3 @@ WP-CLI, abilities, `bin/run.php`).
 | Param | Type | Description |
 |---|---|---|
 | `$report` | `array` | The stored report (`started_at`, `finished_at`, `duration_ms`, `user_id`, `site`, `package`, `plugin`, `cleanup`, `summary`, `results`). |
-
-## Deprecated hook names (pre-1.0)
-
-Before 1.0 every hook above carried the `mwp_self_test_` prefix. Each one is
-still fired after its `mmwp_self_test_` replacement through
-`do_action_deprecated()` / `apply_filters_deprecated()` (see
-`src/Compat/Hooks.php`; `mwp_self_test_enabled` and `mwp_self_test_booted` are
-bridged inline in `src/Loader.php`, which runs before the autoloader exists).
-WordPress logs a deprecation notice only when a callback is attached to the old
-name. The old names are removed in the next major version.
-
-| Old name | New name |
-|---|---|
-| `mwp_self_test_enabled` | `mmwp_self_test_enabled` |
-| `mwp_self_test_booted` | `mmwp_self_test_booted` |
-| `mwp_self_test_register` | `mmwp_self_test_register` |
-| `mwp_self_test_manifest` | `mmwp_self_test_manifest` |
-| `mwp_self_test_ui_enabled` | `mmwp_self_test_ui_enabled` |
-| `mwp_self_test_shim_enabled` | `mmwp_self_test_shim_enabled` |
-| `mwp_self_test_capability` | `mmwp_self_test_capability` |
-| `mwp_self_test_abilities_available` | `mmwp_self_test_abilities_available` |
-| `mwp_self_test_asset_url` | `mmwp_self_test_asset_url` |
-| `mwp_self_test_ability_definitions` | `mmwp_self_test_ability_definitions` |
-| `mwp_self_test_completed` | `mmwp_self_test_completed` |

@@ -2,8 +2,6 @@
 
 namespace MammothWP\SelfTest\Surfaces;
 
-use MammothWP\SelfTest\Compat\Legacy;
-use MammothWP\SelfTest\Migration;
 use MammothWP\SelfTest\Runner;
 
 if (!defined('ABSPATH')) {
@@ -26,9 +24,6 @@ if (!defined('ABSPATH')) {
  *   wp mmwp self-test run [<slug>] [--cleanup]  — same as the bare form.
  *   wp mmwp self-test cleanup [--cases=<ids>]   — remove test data left by earlier runs.
  *   wp mmwp self-test report [--format=<f>]     — the last stored report.
- *   wp mmwp self-test migrate [--dry-run]       — move pre-1.0 `mwp_` options to `mmwp_`.
- *
- * Deprecated alias: `wp mwp self-test <action>` prints a warning and forwards.
  *
  * @package MammothWP\SelfTest
  * @since   0.1.0
@@ -36,7 +31,7 @@ if (!defined('ABSPATH')) {
 final class Cli
 {
     /** Actions accepted as the first positional argument. */
-    const ACTIONS = ['list', 'preview', 'run', 'cleanup', 'report', 'migrate'];
+    const ACTIONS = ['list', 'preview', 'run', 'cleanup', 'report'];
 
     /** @var Runner */
     private static $runner;
@@ -57,14 +52,6 @@ final class Cli
         self::$runner = $runner;
 
         \WP_CLI::add_command('mmwp self-test', [__CLASS__, 'dispatch']);
-
-        if (Legacy::owned_elsewhere('Surfaces\\Cli')) {
-            return;
-        }
-
-        foreach (self::ACTIONS as $action) {
-            \WP_CLI::add_command('mwp self-test ' . $action, [__CLASS__, 'legacy_' . $action]);
-        }
     }
 
     /**
@@ -73,7 +60,7 @@ final class Cli
      * ## OPTIONS
      *
      * [<slug>]
-     * : Plugin slug whose cases to run, or one of: list, preview, run, cleanup, report, migrate. Default: run every case.
+     * : Plugin slug whose cases to run, or one of: list, preview, run, cleanup, report. Default: run every case.
      *
      * [<plugin>]
      * : Plugin slug for the list, preview and run actions.
@@ -87,9 +74,6 @@ final class Cli
      * [--cleanup]
      * : Remove the test data right after each case (what pre-push and CI use).
      *
-     * [--dry-run]
-     * : For migrate: report what would change without writing.
-     *
      * [--format=<format>]
      * : Output format (table, json, csv for list). Default table.
      *
@@ -98,7 +82,6 @@ final class Cli
      *     wp mmwp self-test my-plugin --format=table
      *     wp mmwp self-test run --cleanup
      *     wp mmwp self-test list my-plugin
-     *     wp mmwp self-test migrate --dry-run
      *
      * @param array $args       Positional arguments.
      * @param array $assoc_args Named arguments.
@@ -135,140 +118,6 @@ final class Cli
     {
         $handler = ['list' => 'list_cases'][$action] ?? $action;
         self::$handler([], $assoc_args);
-    }
-
-    /**
-     * Deprecated alias of `wp mmwp self-test list`.
-     *
-     * @param array $args       Positional arguments.
-     * @param array $assoc_args Named arguments.
-     *
-     * @return void
-     *
-     * @since 1.0.0
-     */
-    public static function legacy_list($args, $assoc_args)
-    {
-        self::forward_legacy('list', $assoc_args);
-    }
-
-    /**
-     * Deprecated alias of `wp mmwp self-test preview`.
-     *
-     * @param array $args       Positional arguments.
-     * @param array $assoc_args Named arguments.
-     *
-     * @return void
-     *
-     * @since 1.0.0
-     */
-    public static function legacy_preview($args, $assoc_args)
-    {
-        self::forward_legacy('preview', $assoc_args);
-    }
-
-    /**
-     * Deprecated alias of `wp mmwp self-test run`.
-     *
-     * @param array $args       Positional arguments.
-     * @param array $assoc_args Named arguments.
-     *
-     * @return void
-     *
-     * @since 1.0.0
-     */
-    public static function legacy_run($args, $assoc_args)
-    {
-        self::forward_legacy('run', $assoc_args);
-    }
-
-    /**
-     * Deprecated alias of `wp mmwp self-test cleanup`.
-     *
-     * @param array $args       Positional arguments.
-     * @param array $assoc_args Named arguments.
-     *
-     * @return void
-     *
-     * @since 1.0.0
-     */
-    public static function legacy_cleanup($args, $assoc_args)
-    {
-        self::forward_legacy('cleanup', $assoc_args);
-    }
-
-    /**
-     * Deprecated alias of `wp mmwp self-test report`.
-     *
-     * @param array $args       Positional arguments.
-     * @param array $assoc_args Named arguments.
-     *
-     * @return void
-     *
-     * @since 1.0.0
-     */
-    public static function legacy_report($args, $assoc_args)
-    {
-        self::forward_legacy('report', $assoc_args);
-    }
-
-    /**
-     * Deprecated alias of `wp mmwp self-test migrate`.
-     *
-     * @param array $args       Positional arguments.
-     * @param array $assoc_args Named arguments.
-     *
-     * @return void
-     *
-     * @since 1.0.0
-     */
-    public static function legacy_migrate($args, $assoc_args)
-    {
-        self::forward_legacy('migrate', $assoc_args);
-    }
-
-    /**
-     * Warn that the `mwp` command is deprecated, then run the action.
-     *
-     * @param string $action     One of ACTIONS.
-     * @param array  $assoc_args Named arguments.
-     *
-     * @return void
-     *
-     * @since 1.0.0
-     */
-    private static function forward_legacy($action, array $assoc_args)
-    {
-        \WP_CLI::warning(sprintf('"wp mwp self-test %1$s" is deprecated; use "wp mmwp self-test %1$s".', $action));
-        self::call($action, $assoc_args);
-    }
-
-    /**
-     * Move options stored under the pre-1.0 `mwp_` prefix to `mmwp_`.
-     *
-     * ## OPTIONS
-     *
-     * [--dry-run]
-     * : Report what would change without writing.
-     *
-     * @param array $args       Positional arguments.
-     * @param array $assoc_args Named arguments.
-     *
-     * @return void
-     *
-     * @since 1.0.0
-     */
-    public static function migrate($args, $assoc_args)
-    {
-        $rows = Migration::run(isset($assoc_args['dry-run']));
-
-        if (empty($rows)) {
-            \WP_CLI::success('Nothing to migrate.');
-            return;
-        }
-
-        \WP_CLI\Utils\format_items('table', $rows, ['from', 'to', 'action']);
-        \WP_CLI::success(isset($assoc_args['dry-run']) ? 'Dry run: nothing written.' : 'Migrated.');
     }
 
     /**

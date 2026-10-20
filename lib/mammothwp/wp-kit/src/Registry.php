@@ -8,8 +8,6 @@
 
 namespace MammothWP\WpKit;
 
-use MammothWP\WpKit\Compat\Legacy_Hooks;
-
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -92,7 +90,6 @@ final class Registry
              * @since 0.1.0
              */
             do_action('mmwp_kit_registry_ready', $this);
-            Legacy_Hooks::action('mmwp_kit_registry_ready', [$this]);
         }
 
         return $this;

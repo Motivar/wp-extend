@@ -24,8 +24,6 @@ if (PHP_SAPI !== 'cli') {
 }
 
 $marker = '# managed by mammothwp/wp-self-test';
-// Hooks written by gnnpls/wp-self-test (pre-1.0) are ours too; rewrite them to the new vendor path.
-$legacy_marker = '# managed by gnnpls/wp-self-test';
 $root   = trim((string) @shell_exec('git rev-parse --show-toplevel 2>/dev/null'));
 
 if ($root === '') {
@@ -44,7 +42,7 @@ if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
 }
 
 $existing = file_exists($hook) ? (string) file_get_contents($hook) : '';
-$managed  = strpos($existing, $marker) !== false || strpos($existing, $legacy_marker) !== false;
+$managed  = strpos($existing, $marker) !== false;
 
 if ($existing !== '' && !$managed) {
     fwrite(STDOUT, "[wp-self-test] {$hook} exists and is not managed by this package; left untouched.\n");

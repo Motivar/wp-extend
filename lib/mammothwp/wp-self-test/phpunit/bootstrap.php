@@ -28,7 +28,7 @@ if (!getenv('WP_PHPUNIT__TESTS_CONFIG')) {
 
 require_once $mmmwp_tests_dir . '/includes/functions.php';
 
-$mmwp_plugin_files = array_filter(array_map('trim', explode(',', (string) (getenv('MMWP_PLUGIN_FILES') ?: getenv('MWP_PLUGIN_FILES')))));
+$mmwp_plugin_files = array_filter(array_map('trim', explode(',', (string) (getenv('MMWP_PLUGIN_FILES')))));
 
 tests_add_filter('muplugins_loaded', function () use ($mmwp_plugin_files) {
     foreach ($mmwp_plugin_files as $file) {

@@ -7,9 +7,7 @@ $baseDir = dirname($vendorDir);
 
 return array(
     '8b56ebdb59bf3b459abcf406f70403fe' => $vendorDir . '/mammothwp/wp-kit/bootstrap.php',
-    'd831280af2643b9791c6e8bff23d3875' => $vendorDir . '/mammothwp/wp-kit/compat.php',
     '360190c4e09fb23738048e4c53229de4' => $vendorDir . '/mammothwp/wp-self-test/bootstrap.php',
-    'b89ca5ad3335de818d8f5966cec52f89' => $vendorDir . '/mammothwp/wp-self-test/compat.php',
     'e047688227bba2aaf0f5b41ce3995e34' => $baseDir . '/includes/functions/init.php',
     '3d8cee44d66267b5f3478a6d3904910f' => $baseDir . '/includes/classes/class-encryption.php',
 );

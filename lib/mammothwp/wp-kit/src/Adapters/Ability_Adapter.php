@@ -8,7 +8,6 @@
 
 namespace MammothWP\WpKit\Adapters;
 
-use MammothWP\WpKit\Compat\Legacy_Hooks;
 use MammothWP\WpKit\Confirm;
 use MammothWP\WpKit\Context;
 use MammothWP\WpKit\Field_Map;
@@ -95,7 +94,6 @@ final class Ability_Adapter
             $definitions[$this->resource->ability_category() . '/' . $operation->ability_slug()] = $this->definition($operation);
         }
 
-        $definitions = Legacy_Hooks::filter('mmwp_kit_ability_definitions', [$definitions, $this->resource]);
         /**
          * Filter the ability definitions of one resource before registration.
          *

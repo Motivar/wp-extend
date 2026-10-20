@@ -94,19 +94,3 @@ available and the resource declares an `ability_category()`.
 |---|---|---|
 | `$definitions` | `array<string,array>` | Definitions keyed by ability name (`<category>/<slug>`). |
 | `$resource` | `MammothWP\WpKit\Resource` | Owning resource. |
-
-## Deprecated names (removed in 2.0.0)
-
-Until the next major version the pre-1.0 hooks still fire, through
-`do_action_deprecated()` / `apply_filters_deprecated()`, so WordPress only
-logs a notice when something actually listens to the old name. Old filter
-callbacks run before the new ones.
-
-| Old hook | New hook |
-|---|---|
-| `mwp_kit_booted` | `mmwp_kit_booted` |
-| `mwp_registry_ready` | `mmwp_kit_registry_ready` |
-| `mwp_operation_capability` | `mmwp_kit_operation_capability` |
-| `mwp_operation_before_run` | `mmwp_kit_operation_before_run` |
-| `mwp_operation_result` | `mmwp_kit_operation_result` |
-| `mwp_ability_definitions` | `mmwp_kit_ability_definitions` |
