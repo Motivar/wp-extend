@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bd1b49a3ea3926cb25c608d3beceff53",
+    "content-hash": "2ee3c4d952233c10ba57a58e73b3933d",
     "packages": [
         {
             "name": "mammothwp/wp-kit",
