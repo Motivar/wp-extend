@@ -25,6 +25,7 @@ class Object_Search_Case extends Case_Base
             __('REST: GET /extend-wp/v1/objects/search?object_type=post_type:post&search=<title> — expect {success: true, data: [...]} containing the post.', 'extend-wp'),
             __('CLI: wp ewp objects search <title> --type=post_type:post — expect a table row with the post id.', 'extend-wp'),
             __('Ability: ewp-system/search-objects — expect {count, results} containing the post.', 'extend-wp'),
+            __('include: the same three surfaces with include=<post id>,<page id> — expect only the post (the page is another type), as the block editor labels saved ids.', 'extend-wp'),
             __('Cleanup: delete the post.', 'extend-wp'),
         ];
     }
@@ -34,13 +35,18 @@ class Object_Search_Case extends Case_Base
     {
         $title   = 'Self-test object ' . substr(md5(uniqid('', true)), 0, 8);
         $post_id = wp_insert_post(['post_title' => $title, 'post_type' => 'post', 'post_status' => 'private']);
-        $context = ['post_id' => (int) $post_id, 'title' => $title, 'observed' => []];
+        $page_id = wp_insert_post(['post_title' => $title . ' page', 'post_type' => 'page', 'post_status' => 'private']);
+        $context = ['post_id' => (int) $post_id, 'page_id' => (int) $page_id, 'title' => $title, 'observed' => []];
         $o       = &$context['observed'];
-
+        $include = [(int) $post_id, (int) $page_id];
 
         $o['rest']    = $this->rest('GET', '/extend-wp/v1/objects/search', ['object_type' => 'post_type:post', 'search' => $title]);
         $o['ability'] = $this->ability('ewp-system/search-objects', ['object_type' => 'post_type:post', 'search' => $title]);
         $o['cli']     = $this->cli(EWP_Surfaces::cli('objects', 'search'), [$title], ['type' => 'post_type:post', 'format' => 'json']);
+
+        $o['rest_include']    = $this->rest('GET', '/extend-wp/v1/objects/search', ['object_type' => 'post_type:post', 'include' => implode(',', $include)]);
+        $o['ability_include'] = $this->ability('ewp-system/search-objects', ['object_type' => 'post_type:post', 'include' => $include]);
+        $o['cli_include']     = $this->cli(EWP_Surfaces::cli('objects', 'search'), [], ['type' => 'post_type:post', 'include' => implode(',', $include), 'format' => 'json']);
 
         return $context;
     }
@@ -53,6 +59,18 @@ class Object_Search_Case extends Case_Base
         $has = function ($rows) use ($id) {
             foreach ((array) $rows as $row) {
                 if (isset($row['id']) && (int) $row['id'] === $id) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        $only = function ($rows) use ($id) {
+            $ids = array_map('intval', wp_list_pluck(array_values((array) $rows), 'id'));
+            return $ids === [$id];
+        };
+        $printed_only = function ($printed) use ($only) {
+            foreach ((array) $printed as $chunk) {
+                if (isset($chunk['items']) && $only($chunk['items'])) {
                     return true;
                 }
             }
@@ -72,17 +90,25 @@ class Object_Search_Case extends Case_Base
                 }
                 return false;
             }),
+            $this->check('rest', 'GET /objects/search?include= returns only the post of the type', $this->status($o, 'rest_include') === 200 && $only($o['rest_include']['data']['data']), $this->detail($o, 'rest_include')),
+            $this->ability_check($o, 'ability_include', 'ewp-system/search-objects include returns only the post', function ($data) use ($only) {
+                return isset($data['results']) && $only($data['results']);
+            }),
+            $this->cli_check_printed($o, 'cli_include', 'wp ewp objects search --include prints only the post', $printed_only),
         ];
     }
 
     /** {@inheritDoc} */
     public function cleanup(array $context)
     {
-        if (!empty($context['post_id'])) {
-            wp_delete_post((int) $context['post_id'], true);
-            return [sprintf(__('Deleted post #%d.', 'extend-wp'), (int) $context['post_id'])];
+        $notes = [];
+        foreach (['post_id', 'page_id'] as $key) {
+            if (!empty($context[$key])) {
+                wp_delete_post((int) $context[$key], true);
+                $notes[] = sprintf(__('Deleted post #%d.', 'extend-wp'), (int) $context[$key]);
+            }
         }
 
-        return [];
+        return $notes;
     }
 }

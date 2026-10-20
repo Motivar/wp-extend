@@ -107,7 +107,7 @@ WordPress registers the object on the **next** request, after the cache flush th
 | `ewp-options/import` | no / no / **yes** | `manage_options` | `data`\*, `dry_run` (default `true`), `skip_url_replace`, `confirm` |
 | `ewp-system/get-site-info` | yes / yes / no | `read` | none |
 | `ewp-system/flush-cache` | no / yes / no | `manage_options` | none |
-| `ewp-system/search-objects` | yes / yes / no | `awm_object_search_capability` (default `manage_options`) | `object_type`\* (`group:slug`), `search`, `exclude`, `limit`, `search_meta` |
+| `ewp-system/search-objects` | yes / yes / no | `awm_object_search_capability` (default per type since 1.5.7: post type `edit_posts`, taxonomy `assign_terms`, else `manage_options`) | `object_type`\* (`group:slug`), `search`, `exclude`, `include` (1.5.7), `limit`, `search_meta` |
 | `ewp-rest-health/list-plugins` | yes / yes / no | super admin | `refresh` |
 | `ewp-rest-health/list-endpoints` | yes / yes / no | super admin | `plugins`\* |
 

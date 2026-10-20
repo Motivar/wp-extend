@@ -81,8 +81,8 @@ final class Object_Search_Resource extends Resource
 
     public function capability()
     {
-        return function () {
-            return Object_Search::capability();
+        return function ($operation = null, array $input = []) {
+            return Object_Search::capability(isset($input['object_type']) ? (string) $input['object_type'] : '');
         };
     }
 
@@ -96,6 +96,7 @@ final class Object_Search_Resource extends Resource
                     Field::string('object_type')->required()->cli_name('type')->describe(__('group:slug, e.g. post_type:post, taxonomy:category, custom_content:ewp_fields.', 'extend-wp')),
                     Field::string('search')->positional()->describe(__('Text to match against the object name.', 'extend-wp')),
                     Field::int_list('exclude')->describe(__('Ids to leave out of the results.', 'extend-wp')),
+                    Field::int_list('include')->describe(__('Ids to fetch directly instead of searching, e.g. to label saved values. Ids of another type are left out.', 'extend-wp')),
                     Field::int('limit')->min(1)->describe(__('Maximum results. Defaults to 20.', 'extend-wp')),
                     Field::bool('search_meta')->describe(__('Also match meta values. Defaults to true.', 'extend-wp')),
                 ])
@@ -107,6 +108,7 @@ final class Object_Search_Resource extends Resource
                             'limit'       => isset($input['limit']) ? (int) $input['limit'] : 20,
                             'search_meta' => array_key_exists('search_meta', $input) ? (bool) $input['search_meta'] : true,
                             'exclude'     => isset($input['exclude']) ? (array) $input['exclude'] : [],
+                            'include'     => isset($input['include']) ? (array) $input['include'] : [],
                         ],
                     ];
                 })
