@@ -36,13 +36,9 @@
         "php-stubs/wordpress-stubs": "^6.9",
         "php-stubs/wp-cli-stubs": "^2.12"
     },
-    "replace": {
-        "gnnpls/wp-kit": "self.version"
-    },
     "autoload": {
         "files": [
-            "bootstrap.php",
-            "compat.php"
+            "bootstrap.php"
         ]
     },
     "autoload-dev": {

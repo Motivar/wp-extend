@@ -11,8 +11,6 @@
 
 namespace MammothWP\SelfTest;
 
-use MammothWP\SelfTest\Compat\Hooks;
-
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -93,7 +91,7 @@ final class Manifest
          *
          * @since 0.1.0
          */
-        $this->data = Hooks::filter('mmwp_self_test_manifest', $decoded, [$this->path, $this->plugin]);
+        $this->data = apply_filters('mmwp_self_test_manifest', $decoded, $this->path, $this->plugin);
 
         return $this->data;
     }

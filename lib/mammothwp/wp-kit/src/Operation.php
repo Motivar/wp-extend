@@ -12,8 +12,6 @@
 
 namespace MammothWP\WpKit;
 
-use MammothWP\WpKit\Compat\Legacy_Hooks;
-
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -529,7 +527,6 @@ final class Operation
              * @since 0.1.0
              */
             do_action('mmwp_kit_operation_before_run', $this, $normalized, $ctx);
-            Legacy_Hooks::action('mmwp_kit_operation_before_run', [$this, $normalized, $ctx]);
         }
 
         $result = $this->invoke($normalized, $ctx);
@@ -539,7 +536,6 @@ final class Operation
         }
 
         if (function_exists('apply_filters')) {
-            $result = Legacy_Hooks::filter('mmwp_kit_operation_result', [$result, $this, $normalized, $ctx]);
             /**
              * Filter an operation's result before it reaches the surface adapter.
              *

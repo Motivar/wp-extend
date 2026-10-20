@@ -126,9 +126,6 @@ final class Loader
          * @since 0.1.0
          */
         do_action('mmwp_self_test_booted', $path, self::version());
-        if (function_exists('do_action_deprecated')) {
-            do_action_deprecated('mwp_self_test_booted', [$path, self::version()], '1.0.0', 'mmwp_self_test_booted');
-        }
     }
 
     /**
@@ -168,12 +165,7 @@ final class Loader
         $default       = $environment !== 'production';
         self::$enabled = $default;
         if (function_exists('apply_filters')) {
-            // Not Compat\Hooks: this runs before the package autoloader exists.
-            $filtered = apply_filters('mmwp_self_test_enabled', $default, $environment);
-            if (function_exists('apply_filters_deprecated')) {
-                $filtered = apply_filters_deprecated('mwp_self_test_enabled', [$filtered, $environment], '1.0.0', 'mmwp_self_test_enabled');
-            }
-            self::$enabled = (bool) $filtered;
+            self::$enabled = (bool) apply_filters('mmwp_self_test_enabled', $default, $environment);
         }
 
         return self::$enabled;

@@ -13,8 +13,6 @@
 
 namespace MammothWP\WpKit;
 
-use MammothWP\WpKit\Compat\Legacy_Hooks;
-
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -40,7 +38,6 @@ final class Capability
             : $resolver;
 
         if (function_exists('apply_filters')) {
-            $resolved = Legacy_Hooks::filter('mmwp_kit_operation_capability', [$resolved, $op, $input, $ctx]);
             /**
              * Filter the capability required by an operation.
              *

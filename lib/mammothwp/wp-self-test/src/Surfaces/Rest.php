@@ -2,7 +2,6 @@
 
 namespace MammothWP\SelfTest\Surfaces;
 
-use MammothWP\SelfTest\Compat\Legacy;
 use MammothWP\SelfTest\Config;
 use MammothWP\SelfTest\Runner;
 
@@ -22,10 +21,6 @@ if (!defined('ABSPATH')) {
  *   POST /self-test/cleanup                  → runner->cleanup() {ids: []}
  *   GET  /self-test/report                   → runner->report()
  *
- * Deprecated alias (one major version): the same routes without the
- * `/self-test` segment under `mwp-self-test/v1`, answering with a
- * `Deprecation: true` header.
- *
  * @package MammothWP\SelfTest
  * @since   0.1.0
  */
@@ -36,9 +31,6 @@ final class Rest
 
     /** Route prefix inside the current namespace. */
     const BASE = '/self-test';
-
-    /** Deprecated pre-1.0 namespace (routes have no base segment). */
-    const NAMESPACE_LEGACY = 'mwp-self-test/v1';
 
     /** @var Runner */
     private $runner;
@@ -55,7 +47,7 @@ final class Rest
     }
 
     /**
-     * Register the current routes and, unless another copy owns it, the deprecated alias.
+     * Register the five routes.
      *
      * @return void
      *
@@ -63,27 +55,9 @@ final class Rest
      */
     public function register_routes()
     {
-        $this->register_routes_in(self::NAMESPACE_CURRENT, self::BASE);
+        $namespace = self::NAMESPACE_CURRENT;
+        $base      = self::BASE;
 
-        if (Legacy::owned_elsewhere('Surfaces\\Rest')) {
-            return;
-        }
-
-        $this->register_routes_in(self::NAMESPACE_LEGACY, '');
-    }
-
-    /**
-     * Register the five routes under one namespace.
-     *
-     * @param string $namespace REST namespace.
-     * @param string $base      Route prefix ('' or '/self-test').
-     *
-     * @return void
-     *
-     * @since 1.0.0
-     */
-    private function register_routes_in($namespace, $base)
-    {
         $ids_arg = [
             'ids' => [
                 'description'       => __('Case ids from the registered manifests. Empty for every case.', Config::TEXT_DOMAIN),
@@ -181,7 +155,7 @@ final class Rest
     }
 
     /**
-     * Wrap a payload as a response, flagging calls to the deprecated namespace.
+     * Wrap a payload as a response.
      *
      * @param \WP_REST_Request $request Current request.
      * @param mixed            $payload Runner result.
@@ -192,13 +166,7 @@ final class Rest
      */
     private function respond(\WP_REST_Request $request, $payload)
     {
-        $response = rest_ensure_response($payload);
-        if (!is_wp_error($response) && strpos($request->get_route(), '/' . self::NAMESPACE_LEGACY) === 0) {
-            $response->header('Deprecation', 'true');
-            $response->header('Link', '</' . rest_get_url_prefix() . '/' . self::NAMESPACE_CURRENT . self::BASE . '>; rel="successor-version"');
-        }
-
-        return $response;
+        return rest_ensure_response($payload);
     }
 
     public function cases(\WP_REST_Request $request)

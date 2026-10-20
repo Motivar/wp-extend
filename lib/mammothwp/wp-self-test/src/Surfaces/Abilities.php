@@ -14,7 +14,6 @@
 
 namespace MammothWP\SelfTest\Surfaces;
 
-use MammothWP\SelfTest\Compat\Hooks;
 use MammothWP\SelfTest\Config;
 use MammothWP\SelfTest\Runner;
 
@@ -28,9 +27,6 @@ final class Abilities
 
     /** Ability name prefix: `mmwp/self-test-<verb>`. */
     const NAME_PREFIX = 'mmwp/self-test-';
-
-    /** Deprecated pre-1.0 ability name prefix: `mwp-self-test/<verb>`. */
-    const LEGACY_PREFIX = 'mwp-self-test/';
 
     /** @var Runner */
     private static $runner;
@@ -78,38 +74,10 @@ final class Abilities
          *
          * @since 0.1.0
          */
-        $definitions = Hooks::filter('mmwp_self_test_ability_definitions', self::definitions());
+        $definitions = apply_filters('mmwp_self_test_ability_definitions', self::definitions());
 
         foreach ($definitions as $name => $args) {
             wp_register_ability($name, $args);
-        }
-
-        self::register_legacy($definitions);
-    }
-
-    /**
-     * Keep the pre-1.0 ability names registered, flagged as deprecated.
-     *
-     * Skipped for names another copy of the package already registered.
-     *
-     * @param array<string,array> $definitions Definitions keyed by the new ability name.
-     *
-     * @return void
-     *
-     * @since 1.0.0
-     */
-    private static function register_legacy(array $definitions)
-    {
-        foreach ($definitions as $name => $args) {
-            $legacy = self::LEGACY_PREFIX . substr($name, strlen(self::NAME_PREFIX));
-            if (strpos($name, self::NAME_PREFIX) !== 0 || (function_exists('wp_has_ability') && wp_has_ability($legacy))) {
-                continue;
-            }
-
-            /* translators: %s: ability label. */
-            $args['label'] = sprintf(__('%s (deprecated)', Config::TEXT_DOMAIN), $args['label']);
-            $args['description'] = sprintf('Deprecated, use %s. %s', $name, $args['description']);
-            wp_register_ability($legacy, $args);
         }
     }
 
