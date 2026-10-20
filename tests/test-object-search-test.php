@@ -1,6 +1,6 @@
 <?php
 /**
- * Object search (1.5.7): `include` fetches given ids of the searched type,
+ * Object search (1.5.8): `include` fetches given ids of the searched type,
  * the capability follows the object type (post type `edit_posts`, taxonomy
  * `assign_terms`, else `manage_options`), and posts the user cannot read are
  * left out.

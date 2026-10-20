@@ -8,8 +8,6 @@
 
 namespace MammothWP\SelfTest;
 
-use MammothWP\SelfTest\Compat\Hooks;
-
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -18,9 +16,6 @@ final class Config
 {
     /** Option holding the last report and the contexts awaiting cleanup. */
     const STATE_OPTION = 'mmwp_self_test_state';
-
-    /** Pre-1.0 (gnnpls/wp-self-test) name of the state option; read as fallback, moved by Migration. */
-    const LEGACY_STATE_OPTION = 'mwp_self_test_state';
 
     /** Text domain of the package strings. */
     const TEXT_DOMAIN = 'wp-self-test';
@@ -41,7 +36,7 @@ final class Config
          *
          * @since 0.1.0
          */
-        return (string) Hooks::filter('mmwp_self_test_capability', 'manage_options');
+        return (string) apply_filters('mmwp_self_test_capability', 'manage_options');
     }
 
     /**
@@ -58,7 +53,7 @@ final class Config
         $environment = self::environment();
 
         /** This filter is documented in src/Loader.php */
-        return (bool) Hooks::filter('mmwp_self_test_enabled', $environment !== 'production', [$environment]);
+        return (bool) apply_filters('mmwp_self_test_enabled', $environment !== 'production', $environment);
     }
 
     /**
@@ -105,7 +100,7 @@ final class Config
          */
         $environment = self::environment();
 
-        return (bool) Hooks::filter('mmwp_self_test_ui_enabled', $environment !== 'production', [$environment]);
+        return (bool) apply_filters('mmwp_self_test_ui_enabled', $environment !== 'production', $environment);
     }
 
     /**
@@ -125,7 +120,7 @@ final class Config
          *
          * @since 0.1.0
          */
-        return (bool) Hooks::filter('mmwp_self_test_shim_enabled', self::ui_enabled());
+        return (bool) apply_filters('mmwp_self_test_shim_enabled', self::ui_enabled());
     }
 
     /**
@@ -145,7 +140,7 @@ final class Config
          *
          * @since 0.1.0
          */
-        return (bool) Hooks::filter('mmwp_self_test_abilities_available', function_exists('wp_get_ability'));
+        return (bool) apply_filters('mmwp_self_test_abilities_available', function_exists('wp_get_ability'));
     }
 
     /**
@@ -174,6 +169,6 @@ final class Config
          *
          * @since 0.1.0
          */
-        return (string) Hooks::filter('mmwp_self_test_asset_url', $url, [$relative]);
+        return (string) apply_filters('mmwp_self_test_asset_url', $url, $relative);
     }
 }

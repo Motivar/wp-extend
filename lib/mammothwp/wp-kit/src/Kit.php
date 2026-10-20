@@ -139,7 +139,6 @@ final class Kit
              * @since 0.1.0
              */
             do_action('mmwp_kit_booted', $path, self::version());
-            \MammothWP\WpKit\Compat\Legacy_Hooks::action('mmwp_kit_booted', [$path, self::version()]);
         }
 
         $queue       = self::$ready;

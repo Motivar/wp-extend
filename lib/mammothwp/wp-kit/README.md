@@ -181,16 +181,6 @@ routes, CLI commands and ability names it is exposed as, plus the surfaces it
 deliberately excludes and why. Parity tests and generated test manifests read
 it instead of hand-maintained lists.
 
-## Upgrading from gnnpls/wp-kit
-
-`mammothwp/wp-kit` 1.0.0 replaces `gnnpls/wp-kit` (Composer `replace` keeps
-the two from being installed together). Namespace `Gnnpls\WP\` is now
-`MammothWP\WpKit\`, hooks `mwp_*` are now `mmwp_kit_*`, and error codes
-`mwp_*` are now `mmwp_*`. Old class names and hooks keep working for one major
-version and log a deprecation notice; error codes do not alias, so update any
-code that compares against them. The full rename table is in the
-[CHANGELOG](CHANGELOG.md).
-
 ## Brand
 
 Naming, prefixes and tone: [docs/BRAND.md](docs/BRAND.md).

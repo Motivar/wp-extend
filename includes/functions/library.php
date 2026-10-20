@@ -573,7 +573,7 @@ if (!function_exists('awm_prepare_field')) {
      * @param bool   $resolve_options Optional. Run the field's options callback. Default true.
      * @return array The prepared field data.
      *
-     * @since 1.5.7 Added `$resolve_options`; `ewp_content_types` and `ewp_option_pages` resolve through a callback.
+     * @since 1.5.8 Added `$resolve_options`; `ewp_content_types` and `ewp_option_pages` resolve through a callback.
      */
     function awm_prepare_field($a, $awm_id = '', $resolve_options = true)
     {
@@ -669,7 +669,7 @@ if (!function_exists('awm_resolve_field_options')) {
      * @param array $a Field data, as returned by awm_prepare_field().
      * @return array The field with `options` filled.
      *
-     * @since 1.5.7
+     * @since 1.5.8
      */
     function awm_resolve_field_options($a)
     {
@@ -691,7 +691,7 @@ if (!function_exists('awm_ewp_content_type_options')) {
      *
      * @return array Content type id => definition (with `label`).
      *
-     * @since 1.5.7 Extracted from awm_prepare_field().
+     * @since 1.5.8 Extracted from awm_prepare_field().
      */
     function awm_ewp_content_type_options()
     {
@@ -706,7 +706,7 @@ if (!function_exists('awm_ewp_option_page_options')) {
      *
      * @return array Page id => array('label' => "Title (N fields)").
      *
-     * @since 1.5.7 Extracted from awm_prepare_field().
+     * @since 1.5.8 Extracted from awm_prepare_field().
      */
     function awm_ewp_option_page_options()
     {

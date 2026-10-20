@@ -12,8 +12,6 @@
 
 namespace MammothWP\SelfTest;
 
-use MammothWP\SelfTest\Compat\Hooks;
-
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -91,8 +89,6 @@ final class Self_Test
             add_action('init', [$this, 'fire_register'], 0);
         }
 
-        add_action('init', [Migration::class, 'maybe_run'], 1);
-
         Surfaces\Cli::init($this->runner);
         Surfaces\Abilities::init($this->runner);
 
@@ -125,6 +121,6 @@ final class Self_Test
          *
          * @since 0.1.0
          */
-        Hooks::action('mmwp_self_test_register', [$this->registry]);
+        do_action_ref_array('mmwp_self_test_register', [$this->registry]);
     }
 }

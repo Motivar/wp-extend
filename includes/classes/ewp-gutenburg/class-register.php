@@ -189,7 +189,7 @@ class EWP_Dynamic_Blocks
    *
    * @return void
    *
-   * @since 1.5.7 Hooked on `enqueue_block_editor_assets` only; uses editor_blocks().
+   * @since 1.5.8 Hooked on `enqueue_block_editor_assets` only; uses editor_blocks().
    */
   public function load_scripts()
   {
@@ -264,7 +264,7 @@ class EWP_Dynamic_Blocks
    * @param array $attributes Prepared attributes (see prepare_attributes()).
    * @return array<string, array{type: string, default: mixed}>
    *
-   * @since 1.5.7
+   * @since 1.5.8
    */
   private function attribute_schema($attributes)
   {
@@ -350,7 +350,7 @@ class EWP_Dynamic_Blocks
    * @param bool         $resolve_options Optional. Run select option callbacks. Default false.
    * @return array Prepared attributes.
    *
-   * @since 1.5.7 Added `$resolve_options` and `object_search`.
+   * @since 1.5.8 Added `$resolve_options` and `object_search`.
    */
   private function prepare_attributes($attributes, $block_name, $resolve_options = false)
   {
@@ -452,7 +452,7 @@ class EWP_Dynamic_Blocks
    * @param array $attribute Field definition.
    * @return array|null
    *
-   * @since 1.5.7
+   * @since 1.5.8
    */
   private function object_search_config($attribute)
   {
@@ -476,7 +476,7 @@ class EWP_Dynamic_Blocks
    * @param array $block Gathered block.
    * @return array
    *
-   * @since 1.5.7
+   * @since 1.5.8
    */
   private function editor_block($block)
   {
@@ -498,7 +498,7 @@ class EWP_Dynamic_Blocks
    *
    * @return array
    *
-   * @since 1.5.7
+   * @since 1.5.8
    */
   private function definitions()
   {
@@ -537,7 +537,7 @@ class EWP_Dynamic_Blocks
    *
    * @return array Processed blocks ready for registration.
    *
-   * @since 1.5.7 Option callbacks are no longer resolved here (see editor_blocks()).
+   * @since 1.5.8 Option callbacks are no longer resolved here (see editor_blocks()).
    */
   public function gather_blocks()
   {
@@ -554,7 +554,7 @@ class EWP_Dynamic_Blocks
    *
    * @return array
    *
-   * @since 1.5.7
+   * @since 1.5.8
    */
   public function editor_blocks()
   {
@@ -587,7 +587,7 @@ class EWP_Dynamic_Blocks
    *
    * @return void
    *
-   * @since 1.5.7
+   * @since 1.5.8
    */
   public static function reset()
   {

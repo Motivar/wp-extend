@@ -82,7 +82,7 @@ all surfaces by `Operation::run()`:
   flushing `manage_options`; site info and the type inventory `read`; the
   REST-health inventory `is_super_admin()`; object search the
   `awm_object_search_capability` filter (default per object type since
-  1.5.7: the post type's `edit_posts`, the taxonomy's `assign_terms`,
+  1.5.8: the post type's `edit_posts`, the taxonomy's `assign_terms`,
   otherwise `manage_options`; posts the user cannot read are left out).
 - Anonymous callers get 401, authenticated callers without the capability
   403. An unattended WP-CLI run (no `--user`) is trusted as an

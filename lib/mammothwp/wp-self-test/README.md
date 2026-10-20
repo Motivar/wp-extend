@@ -9,7 +9,7 @@ on five surfaces:
 |---|---|
 | wp-admin | Tools › Self-test (only when the environment is not `production`) |
 | REST | `mmwp/v1/self-test/{cases,preview,run,cleanup,report}` (same gate) |
-| WP-CLI | `wp mmwp self-test [<slug>]` and `wp mmwp self-test list\|preview\|run\|cleanup\|report\|migrate` |
+| WP-CLI | `wp mmwp self-test [<slug>]` and `wp mmwp self-test list\|preview\|run\|cleanup\|report` |
 | Abilities API | `mmwp/self-test-{list-cases,preview,run,cleanup,get-report}` (WP 6.9+) |
 | Pre-push hook | `bin/pre-push`, `bin/run.php` |
 
@@ -48,7 +48,7 @@ safe.
 | From | Command |
 |---|---|
 | wp-admin | Tools › Self-test (`?page=mmwp-self-test`), non-production only |
-| WP-CLI | `wp mmwp self-test <slug> --format=table` runs one plugin's cases; without `<slug>` it runs every case. Actions: `list`, `preview`, `run [--cleanup]`, `cleanup`, `report`, `migrate [--dry-run]`. Exits 1 when a case fails. |
+| WP-CLI | `wp mmwp self-test <slug> --format=table` runs one plugin's cases; without `<slug>` it runs every case. Actions: `list`, `preview`, `run [--cleanup]`, `cleanup`, `report`. Exits 1 when a case fails. |
 | REST | `GET mmwp/v1/self-test/cases`, `GET .../preview`, `POST .../run`, `POST .../cleanup`, `GET .../report` (cookie + `X-WP-Nonce`, `manage_options`) |
 | Abilities | `mmwp/self-test-list-cases`, `-preview`, `-run`, `-cleanup`, `-get-report`; run and cleanup need `confirm: true` |
 | Pre-push | `bin/pre-push` via `bin/install-hooks`, or `php bin/run.php` (see below) |
@@ -192,39 +192,6 @@ a bootstrap can point `phpunit.xml` and `bin/run.php` at
 
 State (last report, contexts awaiting cleanup) lives in the
 `mmwp_self_test_state` option.
-
-The same names with the `mwp_` prefix still fire for one major version; see
-[HOOKS.md](HOOKS.md#deprecated-hook-names-pre-10).
-
-## Upgrading from gnnpls/wp-self-test
-
-1.0.0 is the Mammoth WP rebrand. Nothing you wrote has to change on day one:
-
-- `composer.json` declares `replace: gnnpls/wp-self-test`, so Composer will not
-  install both. Swap the requirement for `mammothwp/wp-self-test`.
-- `Gnnpls\SelfTest\*` class names are `class_alias()`ed to
-  `MammothWP\SelfTest\*` (see `compat.php`), so existing `extends Case_Base`
-  keeps working. Each old class name is reported once per site, as an
-  `E_USER_DEPRECATED` notice when `WP_DEBUG` is on.
-- `mwp_self_test_*` hooks still fire after their `mmwp_` replacements, with
-  WordPress's usual deprecation notice when something is attached.
-- `wp mwp self-test <action>` still works, prints a deprecation warning and
-  forwards. The `mwp-self-test/v1` REST routes and `mwp-self-test/*` abilities
-  stay registered as deprecated aliases.
-- The `mwp_self_test_state` option is moved to `mmwp_self_test_state` once, on
-  the first request after the upgrade. Check first with
-  `wp mmwp self-test migrate --dry-run`. Until then the old option is read as a
-  fallback.
-- `MWP_PLUGIN_FILES` and `MWP_SELF_TEST_BOOTSTRAP` / `_AUTOLOAD` are still read.
-- Re-run `bin/install-hooks`; it replaces hooks written by the old package.
-
-Not aliased: the dashboard page slug (`mwp-self-test` is now `mmwp-self-test`),
-its CSS classes and JS globals. If another active plugin still bundles an old
-`gnnpls/wp-self-test` copy, both copies boot side by side until that plugin is
-updated; the deprecated CLI alias and REST routes are skipped in that case so
-the old copy keeps ownership of them.
-
-Every renamed identifier is listed in the [CHANGELOG](CHANGELOG.md#100---2026-10-20).
 
 ## Brand
 

@@ -29,7 +29,7 @@ final class Object_Search
      * @return array|\WP_Error List of `{id, label, type}` results.
      *
      * @since 1.5.0
-     * @since 1.5.7 `include`; posts of another type and posts the logged-in user cannot read are left out.
+     * @since 1.5.8 `include`; posts of another type and posts the logged-in user cannot read are left out.
      */
     public function search($object_type, $search = '', array $args = [])
     {
@@ -80,7 +80,7 @@ final class Object_Search
      * @param string $object_type Object type.
      * @return array{0: string, 1: string}|\WP_Error
      *
-     * @since 1.5.7
+     * @since 1.5.8
      */
     public static function parse_object_type($object_type)
     {
@@ -121,7 +121,7 @@ final class Object_Search
      * @return string
      *
      * @since 1.5.0
-     * @since 1.5.7 Per object type; `$object_type` passed to the filter.
+     * @since 1.5.8 Per object type; `$object_type` passed to the filter.
      */
     public static function capability($object_type = '')
     {
@@ -129,7 +129,7 @@ final class Object_Search
          * Filter the capability required to use the object search.
          *
          * @since 1.5.0
-         * @since 1.5.7 Default depends on the object type; `$object_type` added.
+         * @since 1.5.8 Default depends on the object type; `$object_type` added.
          *
          * @param string $capability  Capability (post type `edit_posts`, taxonomy `assign_terms`, else `manage_options`).
          * @param string $object_type `{group}:{slug}` being searched, '' when unknown.

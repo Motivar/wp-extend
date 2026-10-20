@@ -1,6 +1,6 @@
 <?php
 /**
- * Block select options load lazily (1.5.7): option callbacks never run while
+ * Block select options load lazily (1.5.8): option callbacks never run while
  * blocks are gathered and registered on every request, only when the block
  * editor payload is built; WordPress gets a `type` + `default` schema; the
  * editor payload carries no PHP callables; `object_search` selects never

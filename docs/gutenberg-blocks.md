@@ -36,9 +36,9 @@ definitions cheap:
 | A select with `object_search` | never: the editor searches over REST as the user types |
 | `render_callback` | when a saved block renders, and for the editor preview |
 
-Since 1.5.7 `register_block_type()` receives only `type` and `default` per
+Since 1.5.8 `register_block_type()` receives only `type` and `default` per
 attribute, so labels and options never reach the block type registry or
-`/wp/v2/block-types`. Before 1.5.7 option callbacks ran during registration on
+`/wp/v2/block-types`. Before 1.5.8 option callbacks ran during registration on
 every request; a select listing every post of a large site made each admin
 request (list screens, `admin-ajax.php`) take seconds.
 
@@ -62,7 +62,7 @@ the field's `filter_options_by` holds one of those values
 (`'@post_type'` follows the post type being edited). Values that stop being
 offered are cleared.
 
-### Large option lists: `object_search` (1.5.7)
+### Large option lists: `object_search` (1.5.8)
 
 For choices that can grow without bound (posts, terms, custom content rows),
 add `object_search` to a select. The editor never receives a list: it calls
@@ -81,8 +81,8 @@ results) and, once, with `include=<saved ids>` to label what is saved.
         'limit'       => 20,
         'search_meta' => false,
     ),
-    // Optional: a callback is still honoured by EWP < 1.5.7, which does not
-    // know object_search. EWP 1.5.7+ never calls it for this field.
+    // Optional: a callback is still honoured by EWP < 1.5.8, which does not
+    // know object_search. EWP 1.5.8+ never calls it for this field.
     'callback'      => array($this, 'post_options'),
 ),
 ```

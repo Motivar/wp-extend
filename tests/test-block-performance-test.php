@@ -1,6 +1,6 @@
 <?php
 /**
- * Block performance under extreme content (1.5.7): with 1,500 posts and a
+ * Block performance under extreme content (1.5.8): with 1,500 posts and a
  * block whose select callback lists every one of them (the Filox Post Slider
  * shape behind the onparnassos.gr incident), admin requests, front-end
  * renders and the block editor payload must stay within their time and query

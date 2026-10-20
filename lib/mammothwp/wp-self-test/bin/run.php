@@ -11,7 +11,7 @@
  *   php bin/run.php [--bootstrap=tests/bootstrap.php] [--autoload=tests/vendor/autoload.php] [--plugin=<slug>] [case,ids]
  *
  * Environment: MMWP_SELF_TEST_BOOTSTRAP and MMWP_SELF_TEST_AUTOLOAD provide
- * the same two paths (the pre-1.0 MWP_SELF_TEST_* names are still read, deprecated). Relative paths resolve against the working directory.
+ * the same two paths. Relative paths resolve against the working directory.
  *
  * @package MammothWP\SelfTest
  * @since   0.1.0
@@ -39,8 +39,8 @@ $resolve = function ($path) {
     return $path[0] === '/' ? $path : getcwd() . '/' . $path;
 };
 
-$autoload  = $resolve(isset($options['autoload']) ? $options['autoload'] : (getenv('MMWP_SELF_TEST_AUTOLOAD') ?: getenv('MWP_SELF_TEST_AUTOLOAD') ?: 'tests/vendor/autoload.php'));
-$bootstrap = $resolve(isset($options['bootstrap']) ? $options['bootstrap'] : (getenv('MMWP_SELF_TEST_BOOTSTRAP') ?: getenv('MWP_SELF_TEST_BOOTSTRAP') ?: 'tests/bootstrap.php'));
+$autoload  = $resolve(isset($options['autoload']) ? $options['autoload'] : (getenv('MMWP_SELF_TEST_AUTOLOAD') ?: 'tests/vendor/autoload.php'));
+$bootstrap = $resolve(isset($options['bootstrap']) ? $options['bootstrap'] : (getenv('MMWP_SELF_TEST_BOOTSTRAP') ?: 'tests/bootstrap.php'));
 
 if ($autoload !== '' && is_file($autoload)) {
     require $autoload;
