@@ -21,6 +21,19 @@ PLUGIN_DIR="wp-content/plugins/$(basename "$REPO_ROOT")"
 RUNNER="lib/mammothwp/wp-self-test/bin/run.php"
 [ -f "$RUNNER" ] || RUNNER="tests/self-test-runner.php"
 
+# Already inside the DDEV web container: `ddev` there is a stub that prints a
+# hint and exits 0, which would report a pass without running anything.
+if [ "${IS_DDEV_PROJECT:-}" = "true" ]; then
+    cd "/var/www/html/$PLUGIN_DIR" || exit 1
+    [ -x "tests/vendor/bin/phpunit" ] || (cd tests && composer install --no-interaction --prefer-dist) || exit 1
+    echo "[tests] Running PHPUnit (tests/) inside DDEV..."
+    WP_CORE_DIR=/var/www/html WP_TESTS_DB_HOST=db tests/vendor/bin/phpunit -c phpunit.xml.dist || exit 1
+    echo "[tests] Running the self-test suite ($RUNNER) inside DDEV..."
+    WP_CORE_DIR=/var/www/html WP_TESTS_DB_HOST=db php "$RUNNER" || exit 1
+    echo "[tests] All tests passed."
+    exit 0
+fi
+
 if ! command -v ddev >/dev/null 2>&1; then
     echo "[tests] ddev not found on PATH — skipping (not a failure)."
     exit 0

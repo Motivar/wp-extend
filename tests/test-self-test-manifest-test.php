@@ -99,7 +99,8 @@ class Test_Self_Test_Manifest extends WP_UnitTestCase
         $covered    = $this->covered()['cli'];
         $registered = array_unique(array_column(\WP_CLI\StubRecorder::$commands, 'command'));
         $uncovered  = array_filter($registered, function ($command) use ($covered) {
-            return strpos($command, 'mmwp self-test') !== 0 && !in_array($command, $covered, true);
+            // The package owns `mmwp self-test` and its legacy `mwp self-test <action>` aliases.
+            return strpos($command, 'mmwp self-test') !== 0 && strpos($command, 'mwp self-test') !== 0 && !in_array($command, $covered, true);
         });
 
         $this->assertSame([], array_values($uncovered), 'Registered WP-CLI commands missing from manifest.json "covers.cli"');
@@ -234,9 +235,8 @@ class Test_Self_Test_Manifest extends WP_UnitTestCase
             $this->assertTrue(wp_has_ability('mmwp/self-test-' . $slug), "mmwp/self-test-{$slug} must be registered");
         }
 
+        // One `mmwp self-test <action>` dispatcher; the actions are its arguments.
         $commands = array_column(\WP_CLI\StubRecorder::$commands, 'command');
-        foreach (['list', 'preview', 'run', 'cleanup', 'report'] as $command) {
-            $this->assertContains('mmwp self-test ' . $command, $commands);
-        }
+        $this->assertContains('mmwp self-test', $commands);
     }
 }

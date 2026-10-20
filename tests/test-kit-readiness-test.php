@@ -67,7 +67,7 @@ class Test_Kit_Readiness extends WP_UnitTestCase
             $this->assertSame('v' . $version, $locked[0]['version']);
         }
         $this->assertSame('mammothwp/wp-kit', $composer['name']);
-        $this->assertSame(['bootstrap.php'], $composer['autoload']['files']);
+        $this->assertSame(['bootstrap.php', 'compat.php'], $composer['autoload']['files'], 'bootstrap.php plus the gnnpls/wp-kit compatibility bridges');
         $this->assertArrayNotHasKey('psr-4', $composer['autoload'], 'production autoload must stay loader-owned');
     }
 

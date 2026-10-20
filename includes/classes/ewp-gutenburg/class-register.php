@@ -14,11 +14,33 @@ if (!defined('ABSPATH')) {
 class EWP_Dynamic_Blocks
 {
   /**
-   * Holds the block information to prevent redundant processing.
+   * Block definitions from `ewp_gutenburg_blocks_filter`, names cleaned and
+   * sorted, attributes not prepared yet. Null until first gathered.
    *
-   * @var array|bool $blocks Cache for the gathered blocks.
+   * @var array|null
    */
-  static $blocks = false;
+  private static $definitions = null;
+
+  /**
+   * Gathered blocks without resolved option callbacks (registration, REST).
+   *
+   * @var array|null
+   */
+  static $blocks = null;
+
+  /**
+   * Gathered blocks with select options resolved (block editor payload).
+   *
+   * @var array|null
+   */
+  private static $editor_blocks = null;
+
+  /**
+   * Keys of a field definition that hold PHP callables. They never reach the
+   * editor payload: json-encoding an object callback would serialise the
+   * object's public properties.
+   */
+  const CALLABLE_KEYS = array('callback', 'callback_variables', 'render_callback');
 
   /** @var EWP_Dynamic_Blocks|null The instance Setup created. */
   private static $instance = null;
@@ -50,8 +72,7 @@ class EWP_Dynamic_Blocks
     add_action('init', [$this, 'register_blocks']);
     add_action('init', [$this, 'register_script']);
 
-    // Enqueue scripts in the frontend and block editor.
-    add_action('wp_enqueue_scripts', [$this, 'load_scripts']);
+    // The editor payload (with resolved select options) is only built for the block editor.
     add_action('enqueue_block_editor_assets', [$this, 'load_scripts']);
 
     // Register REST API endpoints for the blocks.
@@ -160,22 +181,24 @@ class EWP_Dynamic_Blocks
   }
 
   /**
-   * Enqueues scripts for the registered blocks.
+   * Hands the blocks to the editor script, on `enqueue_block_editor_assets`.
    *
-   * Dynamically loads additional scripts specified by blocks and
-   * ensures they are loaded only where necessary.
+   * This is the only place select option callbacks run: the payload is built
+   * from editor_blocks() and only for the block editor (post, site and widget
+   * editors), never on front-end or other admin requests.
+   *
+   * @return void
+   *
+   * @since 1.5.7 Hooked on `enqueue_block_editor_assets` only; uses editor_blocks().
    */
   public function load_scripts()
   {
-    $blocks = $this->gather_blocks();
-    if (empty($blocks) || !is_array($blocks)) {
+    $blocks = $this->editor_blocks();
+    if (empty($blocks)) {
       return;
     }
-    // Conditionally enqueue editor scripts only in admin context.
-    if (is_admin()) {
-      wp_localize_script('ewp-gutenberg-blocks', 'ewp_blocks', $blocks);
-      wp_enqueue_script('ewp-gutenberg-blocks');
-    }
+    wp_localize_script('ewp-gutenberg-blocks', 'ewp_blocks', $blocks);
+    wp_enqueue_script('ewp-gutenberg-blocks');
   }
 
   /**
@@ -216,7 +239,7 @@ class EWP_Dynamic_Blocks
 
       register_block_type($block_name, array(
         'api_version' => 3,
-        'attributes' => (isset($block['attributes']) && !empty($block['attributes'])) ? $block['attributes'] : array(),
+        'attributes' => $this->attribute_schema(isset($block['attributes']) ? $block['attributes'] : array()),
         'editor_style' => isset($block['style']) ? $block['style'] : '',
         'style' => isset($block['style']) ? $block['style'] : '',
         'editor_script' => (isset($block['script']) && !empty($block['script'])) ? $block['script'] : '',
@@ -232,6 +255,29 @@ class EWP_Dynamic_Blocks
     }
     return $blocks;
   }
+  /**
+   * The attribute schema WordPress needs for a block: `type` and `default`
+   * per attribute. Labels, options and the other editor settings travel in
+   * the editor payload only, so they stay out of `/wp/v2/block-types` and the
+   * block type registry.
+   *
+   * @param array $attributes Prepared attributes (see prepare_attributes()).
+   * @return array<string, array{type: string, default: mixed}>
+   *
+   * @since 1.5.7
+   */
+  private function attribute_schema($attributes)
+  {
+    $schema = array();
+    foreach ((array) $attributes as $key => $attribute) {
+      $schema[$key] = array(
+        'type' => isset($attribute['type']) ? $attribute['type'] : 'string',
+        'default' => isset($attribute['default']) ? $attribute['default'] : '',
+      );
+    }
+    return $schema;
+  }
+
   /**
    * The icon a block registers with: its own `icon`, or `admin-site` when unset or empty.
    *
@@ -290,13 +336,23 @@ class EWP_Dynamic_Blocks
 
 
   /**
-   * Prepares and sanitizes block attributes for secure block registration.
+   * Prepares block attributes: field case to editor control, attribute type
+   * and default.
    *
-   * @param array $attributes Block attributes to be sanitized.
-   * @param string $block_name Name of the block being processed.
-   * @return array Sanitized attributes.
+   * Select options are only resolved with `$resolve_options` (the editor
+   * payload). Without it a select keeps its static `options`, if it declared
+   * any, and its `callback` is never called, so registering blocks on every
+   * request does not run option queries. A select with `object_search` never
+   * resolves its options: the editor searches them over REST.
+   *
+   * @param array|string $attributes      Block attributes, or a function name returning them.
+   * @param string       $block_name      Name of the block being processed.
+   * @param bool         $resolve_options Optional. Run select option callbacks. Default false.
+   * @return array Prepared attributes.
+   *
+   * @since 1.5.7 Added `$resolve_options` and `object_search`.
    */
-  private function prepare_attributes($attributes, $block_name)
+  private function prepare_attributes($attributes, $block_name, $resolve_options = false)
   {
     $prepared_attributes = array();
 
@@ -307,14 +363,20 @@ class EWP_Dynamic_Blocks
       return array();
     }
     foreach ($attributes as $key => $attribute) {
-      $attribute = awm_prepare_field($attribute, $block_name);
+      $search = $this->object_search_config($attribute);
+      $attribute = awm_prepare_field($attribute, $block_name, $resolve_options && $search === null);
       $type = 'string';
       $render_type = 'string';
       switch ($attribute['case']) {
         case 'select':
           $render_type = 'select';
+          if ($search !== null) {
+            $render_type = 'object_search';
+            $attribute['object_search'] = $search;
+            $attribute['options'] = array();
+          }
           $options = array();
-          foreach ($attribute['options'] as $option_key => $option) {
+          foreach ((array) (isset($attribute['options']) ? $attribute['options'] : array()) as $option_key => $option) {
             $prepared_option = array('option' => $option_key, 'label' => $option['label']);
             // Dependent options: when the field sets `filter_options_by` (another
             // attribute key), an option with `filter_values` is only offered while
@@ -373,38 +435,165 @@ class EWP_Dynamic_Blocks
   }
 
   /**
-   * Gathers and prepares blocks for registration.
+   * Normalised `object_search` settings of a select attribute, or null when
+   * it has none.
    *
-   * @return array Processed blocks ready for registration.
+   * A select with `object_search` gets a search-as-you-type control in the
+   * block editor (`extend-wp/v1/objects/search`) instead of a full option
+   * list. Settings:
+   * - `object_type` (string) fixed `{group}:{slug}`, e.g. `post_type:page`.
+   * - `type_from` (string) attribute whose value is the slug to search,
+   *   e.g. `post_type`; used when `object_type` is empty.
+   * - `group` (string) `post_type` (default), `taxonomy` or `custom_content`,
+   *   prefixed to the `type_from` value.
+   * - `limit` (int) results per search, default 20.
+   * - `search_meta` (bool) also match meta values, default false.
+   *
+   * @param array $attribute Field definition.
+   * @return array|null
+   *
+   * @since 1.5.7
    */
-  public function gather_blocks()
+  private function object_search_config($attribute)
   {
-
-
-    if (self::$blocks) {
-      return self::$blocks;
+    if (!is_array($attribute) || empty($attribute['object_search'])) {
+      return null;
     }
-    $blocks = apply_filters('ewp_gutenburg_blocks_filter', array());
+    $config = is_array($attribute['object_search']) ? $attribute['object_search'] : array();
+    $group = isset($config['group']) ? sanitize_key($config['group']) : 'post_type';
+    return array(
+      'object_type' => isset($config['object_type']) ? (string) $config['object_type'] : '',
+      'type_from' => isset($config['type_from']) ? (string) $config['type_from'] : '',
+      'group' => in_array($group, array('post_type', 'taxonomy', 'custom_content'), true) ? $group : 'post_type',
+      'limit' => isset($config['limit']) ? max(1, absint($config['limit'])) : 20,
+      'search_meta' => !empty($config['search_meta']),
+    );
+  }
+
+  /**
+   * A gathered block without its PHP callables, for the editor payload.
+   *
+   * @param array $block Gathered block.
+   * @return array
+   *
+   * @since 1.5.7
+   */
+  private function editor_block($block)
+  {
+    foreach (self::CALLABLE_KEYS as $callable_key) {
+      unset($block[$callable_key]);
+    }
+    foreach ((array) (isset($block['attributes']) ? $block['attributes'] : array()) as $key => $attribute) {
+      foreach (self::CALLABLE_KEYS as $callable_key) {
+        unset($block['attributes'][$key][$callable_key]);
+      }
+    }
+    return $block;
+  }
+
+  /**
+   * Block definitions from `ewp_gutenburg_blocks_filter`, sorted by
+   * `priority` with namespace and name cleaned. The filter runs once per
+   * request.
+   *
+   * @return array
+   *
+   * @since 1.5.7
+   */
+  private function definitions()
+  {
+    if (self::$definitions !== null) {
+      return self::$definitions;
+    }
     /**
-     * sort settings by order
+     * Blocks to register. Runs on every request (on `init`), so block
+     * definitions must stay cheap: list select options through a field
+     * `callback`, which only runs for the block editor, or `object_search`.
+     *
+     * @param array $blocks Block id => definition.
      */
-    if (!empty($blocks) && is_array($blocks)) {
-      
+    $blocks = apply_filters('ewp_gutenburg_blocks_filter', array());
+    if (empty($blocks) || !is_array($blocks)) {
+      self::$definitions = array();
+      return self::$definitions;
+    }
     uasort($blocks, function ($a, $b) {
-        $first = isset($attribute['priority']) ? $attribute['priority'] : 100;
+      $first = isset($a['priority']) ? $a['priority'] : 100;
       $second = isset($b['priority']) ? $b['priority'] : 100;
       return $first - $second;
     });
-
     foreach ($blocks as &$block) {
-        $block['namespace'] = preg_replace("/[^a-zA-Z0-9]/", "", awm_clean_string($block['namespace']));
-        $block['name'] = preg_replace("/[^a-zA-Z0-9]/", "", awm_clean_string($block['name']));
-      $block['attributes'] = $this->prepare_attributes($block['attributes'], $block['name']);
+      $block['namespace'] = preg_replace("/[^a-zA-Z0-9]/", "", awm_clean_string($block['namespace']));
+      $block['name'] = preg_replace("/[^a-zA-Z0-9]/", "", awm_clean_string($block['name']));
     }
+    unset($block);
+    self::$definitions = $blocks;
+    return self::$definitions;
+  }
+
+  /**
+   * Blocks with prepared attributes, select option callbacks not run.
+   * Used for registration and the preview routes on every request.
+   *
+   * @return array Processed blocks ready for registration.
+   *
+   * @since 1.5.7 Option callbacks are no longer resolved here (see editor_blocks()).
+   */
+  public function gather_blocks()
+  {
+    if (self::$blocks !== null) {
+      return self::$blocks;
     }
-  
-    self::$blocks = $blocks;
+    self::$blocks = $this->prepare_blocks(false);
+    return self::$blocks;
+  }
+
+  /**
+   * Blocks for the editor script: select options resolved, PHP callables
+   * removed. Only load_scripts() (block editor) builds this.
+   *
+   * @return array
+   *
+   * @since 1.5.7
+   */
+  public function editor_blocks()
+  {
+    if (self::$editor_blocks !== null) {
+      return self::$editor_blocks;
+    }
+    self::$editor_blocks = array_map(array($this, 'editor_block'), $this->prepare_blocks(true));
+    return self::$editor_blocks;
+  }
+
+  /**
+   * The block definitions with their attributes prepared.
+   *
+   * @param bool $resolve_options Run select option callbacks.
+   * @return array
+   */
+  private function prepare_blocks($resolve_options)
+  {
+    $blocks = $this->definitions();
+    foreach ($blocks as &$block) {
+      $block['attributes'] = $this->prepare_attributes(isset($block['attributes']) ? $block['attributes'] : array(), $block['name'], $resolve_options);
+    }
+    unset($block);
     return $blocks;
+  }
+
+  /**
+   * Forget the gathered blocks so the next call reads the filter again.
+   * For tests and for code that adds blocks after `init`.
+   *
+   * @return void
+   *
+   * @since 1.5.7
+   */
+  public static function reset()
+  {
+    self::$definitions = null;
+    self::$blocks = null;
+    self::$editor_blocks = null;
   }
 }
 

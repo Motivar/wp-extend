@@ -175,6 +175,133 @@ const tokenMaps = (options) => {
   };
 };
 
+/** REST route of the object search behind `object_search` selects. */
+const OBJECT_SEARCH_PATH = '/extend-wp/v1/objects/search';
+
+/** Milliseconds to wait after the last keystroke before searching. */
+const OBJECT_SEARCH_DEBOUNCE = 300;
+
+/**
+ * The `{group}:{slug}` an `object_search` select searches, or '' while the
+ * attribute it follows (`type_from`) is still empty.
+ *
+ * @param {Object} config Prepared `object_search` settings.
+ * @param {Object} values Current attribute values of the block.
+ * @return {string}
+ */
+const objectSearchType = (config, values) => {
+  if (config.object_type) {
+    return config.object_type;
+  }
+  const slug = config.type_from ? values[config.type_from] : '';
+  return slug ? `${config.group || 'post_type'}:${slug}` : '';
+};
+
+/**
+ * Query string for the object search route.
+ *
+ * @param {Object} params Parameters; arrays are sent comma-separated.
+ * @return {string}
+ */
+const objectSearchQuery = (params) => new URLSearchParams(
+  Object.entries(params)
+    .filter(([, value]) => value !== '' && value != null && !(Array.isArray(value) && !value.length))
+    .map(([name, value]) => [name, Array.isArray(value) ? value.join(',') : String(value)])
+).toString();
+
+/**
+ * Results of one object search request as `{ value, label }` options.
+ *
+ * @param {Object} params Route parameters (object_type, search, include, limit, search_meta).
+ * @return {Promise<Array>}
+ */
+const fetchObjectOptions = (params) => apiFetch({ path: `${OBJECT_SEARCH_PATH}?${objectSearchQuery(params)}` })
+  .then((response) => (Array.isArray(response?.data) ? response.data : []).map((item) => ({ value: String(item.id), label: String(item.label) })))
+  .catch((error) => {
+    ewpLog('Object search failed', error);
+    return [];
+  });
+
+/**
+ * Search-as-you-type select for attributes with `object_search`: the editor
+ * never receives a full option list, it asks the object search route for the
+ * typed text (and, once, for the labels of the saved ids).
+ *
+ * @param {Object}   props
+ * @param {string}   props.label       Field label.
+ * @param {*}        props.explanation Explanation element, or null.
+ * @param {Object}   props.data        Prepared attribute (object_search, multiple).
+ * @param {*}        props.value       Stored value: array of ids, or one id.
+ * @param {Object}   props.values      All attribute values of the block.
+ * @param {Function} props.onChange    Receives the new value.
+ * @return {Element}
+ */
+const ObjectSearchControl = ({ label, explanation, data, value, values, onChange }) => {
+  const config = data.object_search || {};
+  const objectType = objectSearchType(config, values);
+  const stored = (Array.isArray(value) ? value : [value]).filter((v) => v != null && v !== '').map(String);
+  const [known, setKnown] = useState({});
+  const [suggestions, setSuggestions] = useState([]);
+  const [search, setSearch] = useState('');
+
+  const remember = (options) => setKnown((prev) => options.reduce((acc, opt) => ({ ...acc, [opt.value]: opt.label }), { ...prev }));
+
+  // Labels of saved ids, fetched once per object type.
+  useEffect(() => {
+    const missing = stored.filter((id) => !known[id]);
+    if (!objectType || !missing.length) {
+      return;
+    }
+    fetchObjectOptions({ object_type: objectType, include: missing, limit: missing.length }).then(remember);
+  }, [objectType, stored.join(',')]);
+
+  // Debounced search for the typed text.
+  useEffect(() => {
+    if (!objectType) {
+      setSuggestions([]);
+      return undefined;
+    }
+    const timer = setTimeout(() => {
+      fetchObjectOptions({ object_type: objectType, search, limit: config.limit || 20, search_meta: config.search_meta ? 1 : 0 })
+        .then((options) => {
+          remember(options);
+          setSuggestions(options);
+        });
+    }, OBJECT_SEARCH_DEBOUNCE);
+    return () => clearTimeout(timer);
+  }, [objectType, search]);
+
+  const tokens = tokenMaps([
+    ...stored.map((id) => ({ value: id, label: known[id] || `#${id}` })),
+    ...suggestions.filter((opt) => !stored.includes(opt.value)),
+  ]);
+  const toValues = (next) => [...new Set(next.map((token) => tokens.toValue(typeof token === 'string' ? token : token.value)))];
+
+  return (
+    <div className="ewp-block-token-field ewp-block-object-search">
+      <label style={{ display: 'block', marginBottom: '4px' }} aria-hidden="true">{label}</label>
+      {explanation}
+      <FormTokenField
+        label={<VisuallyHidden>{label}</VisuallyHidden>}
+        value={stored.map(tokens.toLabel)}
+        suggestions={tokens.labels}
+        disabled={!objectType}
+        onInputChange={setSearch}
+        onChange={(next) => {
+          const ids = toValues(next);
+          onChange(data.multiple ? ids : (ids.pop() || ''));
+        }}
+        __experimentalExpandOnFocus={true}
+        __experimentalValidateInput={(token) => tokens.labels.includes(token)}
+        __experimentalShowHowTo={false}
+        maxSuggestions={config.limit || 20}
+        __nextHasNoMarginBottom={true}
+        __next40pxDefaultSize={true}
+      />
+    </div>
+  );
+};
+
 if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components && wp.element && typeof ewp_blocks !== 'undefined') {
   Object.keys(ewp_blocks).forEach((key) => {
     const block = ewp_blocks[key];
@@ -223,6 +350,17 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
             const nextValues = { ...props.attributes, ...changes };
             const updatedKeys = [];
             Object.entries(block.attributes).forEach(([dependentKey, dependentData]) => {
+              // An object search that follows a changed attribute searches
+              // another type now: its saved ids no longer apply.
+              const searchFrom = dependentData.object_search?.type_from;
+              if (searchFrom && changedKeys.includes(searchFrom)) {
+                const empty = dependentData.multiple ? [] : '';
+                if (JSON.stringify(nextValues[dependentKey] ?? empty) !== JSON.stringify(empty)) {
+                  changes[dependentKey] = empty;
+                  updatedKeys.push(dependentKey);
+                }
+                return;
+              }
               if (!changedKeys.includes(dependentData.filter_options_by)) {
                 return;
               }
@@ -503,6 +641,18 @@ if (typeof wp !== 'undefined' && wp.blocks && wp.blockEditor && wp.components &&
                       onChange={(value) => handleInputChange(key, value)}
                     />
                   </div>
+                );
+              case 'object_search':
+                return (
+                  <ObjectSearchControl
+                    key={key}
+                    label={label}
+                    explanation={explanation}
+                    data={data}
+                    value={props.attributes[key]}
+                    values={props.attributes}
+                    onChange={(value) => handleInputChange(key, value)}
+                  />
                 );
               case 'gallery':
                 const galleryImages = props.attributes[key] || [];

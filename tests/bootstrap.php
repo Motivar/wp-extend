@@ -52,6 +52,7 @@ tests_add_filter('ewp_logger_file_directory', function () {
 require $_tests_dir . '/includes/bootstrap.php';
 
 require_once __DIR__ . '/includes/trait-content-fixture.php';
+require_once __DIR__ . '/includes/trait-block-fixture.php';
 
 /**
  * Note: on a fresh test database, the plugin's own built-in content

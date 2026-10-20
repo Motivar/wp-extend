@@ -96,7 +96,7 @@ Package hooks (`mmwp_self_test_*`, see the package README) are the primary API. 
 ## Cases added in 1.5.0
 
 - `content-portability`: exports a fixture row through REST, CLI and ability, deletes it and imports it back on each surface (upsert by hash).
-- `object-search`: finds a private post by title through `GET /objects/search`, `wp ewp objects search` and `ewp-system/search-objects`.
+- `object-search`: finds a private post by title through `GET /objects/search`, `wp ewp objects search` and `ewp-system/search-objects`, and with `include=<post>,<page>` gets only the post back on all three (ids of another type are dropped).
 - `rest-health`: the plugin appears in its own inventory on all three surfaces. On a test database with no active plugins it lists itself in `active_plugins` for the duration of the case and removes itself in cleanup; when the plugin runs bundled inside another plugin it skips with a reason.
 
 Cases that need somewhere safe to write use the `Fixture_Content_Type` trait (`cases/trait-fixture-content-type.php`), and the assertion helpers `status()`, `detail()`, `cli_check()`, `cli_check_printed()` and `ability_check()` live on the package's `Case_Base`. `EWP\Surfaces\EWP_Surfaces::cli($resource, $operation)` returns an in-process callable for any kit command, so a case can run `wp ewp objects search` without a shim class per module.

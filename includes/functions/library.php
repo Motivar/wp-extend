@@ -559,19 +559,29 @@ if (!function_exists('awm_get_wp_editor_args')) {
 
 if (!function_exists('awm_prepare_field')) {
     /**
-     * with this function we prepare the ewp field dependin on the case
-     * @param array $a the fields' data
-     * @param string $awm_id the id of the library
-     * @return arrray $a the manipulated fields data
+     * Prepare an EWP field for rendering, depending on its case.
+     *
+     * Shorthand cases (`postType`, `term`, `user`, `taxonomies`, …) become a
+     * plain `select` (or their `view`) with a `callback` that lists the
+     * choices. With `$resolve_options` the callback runs and fills `options`;
+     * without it the callback stays on the field, unresolved, so a caller that
+     * only needs the field's shape (block registration on every request) does
+     * not query the options. awm_resolve_field_options() resolves it later.
+     *
+     * @param array  $a               The field's data.
+     * @param string $awm_id          The id of the library.
+     * @param bool   $resolve_options Optional. Run the field's options callback. Default true.
+     * @return array The prepared field data.
+     *
+     * @since 1.5.7 Added `$resolve_options`; `ewp_content_types` and `ewp_option_pages` resolve through a callback.
      */
-    function awm_prepare_field($a, $awm_id = '')
+    function awm_prepare_field($a, $awm_id = '', $resolve_options = true)
     {
 
         switch ($a['case']) {
             case 'ewp_content_types':
                 $a['case'] = isset($a['view']) ? $a['view'] : 'select';
-                $db_content = AWM_Content_DB::get_instance();
-                $a['options'] = $db_content->get_content_types();
+                $a['callback'] = 'awm_ewp_content_type_options';
                 break;
             case 'ewp_option_pages':
                 /**
@@ -581,16 +591,7 @@ if (!function_exists('awm_prepare_field')) {
                  * @since 1.1.3
                  */
                 $a['case'] = isset($a['view']) ? $a['view'] : 'select';
-                $portability = \EWP_Options_Portability::instance();
-                $pages = $portability->get_exportable_pages();
-                $opts = array();
-                foreach ($pages as $pk => $pd) {
-                    $cnt = isset($pd['field_count']) ? $pd['field_count'] : count($pd['fields']);
-                    $opts[$pk] = array(
-                        'label' => sprintf('%s (%d %s)', $pd['title'], $cnt, _n('field', 'fields', $cnt, 'extend-wp')),
-                    );
-                }
-                $a['options'] = $opts;
+                $a['callback'] = 'awm_ewp_option_page_options';
                 break;
             case 'ewp_content':
                 $a['case'] = isset($a['view']) ? $a['view'] : 'select';
@@ -653,15 +654,70 @@ if (!function_exists('awm_prepare_field')) {
                 break;
         }
 
-        if (isset($a['callback'])) {
-            $callback_options = array();
-            if (!empty($a['callback_variables'])) {
-                $callback_options = call_user_func_array($a['callback'], $a['callback_variables']);
-            }
-            $a['options'] = empty($callback_options) ? call_user_func($a['callback']) : $callback_options;
-        }
+        return $resolve_options ? awm_resolve_field_options($a) : $a;
+    }
+}
 
+if (!function_exists('awm_resolve_field_options')) {
+    /**
+     * Fill a prepared field's `options` from its `callback`.
+     *
+     * The callback runs with `callback_variables` as arguments when they are
+     * set; when that returns nothing (or there are none) it runs again without
+     * arguments. A field without a callback is returned unchanged.
+     *
+     * @param array $a Field data, as returned by awm_prepare_field().
+     * @return array The field with `options` filled.
+     *
+     * @since 1.5.7
+     */
+    function awm_resolve_field_options($a)
+    {
+        if (!isset($a['callback'])) {
+            return $a;
+        }
+        $callback_options = array();
+        if (!empty($a['callback_variables'])) {
+            $callback_options = call_user_func_array($a['callback'], $a['callback_variables']);
+        }
+        $a['options'] = empty($callback_options) ? call_user_func($a['callback']) : $callback_options;
         return $a;
+    }
+}
+
+if (!function_exists('awm_ewp_content_type_options')) {
+    /**
+     * Options of an `ewp_content_types` field: the registered content types.
+     *
+     * @return array Content type id => definition (with `label`).
+     *
+     * @since 1.5.7 Extracted from awm_prepare_field().
+     */
+    function awm_ewp_content_type_options()
+    {
+        return AWM_Content_DB::get_instance()->get_content_types();
+    }
+}
+
+if (!function_exists('awm_ewp_option_page_options')) {
+    /**
+     * Options of an `ewp_option_pages` field: the exportable options pages,
+     * labelled with their field count.
+     *
+     * @return array Page id => array('label' => "Title (N fields)").
+     *
+     * @since 1.5.7 Extracted from awm_prepare_field().
+     */
+    function awm_ewp_option_page_options()
+    {
+        $opts = array();
+        foreach (\EWP_Options_Portability::instance()->get_exportable_pages() as $pk => $pd) {
+            $cnt = isset($pd['field_count']) ? $pd['field_count'] : count($pd['fields']);
+            $opts[$pk] = array(
+                'label' => sprintf('%s (%d %s)', $pd['title'], $cnt, _n('field', 'fields', $cnt, 'extend-wp')),
+            );
+        }
+        return $opts;
     }
 }
 
