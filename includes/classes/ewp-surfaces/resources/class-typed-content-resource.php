@@ -5,10 +5,10 @@ namespace EWP\Surfaces\Resources;
 use EWP\Content\Content_Service;
 use EWP\Surfaces\Content_Schema;
 use EWP\Surfaces\Library_Fields;
-use Gnnpls\WP\Context;
-use Gnnpls\WP\Field;
-use Gnnpls\WP\Operation;
-use Gnnpls\WP\Resource;
+use MammothWP\WpKit\Context;
+use MammothWP\WpKit\Field;
+use MammothWP\WpKit\Operation;
+use MammothWP\WpKit\Resource;
 
 if (!defined('ABSPATH')) {
     exit;

@@ -2,7 +2,7 @@
 
 namespace EWP\SelfTest\Cases;
 
-use Gnnpls\SelfTest\Case_Base;
+use MammothWP\SelfTest\Case_Base;
 
 if (!defined('ABSPATH')) {
     exit;

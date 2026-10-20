@@ -1,6 +1,6 @@
 # Version: 1.2.0
 #
-# No test job: the pre-push hook (installed by lib/gnnpls/wp-self-test/bin/install-hooks
+# No test job: the pre-push hook (installed by lib/mammothwp/wp-self-test/bin/install-hooks
 # via `composer install`) runs `composer test` — PHP lint, the PHPUnit suite
 # (tests/) and every self-test manifest — inside DDEV before anything reaches
 # the remote. A push that passed the hook is the gate.

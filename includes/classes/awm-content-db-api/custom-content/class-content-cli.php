@@ -101,6 +101,6 @@ class EWP_Content_CLI
       return null;
     }
 
-    return \Gnnpls\WP\Adapters\Cli_Adapter::invoke($found, (array) $args, (array) $assoc_args);
+    return \MammothWP\WpKit\Adapters\Cli_Adapter::invoke($found, (array) $args, (array) $assoc_args);
   }
 }

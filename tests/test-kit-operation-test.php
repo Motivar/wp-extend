@@ -4,12 +4,12 @@
  * normalise, validate, authorise, confirm, hooks, service call.
  */
 
-use Gnnpls\WP\Context;
-use Gnnpls\WP\Field;
-use Gnnpls\WP\Inventory;
-use Gnnpls\WP\Operation;
-use Gnnpls\WP\Registry;
-use Gnnpls\WP\Resource;
+use MammothWP\WpKit\Context;
+use MammothWP\WpKit\Field;
+use MammothWP\WpKit\Inventory;
+use MammothWP\WpKit\Operation;
+use MammothWP\WpKit\Registry;
+use MammothWP\WpKit\Resource;
 
 class Test_Kit_Operation extends WP_UnitTestCase
 {
@@ -93,7 +93,7 @@ class Test_Kit_Operation extends WP_UnitTestCase
         $error = $op->run([], Context::ability([]));
 
         $this->assertWPError($error);
-        $this->assertSame('mwp_invalid_param', $error->get_error_code());
+        $this->assertSame('mmwp_invalid_param', $error->get_error_code());
         $this->assertSame(400, $error->get_error_data()['status']);
     }
 
@@ -104,7 +104,7 @@ class Test_Kit_Operation extends WP_UnitTestCase
         wp_set_current_user(self::factory()->user->create(['role' => 'subscriber']));
         $error = $op->run(['content_type' => 'x'], Context::ability([]));
         $this->assertWPError($error);
-        $this->assertSame('mwp_forbidden', $error->get_error_code());
+        $this->assertSame('mmwp_forbidden', $error->get_error_code());
         $this->assertSame(403, $error->get_error_data()['status']);
         $this->assertWPError($op->authorize(['content_type' => 'x'], Context::make('rest')));
 
@@ -119,7 +119,7 @@ class Test_Kit_Operation extends WP_UnitTestCase
         $error = $this->resource->ops()['list']->run(['content_type' => 'x'], Context::cli([], []));
 
         $this->assertWPError($error);
-        $this->assertSame('mwp_forbidden', $error->get_error_code());
+        $this->assertSame('mmwp_forbidden', $error->get_error_code());
     }
 
     public function test_public_capability_lets_anonymous_callers_through()
@@ -133,7 +133,7 @@ class Test_Kit_Operation extends WP_UnitTestCase
 
         $error = $op->run(['ids' => [1]], Context::ability([]));
         $this->assertWPError($error);
-        $this->assertSame('mwp_confirm_required', $error->get_error_code());
+        $this->assertSame('mmwp_confirm_required', $error->get_error_code());
 
         $this->assertSame(['ids' => [1]], $op->run(['ids' => [1], 'confirm' => true], Context::ability([])));
         $this->assertSame(['ids' => [2]], $op->run(['ids' => '2'], Context::cli([], [])));
@@ -142,10 +142,10 @@ class Test_Kit_Operation extends WP_UnitTestCase
     public function test_hooks_fire_around_the_service_call_and_can_reshape_the_result()
     {
         $seen = [];
-        add_action('mwp_operation_before_run', function (Operation $op, array $input) use (&$seen) {
+        add_action('mmwp_kit_operation_before_run', function (Operation $op, array $input) use (&$seen) {
             $seen[] = [$op->name(), $input];
         }, 10, 2);
-        add_filter('mwp_operation_result', function ($result, Operation $op) {
+        add_filter('mmwp_kit_operation_result', function ($result, Operation $op) {
             return ['wrapped' => $op->name(), 'inner' => $result];
         }, 10, 2);
 
@@ -160,7 +160,7 @@ class Test_Kit_Operation extends WP_UnitTestCase
         $error = $this->resource->ops()['kaboom']->run([], Context::cli([], []));
 
         $this->assertWPError($error);
-        $this->assertSame('mwp_operation_failed', $error->get_error_code());
+        $this->assertSame('mmwp_operation_failed', $error->get_error_code());
         $this->assertSame(500, $error->get_error_data()['status']);
     }
 

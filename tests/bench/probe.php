@@ -17,7 +17,7 @@ $routes = rest_get_server()->get_routes();
 $out['rest_init_ms'] = round((microtime(true) - $t) * 1000, 2);
 $out['rest_init_q']  = get_num_queries() - $q;
 $out['routes_total'] = count($routes);
-$out['routes_plugin'] = count(array_filter(array_keys($routes), fn($k) => preg_match('#^/(extend-wp|ewp|ewp-filter|awm-dynamic-api|mwp-self-test)/#', $k)));
+$out['routes_plugin'] = count(array_filter(array_keys($routes), fn($k) => preg_match('#^/(extend-wp|ewp|ewp-filter|awm-dynamic-api|mmwp)/#', $k)));
 
 $t = microtime(true);
 $out['abilities'] = function_exists('wp_get_abilities') ? count(wp_get_abilities()) : null;

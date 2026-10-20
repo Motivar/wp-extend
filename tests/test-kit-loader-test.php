@@ -4,16 +4,16 @@
  * on_ready() callbacks immediately once booted.
  */
 
-use Gnnpls\WP\Kit;
+use MammothWP\WpKit\Kit;
 
 class Test_Kit_Loader extends WP_UnitTestCase
 {
     public function test_the_plugin_boots_its_own_copy_of_the_kit()
     {
         $this->assertTrue(Kit::is_booted());
-        $this->assertSame(require dirname(__DIR__) . '/lib/gnnpls/wp-kit/version.php', Kit::version());
-        $this->assertSame(realpath(dirname(__DIR__) . '/lib/gnnpls/wp-kit'), realpath(Kit::path()));
-        $this->assertTrue(class_exists('Gnnpls\\WP\\Field'), 'autoloader must resolve kit classes');
+        $this->assertSame(require dirname(__DIR__) . '/lib/mammothwp/wp-kit/version.php', Kit::version());
+        $this->assertSame(realpath(dirname(__DIR__) . '/lib/mammothwp/wp-kit'), realpath(Kit::path()));
+        $this->assertTrue(class_exists('MammothWP\\WpKit\\Field'), 'autoloader must resolve kit classes');
     }
 
     public function test_newest_version_wins_regardless_of_registration_order()

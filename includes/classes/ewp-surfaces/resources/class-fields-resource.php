@@ -3,8 +3,8 @@
 namespace EWP\Surfaces\Resources;
 
 use EWP\Surfaces\Field_Vocabulary;
-use Gnnpls\WP\Context;
-use Gnnpls\WP\Operation;
+use MammothWP\WpKit\Context;
+use MammothWP\WpKit\Operation;
 
 if (!defined('ABSPATH')) {
     exit;

@@ -4,8 +4,8 @@
  * and JSON Schema, and normalise raw input the same way for all three.
  */
 
-use Gnnpls\WP\Field;
-use Gnnpls\WP\Field_Map;
+use MammothWP\WpKit\Field;
+use MammothWP\WpKit\Field_Map;
 
 class Test_Kit_Field_Map extends WP_UnitTestCase
 {
@@ -109,7 +109,7 @@ class Test_Kit_Field_Map extends WP_UnitTestCase
 
         $error = $title->validate($title->normalize(null));
         $this->assertWPError($error);
-        $this->assertSame('mwp_invalid_param', $error->get_error_code());
+        $this->assertSame('mmwp_invalid_param', $error->get_error_code());
         $this->assertSame(400, $error->get_error_data()['status']);
         $this->assertSame('title', $error->get_error_data()['param']);
         $this->assertWPError($title->validate('toolong'));

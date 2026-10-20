@@ -17,14 +17,14 @@ use EWP\Surfaces\Resources\Options_Resource;
 use EWP\Surfaces\Resources\System_Resource;
 use EWP\Surfaces\Resources\Search_Resource;
 use EWP\Surfaces\Resources\WP_Content_Resource;
-use Gnnpls\WP\Adapters\Ability_Adapter;
-use Gnnpls\WP\Adapters\Cli_Adapter;
-use Gnnpls\WP\Adapters\Rest_Adapter;
-use Gnnpls\WP\Context;
-use Gnnpls\WP\Kit;
-use Gnnpls\WP\Operation;
-use Gnnpls\WP\Registry;
-use Gnnpls\WP\Resource;
+use MammothWP\WpKit\Adapters\Ability_Adapter;
+use MammothWP\WpKit\Adapters\Cli_Adapter;
+use MammothWP\WpKit\Adapters\Rest_Adapter;
+use MammothWP\WpKit\Context;
+use MammothWP\WpKit\Kit;
+use MammothWP\WpKit\Operation;
+use MammothWP\WpKit\Registry;
+use MammothWP\WpKit\Resource;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -75,8 +75,8 @@ final class EWP_Surfaces
     public function init()
     {
         Kit::on_ready([$this, 'attach']);
-        add_filter('mwp_operation_capability', [$this, 'reemit_ability_capability'], 10, 4);
-        add_filter('mwp_ability_definitions', [$this, 'reemit_logger_definitions'], 10, 2);
+        add_filter('mmwp_kit_operation_capability', [$this, 'reemit_ability_capability'], 10, 4);
+        add_filter('mmwp_kit_ability_definitions', [$this, 'reemit_logger_definitions'], 10, 2);
         add_filter('ewp_rest_health_runtime_namespaces', [$this, 'report_rest_namespaces']);
     }
 
@@ -121,7 +121,7 @@ final class EWP_Surfaces
         }
 
         /*
-         * The resource classes extend Gnnpls\WP\Resource, which only
+         * The resource classes extend MammothWP\WpKit\Resource, which only
          * autoloads once the kit has booted (plugins_loaded -100), so they
          * are loaded here rather than when Setup.php requires this file.
          */
@@ -293,7 +293,7 @@ final class EWP_Surfaces
                 return null;
             }
 
-            return \Gnnpls\WP\Adapters\Cli_Adapter::invoke($found, (array) $args, (array) $assoc_args);
+            return \MammothWP\WpKit\Adapters\Cli_Adapter::invoke($found, (array) $args, (array) $assoc_args);
         };
     }
 

@@ -3,8 +3,8 @@
 namespace EWP\SelfTest\Cases;
 
 use EWP\Surfaces\EWP_Surfaces;
-use Gnnpls\SelfTest\Case_Base;
-use Gnnpls\WP\Adapters\Rest_Adapter;
+use MammothWP\SelfTest\Case_Base;
+use MammothWP\WpKit\Adapters\Rest_Adapter;
 
 if (!defined('ABSPATH')) {
     exit;

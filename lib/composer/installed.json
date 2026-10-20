@@ -1,30 +1,43 @@
 {
     "packages": [
         {
-            "name": "gnnpls/wp-kit",
+            "name": "mammothwp/wp-kit",
             "version": "dev-main",
             "version_normalized": "dev-main",
             "source": {
                 "type": "git",
-                "url": "https://github.com/gnnpls/wp-kit.git",
-                "reference": "56d0632779787a8d5e0de8e04a59fecde3c26f19"
+                "url": "https://github.com/mammothwp/wp-kit.git",
+                "reference": "df98db44126e6eda9532b7c6e19fd1df2b032b05"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/gnnpls/wp-kit/zipball/56d0632779787a8d5e0de8e04a59fecde3c26f19",
-                "reference": "56d0632779787a8d5e0de8e04a59fecde3c26f19",
+                "url": "https://api.github.com/repos/mammothwp/wp-kit/zipball/df98db44126e6eda9532b7c6e19fd1df2b032b05",
+                "reference": "df98db44126e6eda9532b7c6e19fd1df2b032b05",
                 "shasum": ""
             },
             "require": {
                 "php": ">=7.4"
             },
-            "time": "2026-10-13T18:39:27+00:00",
+            "replace": {
+                "gnnpls/wp-kit": "self.version"
+            },
+            "require-dev": {
+                "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+                "php-stubs/wordpress-stubs": "^6.9",
+                "php-stubs/wp-cli-stubs": "^2.12",
+                "phpstan/phpstan": "^1.10",
+                "phpunit/phpunit": "^9.6",
+                "squizlabs/php_codesniffer": "^3.7",
+                "wp-coding-standards/wpcs": "^3.0"
+            },
+            "time": "2026-10-20T08:32:46+00:00",
             "default-branch": true,
             "type": "library",
             "installation-source": "dist",
             "autoload": {
                 "files": [
-                    "bootstrap.php"
+                    "bootstrap.php",
+                    "compat.php"
                 ]
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -33,47 +46,61 @@
             ],
             "authors": [
                 {
-                    "name": "Nikos Giannopoulos",
-                    "email": "nikos@gnnpls.com",
-                    "homepage": "https://gnnpls.com"
+                    "name": "Mammoth WP",
+                    "email": "info@mammothwp.com",
+                    "homepage": "https://mammothwp.com"
                 }
             ],
             "description": "Declare a WordPress feature once and expose it as a REST route, a WP-CLI command and a WordPress Ability from the same definition.",
-            "homepage": "https://gnnpls.com",
+            "homepage": "https://mammothwp.com",
             "keywords": [
                 "abilities-api",
                 "library",
                 "rest-api",
                 "validation",
-                "wordpress",
+                "wp",
                 "wp-cli"
             ],
             "support": {
-                "email": "nikos@gnnpls.com",
-                "issues": "https://github.com/gnnpls/wp-kit/issues",
-                "source": "https://github.com/gnnpls/wp-kit"
+                "email": "info@mammothwp.com",
+                "issues": "https://github.com/mammothwp/wp-kit/issues",
+                "source": "https://github.com/mammothwp/wp-kit"
             },
-            "install-path": "../gnnpls/wp-kit"
+            "install-path": "../mammothwp/wp-kit"
         },
         {
-            "name": "gnnpls/wp-self-test",
+            "name": "mammothwp/wp-self-test",
             "version": "dev-main",
             "version_normalized": "dev-main",
             "source": {
                 "type": "git",
-                "url": "https://github.com/gnnpls/wp-self-test.git",
-                "reference": "88fa15ea7334e7997e6c0d9f998abf8f4c29132d"
+                "url": "https://github.com/mammothwp/wp-self-test.git",
+                "reference": "e934368704bc977dcde31268b69bfa0dc4a4e63e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/gnnpls/wp-self-test/zipball/88fa15ea7334e7997e6c0d9f998abf8f4c29132d",
-                "reference": "88fa15ea7334e7997e6c0d9f998abf8f4c29132d",
+                "url": "https://api.github.com/repos/mammothwp/wp-self-test/zipball/e934368704bc977dcde31268b69bfa0dc4a4e63e",
+                "reference": "e934368704bc977dcde31268b69bfa0dc4a4e63e",
                 "shasum": ""
             },
             "require": {
                 "php": ">=7.4"
             },
-            "time": "2026-10-12T12:16:21+00:00",
+            "replace": {
+                "gnnpls/wp-self-test": "self.version"
+            },
+            "require-dev": {
+                "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+                "php-stubs/wordpress-stubs": "^6.9",
+                "php-stubs/wp-cli-stubs": "^2.12",
+                "phpstan/extension-installer": "^1.4",
+                "phpstan/phpstan": "^1.11",
+                "phpunit/phpunit": "^9.6",
+                "squizlabs/php_codesniffer": "^3.10",
+                "szepeviktor/phpstan-wordpress": "^1.3",
+                "wp-coding-standards/wpcs": "^3.1"
+            },
+            "time": "2026-10-20T08:33:33+00:00",
             "default-branch": true,
             "bin": [
                 "bin/run.php",
@@ -83,7 +110,8 @@
             "installation-source": "dist",
             "autoload": {
                 "files": [
-                    "bootstrap.php"
+                    "bootstrap.php",
+                    "compat.php"
                 ]
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -92,13 +120,13 @@
             ],
             "authors": [
                 {
-                    "name": "Nikos Giannopoulos",
-                    "email": "nikos@gnnpls.com",
-                    "homepage": "https://gnnpls.com"
+                    "name": "Mammoth WP",
+                    "email": "info@mammothwp.com",
+                    "homepage": "https://mammothwp.com"
                 }
             ],
             "description": "Manifest-driven self-test suite for WordPress plugins: register a manifest of cases from your plugin folder and run them from wp-admin, WP-CLI, the Abilities API and a pre-push hook.",
-            "homepage": "https://gnnpls.com",
+            "homepage": "https://mammothwp.com",
             "keywords": [
                 "abilities-api",
                 "pre-push",
@@ -109,11 +137,11 @@
                 "wp-cli"
             ],
             "support": {
-                "email": "nikos@gnnpls.com",
-                "issues": "https://github.com/gnnpls/wp-self-test/issues",
-                "source": "https://github.com/gnnpls/wp-self-test"
+                "email": "info@mammothwp.com",
+                "issues": "https://github.com/mammothwp/wp-self-test/issues",
+                "source": "https://github.com/mammothwp/wp-self-test"
             },
-            "install-path": "../gnnpls/wp-self-test"
+            "install-path": "../mammothwp/wp-self-test"
         }
     ],
     "dev": true,

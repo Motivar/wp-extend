@@ -91,18 +91,18 @@ class Test_Request_Context extends WP_UnitTestCase
      */
     public function test_self_test_package_is_off_on_production_by_default()
     {
-        $this->assertTrue(defined('Gnnpls\\SelfTest\\Loader::GATES_PRODUCTION'));
+        $this->assertTrue(defined('MammothWP\\SelfTest\\Loader::GATES_PRODUCTION'));
 
         $seen = null;
         $spy = function ($enabled, $environment) use (&$seen) {
             $seen = [$enabled, $environment];
             return $enabled;
         };
-        add_filter('mwp_self_test_enabled', $spy, 10, 2);
-        \Gnnpls\SelfTest\Config::enabled();
-        remove_filter('mwp_self_test_enabled', $spy, 10);
+        add_filter('mmwp_self_test_enabled', $spy, 10, 2);
+        \MammothWP\SelfTest\Config::enabled();
+        remove_filter('mmwp_self_test_enabled', $spy, 10);
 
-        $this->assertSame([$seen[1] !== 'production', \Gnnpls\SelfTest\Loader::environment()], $seen);
+        $this->assertSame([$seen[1] !== 'production', \MammothWP\SelfTest\Loader::environment()], $seen);
         // The suite runs with WP_ENVIRONMENT_TYPE=development, so the package is on.
         $this->assertTrue($seen[0]);
     }
