@@ -101,7 +101,7 @@ class AWM_DB_Creator
         global $wpdb;
 
         $tableName = (string) $tableName;
-        if (!preg_match('/^[A-Za-z0-9_]+$/', $tableName)) {
+        if (!self::is_identifier($tableName)) {
             return false;
         }
 
@@ -127,6 +127,196 @@ class AWM_DB_Creator
     }
 
     /**
+     * Remove columns from a custom table.
+     *
+     * Foreign keys defined on a removed column go first. The primary key,
+     * unknown columns and invalid names are skipped (primary key logged); the
+     * rest go in one ALTER TABLE. Usually driven by a schema's `dropColumns`
+     * list on a version bump (see dbUpdate()); callable directly for one-off
+     * migrations.
+     *
+     * @param string   $tableName Table name without the WordPress prefix.
+     * @param string[] $columns   Column names to remove.
+     * @return string[]|false Columns removed (possibly none), false on an invalid or missing table or a failed ALTER.
+     */
+    public static function drop_columns($tableName, array $columns)
+    {
+        global $wpdb;
+
+        $tableName = (string) $tableName;
+        if (!self::is_identifier($tableName) || !self::check_table_exists($tableName)) {
+            return false;
+        }
+
+        $removable = self::removable_columns($tableName, $columns);
+        if (empty($removable)) {
+            return array();
+        }
+
+        self::remove_foreign_keys_on($tableName, $removable);
+        $clauses = implode(', ', array_fill(0, count($removable), 'DROP COLUMN %i'));
+        $sql     = $wpdb->prepare('ALTER TABLE %i ' . $clauses, array_merge(array($wpdb->prefix . $tableName), $removable)); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- placeholders only.
+        if ($wpdb->query($sql) === false) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+            error_log('Failed to remove columns (' . implode(',', $removable) . ") from table {$tableName}: " . $wpdb->last_error);
+            return false;
+        }
+
+        /**
+         * Fires after columns were removed from a custom table.
+         *
+         * @since 1.5.9
+         *
+         * @param string   $tableName Table name without the WordPress prefix.
+         * @param string[] $removable Columns removed.
+         */
+        do_action('ewp_database_columns_dropped', $tableName, $removable);
+
+        return $removable;
+    }
+
+    /**
+     * Remove every row of a custom table and reset its AUTO_INCREMENT.
+     *
+     * Uses TRUNCATE; when InnoDB refuses it because another table references
+     * this one through a foreign key (content type `_main` tables), falls back
+     * to DELETE + `AUTO_INCREMENT = 1`. That fallback fails, and nothing is
+     * deleted, while referencing rows exist: empty the child table first
+     * (`{type}_data` before `{type}_main`). Schema and version are kept.
+     * Caches built from the table (transients) are not flushed: listen to
+     * `ewp_database_truncated` for that.
+     *
+     * @param string $tableName Table name without the WordPress prefix.
+     * @return bool True when the table is now empty.
+     */
+    public static function truncate_table($tableName)
+    {
+        global $wpdb;
+
+        $tableName = (string) $tableName;
+        if (!self::is_identifier($tableName) || !self::check_table_exists($tableName)) {
+            return false;
+        }
+
+        $prefixed = $wpdb->prefix . $tableName;
+        if ($wpdb->query($wpdb->prepare('TRUNCATE TABLE %i', $prefixed)) === false && !self::empty_referenced_table($prefixed)) {
+            error_log("Failed to truncate table {$tableName}: " . $wpdb->last_error);
+            return false;
+        }
+
+        /**
+         * Fires after a custom table was emptied through AWM_DB_Creator::truncate_table().
+         *
+         * @since 1.5.9
+         *
+         * @param string $tableName Table name without the WordPress prefix.
+         */
+        do_action('ewp_database_truncated', $tableName);
+
+        return true;
+    }
+
+    /**
+     * Empty a table that TRUNCATE refused (referenced by a foreign key).
+     *
+     * @param string $prefixed Table name with the WordPress prefix.
+     * @return bool True when every row was deleted and the counter reset.
+     */
+    private static function empty_referenced_table($prefixed)
+    {
+        global $wpdb;
+
+        if ($wpdb->query($wpdb->prepare('DELETE FROM %i', $prefixed)) === false) {
+            return false;
+        }
+        return $wpdb->query($wpdb->prepare('ALTER TABLE %i AUTO_INCREMENT = 1', $prefixed)) !== false;
+    }
+
+    /**
+     * Columns from a schema's `dropColumns` that are no longer declared.
+     *
+     * @param string   $tableName Table name without the WordPress prefix (for the log).
+     * @param string[] $requested Columns listed in `dropColumns`.
+     * @param string[] $declared  Columns declared in `data`.
+     * @return string[] Requested columns not declared; declared ones are logged and kept.
+     */
+    private static function undeclared_columns($tableName, array $requested, array $declared)
+    {
+        $declared = array_map('strtolower', $declared);
+        return array_values(array_filter($requested, function ($column) use ($declared, $tableName) {
+            if (!in_array(strtolower((string) $column), $declared, true)) {
+                return true;
+            }
+            error_log("Keeping column {$column} of table {$tableName}: listed in 'dropColumns' but still declared in 'data'.");
+            return false;
+        }));
+    }
+
+    /**
+     * Requested columns that exist and are not part of the primary key.
+     *
+     * @param string   $tableName Table name without the WordPress prefix.
+     * @param string[] $columns   Requested column names.
+     * @return string[] Column names, as stored, safe to remove.
+     */
+    private static function removable_columns($tableName, array $columns)
+    {
+        global $wpdb;
+
+        $existing = array();
+        foreach ((array) $wpdb->get_results($wpdb->prepare('SHOW COLUMNS FROM %i', $wpdb->prefix . $tableName)) as $row) {
+            $existing[strtolower($row->Field)] = array('name' => $row->Field, 'primary' => $row->Key === 'PRI');
+        }
+
+        $removable = array();
+        foreach ($columns as $column) {
+            $key = strtolower((string) $column);
+            if (!self::is_identifier($key) || !isset($existing[$key])) {
+                continue;
+            }
+            if ($existing[$key]['primary']) {
+                error_log("Keeping column {$column} of table {$tableName}: it is part of the primary key.");
+                continue;
+            }
+            $removable[] = $existing[$key]['name'];
+        }
+        return array_values(array_unique($removable));
+    }
+
+    /**
+     * Remove the foreign keys defined on the given columns of a table.
+     *
+     * @param string   $tableName Table name without the WordPress prefix.
+     * @param string[] $columns   Column names.
+     * @return void
+     */
+    private static function remove_foreign_keys_on($tableName, array $columns)
+    {
+        global $wpdb;
+
+        $placeholders = implode(',', array_fill(0, count($columns), '%s'));
+        $constraints  = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND REFERENCED_TABLE_NAME IS NOT NULL AND COLUMN_NAME IN ($placeholders)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            array_merge(array(DB_NAME, $wpdb->prefix . $tableName), $columns)
+        ));
+        foreach ($constraints as $constraint) {
+            if ($wpdb->query($wpdb->prepare('ALTER TABLE %i DROP FOREIGN KEY %i', $wpdb->prefix . $tableName, $constraint)) === false) {
+                error_log("Failed to remove foreign key {$constraint} on table {$tableName}: " . $wpdb->last_error);
+            }
+        }
+    }
+
+    /**
+     * Whether a table or column name is a plain identifier (letters, digits, `_`).
+     *
+     * @param string $name Name to check.
+     * @return bool True when safe to use as an identifier.
+     */
+    private static function is_identifier($name)
+    {
+        return (bool) preg_match('/^[A-Za-z0-9_]+$/', (string) $name);
+    }
+
+    /**
      * Forget per-request state (table-existence cache, autoload check).
      *
      * @return void
@@ -138,13 +328,24 @@ class AWM_DB_Creator
     }
 
     /**
-     * data structure
-     * array('dbName'=>array(
-     * 'data'=>array('dbKey'=>sqlData),
-     * 'primaryKey=>'dbKey'
-     * 'index=>'dbKey'
-     * 'version'=>'version' =>string for version
+     * Create or upgrade tables from their definitions.
+     *
+     * Structure: array('table' => array(
+     *   'data'        => array('column' => 'SQL definition', …),
+     *   'primaryKey'  => 'column',
+     *   'index'       => 'column' | array('column', array('a', 'b'), 'c(191)', …),
+     *   'foreignKey'  => array(array('key' => 'column', 'ref' => 'table(column)'), …),
+     *   'dropColumns' => array('column', …), // optional: removed on the next version bump (see drop_columns())
+     *   'version'     => 'string', // bump to apply changes; omitted = rebuilt on every load
      * ))
+     *
+     * Changes run only when `version` differs from `ewp_version_{table}`: new
+     * columns are added, changed definitions modified, missing indexes and
+     * foreign keys added, listed `dropColumns` removed. Columns that merely
+     * disappear from `data` are kept.
+     *
+     * @param array $dbData Table name (without prefix) => definition.
+     * @return void
      */
 
     public function dbUpdate($dbData)
@@ -210,6 +411,11 @@ class AWM_DB_Creator
                     // Add foreign keys separately after table creation to avoid dbDelta issues
                     if (!empty($foreignKeys)) {
                         $this->ewp_add_foreign_keys($table, $foreignKeys, $wpdb);
+                    }
+
+                    // Explicitly listed columns are removed on a version bump only.
+                    if ($registeredVersion !== 0 && !empty($tableData['dropColumns'])) {
+                        self::drop_columns($table, self::undeclared_columns($table, (array) $tableData['dropColumns'], array_keys($tableKeys)));
                     }
 
                     // dbDelta cannot match unnamed `INDEX (col)` definitions, so on

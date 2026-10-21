@@ -510,4 +510,187 @@ class Test_Db_Creator_Schema_Lifecycle extends WP_UnitTestCase
         $this->assertFalse(AWM_DB_Creator::drop_table('../posts'));
         $this->assertFalse(AWM_DB_Creator::drop_table(''));
     }
+
+    /**
+     * Child table referencing a parent's id through a foreign key.
+     *
+     * @param string $parent Parent table name without prefix.
+     * @return array Table definition.
+     */
+    private function child_schema($parent)
+    {
+        return array(
+            'data'       => array(
+                'id'        => 'bigint(20) unsigned NOT NULL AUTO_INCREMENT',
+                'parent_id' => 'bigint(20) unsigned NOT NULL',
+                'note'      => 'varchar(50) NULL',
+            ),
+            'primaryKey' => 'id',
+            'index'      => array('parent_id'),
+            'foreignKey' => array(array('key' => 'parent_id', 'ref' => $parent . '(id)')),
+            'version'    => '1',
+        );
+    }
+
+    /**
+     * Number of rows in a table.
+     *
+     * @param string $table Table name without prefix.
+     * @return int Row count.
+     */
+    private function count_rows($table)
+    {
+        global $wpdb;
+        return (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM %i', $wpdb->prefix . $table));
+    }
+
+    /**
+     * Columns listed in `dropColumns` are removed on the version bump, other
+     * columns and rows stay, and the action reports what was removed.
+     *
+     * @return void
+     */
+    public function test_upgrade_removes_listed_columns()
+    {
+        $table = $this->table_name('dropcol');
+        $this->apply($table, $this->schema_v1());
+        $id = $this->insert_row($table, 'survivor');
+        $reported = array();
+        $listener = function ($name, $columns) use (&$reported) {
+            $reported[$name] = $columns;
+        };
+        add_action('ewp_database_columns_dropped', $listener, 10, 2);
+
+        $v2 = $this->schema_v1();
+        unset($v2['data']['counter']);
+        $v2['dropColumns'] = array('counter', 'never_existed');
+        $v2['version']     = '2';
+        $this->apply($table, $v2);
+
+        $this->assertSame(array('id', 'label', 'created'), array_keys($this->columns($table)));
+        $row = AWM_DB_Creator::get_db_data($table, '*', array('clause' => array(array('clause' => array(array('column' => 'id', 'value' => $id, 'compare' => '='))))));
+        $this->assertSame('survivor', $row[0]['label']);
+        $this->assertSame(array($table => array('counter')), $reported);
+        remove_action('ewp_database_columns_dropped', $listener, 10);
+    }
+
+    /**
+     * `dropColumns` does nothing while the version is unchanged.
+     *
+     * @return void
+     */
+    public function test_listed_columns_wait_for_a_version_bump()
+    {
+        $table = $this->table_name('dropwait');
+        $this->apply($table, $this->schema_v1());
+
+        $same                = $this->schema_v1();
+        $same['dropColumns'] = array('counter');
+        $this->apply($table, $same);
+
+        $this->assertArrayHasKey('counter', $this->columns($table));
+    }
+
+    /**
+     * Never removed: the primary key, a column still declared in `data`, an
+     * invalid name.
+     *
+     * @return void
+     */
+    public function test_protected_columns_are_kept()
+    {
+        $table = $this->table_name('dropguard');
+        $this->apply($table, $this->schema_v1());
+
+        $v2                = $this->schema_v1();
+        $v2['dropColumns'] = array('id', 'label', 'created; DROP TABLE x');
+        $v2['version']     = '2';
+        $this->apply($table, $v2);
+
+        $this->assertSame(array('id', 'label', 'counter', 'created'), array_keys($this->columns($table)));
+        $this->assertSame(array(), AWM_DB_Creator::drop_columns($table, array('id')));
+        $this->assertFalse(AWM_DB_Creator::drop_columns('missing_' . $table, array('label')));
+        $this->assertFalse(AWM_DB_Creator::drop_columns('bad name', array('label')));
+    }
+
+    /**
+     * A column carrying a foreign key loses the constraint first, then the column.
+     *
+     * @return void
+     */
+    public function test_removing_a_foreign_key_column()
+    {
+        $parent = $this->table_name('fkparent');
+        $child  = $this->table_name('fkchild');
+        $this->apply($parent, $this->schema_v1());
+        $this->apply($child, $this->child_schema($parent));
+        $this->assertNotEmpty($this->foreign_keys($child));
+
+        $this->assertSame(array('parent_id'), AWM_DB_Creator::drop_columns($child, array('parent_id')));
+
+        $this->assertSame(array(), $this->foreign_keys($child));
+        $this->assertSame(array('id', 'note'), array_keys($this->columns($child)));
+    }
+
+    /**
+     * truncate_table() empties the table, resets AUTO_INCREMENT, keeps the
+     * schema and version, and fires its action.
+     *
+     * @return void
+     */
+    public function test_truncate_empties_and_resets_counter()
+    {
+        $table = $this->table_name('trunc');
+        $this->apply($table, $this->schema_v1());
+        $this->insert_row($table, 'one');
+        $this->insert_row($table, 'two');
+        $fired = did_action('ewp_database_truncated');
+
+        $this->assertTrue(AWM_DB_Creator::truncate_table($table));
+
+        $this->assertSame(0, $this->count_rows($table));
+        $this->assertSame(1, $this->insert_row($table, 'fresh'));
+        $this->assertSame('1', (string) get_option('ewp_version_' . $table));
+        $this->assertArrayHasKey('label', $this->columns($table));
+        $this->assertSame($fired + 1, did_action('ewp_database_truncated'));
+    }
+
+    /**
+     * A parent table referenced by a foreign key (like a content type's
+     * `_main`) is emptied through the DELETE fallback once its children are
+     * gone, and refused, with nothing deleted, while children exist.
+     *
+     * @return void
+     */
+    public function test_truncate_parent_referenced_by_foreign_key()
+    {
+        global $wpdb;
+        $parent = $this->table_name('tparent');
+        $child  = $this->table_name('tchild');
+        $this->apply($parent, $this->schema_v1());
+        $this->apply($child, $this->child_schema($parent));
+        $parent_id = $this->insert_row($parent, 'referenced');
+        $wpdb->insert($wpdb->prefix . $child, array('parent_id' => $parent_id, 'note' => 'child row'));
+        $suppress = $wpdb->suppress_errors(true);
+
+        $this->assertFalse(AWM_DB_Creator::truncate_table($parent), 'children still reference the parent');
+        $this->assertSame(1, $this->count_rows($parent));
+
+        $this->assertTrue(AWM_DB_Creator::truncate_table($child));
+        $this->assertTrue(AWM_DB_Creator::truncate_table($parent));
+        $this->assertSame(0, $this->count_rows($parent));
+        $this->assertSame(1, $this->insert_row($parent, 'fresh'));
+        $wpdb->suppress_errors($suppress);
+    }
+
+    /**
+     * truncate_table() refuses invalid names and missing tables.
+     *
+     * @return void
+     */
+    public function test_truncate_rejects_invalid_or_missing_tables()
+    {
+        $this->assertFalse(AWM_DB_Creator::truncate_table('posts; DELETE FROM wp_users'));
+        $this->assertFalse(AWM_DB_Creator::truncate_table('ewp_lc_does_not_exist'));
+    }
 }

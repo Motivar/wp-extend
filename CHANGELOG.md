@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Custom tables: remove columns (`dropColumns`, `drop_columns()`) and empty tables (`truncate_table()`) (1.5.9)** (`2026-10-21`):
+  - **Question/Prompt**: "yes add the ability to drop columns and also add the the ability to totally truncate a table".
+  - **Summary**:
+    - Schema key `dropColumns` (list of column names): removed on the next version bump only, after their foreign keys. Never the primary key or a column still declared in `data` (logged and kept); unknown columns ignored. Removing a column from `data` alone still keeps it.
+    - `AWM_DB_Creator::drop_columns($table, array $columns)`: the same, immediately, for one-off migrations; one `ALTER TABLE … DROP COLUMN %i, …`; returns the removed columns, `false` on an invalid or missing table or a failed ALTER.
+    - `AWM_DB_Creator::truncate_table($table)`: `TRUNCATE TABLE %i`; for tables referenced by a foreign key (content type `_main`), which InnoDB refuses to truncate, falls back to `DELETE` + `AUTO_INCREMENT = 1`. That fails, deleting nothing, while referencing rows exist (empty `{type}_data` first). Schema and version are kept; caches are not flushed (hook `ewp_database_truncated`).
+    - New `docs/custom-tables.md`: schema keys, what a version bump does, the static API, hooks, and why none of this is exposed over REST/CLI/abilities.
+  - **Tests**: 7 more in `tests/test-db-creator-schema-lifecycle-test.php` (30 total): listed columns removed on a bump with rows kept and the action reporting them; nothing removed without a bump; primary key, declared and invalid columns kept; a foreign-key column loses its constraint then the column; truncate empties, resets the counter, keeps version and schema; a referenced parent is refused while children exist and emptied once they are gone; invalid or missing tables refused.
+  - **Affected Files**: `includes/classes/awm-db/class-db-creator.php`, `HOOKS.md`, `docs/custom-tables.md` (new), `tests/test-db-creator-schema-lifecycle-test.php`.
+  - **New hooks/routes/settings**: schema key `dropColumns`; actions `ewp_database_columns_dropped`, `ewp_database_truncated`; methods `AWM_DB_Creator::drop_columns()`, `::truncate_table()`. No REST routes, CLI commands or abilities (deliberate, see the docs).
+  - **Backwards Compatibility**: additive; schemas without `dropColumns` behave as before.
+
 ### Fixed
 - **Custom table upgrades: no spurious column rebuilds, new indexes really added, `AWM_DB_Creator::drop_table()` (1.5.9)** (`2026-10-21`):
   - **Question/Prompt**: "i need to check the ability to update tables created with awm_db_creator. we need a test for this with full edit and drop if need".
