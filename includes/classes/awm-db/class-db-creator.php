@@ -9,10 +9,91 @@ if (!defined('ABSPATH')) {
 
 class AWM_DB_Creator
 {
+    /** Prefix of the option holding each table's applied schema version. */
+    const VERSION_OPTION_PREFIX = 'ewp_version_';
+
+    /** Flag set once every existing version option has been switched to autoload. */
+    const AUTOLOAD_MIGRATED_OPTION = 'ewp_db_versions_autoloaded';
+
+    /** @var bool Whether the autoload migration was checked in this request. */
+    private static $autoload_checked = false;
+
     private $data;
+
+    /**
+     * Create or upgrade the given tables.
+     *
+     * @param array $data Table definitions, see dbUpdate().
+     */
     public function __construct($data)
     {
+        self::maybe_autoload_version_options();
         $this->dbUpdate($data);
+    }
+
+    /**
+     * Switch existing `ewp_version_*` options to autoload, once per site.
+     *
+     * Before 1.5.9 they were stored with autoload off, so every request that
+     * instantiated this class ran one option query per registered table
+     * (21 per admin request on a filox site). New versions are written
+     * autoloaded by dbUpdate(); this converts the rows written before.
+     *
+     * @return void
+     */
+    public static function maybe_autoload_version_options()
+    {
+        if (self::$autoload_checked) {
+            return;
+        }
+        self::$autoload_checked = true;
+        if (get_option(self::AUTOLOAD_MIGRATED_OPTION)) {
+            return;
+        }
+
+        global $wpdb;
+        $names = $wpdb->get_col($wpdb->prepare(
+            "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+            $wpdb->esc_like(self::VERSION_OPTION_PREFIX) . '%'
+        ));
+        if (!empty($names)) {
+            self::set_autoload($names);
+        }
+        update_option(self::AUTOLOAD_MIGRATED_OPTION, 1, true);
+    }
+
+    /**
+     * Mark options as autoloaded.
+     *
+     * @param string[] $names Option names.
+     * @return void
+     */
+    private static function set_autoload(array $names)
+    {
+        if (function_exists('wp_set_option_autoload_values')) {
+            wp_set_option_autoload_values(array_fill_keys($names, true));
+            return;
+        }
+
+        // WordPress 6.2–6.3: no bulk API yet.
+        global $wpdb;
+        $placeholders = implode(',', array_fill(0, count($names), '%s'));
+        $wpdb->query($wpdb->prepare("UPDATE {$wpdb->options} SET autoload = 'yes' WHERE option_name IN ($placeholders)", $names)); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        wp_cache_delete('alloptions', 'options');
+        foreach ($names as $name) {
+            wp_cache_delete($name, 'options');
+        }
+    }
+
+    /**
+     * Forget per-request state (table-existence cache, autoload check).
+     *
+     * @return void
+     */
+    public static function reset()
+    {
+        self::$table_existence_cache = [];
+        self::$autoload_checked      = false;
     }
 
     /**
@@ -38,14 +119,13 @@ class AWM_DB_Creator
                 }
 
                 /* Check table version */
-                $registeredVersion = get_option('ewp_version_' . $table) ?: 0;
+                $registeredVersion = get_option(self::VERSION_OPTION_PREFIX . $table) ?: 0;
                 $currentVersion = isset($tableData['version']) ? $tableData['version'] : strtotime('now');
 
                 // If there is no version registered or there is a mismatch between versions, prepare the SQL query
                 if ($currentVersion != $registeredVersion || $registeredVersion === 0) {
                     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
                     global $wpdb;
-                    $wpdb->show_errors();
 
                     $charset_collate = $wpdb->get_charset_collate();
                     $sqlInsertString = $tableKeys = $foreignKeys = [];
@@ -141,9 +221,18 @@ class AWM_DB_Creator
                     }
 
                     // Update table version
-                    update_option('ewp_version_' . $table, $currentVersion, false);
+                    update_option(self::VERSION_OPTION_PREFIX . $table, $currentVersion, true);
                     $message = sprintf(__('Table "%s" just updated! Current version is %s.', 'filox'), $table, $currentVersion);
                     $databasesUpdated[] = $message;
+                    /**
+                     * Fires after a custom table was created or upgraded to a new schema version.
+                     *
+                     * @since 1.0.0
+                     *
+                     * @param string     $table          Table name without the WordPress prefix.
+                     * @param array      $tableData      Table definition (data, primaryKey, index, foreignKey, version).
+                     * @param string|int $currentVersion Schema version now stored in `ewp_version_{$table}`.
+                     */
                     do_action('ewp_database_updated', $table, $tableData, $currentVersion);
                 }
             }
@@ -388,30 +477,34 @@ class AWM_DB_Creator
         }
     }
 
+    /**
+     * Whether a custom table exists, cached per request.
+     *
+     * A table whose `ewp_version_{table}` option is set was created by
+     * dbUpdate() and is trusted without a query (the option is autoloaded
+     * since 1.5.9). Other tables are checked with `SHOW TABLES LIKE`, which
+     * replaced a slower INFORMATION_SCHEMA lookup.
+     *
+     * @param string $tableName Table name without the WordPress prefix.
+     * @return bool True when the table exists.
+     */
     public static function check_table_exists($tableName)
     {
         global $wpdb;
 
-        // Add the prefix to the table name
-        $tableName = "{$wpdb->prefix}{$tableName}";
-
-        // Check if result is already cached
-        if (isset(self::$table_existence_cache[$tableName])) {
-            return self::$table_existence_cache[$tableName];
+        $prefixed = $wpdb->prefix . $tableName;
+        if (isset(self::$table_existence_cache[$prefixed])) {
+            return self::$table_existence_cache[$prefixed];
         }
 
-        // Query INFORMATION_SCHEMA once if not cached
-        $result = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s",
-                DB_NAME,
-                $tableName
-            )
-        );
+        if (get_option(self::VERSION_OPTION_PREFIX . $tableName)) {
+            self::$table_existence_cache[$prefixed] = true;
+            return true;
+        }
 
-        // Cache the result for future calls within the same request
-        self::$table_existence_cache[$tableName] = ($result > 0);
-        return self::$table_existence_cache[$tableName];
+        $found = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($prefixed)));
+        self::$table_existence_cache[$prefixed] = ($found === $prefixed);
+        return self::$table_existence_cache[$prefixed];
     }
 
 
@@ -444,8 +537,6 @@ class AWM_DB_Creator
             // Call wpdb to get access to table prefix
             global $wpdb;
 
-            // Enable error logging for wpdb
-            $wpdb->show_errors();
 
             // Add the table prefix to the passed-in data table
             $tableName = "{$wpdb->prefix}$tableName";
@@ -510,13 +601,21 @@ class AWM_DB_Creator
 
 
 
+    /**
+     * Insert one row into a custom table.
+     *
+     * @param string $tableName   Table name without the WordPress prefix.
+     * @param array  $data        Column => value.
+     * @param string $primary_key Primary key column, used to return the new id; empty for tables without one.
+     * @return array|false `[ $primary_key => id ]`, or `['success' => true, 'rows_affected' => n]` for tables
+     *                     without a primary key, false on failure.
+     */
     public static function insert_db_data($tableName, $data, $primary_key = 'id')
     {
         // Call wpdb to get access to table prefix
         global $wpdb;
 
         // Enable error handling
-        $wpdb->show_errors();
 
         try {
             if (!$tableName || !$data || empty($data)) {
@@ -607,8 +706,6 @@ class AWM_DB_Creator
             // Call wpdb to get the table prefix
             global $wpdb;
 
-            // Enable error logging for wpdb
-            $wpdb->show_errors();
 
             // Add the prefix to the table name
             $tableName = "{$wpdb->prefix}{$tableName}";
@@ -668,8 +765,6 @@ class AWM_DB_Creator
             // Call wpdb to get the table prefix
             global $wpdb;
 
-            // Enable error logging for wpdb
-            $wpdb->show_errors();
 
             // Add the prefix to the table name
             $tableName = "{$wpdb->prefix}{$tableName}";
@@ -883,6 +978,12 @@ class AWM_DB_Creator
         }
     }
 
+    /**
+     * Build a legacy `SET col='value',…` fragment (slashes added, values serialised).
+     *
+     * @param array $clause Column => value.
+     * @return string SET fragment without the SET keyword.
+     */
     private static function functionToFormatTheClause($clause)
     {
         if (isset($clause) && !empty($clause)) {
@@ -896,6 +997,12 @@ class AWM_DB_Creator
         return substr(implode('', $setStatement), 0, -1);
     }
 
+    /**
+     * Nesting depth of an array, used by the legacy WHERE builder.
+     *
+     * @param array $array Array to measure.
+     * @return int Depth, 1 for a flat array.
+     */
     private static function array_depth(array $array)
     {
         $max_depth = 1;

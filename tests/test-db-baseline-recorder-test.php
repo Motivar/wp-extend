@@ -188,12 +188,14 @@ class Test_Db_Baseline_Recorder extends WP_UnitTestCase
         remove_action('shutdown', array($recorder, 'flush'), PHP_INT_MAX);
 
         $records = $this->records();
-        $this->assertCount(1, $records);
-        $this->assertSame('AWM_DB_Creator::check_table_exists', $records[0]['entry']);
-        $this->assertSame('req-1', $records[0]['request']);
-        $this->assertSame(1, $records[0]['rows']);
-        $this->assertNotEmpty($records[0]['result_hash']);
-        $this->assertStringContainsString('INFORMATION_SCHEMA', $records[0]['sql']);
+        $this->assertNotEmpty($records);
+        $this->assertSame(array('AWM_DB_Creator::check_table_exists'), array_values(array_unique(array_column($records, 'entry'))));
+        $this->assertSame(array('req-1'), array_values(array_unique(array_column($records, 'request'))));
+        foreach ($records as $record) {
+            $this->assertMatchesRegularExpression('/^\s*(SELECT|SHOW)\b/i', $record['sql']);
+            $this->assertIsInt($record['rows']);
+            $this->assertNotEmpty($record['result_hash']);
+        }
         $this->assertFileExists($this->dir . '/index.php');
     }
 

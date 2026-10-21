@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Performance
+- **Custom tables: autoloaded version options, no INFORMATION_SCHEMA table checks, no `show_errors()` (1.5.9)** (`2026-10-21`):
+  - **Question/Prompt**: phase 1 of the DB layer plan (`.ai/context/db-layer-execution-plan.md`): "skip content type bookings for now … lets focus on fixing security/performane/dataviews. what is the final plan of execution for this?" → "please proceed".
+  - **Cause (from the baseline recorder, filox on DDEV)**: `AWM_DB_Creator::dbUpdate()` stored `ewp_version_{table}` with autoload off. Every request that registers tables (content types on `init`, filox's rates, session and options tables) therefore ran one `SELECT option_value` per table: 21 queries on every admin, ajax and cron request on a filox site with 27 tables. `check_table_exists()` queried `INFORMATION_SCHEMA.TABLES` for each new table name per request, which is slow on shared hosts. Five methods called `$wpdb->show_errors()`, which switched the global `$wpdb` into printing SQL errors (including on the front end) for the rest of the request.
+  - **Summary**:
+    - `dbUpdate()` writes the version option autoloaded. `AWM_DB_Creator::maybe_autoload_version_options()` (called from the constructor, once per request) switches existing `ewp_version_*` rows to autoload once per site with `wp_set_option_autoload_values()`, or a prepared `UPDATE` on WordPress 6.2–6.3, and stores the flag `ewp_db_versions_autoloaded` (autoloaded). Expected result on a filox site: 21 → 0 version queries per request after the first.
+    - `check_table_exists()` trusts a set `ewp_version_{table}` option (the table was created by `dbUpdate()`), otherwise runs `SHOW TABLES LIKE %s` with `esc_like()`; still cached per request.
+    - All `$wpdb->show_errors()` calls removed; failures are still logged through `error_log()` as before.
+    - New `AWM_DB_Creator::reset()` (forgets the per-request caches; tests), constants `VERSION_OPTION_PREFIX` and `AUTOLOAD_MIGRATED_OPTION`. Docblocks for `check_table_exists()`, `insert_db_data()`, `functionToFormatTheClause()`, `array_depth()` and the `ewp_database_updated` action, which is now listed in `HOOKS.md`.
+    - Plugin header declares `Requires at least: 6.2` (decided minimum for the DB layer rewrite: `%i` placeholders, `wp_cache_flush_group()`).
+  - **Tests**: `tests/test-db-creator-quick-wins-test.php` (7): version written autoloaded; migration switches old rows and stores the flag; migration costs no query once done; a known table is checked with zero queries; other tables use `SHOW TABLES` once per request and never `INFORMATION_SCHEMA`; `_` in a table name is not a wildcard; CRUD leaves `$wpdb->show_errors` off. Verified the gate: with the old `autoload = false` write and the old table check restored, two tests fail.
+  - **Affected Files**: `includes/classes/awm-db/class-db-creator.php`, `HOOKS.md`, `tests/test-db-creator-quick-wins-test.php` (new), version 1.5.9 in `extend-wp.php`, `composer.json`, `package.json`, `build/version.php`.
+  - **New hooks/routes/settings**: option `ewp_db_versions_autoloaded`; methods `AWM_DB_Creator::maybe_autoload_version_options()`, `::reset()`. No hooks, routes, commands or abilities.
+  - **Backwards Compatibility**: public signatures unchanged. `check_table_exists()` now returns true for a table whose version option exists even if the table was dropped by hand without deleting the option (extend-wp's logger and self-test cleanup and filox's activity logger already delete it); the following query then fails and is logged as before. Sites that relied on `AWM_DB_Creator` turning on `$wpdb->show_errors` for later queries in the same request no longer see printed SQL errors. Filox loads its bundled copy, so this reaches filox sites only after `composer update motivar/extend-wp` there.
+
 ### Added
 - **Temporary DB-layer baseline recorder (`tools/db-baseline/`)** (`2026-10-21`):
   - **Question/Prompt**: preparing the `AWM_DB_Creator` security/performance rewrite and the DataViews list migration without breaking filox: "before doing any change can you check on our filox to create a test list for all the repos?" → step 1 of that list, "yes" (capture a baseline first).
