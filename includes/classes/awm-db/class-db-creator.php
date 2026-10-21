@@ -86,6 +86,47 @@ class AWM_DB_Creator
     }
 
     /**
+     * Drop a custom table and forget its schema version.
+     *
+     * Deleting `ewp_version_{table}` matters: dbUpdate() only builds a table
+     * when the registered version differs, so a table dropped while its
+     * option stays behind would never be recreated, and check_table_exists()
+     * would keep reporting it. Use this instead of a raw DROP TABLE.
+     *
+     * @param string $tableName Table name without the WordPress prefix (letters, digits, `_`).
+     * @return bool True when the table no longer exists, false on an invalid name or a failed DROP.
+     */
+    public static function drop_table($tableName)
+    {
+        global $wpdb;
+
+        $tableName = (string) $tableName;
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $tableName)) {
+            return false;
+        }
+
+        $result = $wpdb->query($wpdb->prepare('DROP TABLE IF EXISTS %i', $wpdb->prefix . $tableName));
+        if ($result === false) {
+            error_log('SQL Error: could not drop table ' . $tableName . ': ' . $wpdb->last_error);
+            return false;
+        }
+
+        delete_option(self::VERSION_OPTION_PREFIX . $tableName);
+        unset(self::$table_existence_cache[$wpdb->prefix . $tableName]);
+
+        /**
+         * Fires after a custom table was dropped through AWM_DB_Creator::drop_table().
+         *
+         * @since 1.5.9
+         *
+         * @param string $tableName Table name without the WordPress prefix.
+         */
+        do_action('ewp_database_dropped', $tableName);
+
+        return true;
+    }
+
+    /**
      * Forget per-request state (table-existence cache, autoload check).
      *
      * @return void
@@ -142,19 +183,15 @@ class AWM_DB_Creator
                     }
 
                     if (isset($tableData['index'])) {
-                        if (is_array($tableData['index'])) {
-                            foreach ($tableData['index'] as $index) {
-                                if (is_array($index)) {
-                                    // Composite index
-                                    $sqlInsertString[] = 'INDEX (' . implode(',', $index) . ')';
-                                } else {
-                                    // Single column index
-                                    $sqlInsertString[] = 'INDEX (' . $index . ')';
-                                }
+                        // A string is one index (single column or comma-separated
+                        // list); an array lists indexes, each a column or a column list.
+                        foreach ((array) $tableData['index'] as $index) {
+                            $definition = self::index_definition($index);
+                            if ($definition === null) {
+                                error_log("Skipping invalid index definition on table {$table}: " . wp_json_encode($index));
+                                continue;
                             }
-                        } else {
-                            // Backward compatibility: single string index
-                            $sqlInsertString[] = 'INDEX (' . $tableData['index'] . ')';
+                            $sqlInsertString[] = $definition;
                         }
                     }
 
@@ -173,6 +210,12 @@ class AWM_DB_Creator
                     // Add foreign keys separately after table creation to avoid dbDelta issues
                     if (!empty($foreignKeys)) {
                         $this->ewp_add_foreign_keys($table, $foreignKeys, $wpdb);
+                    }
+
+                    // dbDelta cannot match unnamed `INDEX (col)` definitions, so on
+                    // an existing table it never adds a new index: add missing ones here.
+                    if ($registeredVersion !== 0 && isset($tableData['index'])) {
+                        self::ensure_indexes($table, $tableData['index']);
                     }
 
                     // Handle version mismatch and add missing columns or modify existing ones
@@ -290,12 +333,12 @@ class AWM_DB_Creator
         $new_parts = self::mtv_parse_column_definition($new_definition);
         
         // Get current column properties
-        $current_type = strtoupper($existing_column->COLUMN_TYPE);
+        $current_type = self::normalize_column_type($existing_column->COLUMN_TYPE);
         $current_nullable = ($existing_column->IS_NULLABLE === 'YES');
-        $current_default = $existing_column->COLUMN_DEFAULT;
+        $current_default = self::normalize_column_default($existing_column->COLUMN_DEFAULT);
         
         // Compare data type
-        if (strtoupper($new_parts['type']) !== $current_type) {
+        if (self::normalize_column_type($new_parts['type']) !== $current_type) {
             return true;
         }
         
@@ -305,11 +348,42 @@ class AWM_DB_Creator
         }
         
         // Compare default value (if specified in new definition)
-        if (isset($new_parts['default']) && $new_parts['default'] !== $current_default) {
+        if (isset($new_parts['default']) && (string) $new_parts['default'] !== (string) $current_default) {
             return true;
         }
         
         return false;
+    }
+
+    /**
+     * Comparable form of a column type: upper case, single spaces, integer
+     * display widths removed (MySQL 8 reports `bigint unsigned` for a column
+     * declared `bigint(20) unsigned`), INTEGER spelled INT.
+     *
+     * @param string $type Column type as declared or as read from INFORMATION_SCHEMA.
+     * @return string Normalised type.
+     */
+    private static function normalize_column_type($type)
+    {
+        $type = strtoupper(trim(preg_replace('/\s+/', ' ', (string) $type)));
+        $type = preg_replace('/\bINTEGER\b/', 'INT', $type);
+        return preg_replace('/\b(TINYINT|SMALLINT|MEDIUMINT|INT|BIGINT)\s*\(\d+\)/', '$1', $type);
+    }
+
+    /**
+     * Comparable form of a column default read from INFORMATION_SCHEMA
+     * (MariaDB quotes string defaults and reports `NULL` as a string).
+     *
+     * @param string|null $default Raw COLUMN_DEFAULT.
+     * @return string|null Default without surrounding quotes, null for none.
+     */
+    private static function normalize_column_default($default)
+    {
+        if ($default === null || strtoupper((string) $default) === 'NULL') {
+            return null;
+        }
+        $default = trim((string) $default, "'\"");
+        return strtoupper($default) === 'CURRENT_TIMESTAMP()' ? 'CURRENT_TIMESTAMP' : $default;
     }
 
     /**
@@ -328,10 +402,10 @@ class AWM_DB_Creator
             'auto_increment' => false
         ];
         
-        // Extract data type (everything before first space or end of string)
-        if (preg_match('/^([^\s]+)/', $definition, $matches)) {
-            $parts['type'] = strtoupper($matches[1]);
-        }
+        // Data type: everything before the first column attribute, so
+        // modifiers such as UNSIGNED / ZEROFILL stay part of the type.
+        $type = preg_split('/\s+(?:NOT\s+NULL|NULL|DEFAULT|AUTO_INCREMENT|PRIMARY|UNIQUE|KEY|COMMENT|COLLATE|CHARACTER\s+SET|CHARSET|ON\s+UPDATE|GENERATED|AS|CHECK|REFERENCES)\b/i', $definition, 2);
+        $parts['type'] = strtoupper(trim($type[0]));
         
         // Check for NOT NULL
         if (stripos($definition, 'NOT NULL') !== false) {
@@ -357,6 +431,104 @@ class AWM_DB_Creator
         }
         
         return $parts;
+    }
+
+    /**
+     * Add every declared index that the table does not have yet.
+     *
+     * An index counts as present when an existing index covers exactly the
+     * same columns (and prefix lengths) in the same order, whatever its name,
+     * so tables created by older versions (auto-named indexes) get no
+     * duplicates.
+     *
+     * @param string       $table   Table name without the WordPress prefix.
+     * @param array|string $indexes Declared indexes: a column (`col`, `col(191)`),
+     *                              a comma-separated list, or an array of columns.
+     * @return void
+     */
+    private static function ensure_indexes($table, $indexes)
+    {
+        global $wpdb;
+
+        $existing = self::index_signatures($table);
+        foreach ((array) $indexes as $index) {
+            $columns = self::parse_index_columns($index);
+            if ($columns === null) {
+                error_log("Skipping invalid index definition on table {$table}: " . wp_json_encode($index));
+                continue;
+            }
+            $signature = implode(',', array_map(function ($column) {
+                return strtolower($column['name']) . ($column['length'] ? '(' . $column['length'] . ')' : '');
+            }, $columns));
+            if (in_array($signature, $existing, true)) {
+                continue;
+            }
+            $parts = array_map(function ($column) {
+                return $column['length'] ? '%i(' . $column['length'] . ')' : '%i';
+            }, $columns);
+            $sql = $wpdb->prepare(
+                'ALTER TABLE %i ADD INDEX (' . implode(', ', $parts) . ')', // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- placeholders and integer lengths only.
+                array_merge(array($wpdb->prefix . $table), array_column($columns, 'name'))
+            );
+            if ($wpdb->query($sql) === false) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+                error_log("Failed to add index ({$signature}) to table {$table}: " . $wpdb->last_error);
+            }
+        }
+    }
+
+    /**
+     * `INDEX (...)` clause for CREATE TABLE from a declared index.
+     *
+     * @param array|string $index Declared index, see parse_index_columns().
+     * @return string|null Clause with backtick-quoted columns, null when invalid.
+     */
+    private static function index_definition($index)
+    {
+        $columns = self::parse_index_columns($index);
+        if ($columns === null) {
+            return null;
+        }
+        return 'INDEX (' . implode(',', array_map(function ($column) {
+            return '`' . $column['name'] . '`' . ($column['length'] ? '(' . $column['length'] . ')' : '');
+        }, $columns)) . ')';
+    }
+
+    /**
+     * Column signatures of a table's indexes, e.g. `meta_key,meta_value(191)`.
+     *
+     * @param string $table Table name without the WordPress prefix.
+     * @return string[] Index name => signature.
+     */
+    private static function index_signatures($table)
+    {
+        global $wpdb;
+
+        $indexes = array();
+        foreach ((array) $wpdb->get_results($wpdb->prepare('SHOW INDEX FROM %i', $wpdb->prefix . $table)) as $row) {
+            $indexes[$row->Key_name][(int) $row->Seq_in_index] = strtolower($row->Column_name) . ($row->Sub_part ? '(' . (int) $row->Sub_part . ')' : '');
+        }
+        return array_map(function ($columns) {
+            ksort($columns);
+            return implode(',', $columns);
+        }, $indexes);
+    }
+
+    /**
+     * Parse one declared index into columns with optional prefix lengths.
+     *
+     * @param array|string $index `col`, `col(191)`, `a,b` or `['a', 'b(20)']`.
+     * @return array[]|null List of { name, length }, null when any part is not a plain identifier.
+     */
+    private static function parse_index_columns($index)
+    {
+        $columns = array();
+        foreach (array_map('trim', is_array($index) ? $index : explode(',', (string) $index)) as $part) {
+            if (!preg_match('/^([A-Za-z0-9_]+)\s*(?:\((\d+)\))?$/', (string) $part, $m)) {
+                return null;
+            }
+            $columns[] = array('name' => $m[1], 'length' => isset($m[2]) ? (int) $m[2] : 0);
+        }
+        return $columns ?: null;
     }
 
     /**
