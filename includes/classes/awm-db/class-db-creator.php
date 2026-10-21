@@ -1214,14 +1214,21 @@ class AWM_DB_Creator
      *
      * @internal Removed once the shadow comparison is retired.
      * @param mixed $where_clause WHERE node.
-     * @return string WHERE fragment, '' for none.
+     * @return string|null WHERE fragment, '' for none, null when the old builder cannot express the node.
      */
     public static function legacy_where_sql($where_clause)
     {
         if (empty($where_clause)) {
             return '';
         }
-        return (string) self::recursiveQueryBuilder($where_clause);
+        if (!\EWP\Db\Shadow::comparable($where_clause)) {
+            return null;
+        }
+        try {
+            return (string) self::recursiveQueryBuilder($where_clause);
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     /**
@@ -1234,13 +1241,16 @@ class AWM_DB_Creator
      * @param array        $orderBy      { column, type }.
      * @param int|string   $limit        Row limit.
      * @param int          $offset       Rows to skip.
-     * @return string Unescaped SQL.
+     * @return string|null Unescaped SQL, null when the old builder cannot express the WHERE.
      */
     public static function legacy_select_sql($tableName, $select, $where_clause, $orderBy, $limit, $offset)
     {
         global $wpdb;
         $sql   = array('SELECT ' . (is_array($select) ? implode(',', $select) : '*') . ' FROM ' . $wpdb->prefix . $tableName);
         $where = self::legacy_where_sql($where_clause);
+        if ($where === null) {
+            return null;
+        }
         if ($where !== '') {
             $sql[] = 'WHERE ' . $where;
         }

@@ -34,7 +34,56 @@ final class Shadow
      */
     public static function enabled()
     {
-        return defined('EWP_DB_SHADOW') && EWP_DB_SHADOW && wp_get_environment_type() !== 'production';
+        /**
+         * Filters whether the shadow comparison runs on this request. Never runs on production,
+         * whatever the filter returns.
+         *
+         * @since 1.6.1
+         *
+         * @param bool $enabled True when the EWP_DB_SHADOW constant is set and true.
+         */
+        $enabled = (bool) apply_filters('ewp_db_shadow_enabled', defined('EWP_DB_SHADOW') && EWP_DB_SHADOW);
+        return $enabled && wp_get_environment_type() !== 'production';
+    }
+
+    /**
+     * Whether the pre-1.6 builder can express a WHERE node at all, so the
+     * comparison means something. It only knew the legacy shape — a root
+     * with `clause`, conditions with `column`, `compare` and a scalar or
+     * string `value` — not array values, sub-queries or bare conditions,
+     * which extend-wp's own callers use since 1.6.0.
+     *
+     * @param mixed $where WHERE node.
+     * @return bool True when old and new SQL can be compared.
+     */
+    public static function comparable($where)
+    {
+        if (empty($where)) {
+            return true;
+        }
+        return is_array($where) && isset($where['clause']) && is_array($where['clause']) && self::legacy_node($where);
+    }
+
+    /**
+     * Whether a node and its children use only legacy features.
+     *
+     * @param array $node Group or condition.
+     * @return bool True when every condition is legacy-shaped.
+     */
+    private static function legacy_node(array $node)
+    {
+        if (array_key_exists('column', $node)) {
+            return isset($node['compare']) && !isset($node['subquery']) && array_key_exists('value', $node) && is_scalar($node['value']);
+        }
+        if (!isset($node['clause']) || !is_array($node['clause'])) {
+            return false;
+        }
+        foreach ($node['clause'] as $child) {
+            if (!is_array($child) || !self::legacy_node($child)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -47,6 +96,9 @@ final class Shadow
      */
     public static function compare_select($table, $legacy_sql, array $rows)
     {
+        if ($legacy_sql === null) {
+            return true;
+        }
         $legacy = self::run($legacy_sql);
         if ($legacy !== null && self::same_rows($legacy, $rows)) {
             return true;
@@ -68,6 +120,9 @@ final class Shadow
     {
         global $wpdb;
 
+        if ($legacy_where === null || !self::comparable($where)) {
+            return true;
+        }
         try {
             $new = Sql::select($table, '*', $where, array(), '', 0);
             Where::build($where, Table_Columns::of($table), array('strict' => true));

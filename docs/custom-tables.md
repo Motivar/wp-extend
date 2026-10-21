@@ -116,7 +116,11 @@ per condition, joined by `relation`; `compare` uses the list above.
 pre-1.6 SQL and compare the rows, and every `update_db_data()` / `delete_db_data()` compare the rows
 both WHEREs target before writing. Differences are logged with the prefix `[ewp-db-shadow]` and the
 caller (`EWP\Db\Shadow`). The old SQL is unescaped, which is why this never runs on production. Turn it
-on while testing a consumer plugin against a new extend-wp release.
+on while testing a consumer plugin against a new extend-wp release. Only WHEREs in the legacy shape
+(root `clause`, conditions with `column`, `compare` and a scalar value — what consumer plugins pass) are
+compared; array values, sub-queries and bare conditions, which the old builder cannot express, are
+skipped (`Shadow::comparable()`, since 1.6.1). The filter `ewp_db_shadow_enabled` switches it per
+request.
 
 ### Prepared-SQL lint
 

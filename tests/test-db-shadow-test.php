@@ -5,10 +5,17 @@
 
 use EWP\Db\Shadow;
 
+require_once __DIR__ . '/includes/trait-content-fixture.php';
+
 class Test_Db_Shadow extends WP_UnitTestCase
 {
+    use EWP_Test_Content_Fixture;
+
     /** @var string Raw table (without prefix). */
     private static $table;
+
+    /** @var string Content type with real tables. */
+    private static $type;
 
     /**
      * Real table for the comparisons.
@@ -24,6 +31,7 @@ class Test_Db_Shadow extends WP_UnitTestCase
             'primaryKey' => 'id',
             'version'    => '1',
         )));
+        self::$type = self::create_content_type_fixture(array('capability' => 'edit_posts'));
     }
 
     /**
@@ -44,8 +52,8 @@ class Test_Db_Shadow extends WP_UnitTestCase
      */
     public function test_disabled_by_default()
     {
-        if (defined('EWP_DB_SHADOW')) {
-            $this->markTestSkipped('EWP_DB_SHADOW is defined in this run.');
+        if (defined('EWP_DB_SHADOW') && EWP_DB_SHADOW) {
+            $this->markTestSkipped('EWP_DB_SHADOW is on in this run.');
         }
         $this->assertFalse(Shadow::enabled());
     }
@@ -84,6 +92,60 @@ class Test_Db_Shadow extends WP_UnitTestCase
         $this->assertFalse(Shadow::compare_select(self::$table, $legacy, array()));
         ini_set('error_log', $old);
         $this->assertStringContainsString(Shadow::TAG . ' select on ' . self::$table . ' differs (1 old rows vs 0 new rows)', (string) file_get_contents($log));
+        unlink($log);
+    }
+
+    /**
+     * Which WHERE shapes the old builder can express.
+     *
+     * @return void
+     */
+    public function test_comparable_shapes()
+    {
+        $legacy = array('clause' => array(array('operator' => 'AND', 'clause' => array(array('column' => 'status', 'value' => 'a', 'compare' => '=')))));
+        $this->assertTrue(Shadow::comparable(''));
+        $this->assertTrue(Shadow::comparable($legacy));
+        $this->assertTrue(Shadow::comparable(array('clause' => array(array('clause' => array(array('column' => 'status', 'value' => "('a','b')", 'compare' => 'IN')))))));
+
+        $this->assertFalse(Shadow::comparable(array('column' => 'status', 'value' => 'a', 'compare' => '=')), 'bare condition');
+        $this->assertFalse(Shadow::comparable(array('clause' => array(array('clause' => array(array('column' => 'status', 'value' => array('a'), 'compare' => 'IN')))))), 'array IN');
+        $this->assertFalse(Shadow::comparable(array('clause' => array(array('clause' => array(array('column' => 'id', 'compare' => 'IN', 'subquery' => array('table' => 'x', 'select' => 'id'))))))), 'subquery');
+        $this->assertFalse(Shadow::comparable(array('clause' => array(array('clause' => array(array('column' => 'status', 'value' => 'a')))))), 'no compare');
+    }
+
+    /**
+     * Regression (1.6.0 on DDEV): with shadow on, a new-style WHERE (array IN,
+     * meta_query subquery, bare condition) crashed the request in the old
+     * builder. Now it is skipped; results and writes are unaffected, and a
+     * legacy-shaped read is still compared without reporting a difference.
+     *
+     * @return void
+     */
+    public function test_shadow_on_never_breaks_queries()
+    {
+        add_filter('ewp_db_shadow_enabled', '__return_true');
+        $this->assertTrue(Shadow::enabled());
+        wp_set_current_user(self::factory()->user->create(array('role' => 'administrator')));
+        $log = tempnam(get_temp_dir(), 'shadow');
+        $old = ini_set('error_log', $log);
+
+        $a = AWM_DB_Creator::insert_db_data(self::$table, array('status' => 'a'));
+        AWM_DB_Creator::insert_db_data(self::$table, array('status' => 'b'));
+        $legacy = array('clause' => array(array('operator' => 'AND', 'clause' => array(array('column' => 'status', 'value' => 'a', 'compare' => '=')))));
+
+        $this->assertCount(1, AWM_DB_Creator::get_db_data(self::$table, '*', $legacy));
+        $this->assertCount(2, AWM_DB_Creator::get_db_data(self::$table, '*', array('column' => 'status', 'value' => array('a', 'b'), 'compare' => 'IN')));
+        $this->assertCount(1, AWM_DB_Creator::get_db_data(self::$table, '*', array('column' => 'id', 'compare' => 'IN', 'subquery' => array('table' => self::$table, 'select' => 'id', 'where' => array('column' => 'status', 'value' => 'b')))));
+        $this->assertTrue(AWM_DB_Creator::update_db_data(self::$table, array('status' => 'c'), array('column' => 'id', 'value' => array((int) $a['id']), 'compare' => 'IN')));
+        $this->assertSame(1, AWM_DB_Creator::delete_db_data(self::$table, array('column' => 'status', 'value' => array('c'), 'compare' => 'IN')));
+
+        $id = awm_custom_content_save(self::$type, array('content_id' => 'new', 'title' => 'Shadowed', 'status' => 'enabled', 'awm_custom_meta' => array('example_field', 'required_field'), 'example_field' => 'red', 'required_field' => 'x'));
+        $found = awm_get_db_content(self::$type, array('status' => 'enabled', 'meta_query' => array(array('key' => 'example_field', 'value' => 'red', 'compare' => '='))));
+        $this->assertSame(array((int) $id), array_map('intval', array_column($found, 'content_id')));
+
+        ini_set('error_log', $old);
+        remove_filter('ewp_db_shadow_enabled', '__return_true');
+        $this->assertStringNotContainsString(Shadow::TAG, (string) file_get_contents($log), 'matching or skipped queries must not be reported');
         unlink($log);
     }
 
