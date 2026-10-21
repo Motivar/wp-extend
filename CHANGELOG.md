@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Dist packages leave out tests, tools and CI files (`.gitattributes`)** (`2026-10-21`):
+  - **Question/Prompt**: the filox 0.9.17 commit added ~16.6k lines, mostly extend-wp's `tests/` (incl. the 440 KB `tests/fixtures/db-baseline/fixtures.json`) — "proceed to this" (add `export-ignore`).
+  - **Summary**: new `.gitattributes` marks `tests/`, `tools/`, `.ai/`, `.claude/`, `.githooks/`, `.github/`, `.gitlab-ci.yml`, `.gitattributes`, `.gitignore`, `phpcs.xml.dist`, `phpunit.xml.dist` and `CLAUDE.md` `export-ignore`, so `git archive` and the GitHub/GitLab zipballs Composer installs as dist (filox: `includes/3rd-party/extend-wp`, from `api.github.com/repos/Motivar/wp-extend/zipball/…`) no longer carry them. Archive size 5.2 MB → 4.2 MB.
+  - **Affected Files**: `.gitattributes` (new).
+  - **New hooks/routes/settings**: none.
+  - **Backwards Compatibility**: none of these paths is loaded at runtime (checked: no `includes/` / `extend-wp.php` reference). The dev-only `tools/db-baseline` mu-plugin stub already guards with `is_readable()`, so a bundled copy simply records nothing. Source installs (`--prefer-source`, git clones) are unchanged. Consumers pick it up on their next `composer update motivar/extend-wp`; the removed files then disappear from their bundled copy.
+
 ### Fixed
 - **Shadow mode crashed requests on new-style WHEREs (1.6.1)** (`2026-10-21`):
   - **Question/Prompt**: filox 1.6.0 rollout check on DDEV ("yes merge it" → update filox's bundled copy, run it with `EWP_DB_SHADOW`). With shadow on, activating filox gave "There has been a critical error".

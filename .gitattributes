@@ -1,0 +1,16 @@
+# Paths left out of `git archive` and therefore of the GitHub/GitLab zipballs
+# Composer installs as dist (e.g. filox's includes/3rd-party/extend-wp).
+# Development, test and CI files only — nothing here is loaded at runtime.
+# A source install (`composer install --prefer-source`) still gets everything.
+/tests              export-ignore
+/tools              export-ignore
+/.ai                export-ignore
+/.claude            export-ignore
+/.githooks          export-ignore
+/.github            export-ignore
+/.gitlab-ci.yml     export-ignore
+/.gitattributes     export-ignore
+/.gitignore         export-ignore
+/phpcs.xml.dist     export-ignore
+/phpunit.xml.dist   export-ignore
+/CLAUDE.md          export-ignore
