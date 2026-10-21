@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **New field groups / search filters: "Field type configuration" stayed empty (`get-case-fields` 400)** (`2026-10-21`):
+  - **Question/Prompt**: screenshot of a new field group with an empty "Field type configuration" box and `GET extend-wp/v1/get-case-fields?…&id=new&field=input` answering 400 — "we get this".
+  - **Cause**: since the field-builder helpers became a kit resource (`Field_Builder_Resource`, 53981adf) their `id` input was `Field::int`. The field-group and search-filter editors send `id=new` for an unsaved row, which the integer field rejected before the callback ran, so `get-case-fields`, `get-query-fields` and `get-position-fields` all failed on new rows (saved rows, `id=9`, worked). The self-test case only sent `id=0`, so nothing caught it. Not related to the DB layer changes.
+  - **Summary**: `id` is a string input sanitised by new `Field_Builder_Resource::row_id()` (numeric → that id, `new` / empty / anything else → 0, a new row); the callbacks still receive an int. The `field-builder` self-test case now sends `id=new`, like the editor.
+  - **Tests**: `tests/test-field-builder-new-row-test.php` (5: the three helpers answer 200 with markup for `new`, `0`, `'0'` and junk; `row_id()` mapping). With the old `Field::int` the `new` and junk cases fail. Checked in Chrome on DDEV: new field group → Add Field → Input: `get-case-fields?id=new&field=input` 200, the input-type settings render, no console errors.
+  - **Affected Files**: `includes/classes/ewp-surfaces/resources/class-field-builder-resource.php`, `includes/classes/ewp-self-test/cases/class-field-builder-case.php`, `tests/test-field-builder-new-row-test.php` (new).
+  - **New hooks/routes/settings**: method `Field_Builder_Resource::row_id()`.
+  - **Backwards Compatibility**: the routes accept everything they accepted before plus non-numeric ids (treated as a new row). Still open: the `Undefined array key "page"` warning from `Extend_WP_Search_Filters::ewp_search_dev_notes()` (`class-wp-search.php:561`) that Query Monitor shows on these requests — harmless, fixed separately.
+
 ### Security
 - **Custom-table CRUD on prepared statements: `EWP\Db` (1.6.0)** (`2026-10-21`):
   - **Question/Prompt**: phase 2 of the DB layer plan (`.ai/context/db-layer-execution-plan.md`, design in `sql-hardening-plan.md`): "please continue the db task", after "lets focus on fixing security/performane/dataviews" and "is there a way to accept them [hand-built IN strings] but use the correct way the new schema will accept?".

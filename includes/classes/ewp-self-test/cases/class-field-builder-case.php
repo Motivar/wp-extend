@@ -24,8 +24,8 @@ class Field_Builder_Case extends Case_Base
     public function preview()
     {
         return [
-            __('REST: GET /extend-wp/v1/get-case-fields?field=input — expect 200 and the input-type select markup.', 'extend-wp'),
-            __('REST: GET /extend-wp/v1/get-query-fields, /get-position-fields?position=post_type — expect 200 and markup.', 'extend-wp'),
+            __('REST: GET /extend-wp/v1/get-case-fields?field=input&id=new (what the editor sends for an unsaved row) — expect 200 and the input-type select markup.', 'extend-wp'),
+            __('REST: GET /extend-wp/v1/get-query-fields, /get-position-fields?position=post_type, both with id=new — expect 200 and markup.', 'extend-wp'),
             __('REST: GET /extend-wp/v1/get-php-code?awm_post_id=0 — expect 200 and an empty string for an unknown row.', 'extend-wp'),
             __('REST: GET /extend-wp/v1/awm-map-options — expect 200 and the lat/lng defaults.', 'extend-wp'),
             __('REST: inject a modal definition via awm_modal_field_definition_lookup, GET /modal-fields (option view) — expect modal_html; POST /modal-save — expect the option written; delete it in cleanup.', 'extend-wp'),
@@ -37,9 +37,9 @@ class Field_Builder_Case extends Case_Base
     {
         $o = [];
 
-        $o['case']     = $this->rest('GET', '/extend-wp/v1/get-case-fields', ['field' => 'input', 'name' => 'awm_fields[0][case]', 'meta' => 'awm_fields', 'id' => 0]);
-        $o['query']    = $this->rest('GET', '/extend-wp/v1/get-query-fields', ['field' => 'post_type', 'name' => 'query_fields[0][query_type]', 'meta' => 'query_fields', 'id' => 0]);
-        $o['position'] = $this->rest('GET', '/extend-wp/v1/get-position-fields', ['position' => 'post_type', 'name' => 'awm_positions[0][case]', 'id' => 0]);
+        $o['case']     = $this->rest('GET', '/extend-wp/v1/get-case-fields', ['field' => 'input', 'name' => 'awm_fields[0][case]', 'meta' => 'awm_fields', 'id' => 'new']);
+        $o['query']    = $this->rest('GET', '/extend-wp/v1/get-query-fields', ['field' => 'post_type', 'name' => 'query_fields[0][query_type]', 'meta' => 'query_fields', 'id' => 'new']);
+        $o['position'] = $this->rest('GET', '/extend-wp/v1/get-position-fields', ['position' => 'post_type', 'name' => 'awm_positions[0][case]', 'id' => 'new']);
         $o['php']      = $this->rest('GET', '/extend-wp/v1/get-php-code', ['awm_post_id' => 0]);
         $o['map']      = $this->rest('GET', '/extend-wp/v1/awm-map-options');
 

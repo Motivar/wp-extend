@@ -94,12 +94,26 @@ final class Field_Builder_Resource extends Resource
         return 'edit_posts';
     }
 
+    /**
+     * Normalise the `id` input: a numeric id stays that id, anything else
+     * (`new` for an unsaved row, empty, junk) means 0, a new row.
+     *
+     * @param mixed $value Raw input.
+     * @return int Row id, 0 for a new row.
+     */
+    public static function row_id($value)
+    {
+        return is_numeric($value) ? max(0, (int) $value) : 0;
+    }
+
     /** {@inheritDoc} */
     public function operations()
     {
         $html  = ['type' => 'string'];
         $name  = Field::string('name')->default_value('')->describe(__('Input name of the row being configured; the markup nests its inputs under it.', 'extend-wp'));
-        $id    = Field::int('id')->default_value(0)->describe(__('Row id whose stored values pre-fill the markup; 0 for a new row.', 'extend-wp'));
+        // A string, not Field::int: the field-group and search-filter editors send `id=new`
+        // for an unsaved row, which an integer field rejects with 400 before the callback runs.
+        $id    = Field::string('id')->default_value('0')->sanitize_with([__CLASS__, 'row_id'])->describe(__('Row id whose stored values pre-fill the markup; 0 or "new" for a new row.', 'extend-wp'));
         $field = Field::string('field')->default_value('')->describe(__('Selected type; empty returns an empty string.', 'extend-wp'));
         $meta  = Field::string('meta')->default_value('awm_fields')->describe(__('Meta key holding the rows: awm_fields, or query_fields for search filters.', 'extend-wp'));
 
