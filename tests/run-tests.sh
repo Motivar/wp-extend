@@ -2,7 +2,8 @@
 #
 # The project's test command: `composer test` runs this.
 #
-# Runs both suites inside the DDEV web container against the isolated
+# Runs the prepared-SQL lint (phpcs.xml.dist, WPCS from tests/composer.json),
+# then both suites inside the DDEV web container against the isolated
 # wp_extend_tests database — the PHPUnit suite (tests/) and the self-test
 # suite (every REST route, WP-CLI command and ability listed in
 # includes/classes/ewp-self-test/manifest.json) through
@@ -25,7 +26,9 @@ RUNNER="lib/mammothwp/wp-self-test/bin/run.php"
 # hint and exits 0, which would report a pass without running anything.
 if [ "${IS_DDEV_PROJECT:-}" = "true" ]; then
     cd "/var/www/html/$PLUGIN_DIR" || exit 1
-    [ -x "tests/vendor/bin/phpunit" ] || (cd tests && composer install --no-interaction --prefer-dist) || exit 1
+    { [ -x "tests/vendor/bin/phpunit" ] && [ -x "tests/vendor/bin/phpcs" ]; } || (cd tests && composer install --no-interaction --prefer-dist) || exit 1
+    echo "[tests] Running the prepared-SQL lint (phpcs.xml.dist) inside DDEV..."
+    tests/vendor/bin/phpcs --standard=phpcs.xml.dist -q || exit 1
     echo "[tests] Running PHPUnit (tests/) inside DDEV..."
     WP_CORE_DIR=/var/www/html WP_TESTS_DB_HOST=db tests/vendor/bin/phpunit -c phpunit.xml.dist || exit 1
     echo "[tests] Running the self-test suite ($RUNNER) inside DDEV..."
@@ -45,7 +48,7 @@ if ! ddev exec true >/dev/null 2>&1; then
 fi
 
 echo "[tests] Ensuring the test toolchain is installed..."
-if [ ! -x "tests/vendor/bin/phpunit" ]; then
+if [ ! -x "tests/vendor/bin/phpunit" ] || [ ! -x "tests/vendor/bin/phpcs" ]; then
     ddev exec bash -c "cd $PLUGIN_DIR/tests && composer install --no-interaction --prefer-dist" || {
         echo "[tests] Could not install the test toolchain (tests/composer.json)."
         exit 1
@@ -58,6 +61,9 @@ ddev exec mysql -h db -u db -pdb -e "SELECT 1;" wp_extend_tests >/dev/null 2>&1 
         echo "[tests] Could not prepare the test database."
         exit 1
     }
+
+echo "[tests] Running the prepared-SQL lint (phpcs.xml.dist)..."
+ddev exec bash -c "cd $PLUGIN_DIR && tests/vendor/bin/phpcs --standard=phpcs.xml.dist -q" || exit 1
 
 echo "[tests] Running PHPUnit (tests/)..."
 ddev exec bash -c "cd $PLUGIN_DIR && WP_CORE_DIR=/var/www/html WP_TESTS_DB_HOST=db tests/vendor/bin/phpunit -c phpunit.xml.dist" || exit 1

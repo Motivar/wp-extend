@@ -78,7 +78,7 @@ class AWM_DB_Creator
         // WordPress 6.2–6.3: no bulk API yet.
         global $wpdb;
         $placeholders = implode(',', array_fill(0, count($names), '%s'));
-        $wpdb->query($wpdb->prepare("UPDATE {$wpdb->options} SET autoload = 'yes' WHERE option_name IN ($placeholders)", $names)); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $wpdb->query($wpdb->prepare("UPDATE {$wpdb->options} SET autoload = 'yes' WHERE option_name IN ($placeholders)", $names)); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders is a generated list of %s.
         wp_cache_delete('alloptions', 'options');
         foreach ($names as $name) {
             wp_cache_delete($name, 'options');
@@ -113,6 +113,7 @@ class AWM_DB_Creator
 
         delete_option(self::VERSION_OPTION_PREFIX . $tableName);
         unset(self::$table_existence_cache[$wpdb->prefix . $tableName]);
+        \EWP\Db\Table_Columns::forget($tableName);
 
         /**
          * Fires after a custom table was dropped through AWM_DB_Creator::drop_table().
@@ -160,6 +161,7 @@ class AWM_DB_Creator
             error_log('Failed to remove columns (' . implode(',', $removable) . ") from table {$tableName}: " . $wpdb->last_error);
             return false;
         }
+        \EWP\Db\Table_Columns::forget($tableName);
 
         /**
          * Fires after columns were removed from a custom table.
@@ -294,10 +296,12 @@ class AWM_DB_Creator
         global $wpdb;
 
         $placeholders = implode(',', array_fill(0, count($columns), '%s'));
-        $constraints  = $wpdb->get_col($wpdb->prepare(
-            "SELECT DISTINCT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND REFERENCED_TABLE_NAME IS NOT NULL AND COLUMN_NAME IN ($placeholders)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders is a generated list of %s.
+        $constraints = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND REFERENCED_TABLE_NAME IS NOT NULL AND COLUMN_NAME IN ($placeholders)",
             array_merge(array(DB_NAME, $wpdb->prefix . $tableName), $columns)
         ));
+        // phpcs:enable
         foreach ($constraints as $constraint) {
             if ($wpdb->query($wpdb->prepare('ALTER TABLE %i DROP FOREIGN KEY %i', $wpdb->prefix . $tableName, $constraint)) === false) {
                 error_log("Failed to remove foreign key {$constraint} on table {$tableName}: " . $wpdb->last_error);
@@ -325,6 +329,7 @@ class AWM_DB_Creator
     {
         self::$table_existence_cache = [];
         self::$autoload_checked      = false;
+        \EWP\Db\Table_Columns::forget();
     }
 
     /**
@@ -439,9 +444,14 @@ class AWM_DB_Creator
                                 )
                             );
                             
+                            if (!self::is_identifier($id)) {
+                                error_log("Skipping invalid column name {$id} on table {$table}.");
+                                continue;
+                            }
+                            // The column definition ($data) is SQL from the schema in code and cannot be bound.
                             if (empty($existing_column)) {
                                 // Column doesn't exist, add it
-                                $result = $wpdb->query("ALTER TABLE {$wpdb->prefix}{$table} ADD COLUMN {$id} {$data}");
+                                $result = $wpdb->query($wpdb->prepare('ALTER TABLE %i ADD COLUMN %i', $wpdb->prefix . $table, $id) . ' ' . $data); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- schema definition from code.
                                 if ($result === false) {
                                     error_log("Failed to add column {$id} to table {$table}: " . $wpdb->last_error);
                                 }
@@ -451,7 +461,7 @@ class AWM_DB_Creator
                                 
                                 if ($needs_modification) {
                                     // Modify the existing column
-                                    $result = $wpdb->query("ALTER TABLE {$wpdb->prefix}{$table} MODIFY COLUMN {$id} {$data}");
+                                    $result = $wpdb->query($wpdb->prepare('ALTER TABLE %i MODIFY COLUMN %i', $wpdb->prefix . $table, $id) . ' ' . $data); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- schema definition from code.
                                     if ($result === false) {
                                         error_log("Failed to modify column {$id} in table {$table}: " . $wpdb->last_error);
                                     } else {
@@ -471,6 +481,7 @@ class AWM_DB_Creator
 
                     // Update table version
                     update_option(self::VERSION_OPTION_PREFIX . $table, $currentVersion, true);
+                    \EWP\Db\Table_Columns::forget($table);
                     $message = sprintf(__('Table "%s" just updated! Current version is %s.', 'filox'), $table, $currentVersion);
                     $databasesUpdated[] = $message;
                     /**
@@ -841,13 +852,22 @@ class AWM_DB_Creator
                 continue;
             }
 
-            // Build and execute the ALTER TABLE statement
-            $sql = "ALTER TABLE {$full_table_name} 
-                    ADD CONSTRAINT {$constraint_name} 
-                    FOREIGN KEY ({$key}) 
-                    REFERENCES {$wpdb->prefix}{$ref}";
+            if (!self::is_identifier($key) || !self::is_identifier($ref_table) || !self::is_identifier($ref_column)) {
+                error_log("Skipping foreign key {$constraint_name} for table {$table}: invalid identifier.");
+                continue;
+            }
 
-            $result = $wpdb->query($sql);
+            // Build and execute the ALTER TABLE statement
+            $sql = $wpdb->prepare(
+                'ALTER TABLE %i ADD CONSTRAINT %i FOREIGN KEY (%i) REFERENCES %i (%i)',
+                $full_table_name,
+                $constraint_name,
+                $key,
+                $full_ref_table,
+                $ref_column
+            );
+
+            $result = $wpdb->query($sql); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepared above.
 
             if ($result === false) {
                 error_log("Failed to add foreign key {$constraint_name} to table {$table}. SQL: {$sql}. Error: " . $wpdb->last_error);
@@ -888,93 +908,69 @@ class AWM_DB_Creator
 
 
     /**
-     * Runs a select query in the custom Filox DB
-     * 
-     * @param tableName The name of the table to run the query on
-     * @param select The columns to be retrieved. Can be just "*" to select everything or a comma seperated array with the column names
-     * @param where_clause An associative array containing all the information to limit the query. Contains what follows after "WHERE".
-     * @param orderBy Array with the column name and the type of order (ASC or DESC). Defaults to nothing
-     * @param limit The number of rows to be returned from the SQL query. Defaults to nothing
-     * 
-     * @see where_clause (To be implemented after testing)
-     * @see orderBy
+     * Select rows from a custom table.
+     *
+     * Built by EWP\Db\Sql: columns, ORDER BY and every WHERE column are checked
+     * against the table's real columns, values are bound as placeholders.
+     * An invalid filter matches nothing; an invalid ORDER BY or SELECT column
+     * is dropped (both logged when WP_DEBUG is on).
+     *
+     * @param string       $tableName    Table name without the WordPress prefix.
+     * @param string|array $select       '*' or a list of columns.
+     * @param mixed        $where_clause WHERE node (see EWP\Db\Where); '' or empty array for none.
+     * @param array        $orderBy      { column, type: ASC|DESC }; empty for none.
+     * @param int|string   $limit        Row limit; '' or <= 0 for none.
+     * @param int          $offset       Rows to skip.
+     * @param bool         $prepare_only Return the prepared SQL instead of running it.
+     * @param bool         $debug        Log the SQL.
+     * @return array|string|false Rows (slashes stripped), the SQL when $prepare_only, false on failure.
      */
-
     public static function get_db_data($tableName, $select = '*', $where_clause = '', $orderBy = array(), $limit = '', $offset = 0, $prepare_only = false, $debug = false)
     {
-        try {
-            if (!isset($tableName) || !isset($select)) {
-                throw new Exception('Table name or select clause is missing.');
-            }
+        global $wpdb;
 
-            // Check if table exists
-            if (!self::check_table_exists($tableName)) {
-                throw new Exception("Table '{$tableName}' does not exist.");
-            }
-
-            // Call wpdb to get access to table prefix
-            global $wpdb;
-
-
-            // Add the table prefix to the passed-in data table
-            $tableName = "{$wpdb->prefix}$tableName";
-
-            // If "select" is an array, implode it with separating commas. If not, select everything
-            $select = is_array($select) ? implode(',', $select) : "*";
-            $sql = [];
-
-            // Prepare the SQL query
-            $sql[] = "SELECT {$select} FROM {$tableName}";
-
-            // Add WHERE clause if provided
-            if ($where_clause !== '' && !empty($where_clause)) {
-                $sql[] = "WHERE " . self::recursiveQueryBuilder($where_clause);
-            }
-
-            // Add ORDER BY clause if provided
-            if (!empty($orderBy)) {
-                if (!isset($orderBy['column']) || !isset($orderBy['type'])) {
-                    throw new Exception('Invalid orderBy clause. "column" and "type" are required.');
-                }
-                $sql[] = "ORDER BY {$orderBy['column']} {$orderBy['type']}";
-            }
-
-            // Add LIMIT and OFFSET clauses if provided
-            if ($limit > 0 && $limit !== '') {
-                $sql[] = "LIMIT {$limit}";
-            }
-            if ($offset !== 0) {
-                $sql[] = "OFFSET {$offset}";
-            }
-
-            // Build the final SQL query
-            $sql = implode(' ', $sql);
-
-            // Debug mode
-            if ($debug) {
-                error_log("SQL Query: {$sql}");
-                error_log("Last Error: {$wpdb->last_error}");
-            }
-
-            // If prepare_only is true, return the SQL query
-            if ($prepare_only) {
-                return $sql;
-            }
-
-            // Execute the query and check for errors
-            $results = $wpdb->get_results($sql, ARRAY_A);
-
-            if ($wpdb->last_error) {
-                throw new Exception('Database query failed: ' . $wpdb->last_error);
-            }
-            // Clean the results using stripslashes_deep
-            $results = stripslashes_deep($results);
-            return $results;
-        } catch (Exception $e) {
-            // Log the error
-            error_log('SQL Error: ' . $e->getMessage());
-            return false; // Return false to indicate failure
+        if (empty($tableName) || !self::check_table_exists($tableName)) {
+            error_log("SQL Error: Table '{$tableName}' does not exist.");
+            return false;
         }
+
+        $built = \EWP\Db\Sql::select($tableName, $select, $where_clause, $orderBy, $limit, $offset);
+        self::log_query_problems($tableName, $built['errors']);
+        if ($built['sql'] === null) {
+            error_log("SQL Error: none of the selected columns exists in table '{$tableName}'.");
+            return false;
+        }
+        if ($debug) {
+            error_log('SQL Query: ' . $built['sql']);
+        }
+        if ($prepare_only) {
+            return $built['sql'];
+        }
+
+        $results = $wpdb->get_results($built['sql'], ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepared by EWP\Db\Sql.
+        if ($wpdb->last_error) {
+            error_log('SQL Error: Database query failed: ' . $wpdb->last_error);
+            return false;
+        }
+        if (\EWP\Db\Shadow::enabled()) {
+            \EWP\Db\Shadow::compare_select($tableName, self::legacy_select_sql($tableName, $select, $where_clause, $orderBy, $limit, $offset), $results);
+        }
+        return stripslashes_deep($results);
+    }
+
+    /**
+     * Log reasons a read dropped part of its query, when WP_DEBUG is on.
+     *
+     * @param string   $tableName Table name without the WordPress prefix.
+     * @param string[] $errors    Problems reported by EWP\Db\Sql / Where.
+     * @return void
+     */
+    private static function log_query_problems($tableName, array $errors)
+    {
+        if (empty($errors) || !defined('WP_DEBUG') || !WP_DEBUG) {
+            return;
+        }
+        error_log("SQL Notice ({$tableName}): " . implode('; ', $errors));
     }
 
 
@@ -1060,116 +1056,75 @@ class AWM_DB_Creator
     }
 
     /**
-     * Runs an update query in the custom Filox database
-     * 
-     * @param tableName The name of the table to run the query on
-     * @param updateClause An array of column-value key pairs to update. Represents the new values
-     * @param where_clause An associative array containing all the information to limit the query. Contains what follows after "WHERE".
-     * 
-     * @see where_clause (To be implemented after testing)
+     * Update rows of a custom table.
+     *
+     * Values are stored as before (arrays/objects serialised, no slashes
+     * added). Fails closed: an unknown column, an invalid condition or an
+     * empty WHERE returns false and changes nothing.
+     *
+     * @param string $tableName    Table name without the WordPress prefix.
+     * @param array  $updateClause Column => new value.
+     * @param mixed  $where_clause WHERE node (see EWP\Db\Where); required.
+     * @param mixed  $unique       Unused, kept for signature compatibility.
+     * @return bool True when the statement ran (whatever the number of rows), false on failure.
      */
-
     public static function update_db_data($tableName, $updateClause, $where_clause = '', $unique = false)
     {
+        global $wpdb;
+
         try {
-            // Check that the parameters are valid
-            if (empty($tableName) || empty($updateClause)) {
+            if (empty($tableName) || empty($updateClause) || !is_array($updateClause)) {
                 throw new Exception('Invalid parameters: Table name and update clause are required.');
             }
-
-            // Check if table exists
             if (!self::check_table_exists($tableName)) {
                 throw new Exception("Table '{$tableName}' does not exist.");
             }
-            // Call wpdb to get the table prefix
-            global $wpdb;
-
-
-            // Add the prefix to the table name
-            $tableName = "{$wpdb->prefix}{$tableName}";
-
-            // Format the update clause
-            $updateClause = self::functionToFormatTheClause($updateClause);
-            if (empty($updateClause)) {
-                throw new Exception('Invalid update clause: It cannot be empty.');
+            if (\EWP\Db\Shadow::enabled()) {
+                \EWP\Db\Shadow::compare_targets($tableName, $where_clause, self::legacy_where_sql($where_clause), 'update');
             }
-
-            // Prepare the SQL query
-            $sql = "UPDATE {$tableName} SET {$updateClause}";
-
-            // Add the WHERE clause if provided
-            if (!empty($where_clause)) {
-                $sql .= " WHERE " . self::recursiveQueryBuilder($where_clause);
-            }
-
-            // Run the update query
-            $query = $wpdb->query($sql);
-
-            // Check for errors
-            if ($query === false || !empty($wpdb->last_error)) {
+            $result = $wpdb->query(\EWP\Db\Sql::update($tableName, $updateClause, $where_clause)); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepared by EWP\Db\Sql.
+            if ($result === false || !empty($wpdb->last_error)) {
                 throw new Exception('Database update failed: ' . $wpdb->last_error);
             }
-
-            return true; // Query executed successfully, regardless of rows affected
-
+            return true;
         } catch (Exception $e) {
-            // Log the error
             error_log('SQL Error: ' . $e->getMessage());
-            return false; // Return false to indicate failure
+            return false;
         }
     }
 
     /**
-     * Runs a delete query in the custom Filox database
-     * 
-     * @param tableName The name of the table to run the query on
-     * @param where_clause An associative array containing all the information to limit the query. Contains what follows after "WHERE".
-     * 
-     * @see where_clause (To be implemented after testing)
+     * Delete rows of a custom table.
+     *
+     * Fails closed: an invalid condition or an empty WHERE returns false and
+     * deletes nothing. Use truncate_table() to empty a table.
+     *
+     * @param string $tableName    Table name without the WordPress prefix.
+     * @param mixed  $where_clause WHERE node (see EWP\Db\Where); required.
+     * @return int|false Rows deleted, false on failure.
      */
-
     public static function delete_db_data($tableName, $where_clause = '')
     {
+        global $wpdb;
+
         try {
             if (empty($tableName)) {
                 throw new Exception('Table name is required.');
             }
-
-            // Check if table exists
             if (!self::check_table_exists($tableName)) {
                 throw new Exception("Table '{$tableName}' does not exist.");
             }
-
-            // Call wpdb to get the table prefix
-            global $wpdb;
-
-
-            // Add the prefix to the table name
-            $tableName = "{$wpdb->prefix}{$tableName}";
-
-            // Prepare the SQL query
-            $sql = "DELETE FROM {$tableName}";
-
-            // Add the WHERE clause if provided
-            if (!empty($where_clause)) {
-                $sql .= " WHERE " . self::recursiveQueryBuilder($where_clause);
-            } else {
-                throw new Exception('A WHERE clause is required for DELETE operations to prevent accidental data loss.');
+            if (\EWP\Db\Shadow::enabled()) {
+                \EWP\Db\Shadow::compare_targets($tableName, $where_clause, self::legacy_where_sql($where_clause), 'delete');
             }
-
-            // Execute the query
-            $result = $wpdb->query($sql);
-
-            // Check for errors
+            $result = $wpdb->query(\EWP\Db\Sql::delete($tableName, $where_clause)); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepared by EWP\Db\Sql.
             if ($result === false) {
                 throw new Exception('Database delete failed: ' . $wpdb->last_error);
             }
-
-            return $result; // Return the number of rows affected
+            return $result;
         } catch (Exception $e) {
-            // Log the error
             error_log('SQL Error in delete_db_data: ' . $e->getMessage());
-            return false; // Return false to indicate failure
+            return false;
         }
     }
 
@@ -1252,12 +1207,62 @@ class AWM_DB_Creator
 
 
     /**
-     * Function that dynamically creates the WHERE syntax for a an SQL query
-     * 
-     * @param array The array that gets passed in to create the WHERE statement
-     * 
+     * SQL the pre-1.6 builder produced for a WHERE node (shadow mode only).
+     *
+     * Values are concatenated unescaped: never execute this outside
+     * EWP\Db\Shadow on a development or staging site.
+     *
+     * @internal Removed once the shadow comparison is retired.
+     * @param mixed $where_clause WHERE node.
+     * @return string WHERE fragment, '' for none.
      */
+    public static function legacy_where_sql($where_clause)
+    {
+        if (empty($where_clause)) {
+            return '';
+        }
+        return (string) self::recursiveQueryBuilder($where_clause);
+    }
 
+    /**
+     * SELECT the pre-1.6 get_db_data() built (shadow mode only).
+     *
+     * @internal Removed once the shadow comparison is retired.
+     * @param string       $tableName    Table name without the WordPress prefix.
+     * @param string|array $select       '*' or columns.
+     * @param mixed        $where_clause WHERE node.
+     * @param array        $orderBy      { column, type }.
+     * @param int|string   $limit        Row limit.
+     * @param int          $offset       Rows to skip.
+     * @return string Unescaped SQL.
+     */
+    public static function legacy_select_sql($tableName, $select, $where_clause, $orderBy, $limit, $offset)
+    {
+        global $wpdb;
+        $sql   = array('SELECT ' . (is_array($select) ? implode(',', $select) : '*') . ' FROM ' . $wpdb->prefix . $tableName);
+        $where = self::legacy_where_sql($where_clause);
+        if ($where !== '') {
+            $sql[] = 'WHERE ' . $where;
+        }
+        if (!empty($orderBy) && isset($orderBy['column'], $orderBy['type'])) {
+            $sql[] = 'ORDER BY ' . $orderBy['column'] . ' ' . $orderBy['type'];
+        }
+        if ($limit > 0 && $limit !== '') {
+            $sql[] = 'LIMIT ' . $limit;
+        }
+        if ($offset !== 0) {
+            $sql[] = 'OFFSET ' . $offset;
+        }
+        return implode(' ', $sql);
+    }
+
+    /**
+     * Pre-1.6 WHERE builder, kept only for legacy_where_sql() (shadow mode).
+     *
+     * @param array $array WHERE node.
+     * @param int   $it    Recursion level.
+     * @return string|null WHERE fragment.
+     */
     private static function recursiveQueryBuilder($array, $it = 1)
     {
         if (!is_array($array)) {
@@ -1354,25 +1359,6 @@ class AWM_DB_Creator
                 }
             }
         }
-    }
-
-    /**
-     * Build a legacy `SET col='value',…` fragment (slashes added, values serialised).
-     *
-     * @param array $clause Column => value.
-     * @return string SET fragment without the SET keyword.
-     */
-    private static function functionToFormatTheClause($clause)
-    {
-        if (isset($clause) && !empty($clause)) {
-            $setStatement = array();
-            foreach ($clause as $key => $value) {
-                $escaped_value = addslashes(maybe_serialize($value)); // Escape special characters
-                $setStatement[] = $key . '=\'' . $escaped_value . '\',';
-            }
-        }
-
-        return substr(implode('', $setStatement), 0, -1);
     }
 
     /**

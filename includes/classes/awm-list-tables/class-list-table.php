@@ -102,6 +102,12 @@ class AWM_List_Table extends WP_List_Table
     }
 
 
+    /**
+     * Render the restrict filters above the list (top navigation only).
+     *
+     * @param string $which `top` or `bottom`.
+     * @return void
+     */
     public function extra_tablenav($which)
     {
         if (!empty($this->list_filters) && $which == 'top') { ?>
@@ -117,6 +123,12 @@ class AWM_List_Table extends WP_List_Table
         }
     }
 
+    /**
+     * Render the table navigation (bulk actions, filters, pagination).
+     *
+     * @param string $which `top` or `bottom`.
+     * @return void
+     */
     protected function display_tablenav($which)
     {
 
@@ -153,6 +165,13 @@ class AWM_List_Table extends WP_List_Table
 <?php
     }
 
+    /**
+     * Render the search box (the `s` parameter; sort parameters are not carried over).
+     *
+     * @param string $text     Button label.
+     * @param string $input_id Input id prefix.
+     * @return void
+     */
     public function search_box($text, $input_id)
     {
         /*
@@ -183,6 +202,11 @@ class AWM_List_Table extends WP_List_Table
 
 
 
+    /**
+     * Render the status links above the list.
+     *
+     * @return string|void Empty string when the type has no statuses; otherwise echoes the links.
+     */
     public function views()
     {
         if (empty($this->_args['ewp_custom_args']['status'])) {
@@ -201,6 +225,12 @@ class AWM_List_Table extends WP_List_Table
     }
 
 
+    /**
+     * Collect the list columns from the type's `columns` and metabox fields flagged for the list.
+     *
+     * @param array $args Content type registration.
+     * @return array Column key => configuration.
+     */
     public function get_all_columns($args)
     {
         $column_data = array('columns' => array('cb' =>  '<input type="checkbox" />'), 'sortable' => array());
@@ -232,6 +262,12 @@ class AWM_List_Table extends WP_List_Table
     }
 
 
+    /**
+     * Collect the restrict filters from metabox fields flagged as list filters.
+     *
+     * @param array $args Content type registration.
+     * @return array Field library of the filters.
+     */
     public function get_list_filters($args)
     {
         $filters = array();
@@ -266,6 +302,16 @@ class AWM_List_Table extends WP_List_Table
 
     function column_default($item, $column_name)
     {
+        /**
+         * Filters the cell content of a list column without its own renderer.
+         * The dynamic part is the list page id (filox: `flx_booking`).
+         *
+         * @since 1.0.0
+         *
+         * @param string $content     Cell HTML (default empty).
+         * @param array  $item        Row.
+         * @param string $column_name Column key.
+         */
         return apply_filters('ewp_column_' . $this->page_id . '_column_content_filter', '', $item, $column_name);
     }
     /**
@@ -316,9 +362,24 @@ class AWM_List_Table extends WP_List_Table
             );
         }
 
+        /**
+         * Filters the row actions (Edit, Duplicate, Delete) of a list row.
+         * The dynamic part is the list page id (filox: `flx_booking`).
+         *
+         * @since 1.0.0
+         *
+         * @param array $actions Action key => link HTML.
+         * @param array $item    Row.
+         */
         return apply_filters('ewp_row_actions_' . $this->page_id . '_filter', $actions, $item);
     }
 
+    /**
+     * Value of the date column.
+     *
+     * @param array $item Row.
+     * @return string Date value of the row.
+     */
     function column_ewp_date($item)
     {
         return $item[$this->date_key];
@@ -558,6 +619,11 @@ class AWM_List_Table extends WP_List_Table
         }
     }
 
+    /**
+     * Row counts per status (cached per request), for pagination and status links.
+     *
+     * @return array `items` => total, plus status => count.
+     */
     public function get_total_items()
     {
         if (!empty(self::$content_totals)) {
@@ -628,6 +694,13 @@ class AWM_List_Table extends WP_List_Table
         ));
     }
 
+    /**
+     * WHERE node from the request: status, restrict filters and search (title-like
+     * columns plus a `content_id IN (SELECT … FROM {type}_data WHERE meta_value LIKE …)`
+     * subquery). Values are bound by EWP\Db\Where.
+     *
+     * @return array WHERE node, empty for none.
+     */
     public function get_list_where_clause()
     {
 
@@ -635,7 +708,7 @@ class AWM_List_Table extends WP_List_Table
         $clauses = array();
         /* check if we have certain status to search in*/
         if (isset($_REQUEST['ewp_status'])) {
-            $clauses[] = array('column' => 'status', 'value' => $_REQUEST['ewp_status'], 'compare' => '=');
+            $clauses[] = array('column' => 'status', 'value' => sanitize_key(wp_unslash($_REQUEST['ewp_status'])), 'compare' => '=');
         }
         /*check if we have certain restrict list to check in*/
         if (isset($_REQUEST['awm_restict_custom_list'])) {
@@ -657,18 +730,15 @@ class AWM_List_Table extends WP_List_Table
                     $clauses[] = array('column' => $column_key, 'value' => $search_value, 'compare' => 'LIKE');
                 }
             }
-            $meta_where_clause = array(
-                "clause" => array(
-                    array(
-                        "operator" => 'AND',
-                        "clause" => array(array('column' => 'meta_value', 'value' => $search_value, 'compare' => 'LIKE'))
-                    )
-                )
+            $clauses[] = array(
+                'column' => 'content_id',
+                'compare' => 'IN',
+                'subquery' => array(
+                    'table' => $this->_args['ewp_custom_args']['id'] . '_data',
+                    'select' => 'content_id',
+                    'where' => array('column' => 'meta_value', 'value' => $search_value, 'compare' => 'LIKE'),
+                ),
             );
-
-
-            $inner_query = AWM_DB_Creator::get_db_data($this->_args['ewp_custom_args']['id'] . '_data', array('content_id'), $meta_where_clause, '', '', 0, true);
-            $clauses[] = array('column' => 'content_id', 'value' =>  '(' . $inner_query . ')', 'compare' => 'IN');
         }
         if (!empty($clauses)) {
             $where_clause = array(
@@ -683,6 +753,13 @@ class AWM_List_Table extends WP_List_Table
         return $where_clause;
     }
 
+    /**
+     * Decrypt the rows of a type stored encrypted.
+     *
+     * @param array $encrypted_data Rows, or one row when $is_single_data.
+     * @param bool  $is_single_data Whether $encrypted_data is a single row.
+     * @return array Decrypted rows or row.
+     */
     public static function decrypt_data($encrypted_data, $is_single_data = false)
     {
         $new_items = array();

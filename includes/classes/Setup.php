@@ -64,6 +64,8 @@ class Setup
   require_once 'ewp-content/class-content-service.php';
   require_once 'class-meta-save-guard.php';
   require_once 'class-extend-wp.php';
+  /*prepared-statement layer (EWP\Db) used by AWM_DB_Creator's row CRUD*/
+  require_once 'ewp-db/init.php';
   require_once 'awm-db/class-db-creator.php';
   /*options-page admin look (body.ewp-admin-ui + ewp-admin-ui.min.css); needs AWM_Meta's options registry, so after class-extend-wp.php*/
   if (!$front_end) {

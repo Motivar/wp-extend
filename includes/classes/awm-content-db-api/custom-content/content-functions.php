@@ -126,19 +126,18 @@ if (!function_exists('awm_get_db_content')) {
     }
 
     if (!empty($query_args['status'])) {
-      $query_args['status'] = !is_array($query_args['status']) ? array($query_args['status']) : $query_args['status'];
       $wheres[] = array(
         'column' => 'status',
-        'value' => "('" . implode("','", $query_args['status']) . "')",
+        'value' => array_values((array) $query_args['status']),
         'compare' => 'IN'
       );
     }
 
     if (!empty($query_args['include_hashes'])) {
-      $query_args['include_hashes'] = !is_array($query_args['include_hashes']) ? array($query_args['include_hashes']) : $query_args['include_hashes'];
+      $query_args['include_hashes'] = (array) $query_args['include_hashes'];
       $wheres[] = array(
         'column' => 'hash',
-        'value' => "('" . implode("','", $query_args['include_hashes']) . "')",
+        'value' => array_values($query_args['include_hashes']),
         'compare' => 'IN'
       );
 
@@ -146,64 +145,22 @@ if (!function_exists('awm_get_db_content')) {
     }
 
     if (!empty($query_args['include'])) {
-      $query_args['include'] = !is_array($query_args['include']) ? array($query_args['include']) : $query_args['include'];
+      $query_args['include'] = (array) $query_args['include'];
       $wheres[] = array(
         'column' => 'content_id',
-        'value' => "('" . implode("','", $query_args['include']) . "')",
+        'value' => array_values($query_args['include']),
         'compare' => 'IN'
       );
 
       $query_args['limit'] = count($query_args['include']);
     }
 
-    if (isset($query_args['meta_query']) && !empty($query_args['meta_query'])) {
-      $operator = isset($query_args['meta_query']['relation']) ? $query_args['meta_query']['relation'] : 'AND';
-      if (isset($query_args['meta_query']['relation'])) {
-        unset($query_args['meta_query']['relation']);
-      }
-
-      $table_name = "{$wpdb->prefix}{$field}_data";
-      $joins = [];
-      $conditions = [];
-
-      foreach ($query_args['meta_query'] as $index => $query) {
-        $alias = "meta_alias_{$index}";
-
-        // Add a join for each meta query condition
-        $joins[] = "INNER JOIN {$table_name} AS {$alias} ON main.content_id = {$alias}.content_id";
-
-        // Add condition for the meta key and value
-        $conditions[] = "({$alias}.meta_key = '" . esc_sql($query['key']) . "' AND {$alias}.meta_value {$query['compare']} '" . esc_sql($query['value']) . "')";
-      }
-
-      $meta_where_clause = implode(" {$operator} ", $conditions);
-
-      // Build the self-join query
-      $meta_query_sql = "
-                SELECT DISTINCT main.content_id
-                FROM {$table_name} AS main
-                " . implode(' ', $joins) . "
-                WHERE {$meta_where_clause}
-            ";
-
-
-      // Execute the query and fetch content IDs
-      $meta_query_results = $wpdb->get_col($meta_query_sql);
-
-      if (!empty($meta_query_results)) {
-        $wheres[] = array(
-          'column' => 'content_id',
-          'value' => "('" . implode("','", array_map('esc_sql', $meta_query_results)) . "')",
-          'compare' => 'IN'
-        );
-      } else {
-        // No results match meta_query, return an empty array
-        return [];
-      }
-    }
-
     if (empty($field)) {
       return array();
+    }
+
+    if (isset($query_args['meta_query']) && !empty($query_args['meta_query'])) {
+      $wheres[] = awm_db_content_meta_query_where($field, (array) $query_args['meta_query']);
     }
 
     if (!empty($wheres)) {
@@ -225,7 +182,57 @@ if (!function_exists('awm_get_db_content')) {
 
 
 
+if (!function_exists('awm_db_content_meta_query_where')) {
+  /**
+   * WHERE group for awm_get_db_content()'s `meta_query`: one
+   * `content_id IN (SELECT content_id FROM {type}_data WHERE meta_key = … AND meta_value <compare> …)`
+   * per condition, joined by `relation`. Bound by EWP\Db\Where, so the key,
+   * value and comparison can no longer inject SQL; an unknown comparison
+   * matches nothing.
+   *
+   * @param string $field      Content type id (tables `{field}_main` / `{field}_data`).
+   * @param array  $meta_query List of { key, value, compare (default '=') } plus optional `relation` (AND|OR).
+   * @return array WHERE group node.
+   */
+  function awm_db_content_meta_query_where($field, array $meta_query)
+  {
+    $relation = isset($meta_query['relation']) ? $meta_query['relation'] : 'AND';
+    unset($meta_query['relation']);
+
+    $conditions = array();
+    foreach ($meta_query as $query) {
+      if (!is_array($query) || !isset($query['key'])) {
+        continue;
+      }
+      $conditions[] = array(
+        'column' => 'content_id',
+        'compare' => 'IN',
+        'subquery' => array(
+          'table' => $field . '_data',
+          'select' => 'content_id',
+          'where' => array(
+            'operator' => 'AND',
+            'clause' => array(
+              array('column' => 'meta_key', 'compare' => '=', 'value' => (string) $query['key']),
+              array('column' => 'meta_value', 'compare' => isset($query['compare']) ? $query['compare'] : '=', 'value' => isset($query['value']) ? $query['value'] : ''),
+            ),
+          ),
+        ),
+      );
+    }
+    return array('operator' => $relation, 'clause' => $conditions);
+  }
+}
+
 if (!function_exists('awm_get_db_content_meta')) {
+  /**
+   * Meta of a content item from `{type}_data`.
+   *
+   * @param string     $table      Content type id.
+   * @param int|string $content_id Content id.
+   * @param string     $meta_key   One key to return; empty for all.
+   * @return mixed The value of $meta_key, an array key => value for all, false when none.
+   */
   function awm_get_db_content_meta($table = '', $content_id = '', $meta_key = '')
   {
     if (empty($table) || empty($content_id)) {
@@ -278,24 +285,54 @@ if (!function_exists('awm_custom_content_delete')) {
    */
   function awm_custom_content_delete($field, $ids = array(), $column_id = 'content_id')
   {
+    $ids = array_values((array) $ids);
+    if ($column_id === 'content_id') {
+      $ids = array_values(array_filter(array_map('absint', $ids)));
+    }
     if (!empty($ids)) {
       $where_clause = array(
         "clause" => array(
           array(
             "operator" => "AND",
             "clause" => array(
-              array('column' => $column_id, 'value' => '(' . implode(',', $ids) . ')', 'compare' => 'IN')
+              array('column' => $column_id, 'value' => $ids, 'compare' => 'IN')
             ),
           ),
         )
       );
-      /*action to run before delete*/
+      /**
+       * Fires before items of a content type are deleted.
+       *
+       * The dynamic part of the hook name is the content type id.
+       *
+       * @since 1.0.0
+       *
+       * @param array $ids          Values of $column_id to delete (content ids as integers).
+       * @param array $where_clause WHERE node passed to AWM_DB_Creator::delete_db_data() (IN value is an array since 1.6.0).
+       */
       do_action($field . '_pre_delete_action', $ids, $where_clause);
       /*make the deletes*/
       AWM_DB_Creator::delete_db_data($field . '_data', $where_clause);
       AWM_DB_Creator::delete_db_data($field . '_main', $where_clause);
-      /*action to run after delete*/
+      /**
+       * Fires after items of a content type were deleted.
+       *
+       * The dynamic part of the hook name is the content type id.
+       *
+       * @since 1.0.0
+       *
+       * @param array $ids          Values of $column_id deleted.
+       * @param array $where_clause WHERE node used for the delete.
+       */
       do_action($field . '_after_delete_action', $ids, $where_clause);
+      /**
+       * Fires after items of any content type were deleted.
+       *
+       * @since 1.0.0
+       *
+       * @param string $field Content type id.
+       * @param array  $ids   Values of $column_id deleted.
+       */
       do_action('ewp_custom_content_delete_action', $field, $ids);
       return true;
     }
@@ -336,6 +373,15 @@ if (!function_exists('awm_main_table_data')) {
       $main_data['hash'] = md5(serialize($main_data));
       unset($main_data['content_id']);
     }
+    /**
+     * Filters the `{type}_main` row a content save writes.
+     *
+     * @since 1.0.0
+     *
+     * @param array  $main    { table_data: column => value, exclude: posted keys stored as columns, not meta }.
+     * @param string $id      Content type id.
+     * @param array  $data    Posted data.
+     */
     return apply_filters('awm_main_table_data_filter', array('table_data' => $main_data, 'exclude' => $exclude), $id, $data);
   }
 }
@@ -361,6 +407,16 @@ if (!function_exists('awm_meta_table_data')) {
         $metas[$key] = isset($data[$key]) ? $data[$key] : false;
       }
     }
+    /**
+     * Filters the meta a content save writes to `{type}_data`.
+     *
+     * @since 1.0.0
+     *
+     * @param array    $metas   Meta key => value.
+     * @param string   $id      Content type id.
+     * @param array    $data    Posted data.
+     * @param string[] $exclude Posted keys stored as `_main` columns.
+     */
     return apply_filters('awm_meta_table_data_filter', $metas, $id, $data, $exclude);
   }
 }
@@ -380,7 +436,12 @@ if (!function_exists('awm_custom_content_save')) {
   {
 
     /**
-     * 
+     * Filters posted data before a content item is saved.
+     *
+     * @since 1.0.0
+     *
+     * @param array  $data Posted data.
+     * @param string $id   Content type id.
      */
     $data = apply_filters('awm_custom_content_save_filter', $data, $id);
 
@@ -394,7 +455,24 @@ if (!function_exists('awm_custom_content_save')) {
       return new WP_Error('not_saved', __('Not saved ', 'extend-wp'));
     }
     awm_insert_db_content_meta($id, $object_id, $metas);
+    /**
+     * Fires after an item of a content type was saved. The dynamic part is the content type id.
+     *
+     * @since 1.0.0
+     *
+     * @param int   $object_id Saved content id.
+     * @param array $data      Posted data.
+     */
     do_action($id . '_save_action', $object_id, $data);
+    /**
+     * Fires after an item of any content type was saved.
+     *
+     * @since 1.0.0
+     *
+     * @param string $id        Content type id.
+     * @param int    $object_id Saved content id.
+     * @param array  $data      Posted data.
+     */
     do_action('ewp_custom_content_save_action', $id, $object_id, $data);
     return $object_id;
   }
@@ -453,7 +531,14 @@ if (!function_exists('awm_custom_content_duplicate')) {
       awm_insert_db_content_meta($field, $new_id, $original_meta);
     }
 
-    // Trigger an action hook for any additional functionality after duplication
+    /**
+     * Fires after a content item was duplicated. The dynamic part is the content type id.
+     *
+     * @since 1.0.0
+     *
+     * @param int $new_id Id of the copy.
+     * @param int $id     Id of the original.
+     */
     do_action($field . '_after_duplicate_action', $new_id, $id);
 
     // Clear the cache and delete all related transients

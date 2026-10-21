@@ -10,10 +10,13 @@
         "phpunit/phpunit": "^9.6",
         "yoast/phpunit-polyfills": "^2.0",
         "wp-phpunit/wp-phpunit": "^6.4",
-        "johnpbloch/wordpress-core": "^6.4"
+        "johnpbloch/wordpress-core": "^6.4",
+        "wp-coding-standards/wpcs": "^3.1"
     },
     "config": {
-        "vendor-dir": "vendor"
+        "vendor-dir": "vendor",
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
     }
 }
-

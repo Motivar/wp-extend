@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!--
+  Prepared-SQL gate for the custom-table layer (composer lint, run by composer test
+  and therefore by the pre-push hook). Scoped to the DB layer on purpose: the rest
+  of the legacy code base is not WPCS-clean, and the goal here is that no string-built
+  SQL comes back where it was removed. Extend <file> entries as more code is hardened.
+-->
+<ruleset name="extend-wp-db">
+    <description>Prepared SQL in the extend-wp DB layer.</description>
+
+    <file>includes/classes/ewp-db</file>
+    <file>includes/classes/awm-db</file>
+    <file>includes/classes/awm-content-db-api/custom-content/content-functions.php</file>
+
+    <arg name="extensions" value="php"/>
+    <arg value="sp"/>
+    <arg name="colors"/>
+
+    <rule ref="WordPress.DB.PreparedSQL"/>
+    <rule ref="WordPress.DB.PreparedSQLPlaceholders"/>
+</ruleset>
