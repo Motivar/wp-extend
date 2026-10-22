@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Files**: `includes/functions/library.php`, `includes/classes/class-extend-wp.php`, new `tests/test-field-hidden-language-test.php`.
   - **New hooks**: filter `awm_field_hidden_in_current_language( bool $hidden, array $field )`.
   - **Backwards compatibility**: rendering is unchanged. Auto-translated options can only be saved from the default language, which is what the form already showed.
+  - **Follow-up**: `AWM_Meta` calls the helper behind `function_exists()`. When two copies of Extend WP load (the standalone plugin and the one bundled in filox), Composer includes `library.php` only once, from whichever copy loads first; a newer `AWM_Meta` next to an older `library.php` would otherwise fatal on `admin_init`. With an older `library.php` the old behaviour (fields registered) stays until that copy is updated too.
 
 - **Duplicated content rows keep a real creation time (1.8.1)** (`2026-10-22`):
   - **Question/Prompt**: "please clean up ddev and run via chrome connector an end to end check at wp-filox.ddev.site then push to main…" — the end-to-end check duplicated a filox coupon from the DataViews list and the copy showed `Created 0000-00-00 00:00:00`.
