@@ -28,7 +28,8 @@ class AWM_Add_Content_DB_Setup
   private $main_columns;
   private $list;
   private $main_table_data_version = 0.1;
-  private $meta_table_data_version = 0.1;
+  /* 0.2 (1.6.2): adds the (meta_key, meta_value(191)) index used by meta_query and list search */
+  private $meta_table_data_version = 0.2;
   public function init($args)
   {
     $this->get_table_conf($args);
@@ -177,6 +178,10 @@ class AWM_Add_Content_DB_Setup
         if (isset($this->item_meta[$id])) {
           return isset($this->item_meta[$id][$original_meta]) ? $this->item_meta[$id][$original_meta] : false;
         }
+        $primed = \EWP\Db\Content_Meta::primed($this->content_id, $id);
+        if ($primed !== null) {
+          return isset($primed[$original_meta]) ? $primed[$original_meta] : false;
+        }
         $where_clause = array(
           "clause" => array(
             array(
@@ -296,7 +301,9 @@ class AWM_Add_Content_DB_Setup
         'meta_value' => 'LONGTEXT',
       ),
       'primaryKey' => 'content_id,meta_key',
-      'index' => 'meta_key',
+      /* meta_key alone (existing tables have it); meta_key + value prefix serves
+         `meta_key = … AND meta_value = …` look-ups (meta_query, exact filters) */
+      'index' => array('meta_key', array('meta_key', 'meta_value(191)')),
       'foreignKey' => array(array(
         "key" => "content_id",
         "ref" => "$this->table_name_main(content_id)"

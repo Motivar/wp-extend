@@ -110,6 +110,39 @@ $rows = AWM_DB_Creator::get_db_data('flx_rates', '*', $where, array('column' => 
 into `content_id IN (SELECT content_id FROM {type}_data WHERE meta_key = … AND meta_value <compare> …)`
 per condition, joined by `relation`; `compare` uses the list above.
 
+### Read cache (since 1.6.2)
+
+`get_db_data()` results are kept in the WordPress object cache (group `ewp_db`, class
+`EWP\Db\Read_Cache`). Each table has a `last_changed` stamp — WordPress core's pattern for posts and
+terms — and a cached result is keyed by its SQL plus the stamps of every table it reads (sub-query tables
+included, so a `meta_query` read on `{type}_main` follows writes to `{type}_data`). `insert_db_data()`,
+`update_db_data()`, `delete_db_data()`, `truncate_table()`, `drop_table()`, `drop_columns()` and schema
+upgrades bump the stamp.
+
+- Without a persistent object cache it is a per-request cache (repeated reads in one request are free).
+  With Redis/Memcached results survive between requests.
+- **Only the `{type}_main` / `{type}_data` tables of registered content types are cached by default**:
+  they are written only through these functions. Tables that a plugin also writes with raw `$wpdb`
+  (filox: `flx_rates`, `flx_session`, …) stay uncached, otherwise another request could read stale rows.
+- Opt a table in (or out) with the filter `ewp_db_cache_table` (`bool $enabled, string $table`). A
+  table opted in whose code also writes it with `$wpdb` must call
+  `EWP\Db\Read_Cache::invalidate($table)` after those writes.
+- Writes made outside WordPress (SQL client, `wp db import`) need `wp cache flush` with a persistent
+  cache, like any other cached WordPress data. `ewp_flush_cache()` flushes it too.
+
+### Batched meta (since 1.6.2)
+
+`awm_get_db_content_metas($type, $ids)` loads the meta of many items with one query (per 500 ids) and
+returns `id => [key => value]`; later `awm_get_db_content_meta($type, $id[, $key])` calls in the same
+request are answered from it (`EWP\Db\Content_Meta`), until `{type}_data` is written. The admin content
+lists, `Content_Service::list_items(…, with_meta)` (REST list, `wp ewp content list`, abilities), the
+content export and the field / post type / taxonomy loaders use it, so a 50-row list with meta takes two
+queries instead of 51.
+
+`{type}_data` has an index on `(meta_key, meta_value(191))` since 1.6.2 for `meta_query` and exact
+meta filters. Existing content types get it on the next admin load (internal schema version
+`….0.2`); building it reads the whole `_data` table once, which can take a few seconds on large tables.
+
 ### Shadow mode (development / staging)
 
 `define('EWP_DB_SHADOW', true);` on a non-production site makes every `get_db_data()` also run the
@@ -142,4 +175,5 @@ or AI abilities. Content types expose their own CRUD through `ewp-surfaces` with
 Tests: `tests/test-db-creator-schema-lifecycle-test.php`, `tests/test-db-creator-quick-wins-test.php`,
 `tests/test-db-where-test.php`, `tests/test-db-sql-injection-test.php`,
 `tests/test-db-compat-fixtures-test.php` (every WHERE recorded from filox selects the same rows as
-before), `tests/test-db-shadow-test.php`.
+before), `tests/test-db-shadow-test.php`, `tests/test-db-read-cache-test.php` (cache, batched meta,
+`_data` index).

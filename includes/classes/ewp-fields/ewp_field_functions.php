@@ -196,6 +196,7 @@ if (!function_exists('awm_get_fields')) {
   
     if (!empty($awm_fields)) {
       $counter = 0;
+      awm_get_db_content_metas('ewp_fields', array_column($awm_fields, 'content_id'));
       foreach ($awm_fields as  $awm_field) {
         $field_meta = awm_get_db_content_meta('ewp_fields', $awm_field['content_id']);
         $fields = $field_meta['awm_fields'] ?: array();

@@ -684,6 +684,7 @@ class AWM_List_Table extends WP_List_Table
         if ($this->is_data_encrypted) {
             $this->items = $this->decrypt_data($this->items);
         }
+        $this->prime_meta();
 
 
         // [REQUIRED] configure pagination
@@ -692,6 +693,24 @@ class AWM_List_Table extends WP_List_Table
             'per_page' => $per_page, // per page constant defined at top of method
             'total_pages' => ceil($total_items / $per_page) // calculate pages count
         ));
+    }
+
+    /**
+     * Load the meta of every listed row of a content type with one query, so the
+     * meta columns (`ewp_column_{id}_column_content_filter`) render without a query per row.
+     * Does nothing for lists of other tables.
+     *
+     * @return void
+     */
+    private function prime_meta()
+    {
+        if (empty($this->items) || !is_array($this->items) || $this->db_search_key !== 'content_id' || !preg_match('/^(.+)_main$/', (string) $this->table_name, $m)) {
+            return;
+        }
+        if (!\EWP\Db\Read_Cache::is_content_table($this->table_name)) {
+            return;
+        }
+        awm_get_db_content_metas($m[1], array_column($this->items, 'content_id'));
     }
 
     /**

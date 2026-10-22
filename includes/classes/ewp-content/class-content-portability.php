@@ -44,6 +44,7 @@ final class Content_Portability
             }
 
             $data[$content_type] = [];
+            awm_get_db_content_metas($content_type, array_column($rows, 'content_id'));
             foreach ($rows as $row) {
                 if (empty($row['hash'])) {
                     $row['hash'] = md5(serialize($row));

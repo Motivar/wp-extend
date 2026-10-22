@@ -228,6 +228,10 @@ if (!function_exists('awm_get_db_content_meta')) {
   /**
    * Meta of a content item from `{type}_data`.
    *
+   * Served without a query when the item was loaded by
+   * awm_get_db_content_metas() earlier in the request (and `{type}_data`
+   * has not been written since).
+   *
    * @param string     $table      Content type id.
    * @param int|string $content_id Content id.
    * @param string     $meta_key   One key to return; empty for all.
@@ -237,6 +241,13 @@ if (!function_exists('awm_get_db_content_meta')) {
   {
     if (empty($table) || empty($content_id)) {
       return false;
+    }
+    $primed = \EWP\Db\Content_Meta::primed($table, $content_id);
+    if ($primed !== null) {
+      if (!empty($meta_key)) {
+        return array_key_exists($meta_key, $primed) ? $primed[$meta_key] : false;
+      }
+      return empty($primed) ? false : $primed;
     }
     $single = false;
     $where_clause = array(
@@ -274,6 +285,22 @@ if (!function_exists('awm_get_db_content_meta')) {
 
 
 
+
+if (!function_exists('awm_get_db_content_metas')) {
+  /**
+   * Meta of many content items in one query (per 500 ids), e.g. for a list.
+   * Later awm_get_db_content_meta() calls for these items in the same
+   * request are answered without a query.
+   *
+   * @param string $field Content type id.
+   * @param array  $ids   Content ids.
+   * @return array Content id => (meta key => value); items without meta map to an empty array.
+   */
+  function awm_get_db_content_metas($field, array $ids)
+  {
+    return \EWP\Db\Content_Meta::prime($field, $ids);
+  }
+}
 
 if (!function_exists('awm_custom_content_delete')) {
   /**

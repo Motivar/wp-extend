@@ -381,6 +381,11 @@ class Content_Service
         $with_meta = !empty($args['with_meta']);
         $items     = [];
 
+        if ($with_meta && $rows !== []) {
+            // One meta query for the page instead of one per row; normalize_row() then reads the primed meta.
+            awm_get_db_content_metas($content_type, array_column($rows, 'content_id'));
+        }
+
         foreach ($rows as $row) {
             $items[] = $this->normalize_row($content_type, $row, $with_meta);
         }

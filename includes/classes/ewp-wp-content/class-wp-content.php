@@ -28,6 +28,7 @@ class Extend_WP_WP_Content
   $taxonomies = awm_get_db_content('ewp_taxonomies');
   $taxes = array();
   if (!empty($taxonomies)) {
+   awm_get_db_content_metas('ewp_taxonomies', array_column($taxonomies, 'content_id'));
    foreach ($taxonomies as $taxonomy) {
     $metas = awm_get_db_content_meta('ewp_taxonomies', $taxonomy['content_id']);
     $prefix = !empty($metas['prefix']) ? $metas['prefix'] : 'ewp';
@@ -61,6 +62,7 @@ class Extend_WP_WP_Content
   $types = $all_metas = array();
   $access_types = array('fullAccess', 'semiAccess');
   if (!empty($post_types)) {
+   awm_get_db_content_metas('ewp_post_types', array_column($post_types, 'content_id'));
    foreach ($post_types as $post) {
     $metas = awm_get_db_content_meta('ewp_post_types', $post['content_id']);
     if (!empty($post['content_title'])) {

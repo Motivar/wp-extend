@@ -114,6 +114,7 @@ class AWM_DB_Creator
         delete_option(self::VERSION_OPTION_PREFIX . $tableName);
         unset(self::$table_existence_cache[$wpdb->prefix . $tableName]);
         \EWP\Db\Table_Columns::forget($tableName);
+        \EWP\Db\Read_Cache::invalidate($tableName);
 
         /**
          * Fires after a custom table was dropped through AWM_DB_Creator::drop_table().
@@ -162,6 +163,7 @@ class AWM_DB_Creator
             return false;
         }
         \EWP\Db\Table_Columns::forget($tableName);
+        \EWP\Db\Read_Cache::invalidate($tableName);
 
         /**
          * Fires after columns were removed from a custom table.
@@ -212,6 +214,7 @@ class AWM_DB_Creator
          *
          * @param string $tableName Table name without the WordPress prefix.
          */
+        \EWP\Db\Read_Cache::invalidate($tableName);
         do_action('ewp_database_truncated', $tableName);
 
         return true;
@@ -482,6 +485,7 @@ class AWM_DB_Creator
                     // Update table version
                     update_option(self::VERSION_OPTION_PREFIX . $table, $currentVersion, true);
                     \EWP\Db\Table_Columns::forget($table);
+                    \EWP\Db\Read_Cache::invalidate($table);
                     $message = sprintf(__('Table "%s" just updated! Current version is %s.', 'filox'), $table, $currentVersion);
                     $databasesUpdated[] = $message;
                     /**
@@ -947,6 +951,13 @@ class AWM_DB_Creator
             return $built['sql'];
         }
 
+        $tables = \EWP\Db\Read_Cache::tables_of($tableName, $where_clause);
+        $cache  = self::cache_enabled($tables);
+        $cached = $cache ? \EWP\Db\Read_Cache::get($tables, $built['sql']) : null;
+        if ($cached !== null) {
+            return $cached;
+        }
+
         $results = $wpdb->get_results($built['sql'], ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepared by EWP\Db\Sql.
         if ($wpdb->last_error) {
             error_log('SQL Error: Database query failed: ' . $wpdb->last_error);
@@ -955,7 +966,27 @@ class AWM_DB_Creator
         if (\EWP\Db\Shadow::enabled()) {
             \EWP\Db\Shadow::compare_select($tableName, self::legacy_select_sql($tableName, $select, $where_clause, $orderBy, $limit, $offset), $results);
         }
-        return stripslashes_deep($results);
+        $results = stripslashes_deep($results);
+        if ($cache) {
+            \EWP\Db\Read_Cache::set($tables, $built['sql'], $results);
+        }
+        return $results;
+    }
+
+    /**
+     * Whether a read may be served from / stored in the object cache: every table it reads must be cached.
+     *
+     * @param string[] $tables Tables the query reads, without prefix.
+     * @return bool True when all are cached.
+     */
+    private static function cache_enabled(array $tables)
+    {
+        foreach ($tables as $table) {
+            if (!\EWP\Db\Read_Cache::enabled_for($table)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -1022,6 +1053,7 @@ class AWM_DB_Creator
             if ($result === false) {
                 throw new Exception('Database insert failed: ' . $wpdb->last_error);
             }
+            \EWP\Db\Read_Cache::invalidate(substr($tableName, strlen($wpdb->prefix)));
             
             // Try to get the last insert ID using MySQL's LAST_INSERT_ID() first
             $last_insert_id = $wpdb->get_var("SELECT LAST_INSERT_ID()");
@@ -1086,6 +1118,7 @@ class AWM_DB_Creator
             if ($result === false || !empty($wpdb->last_error)) {
                 throw new Exception('Database update failed: ' . $wpdb->last_error);
             }
+            \EWP\Db\Read_Cache::invalidate($tableName);
             return true;
         } catch (Exception $e) {
             error_log('SQL Error: ' . $e->getMessage());
@@ -1121,6 +1154,7 @@ class AWM_DB_Creator
             if ($result === false) {
                 throw new Exception('Database delete failed: ' . $wpdb->last_error);
             }
+            \EWP\Db\Read_Cache::invalidate($tableName);
             return $result;
         } catch (Exception $e) {
             error_log('SQL Error in delete_db_data: ' . $e->getMessage());
