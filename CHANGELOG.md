@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Duplicated content rows keep a real creation time (1.8.1)** (`2026-10-22`):
+  - **Question/Prompt**: "please clean up ddev and run via chrome connector an end to end check at wp-filox.ddev.site then push to main…" — the end-to-end check duplicated a filox coupon from the DataViews list and the copy showed `Created 0000-00-00 00:00:00`.
+  - **Summary**: `awm_custom_content_duplicate()` removed the original's `created` / `modified` and inserted the copy without them, so the copy got the column's zero date and sorted last under "created desc". It now stamps both with `current_time('mysql')`. Pre-existing since the duplicate function was added; affects the legacy and the DataViews list (both use this function).
+  - **Files**: `includes/classes/awm-content-db-api/custom-content/content-functions.php`, new `tests/test-content-duplicate-test.php`, `package.json`, `package-lock.json`, `extend-wp.php`, `build/version.php`.
+  - **Backwards compatibility**: copies made earlier keep their zero date.
+- **DataViews list: bulk actions show when rows are selected (1.8.1)** (`2026-10-22`):
+  - **Question/Prompt**: same end-to-end check — selecting rows in the Coupons DataViews list showed "3 Items selected" but no Delete / Set status buttons.
+  - **Summary**: DataViews 4.15's selection footer lists only bulk actions that have an `icon`. Every list action now has one (`@wordpress/icons`: edit `pencil`, duplicate `copy`, delete `trash`; "Set status" `published` / `notAllowed` / `tag` by status value via the new helper `statusIcon()`), so bulk status and bulk delete are reachable from the UI on every content-type list.
+  - **Files**: `assets/js/modules/ewp-dataviews-list.js`, `assets/js/modules/ewp-dataviews-list/helpers.js`, `assets/js/modules/ewp-dataviews-list/test/helpers.test.js`, `build/modules/ewp-dataviews-list.*`, `package.json` (`@wordpress/icons` 10.32.0, already installed as a DataViews dependency, now declared), `package-lock.json`.
+  - **Backwards compatibility**: none affected; the row "Actions" menu also shows the icons.
+
 ### Changed
 - **DataViews is the default admin list for every content type (1.8.0)** (`2026-10-22`):
   - **Question/Prompt**: "all extend wp lists should the new default."

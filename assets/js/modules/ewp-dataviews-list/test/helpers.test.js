@@ -9,6 +9,7 @@ import {
 	displayValue,
 	restoreView,
 	stripTags,
+	statusIcon,
 } from '../helpers';
 
 const statusField = { id: 'status', elements: [ { value: 'enabled', label: 'Enabled' }, { value: 'disabled', label: 'Disabled' } ] };
@@ -106,5 +107,14 @@ describe( 'restoreView', () => {
 		expect( view.sort ).toEqual( defaults.sort );
 		expect( view.fields ).toEqual( [ 'status' ] );
 		expect( view.filters ).toEqual( [ { field: 'status', operator: 'isAny', value: [ 'enabled' ] } ] );
+	} );
+} );
+
+describe( 'statusIcon', () => {
+	it( 'maps active, disabled and other statuses to an icon key', () => {
+		expect( statusIcon( 'enabled' ) ).toBe( 'published' );
+		expect( statusIcon( 'active' ) ).toBe( 'published' );
+		expect( statusIcon( 'disabled' ) ).toBe( 'notAllowed' );
+		expect( statusIcon( 'archived' ) ).toBe( 'tag' );
 	} );
 } );

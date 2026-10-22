@@ -546,6 +546,9 @@ if (!function_exists('awm_custom_content_duplicate')) {
     unset($original_content['hash']);   // Remove the creation timestamp of the original content
     $original_content['user_id'] = get_current_user_id(); // Set the user ID to the current user
     $original_content['content_title'] = $original_content['content_title'] . '-copy';
+    /* the copy is a new row: stamp it now (before 1.8.1 it was stored as 0000-00-00 00:00:00) */
+    $original_content['created']  = current_time('mysql');
+    $original_content['modified'] = $original_content['created'];
     // Insert the duplicated content into the main table
     $new_id = awm_insert_db_content($field, $original_content);
     // If the insert fails, return false  

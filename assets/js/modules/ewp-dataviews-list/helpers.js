@@ -10,6 +10,24 @@ export const ROW_KEYS = [ 'id', 'title', 'status', 'created', 'modified', 'user_
 /** Row actions the list implements natively; other filter-added actions are shown as links. */
 export const NATIVE_ACTIONS = [ 'edit', 'duplicate', 'delete' ];
 
+/** Status values shown with the "published" icon; DISABLED_STATUSES get "not allowed"; anything else "tag". */
+export const ACTIVE_STATUSES = [ 'enabled', 'active', 'publish', 'published' ];
+export const DISABLED_STATUSES = [ 'disabled', 'inactive', 'draft' ];
+
+/**
+ * Icon key of a "Set status" action. DataViews 4.15 shows a bulk action in the
+ * footer only when it has an icon, so every bulk action needs one.
+ *
+ * @param {string} status Status value.
+ * @return {string} `published`, `notAllowed` or `tag`.
+ */
+export function statusIcon( status ) {
+	if ( ACTIVE_STATUSES.includes( status ) ) {
+		return 'published';
+	}
+	return DISABLED_STATUSES.includes( status ) ? 'notAllowed' : 'tag';
+}
+
 /**
  * Query arguments for `{restPath}/query` from a DataViews view.
  *

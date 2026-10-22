@@ -1,6 +1,6 @@
 {
   "name": "wp-extend",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "library to include for wordpress developers with easy meta handling",
   "main": "index.js",
   "directories": {
@@ -17,6 +17,7 @@
   "license": "ISC",
   "dependencies": {
     "@wordpress/dataviews": "4.15.4",
+    "@wordpress/icons": "10.32.0",
     "slim-select": "^2.4.0"
   },
   "devDependencies": {

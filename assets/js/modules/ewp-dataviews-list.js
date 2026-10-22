@@ -13,6 +13,7 @@ import { addQueryArgs } from '@wordpress/url';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { Button, Notice } from '@wordpress/components';
 import { DataViews } from '@wordpress/dataviews';
+import { copy, notAllowed, pencil, published, tag, trash } from '@wordpress/icons';
 // Includes the DataViews stylesheet (see the SCSS file for why it is imported there).
 import '../../css/admin/sass/_ewp-dataviews-list.scss';
 import {
@@ -22,7 +23,11 @@ import {
 	extraActions,
 	displayValue,
 	restoreView,
+	statusIcon,
 } from './ewp-dataviews-list/helpers';
+
+/** Icons of the status actions, by statusIcon() key. */
+const STATUS_ICONS = { published, notAllowed, tag };
 
 /**
  * Dev logging helper — delegates to EWPDynamicAssetLoader.log when available
@@ -172,7 +177,9 @@ function DeleteModal( { items, closeModal, onActionPerformed, onDelete } ) {
 }
 
 /**
- * DataViews actions: edit, duplicate, one "set status" per status, delete.
+ * DataViews actions: edit, duplicate, one "set status" per status, delete. Every
+ * action has an icon: DataViews 4.15 lists a bulk action in the selection
+ * footer only when it has one.
  *
  * @param {Object}   config   List configuration.
  * @param {Function} setState Status / delete runner: (kind, items, status?) => Promise.
@@ -183,6 +190,7 @@ function buildActions( config, setState ) {
 		{
 			id: 'edit',
 			label: __( 'Edit', 'extend-wp' ),
+			icon: pencil,
 			isPrimary: true,
 			callback: ( items ) => {
 				window.location.href = config.editUrl + items[ 0 ].id;
@@ -191,6 +199,7 @@ function buildActions( config, setState ) {
 		{
 			id: 'duplicate',
 			label: __( 'Duplicate', 'extend-wp' ),
+			icon: copy,
 			callback: ( items ) => {
 				window.location.href = config.duplicateUrl + items[ 0 ].id;
 			},
@@ -202,6 +211,7 @@ function buildActions( config, setState ) {
 				id: 'status-' + status.value,
 				/* translators: %s: status label. */
 				label: sprintf( __( 'Set status: %s', 'extend-wp' ), status.label ),
+				icon: STATUS_ICONS[ statusIcon( status.value ) ],
 				supportsBulk: true,
 				isEligible: ( item ) => item.status !== status.value,
 				callback: ( items ) => setState( 'status', items, status.value ),
@@ -212,6 +222,7 @@ function buildActions( config, setState ) {
 		actions.push( {
 			id: 'delete',
 			label: __( 'Delete', 'extend-wp' ),
+			icon: trash,
 			isDestructive: true,
 			supportsBulk: true,
 			hideModalHeader: false,
