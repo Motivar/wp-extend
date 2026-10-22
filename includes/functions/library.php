@@ -1095,13 +1095,8 @@ if (!function_exists('awm_show_content')) {
              * check for translation plugins
              */
             /** wmpl check */
-            if (function_exists('icl_object_id')) {
-                global $sitepress;
-                $default = $sitepress->get_default_language();
-
-                if ($default != ICL_LANGUAGE_CODE && isset($a['auto_translate'])) {
-                    continue;
-                }
+            if (awm_field_hidden_in_current_language($a)) {
+                continue;
             }
             if (!in_array('administrator', $user_roles)) {
                 if (isset($a['not_visible_by']) && !empty($a['not_visible_by'])) {
@@ -1935,6 +1930,40 @@ if (!function_exists('awm_find_tranlsatable_fields')) {
             }
         }
         return apply_filters('awm_auto_translate_fields_filter', $autoTranslate, $case, $metabox);
+    }
+}
+
+if (!function_exists('awm_field_hidden_in_current_language')) {
+    /**
+     * Whether a field is left out of the current request because it is
+     * auto-translated (copied from the default language) and the admin is
+     * working in a secondary WPML language.
+     *
+     * Used both when rendering a library (the field is not shown) and when an
+     * options page registers its settings (the field is not registered, so
+     * options.php does not overwrite the stored value with null on save).
+     *
+     * @param array $field Field definition from a library. Required. The field
+     *                     is affected when it has an `auto_translate` key.
+     * @return bool True when WPML is active, the current language differs from
+     *              the default one and the field has `auto_translate`.
+     */
+    function awm_field_hidden_in_current_language($field)
+    {
+        $hidden = false;
+        if (is_array($field) && isset($field['auto_translate']) && function_exists('icl_object_id') && defined('ICL_LANGUAGE_CODE')) {
+            global $sitepress;
+            if (is_object($sitepress) && method_exists($sitepress, 'get_default_language')) {
+                $hidden = $sitepress->get_default_language() != ICL_LANGUAGE_CODE;
+            }
+        }
+        /**
+         * Filter whether a field is skipped in the current language.
+         *
+         * @param bool  $hidden Whether the field is skipped.
+         * @param array $field  The field definition.
+         */
+        return (bool) apply_filters('awm_field_hidden_in_current_language', $hidden, $field);
     }
 }
 
