@@ -30,6 +30,12 @@ class AWM_Add_Content_DB_Setup
   private $main_table_data_version = 0.1;
   /* 0.2 (1.6.2): adds the (meta_key, meta_value(191)) index used by meta_query and list search */
   private $meta_table_data_version = 0.2;
+  /**
+   * Register the content type: read its configuration and hook table creation, the admin list, list cells, REST routes and cache flushes.
+   *
+   * @param array $args { key: string raw type key, structure: array registration from `awm_register_content_db` }.
+   * @return void
+   */
   public function init($args)
   {
     $this->get_table_conf($args);
@@ -141,11 +147,23 @@ class AWM_Add_Content_DB_Setup
       'writable' => isset($this->data_content['writable']) ? (bool) $this->data_content['writable'] : true,
       /*opt-in: expose the read routes (list + single) to anonymous requests; everything else uses `capability`*/
       'public_read' => !empty($this->data_content['public_read']),
+      /*REST namespace and base of the type's routes (`{rest_prefix}/{rest_base}`, see rest_endpoints()); the DataViews list calls them (since 1.7.0)*/
+      'rest_prefix' => $this->prefix,
+      'rest_base' => $this->data_id,
     );
     self::$ewp_data_configuration[$this->content_id] = $this->list;
   }
 
 
+  /**
+   * Cell content of a list column: a `_main` column value or the item's meta value, formatted for display.
+   * Hooked on `ewp_column_{type}_column_content_filter`.
+   *
+   * @param string $content Cell HTML so far.
+   * @param array  $item    Raw `_main` row.
+   * @param string $column  Column key.
+   * @return string Cell HTML.
+   */
   public function awm_content_metas_columns($content, $item, $column)
   {
     switch ($column) {
@@ -208,6 +226,11 @@ class AWM_Add_Content_DB_Setup
   }
 
 
+  /**
+   * Columns of `{type}_main`: the defaults (content_id, title, ewp_date, modified, status, user_id, hash) merged with the type's `main_table_data.data`.
+   *
+   * @return array Column key => { sql, sql_key?, label?, admin_list?, sortable?, searchable?, … }.
+   */
   private function main_table_columns()
   {
     if ($this->main_columns !== null) {
@@ -256,6 +279,12 @@ class AWM_Add_Content_DB_Setup
     return $columns;
   }
 
+  /**
+   * SQL definitions of columns for AWM_DB_Creator.
+   *
+   * @param array $columns Column key => configuration with `sql` (and optional `sql_key`).
+   * @return array Stored column name => SQL definition.
+   */
   private function prepare_sql_columns($columns)
   {
 
@@ -269,6 +298,11 @@ class AWM_Add_Content_DB_Setup
     return $sql;
   }
 
+  /**
+   * Schema of `{type}_main` for AWM_DB_Creator.
+   *
+   * @return array Table definition (data, primaryKey, index, foreignKey, version).
+   */
   private function main_table()
   {
     $defaults = array(
@@ -292,6 +326,11 @@ class AWM_Add_Content_DB_Setup
     return array_replace_recursive($defaults, $extend);
   }
 
+  /**
+   * Schema of `{type}_data` for AWM_DB_Creator.
+   *
+   * @return array Table definition (data, primaryKey, index, foreignKey, version).
+   */
   private function meta_table()
   {
     $defaults = array(
@@ -323,9 +362,21 @@ class AWM_Add_Content_DB_Setup
     return array_replace_recursive($defaults, $extend);
   }
 
+  /**
+   * Create or upgrade both tables (runs on `admin_init`; a no-op unless the schema version changed).
+   *
+   * @return void
+   */
   public function on_load()
   {
     new AWM_DB_Creator(
+      /**
+       * Filters the table definitions of a content type before they are created or upgraded.
+       *
+       * @since 1.0.0
+       *
+       * @param array $tables `{type}_main` and `{type}_data` => table definition (data, primaryKey, index, foreignKey, version).
+       */
       apply_filters(
         'awm_content_db_setup_data_filter',
         array(
@@ -340,6 +391,11 @@ class AWM_Add_Content_DB_Setup
 
 
 
+  /**
+   * Statuses of the type.
+   *
+   * @return array Status key => { label }.
+   */
   public function get_statuses()
   {
     $statuses = isset($this->data_content['statuses']) ? $this->data_content['statuses'] : array('public' => array('label' => __('Public', 'awm')), 'private' => array('label' => __('Private', 'awm')));
@@ -347,6 +403,12 @@ class AWM_Add_Content_DB_Setup
   }
 
 
+  /**
+   * Library definition of one meta field.
+   *
+   * @param string $meta_key Field key.
+   * @return array Field definition, empty when the type has no such field.
+   */
   public function get_metabox_conf($meta_key)
   {
     $metaboxes = $this->get_metaboxes();
@@ -363,6 +425,11 @@ class AWM_Add_Content_DB_Setup
   }
 
 
+  /**
+   * Metaboxes of the type, each viewing `{type}_data` unless it says otherwise.
+   *
+   * @return array Metabox key => definition.
+   */
   public function get_metaboxes()
   {
     $metaboxes = isset($this->data_content['metaboxes']) ? $this->data_content['metaboxes'] : array();
@@ -374,6 +441,11 @@ class AWM_Add_Content_DB_Setup
     return $metaboxes;
   }
 
+  /**
+   * Admin list columns: `_main` columns flagged `admin_list` merged with the type's `columns`.
+   *
+   * @return array Column key => configuration.
+   */
   public function get_columns()
   {
     $defaults = array();

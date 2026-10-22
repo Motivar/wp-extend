@@ -106,9 +106,18 @@ final class Content_Type_Rest_Resource extends Resource
             'query' => Operation::read('query_items')
                 ->label(sprintf(__('Query %s items', 'extend-wp'), $type))
                 ->description(sprintf(__('One page of %s rows for a DataViews view (search, filters on columns and meta, sort, page, perPage), with total and total_pages.', 'extend-wp'), $type))
-                ->input(Content_Schema::view_fields())
+                ->input(array_merge(Content_Schema::view_fields(), [
+                    Field::bool('render')->describe(__('Also return each row\'s admin list cells and row actions as HTML (rendered.cells, rendered.actions), as the legacy list shows them. Used by the DataViews admin list.', 'extend-wp')),
+                ]))
                 ->args(function (array $input) use ($type) {
                     return [$type, isset($input['view']) ? (array) $input['view'] : [], !isset($input['with_meta']) || (bool) $input['with_meta']];
+                })
+                ->transform(function ($result, array $input) use ($type) {
+                    if (empty($input['render']) || !is_array($result) || !class_exists('EWP_Content_List_UI')) {
+                        return $result;
+                    }
+
+                    return \EWP_Content_List_UI::render_rows($result, $type);
                 })
                 ->capability($read_cap)
                 ->rest('GET', 'query'),

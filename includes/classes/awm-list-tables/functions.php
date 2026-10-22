@@ -74,6 +74,11 @@ new AWM_Add_Custom_Lists();
  */
 function flx_table_list_page_handler($args)
 {
+    // Content types switched to the DataViews list (EWP_Content_List_UI::mode(), filter `ewp_content_list_ui`).
+    if (class_exists('EWP_Content_List_UI') && EWP_Content_List_UI::mode((string) $args['id']) === 'dataviews') {
+        EWP_Content_List_UI::render($args);
+        return;
+    }
     // Initialize the custom Table List class
     $table = new AWM_List_Table($args);
 

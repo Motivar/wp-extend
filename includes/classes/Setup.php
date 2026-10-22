@@ -74,6 +74,8 @@ class Setup
   /*wp-admin list tables and edit forms for custom content; nothing on the front end renders them*/
   if (!$front_end) {
    require_once 'awm-list-tables/class-list-table.php';
+   /*DataViews list for content types (filter ewp_content_list_ui); registers its module with the Dynamic Asset Loader at load, before init priority 1*/
+   require_once 'awm-list-tables/class-content-list-ui.php';
   }
   require_once 'awm-customizer/class-customizer.php';
   require_once 'ewp-third-party/class-wpml.php';

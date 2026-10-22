@@ -2,7 +2,8 @@
 #
 # The project's test command: `composer test` runs this.
 #
-# Runs the prepared-SQL lint (phpcs.xml.dist, WPCS from tests/composer.json),
+# Runs the JS unit tests on the host (`npm run test:js`, Jest; skipped without
+# Node 18+), the prepared-SQL lint (phpcs.xml.dist, WPCS from tests/composer.json),
 # then both suites inside the DDEV web container against the isolated
 # wp_extend_tests database — the PHPUnit suite (tests/) and the self-test
 # suite (every REST route, WP-CLI command and ability listed in
@@ -61,6 +62,17 @@ ddev exec mysql -h db -u db -pdb -e "SELECT 1;" wp_extend_tests >/dev/null 2>&1 
         echo "[tests] Could not prepare the test database."
         exit 1
     }
+
+# JS unit tests (Jest via @wordpress/scripts) run on the host: the DDEV web
+# container's Node is too old for @wordpress/scripts 30. Skipped, not failed,
+# when Node 18+ or node_modules is missing.
+NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
+if [ -d node_modules/@wordpress/scripts ] && [ "$NODE_MAJOR" -ge 18 ]; then
+    echo "[tests] Running the JS unit tests (npm run test:js)..."
+    npm run --silent test:js || exit 1
+else
+    echo "[tests] JS unit tests skipped (needs Node 18+ and npm install)."
+fi
 
 echo "[tests] Running the prepared-SQL lint (phpcs.xml.dist)..."
 ddev exec bash -c "cd $PLUGIN_DIR && tests/vendor/bin/phpcs --standard=phpcs.xml.dist -q" || exit 1

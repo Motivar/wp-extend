@@ -1,0 +1,335 @@
+/**
+ * DataViews admin list for custom content types.
+ *
+ * Mounted on `.ewp-dataviews-list` (templates/admin-view/content-list.php),
+ * loaded by the Dynamic Asset Loader (EWP_Content_List_UI::register_assets()).
+ * Reads the configuration from `data-config` and talks to the type's REST
+ * routes: GET `{restPath}/query` (view → rows, total, rendered legacy cells),
+ * POST `{restPath}/status` and DELETE `{restPath}/delete`.
+ */
+import { createRoot, useState, useEffect, useMemo, useCallback, RawHTML } from '@wordpress/element';
+import apiFetch from '@wordpress/api-fetch';
+import { addQueryArgs } from '@wordpress/url';
+import { __, _n, sprintf } from '@wordpress/i18n';
+import { Button, Notice } from '@wordpress/components';
+import { DataViews } from '@wordpress/dataviews';
+// Includes the DataViews stylesheet (see the SCSS file for why it is imported there).
+import '../../css/admin/sass/_ewp-dataviews-list.scss';
+import {
+	queryArgs,
+	fieldValue,
+	renderedCell,
+	extraActions,
+	displayValue,
+	restoreView,
+} from './ewp-dataviews-list/helpers';
+
+/**
+ * Dev logging helper — delegates to EWPDynamicAssetLoader.log when available
+ * (silent unless the loader's debug flag is on).
+ *
+ * @param {string} message Log message.
+ * @param {*}      [data]  Optional payload.
+ * @return {void}
+ */
+const ewpLog = ( message, data ) => {
+	if ( typeof window.EWPDynamicAssetLoader !== 'undefined' && typeof window.EWPDynamicAssetLoader.log === 'function' ) {
+		window.EWPDynamicAssetLoader.log( '[EWP DataViews] ' + message, data );
+	}
+};
+
+/** Layouts offered by the list. */
+const DEFAULT_LAYOUTS = { table: {}, list: {} };
+
+/**
+ * Read a saved view; storage may be unavailable (private windows, blocked site data).
+ *
+ * @param {string} key Storage key.
+ * @return {Object|null} Saved view.
+ */
+function loadView( key ) {
+	try {
+		const raw = window.localStorage.getItem( key );
+		return raw ? JSON.parse( raw ) : null;
+	} catch ( error ) {
+		return null;
+	}
+}
+
+/**
+ * Save the view (best effort).
+ *
+ * @param {string} key  Storage key.
+ * @param {Object} view View.
+ * @return {void}
+ */
+function saveView( key, view ) {
+	try {
+		window.localStorage.setItem( key, JSON.stringify( view ) );
+	} catch ( error ) {
+		ewpLog( 'View not saved', error );
+	}
+}
+
+/**
+ * DataViews field definitions from the PHP configuration.
+ *
+ * @param {Object} config List configuration.
+ * @return {Object[]} Fields.
+ */
+function buildFields( config ) {
+	return config.fields.map( ( field ) => {
+		const definition = {
+			id: field.id,
+			label: field.label,
+			type: field.type,
+			enableSorting: !! field.enableSorting,
+			enableHiding: field.enableHiding !== false,
+			enableGlobalSearch: false,
+			getValue: ( { item } ) => fieldValue( item, field ),
+			render: ( { item } ) => renderField( item, field, config ),
+		};
+		if ( field.elements ) {
+			definition.elements = field.elements;
+			definition.filterBy = { operators: field.operators || [ 'isAny', 'isNone' ] };
+		}
+		return definition;
+	} );
+}
+
+/**
+ * Cell of a row: the title links to the edit screen (plus filter-added row actions),
+ * other columns show the legacy HTML cell when there is one, else the value.
+ *
+ * @param {Object} item   Row.
+ * @param {Object} field  Field configuration.
+ * @param {Object} config List configuration.
+ * @return {Element} Cell.
+ */
+function renderField( item, field, config ) {
+	if ( field.id === 'title' ) {
+		const extras = extraActions( item );
+		return (
+			<div>
+				<a className="ewp-dataviews-list__title" href={ config.editUrl + item.id }>
+					{ item.title || sprintf( /* translators: %d: item id. */ __( '#%d (no title)', 'extend-wp' ), item.id ) }
+				</a>
+				{ extras.length > 0 && (
+					<div className="ewp-dataviews-list__row-actions">
+						{ extras.map( ( html, index ) => <RawHTML key={ index }>{ html }</RawHTML> ) }
+					</div>
+				) }
+			</div>
+		);
+	}
+	const html = field.html ? renderedCell( item, field ) : '';
+	if ( html !== '' ) {
+		return <RawHTML>{ html }</RawHTML>;
+	}
+	return displayValue( fieldValue( item, field ), field );
+}
+
+/**
+ * Confirmation modal of the delete action.
+ *
+ * @param {Object}   props                   Props.
+ * @param {Object[]} props.items             Selected rows.
+ * @param {Function} props.closeModal        Close the modal.
+ * @param {Function} props.onActionPerformed Called after the delete.
+ * @param {Function} props.onDelete          Performs the delete.
+ * @return {Element} Modal body.
+ */
+function DeleteModal( { items, closeModal, onActionPerformed, onDelete } ) {
+	const [ busy, setBusy ] = useState( false );
+	const confirm = async () => {
+		setBusy( true );
+		await onDelete( items );
+		setBusy( false );
+		closeModal();
+		if ( onActionPerformed ) {
+			onActionPerformed( items );
+		}
+	};
+	return (
+		<div>
+			<p>
+				{ sprintf(
+					/* translators: %d: number of items. */
+					_n( 'Permanently delete %d item? This cannot be undone.', 'Permanently delete %d items? This cannot be undone.', items.length, 'extend-wp' ),
+					items.length
+				) }
+			</p>
+			<div className="ewp-dataviews-list__modal-actions">
+				<Button variant="tertiary" onClick={ closeModal } disabled={ busy }>
+					{ __( 'Cancel', 'extend-wp' ) }
+				</Button>
+				<Button variant="primary" isDestructive onClick={ confirm } isBusy={ busy } disabled={ busy }>
+					{ __( 'Delete', 'extend-wp' ) }
+				</Button>
+			</div>
+		</div>
+	);
+}
+
+/**
+ * DataViews actions: edit, duplicate, one "set status" per status, delete.
+ *
+ * @param {Object}   config   List configuration.
+ * @param {Function} setState Status / delete runner: (kind, items, status?) => Promise.
+ * @return {Object[]} Actions.
+ */
+function buildActions( config, setState ) {
+	const actions = [
+		{
+			id: 'edit',
+			label: __( 'Edit', 'extend-wp' ),
+			isPrimary: true,
+			callback: ( items ) => {
+				window.location.href = config.editUrl + items[ 0 ].id;
+			},
+		},
+		{
+			id: 'duplicate',
+			label: __( 'Duplicate', 'extend-wp' ),
+			callback: ( items ) => {
+				window.location.href = config.duplicateUrl + items[ 0 ].id;
+			},
+		},
+	];
+	if ( config.writable ) {
+		config.statuses.forEach( ( status ) => {
+			actions.push( {
+				id: 'status-' + status.value,
+				/* translators: %s: status label. */
+				label: sprintf( __( 'Set status: %s', 'extend-wp' ), status.label ),
+				supportsBulk: true,
+				isEligible: ( item ) => item.status !== status.value,
+				callback: ( items ) => setState( 'status', items, status.value ),
+			} );
+		} );
+	}
+	if ( config.canDelete ) {
+		actions.push( {
+			id: 'delete',
+			label: __( 'Delete', 'extend-wp' ),
+			isDestructive: true,
+			supportsBulk: true,
+			hideModalHeader: false,
+			modalHeader: __( 'Delete items', 'extend-wp' ),
+			RenderModal: ( props ) => <DeleteModal { ...props } onDelete={ ( items ) => setState( 'delete', items ) } />,
+		} );
+	}
+	return actions;
+}
+
+/**
+ * The list.
+ *
+ * @param {Object} props        Props.
+ * @param {Object} props.config List configuration.
+ * @return {Element} List.
+ */
+function ContentList( { config } ) {
+	const fields = useMemo( () => buildFields( config ), [ config ] );
+	const fieldIds = useMemo( () => fields.map( ( f ) => f.id ), [ fields ] );
+	const [ view, setView ] = useState( () => restoreView( config.defaultView, loadView( config.storageKey ), fieldIds ) );
+	const [ result, setResult ] = useState( { items: [], total: 0, total_pages: 0 } );
+	const [ loading, setLoading ] = useState( true );
+	const [ notice, setNotice ] = useState( null );
+	const [ reload, setReload ] = useState( 0 );
+
+	useEffect( () => {
+		let cancelled = false;
+		setLoading( true );
+		apiFetch( { path: addQueryArgs( config.restPath + '/query', queryArgs( view ) ) } )
+			.then( ( response ) => {
+				if ( ! cancelled ) {
+					setResult( response );
+				}
+			} )
+			.catch( ( error ) => {
+				ewpLog( 'Query failed', error );
+				if ( ! cancelled ) {
+					setNotice( { status: 'error', message: error.message || __( 'The list could not be loaded.', 'extend-wp' ) } );
+				}
+			} )
+			.finally( () => ! cancelled && setLoading( false ) );
+		return () => {
+			cancelled = true;
+		};
+	}, [ view, reload, config.restPath ] );
+
+	const onChangeView = useCallback( ( next ) => {
+		setView( next );
+		saveView( config.storageKey, { ...next, search: '', page: 1 } );
+	}, [ config.storageKey ] );
+
+	const runAction = useCallback( async ( kind, items, status ) => {
+		const ids = items.map( ( item ) => item.id ).join( ',' );
+		try {
+			if ( kind === 'status' ) {
+				const response = await apiFetch( { path: config.restPath + '/status', method: 'POST', data: { ids, status } } );
+				/* translators: %d: number of items. */
+				setNotice( { status: 'success', message: sprintf( _n( '%d item updated.', '%d items updated.', response.count, 'extend-wp' ), response.count ) } );
+			} else {
+				const response = await apiFetch( { path: addQueryArgs( config.restPath + '/delete', { ids } ), method: 'DELETE' } );
+				/* translators: %d: number of items. */
+				setNotice( { status: 'success', message: sprintf( _n( '%d item deleted.', '%d items deleted.', response.count, 'extend-wp' ), response.count ) } );
+			}
+		} catch ( error ) {
+			ewpLog( 'Action failed', { kind, error } );
+			setNotice( { status: 'error', message: error.message || __( 'The action failed.', 'extend-wp' ) } );
+		}
+		setReload( ( n ) => n + 1 );
+	}, [ config.restPath ] );
+
+	const actions = useMemo( () => buildActions( config, runAction ), [ config, runAction ] );
+
+	return (
+		<>
+			{ notice && (
+				<Notice className="ewp-dataviews-list__notice" status={ notice.status } onRemove={ () => setNotice( null ) }>
+					{ notice.message }
+				</Notice>
+			) }
+			<DataViews
+				data={ result.items || [] }
+				fields={ fields }
+				view={ view }
+				onChangeView={ onChangeView }
+				actions={ actions }
+				isLoading={ loading }
+				paginationInfo={ { totalItems: result.total || 0, totalPages: result.total_pages || 0 } }
+				defaultLayouts={ DEFAULT_LAYOUTS }
+				getItemId={ ( item ) => String( item.id ) }
+			/>
+		</>
+	);
+}
+
+/**
+ * Mount every list on the page once.
+ *
+ * @return {void}
+ */
+function mount() {
+	document.querySelectorAll( '.ewp-dataviews-list:not([data-mounted])' ).forEach( ( element ) => {
+		let config;
+		try {
+			config = JSON.parse( element.dataset.config || '{}' );
+		} catch ( error ) {
+			ewpLog( 'Invalid configuration', error );
+			return;
+		}
+		element.dataset.mounted = '1';
+		element.textContent = '';
+		createRoot( element ).render( <ContentList config={ config } /> );
+		ewpLog( 'Mounted', { type: config.type } );
+	} );
+}
+
+if ( document.readyState === 'loading' ) {
+	document.addEventListener( 'DOMContentLoaded', mount );
+} else {
+	mount();
+}

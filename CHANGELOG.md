@@ -8,6 +8,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **DataViews admin list for custom content types (1.7.0, DB plan phase 5)** (`2026-10-22`):
+  - **Question/Prompt**: "proceed with phases" (phase 5 of `.ai/context/db-layer-execution-plan.md`: DataViews UI with search, filters, actions, sortable columns, behind a per-type flag).
+  - **Summary**:
+    - **`EWP_Content_List_UI`** (`includes/classes/awm-list-tables/class-content-list-ui.php`):
+      - `flx_table_list_page_handler()` renders the DataViews list instead of `AWM_List_Table` when `mode($type)` says `dataviews`.
+      - The filter `ewp_content_list_ui` defaults to `dataviews` for Extend WP's own types (`ewp_fields`, `ewp_post_types`, `ewp_taxonomies`, `ewp_search`, `ewp_content_type`) and `legacy` for every other type, so filox lists are unchanged until a type opts in.
+      - Falls back to legacy below WordPress 6.8, without the built module, and with `?ewp_list_ui=legacy` (a "Switch to the classic list" link under the list).
+      - `fields()` maps the legacy list columns (type `columns` plus `admin_list` library fields) to DataViews fields:
+        - `ewp_date` becomes `created`;
+        - `_main` columns sort;
+        - status and select / radio fields filter with is any / is none; checkbox-multiple fields with is all / is not all.
+      - `config()` feeds the module through `data-config` on `templates/admin-view/content-list.php`.
+      - `render_rows()` adds each row's legacy cells (`ewp_column_{type}_column_content_filter`) and row actions (`ewp_row_actions_{type}_filter`), kses-filtered, to the `query` route when called with `render=1`.
+      - `?action=delete|duplicate` row links are still processed through `AWM_List_Table::process_bulk_action()`.
+    - **Module** `assets/js/modules/ewp-dataviews-list.js` (+ `ewp-dataviews-list/helpers.js`, SCSS `assets/css/admin/sass/_ewp-dataviews-list.scss`):
+      - Built to `build/modules/ewp-dataviews-list.js` / `.css` and registered with the Dynamic Asset Loader on `.ewp-dataviews-list`, so it loads on those screens only.
+      - Bundles `@wordpress/dataviews` **4.15.4**, the WordPress 6.8 release, pinned to match core's `@wordpress/components` 6.8+. React and the other WordPress packages come from core, enqueued from the asset file. The DataViews CSS is inlined through Sass `@use`: the package's `sideEffects: false` drops a JS CSS import.
+      - Features: table / list layouts, search, filters, sorting, paging, column visibility; the view is saved per type in `localStorage` with safe fallbacks.
+      - Actions: Edit, Duplicate (the legacy nonce link), "Set status: …" per status (bulk, `POST {type}/status`), Delete (bulk, confirmation modal, `DELETE {type}/delete`).
+      - Filter-added row actions show as links under the title; legacy cell HTML shows in its column.
+    - **REST**: `GET {prefix}/{type}/query` accepts `render` (bool). Each type's registry entry carries `rest_prefix` / `rest_base`.
+    - **Tooling**:
+      - `npm run test:js` (Jest via `@wordpress/scripts`); `composer test` runs it on the host first. It is skipped without Node 18+, since DDEV's Node 16 cannot run wp-scripts 30.
+      - `@wordpress/dataviews` added as a pinned dependency.
+    - Docblocks added to every method of `AWM_Add_Content_DB_Setup`, plus the `awm_content_db_setup_data_filter` hook docblock and `HOOKS.md` entry.
+  - **Tests**:
+    - `tests/test-content-list-ui-test.php` (6), covering:
+      - mode: default, filter, WordPress version, `?ewp_list_ui=legacy`, unknown types;
+      - fields (order, mapping, sorting, filter elements and operators) and config (REST path, URLs, nonce, default view of known fields);
+      - `query?render=1`: the legacy cell filter output and filter-added actions, kses-filtered; without `render`, rows are unchanged;
+      - asset registration.
+    - `assets/js/modules/ewp-dataviews-list/test/helpers.test.js` (8): view → request (only filters with values), field values (row / meta / rendered cell), legacy cell lookup, extra actions, display labels, restoring a saved view (unknown fields and sorts dropped, page 1, no search).
+    - Full `composer test`: JS 8, PHPUnit 358 (1 skipped), self-test 15, lint clean.
+    - Chrome on DDEV (filox active, this code copied into its bundle temporarily): the Fields list renders with its legacy Positions / Type of usage cells. Search "pdf" → 1 row; Title sort asc and desc; filter Type of usage is any Repeater → no results, plus Simple inputs → 3; row action "Set status: Disabled" → notice and Disabled, reverted with "Set status: Enabled". The Post Types, Taxonomies, Search Filters and Content Types lists mount (the first three have no rows on this site). `?ewp_list_ui=legacy` and filox Coupons render the legacy table. No console errors.
+  - **Affected Files**:
+    - new: `includes/classes/awm-list-tables/class-content-list-ui.php`, `templates/admin-view/content-list.php`, `assets/js/modules/ewp-dataviews-list.js`, `assets/js/modules/ewp-dataviews-list/helpers.js`, `assets/js/modules/ewp-dataviews-list/test/helpers.test.js`, `assets/css/admin/sass/_ewp-dataviews-list.scss`, `build/modules/ewp-dataviews-list.{js,css,asset.php}` (+ `-rtl.css`), `tests/test-content-list-ui-test.php`, `docs/content-list-dataviews.md`;
+    - `includes/classes/awm-list-tables/functions.php`, `includes/classes/Setup.php`, `includes/classes/awm-content-db-api/custom-content/class-content-setup.php`, `includes/classes/ewp-surfaces/resources/class-content-type-rest-resource.php`;
+    - `tests/run-tests.sh`, `package.json`, `package-lock.json`, `HOOKS.md`;
+    - version 1.7.0 in `extend-wp.php`, `composer.json`, `package.json`, `build/version.php`.
+  - **New hooks/routes/settings**:
+    - filter `ewp_content_list_ui`;
+    - `render` input on `GET {prefix}/{type}/query`;
+    - URL parameter `?ewp_list_ui=legacy`;
+    - registry keys `rest_prefix` / `rest_base`;
+    - `npm run test:js`.
+  - **Backwards Compatibility**:
+    - only Extend WP's own five content types switch lists, and only on WordPress 6.8+. Every other type, including all filox lists, keeps the legacy list until it opts in through `ewp_content_list_ui`.
+    - `ewp_column_*` / `ewp_row_actions_*` filters keep working on both lists.
+    - the DataViews list does not render the legacy restrict-filter dropdowns or `extra_tablenav` output; use its filters instead, or the classic-list link.
+
 - **DataViews query layer: view queries and bulk status on REST, CLI and abilities (towards 1.7.0, DB plan phase 4)** (`2026-10-22`):
   - **Question/Prompt**: "proceed with phases" (phase 4 of `.ai/context/db-layer-execution-plan.md`: view → query, totals, bulk operations on every surface).
   - **Summary**:

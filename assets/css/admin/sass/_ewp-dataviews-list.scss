@@ -1,0 +1,63 @@
+// DataViews admin list for custom content types (EWP_Content_List_UI).
+// Compiled by webpack through the import in assets/js/modules/ewp-dataviews-list.js
+// into build/modules/ewp-dataviews-list.css (loaded with the module).
+
+// DataViews' own stylesheet, inlined by Sass (`@use` of a .css file without extension inlines it). A JS import of it is
+// dropped by webpack (the package declares "sideEffects": false), and an `@wordpress/dataviews/…`
+// request would be externalised as a non-existent `wp-dataviews/…` script handle.
+@use "../../../../node_modules/@wordpress/dataviews/build-style/style";
+
+:root {
+  --ewp-dataviews-surface: #fff;
+  --ewp-dataviews-border: #dcdcde;
+  --ewp-dataviews-radius: 4px;
+  --ewp-dataviews-gap: 16px;
+  --ewp-dataviews-muted: #646970;
+  --ewp-dataviews-actions-gap: 8px;
+}
+
+.ewp-dataviews-list {
+  margin-top: var(--ewp-dataviews-gap);
+  background: var(--ewp-dataviews-surface);
+  border: 1px solid var(--ewp-dataviews-border);
+  border-radius: var(--ewp-dataviews-radius);
+  min-height: 200px;
+
+  &__loading,
+  &__legacy {
+    color: var(--ewp-dataviews-muted);
+  }
+
+  &__loading {
+    padding: var(--ewp-dataviews-gap);
+  }
+
+  &__notice {
+    margin: var(--ewp-dataviews-gap);
+  }
+
+  &__title {
+    font-weight: 600;
+  }
+
+  // Extra row actions from `ewp_row_actions_{type}_filter`, as links under the title.
+  &__row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ewp-dataviews-actions-gap);
+    margin-top: 4px;
+    font-size: 12px;
+  }
+
+  &__modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--ewp-dataviews-actions-gap);
+    margin-top: var(--ewp-dataviews-gap);
+  }
+
+  // DataViews sits inside the WP admin wrap: let it use the full width.
+  .dataviews-wrapper {
+    width: 100%;
+  }
+}
