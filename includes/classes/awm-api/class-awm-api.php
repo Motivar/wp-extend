@@ -250,10 +250,11 @@ class AWM_API
    * @param string $modal_id    Modal identifier; defaults to the meta key.
    * @param string $option_page Option page key for a direct lookup (option view).
    *
-   * @return array|WP_Error `{modal_html, fields_html, modal_title, current_value}`, or a 404 error.
+   * @return array|WP_Error `{modal_html, fields_html, modal_title, current_value}`, or a 403/404 error.
    *
    * @since 1.2.0
    * @since 1.5.0 Takes plain values instead of a WP_REST_Request.
+   * @since 1.9.0 Requires object-level permission (403).
    */
   public function modal_fields($meta_key, $view = 'post', $object_id = 0, $modal_title = '', $modal_id = '', $option_page = '')
   {
@@ -264,15 +265,9 @@ class AWM_API
     $modal_id = sanitize_key($modal_id) ?: $meta_key;
     $option_page = sanitize_key($option_page);
 
-    // Lookup field definitions server-side
-    $fields = $this->lookup_modal_field_definition($meta_key, $view, $object_id, $option_page);
-
-    if (!is_array($fields) || empty($fields)) {
-      return new WP_Error(
-        'ewp_modal_not_found',
-        sprintf(__('Field definition not found for meta_key: %s', 'extend-wp'), $meta_key),
-        array('status' => 404)
-      );
+    $fields = $this->authorized_modal_fields($meta_key, $view, $object_id, $option_page);
+    if (is_wp_error($fields)) {
+      return $fields;
     }
 
     $current_value = $this->get_modal_value($view, $object_id, $meta_key);
@@ -369,16 +364,21 @@ class AWM_API
    *
    * Saves the serialized modal values to the appropriate storage
    * based on view type (post_meta/term_meta/user_meta/option/content_meta).
+   * The meta key must belong to a registered modal field, the user must be
+   * allowed to edit the object (see authorized_modal_fields()), and only the
+   * modal's declared fields are kept from `$values`.
    *
    * @param string $meta_key  Modal meta key (required).
    * @param string $view      View type: post|term|user|option|content_meta.
    * @param int    $object_id Object id for post/term/user/content_meta views.
    * @param array  $values    Values to save, keyed by field.
    *
-   * @return array|WP_Error `{success, message, values}`, or a 500 error with debug data.
+   * @return array|WP_Error `{success, message, values}`; a 403/404 error when the user may not
+   *                        edit the object or the key is no modal field; a 500 error when storing fails.
    *
    * @since 1.2.0
    * @since 1.5.0 Takes plain values instead of a WP_REST_Request.
+   * @since 1.9.0 Requires a registered definition and object-level permission (403/404).
    */
   public function save_modal_fields($meta_key, $view = 'post', $object_id = 0, $values = array())
   {
@@ -386,6 +386,13 @@ class AWM_API
     $view = sanitize_key($view) ?: 'post';
     $object_id = absint($object_id);
     $values = is_array($values) ? $values : array();
+
+    $fields = $this->authorized_modal_fields($meta_key, $view, $object_id);
+    if (is_wp_error($fields)) {
+      return $fields;
+    }
+    // Only the fields the modal declares are stored.
+    $values = array_intersect_key($values, $fields);
 
     /**
      * Action before saving modal values
@@ -453,6 +460,100 @@ class AWM_API
   }
 
   /**
+   * Field definitions of a modal field, when the current user may read and write it.
+   *
+   * The REST route only requires `edit_posts`; this is the object-level
+   * check: `edit_post` / `edit_term` / `edit_user` on the object, the
+   * capability of the options page holding the field (default
+   * `manage_options`) for options, `manage_options` for content rows.
+   * Role and capability keys (EWP_Meta_Save_Guard::is_blocked_key()) are
+   * always refused.
+   *
+   * @param string $meta_key    Required. Sanitized modal meta key.
+   * @param string $view        Required. post|term|user|option|content_meta.
+   * @param int    $object_id   Required. Object id (unused for options).
+   * @param string $option_page Optional. Options page key for a direct lookup. Default ''.
+   * @return array|WP_Error Field definitions keyed by field, or a 403/404 error.
+   * @since 1.9.0
+   */
+  private function authorized_modal_fields($meta_key, $view, $object_id, $option_page = '')
+  {
+    $denied = new WP_Error(
+      'ewp_modal_forbidden',
+      __('Sorry, you are not allowed to edit this field.', 'extend-wp'),
+      array('status' => rest_authorization_required_code())
+    );
+
+    if ($meta_key === '' || EWP_Meta_Save_Guard::is_blocked_key($meta_key)) {
+      return $denied;
+    }
+    if (!current_user_can($this->modal_capability($meta_key, $view, $option_page), $object_id)) {
+      return $denied;
+    }
+
+    $fields = $this->lookup_modal_field_definition($meta_key, $view, $object_id, $option_page);
+    if (!is_array($fields) || empty($fields)) {
+      return new WP_Error(
+        'ewp_modal_not_found',
+        sprintf(__('Field definition not found for meta_key: %s', 'extend-wp'), $meta_key),
+        array('status' => 404)
+      );
+    }
+    return $fields;
+  }
+
+  /**
+   * Capability checked (with the object id) before a modal field is read or written.
+   *
+   * @param string $meta_key    Required. Modal meta key.
+   * @param string $view        Required. post|term|user|option|content_meta.
+   * @param string $option_page Optional. Options page key. Default ''.
+   * @return string Capability name.
+   * @since 1.9.0
+   */
+  private function modal_capability($meta_key, $view, $option_page = '')
+  {
+    $caps = array('post' => 'edit_post', 'term' => 'edit_term', 'user' => 'edit_user');
+    if (isset($caps[$view])) {
+      return $caps[$view];
+    }
+    if ($view !== 'option') {
+      return 'manage_options';
+    }
+    $found = $this->find_option_modal($meta_key, $option_page);
+    return ($found && !empty($found['cap'])) ? $found['cap'] : 'manage_options';
+  }
+
+  /**
+   * Options page that declares a modal field.
+   *
+   * @param string $meta_key    Required. Modal meta key.
+   * @param string $option_page Optional. Options page key to look in only. Default '' (all pages).
+   * @return array|false `{cap, include}` (page capability, may be empty, and field definitions), or false.
+   * @since 1.9.0
+   */
+  private function find_option_modal($meta_key, $option_page = '')
+  {
+    $option_pages = (new AWM_Meta())->options_boxes();
+    if ($option_page !== '') {
+      $option_pages = isset($option_pages[$option_page]) ? array($option_page => $option_pages[$option_page]) : array();
+    }
+    foreach ($option_pages as $page_id => $page_data) {
+      $fields = awm_callback_library_options($page_data);
+      if (!empty($fields)) {
+        $fields = awm_callback_library($fields, $page_id);
+      }
+      if (isset($fields[$meta_key]['include'])) {
+        return array(
+          'cap' => isset($page_data['cap']) ? $page_data['cap'] : '',
+          'include' => $fields[$meta_key]['include'],
+        );
+      }
+    }
+    return false;
+  }
+
+  /**
    * Lookup modal field definition from registered meta boxes/options
    *
    * Searches through registered meta boxes, option pages, term boxes, and user boxes
@@ -472,33 +573,8 @@ class AWM_API
 
     switch ($view) {
       case 'option':
-        // Direct lookup if option_page is provided
-        if (!empty($option_page)) {
-          $option_pages = $metas->options_boxes();
-
-          if (isset($option_pages[$option_page])) {
-            $fields = awm_callback_library_options($option_pages[$option_page]);
-            if (!empty($fields)) {
-              $fields = awm_callback_library($fields, $option_page);
-            }
-            if (isset($fields[$meta_key]) && isset($fields[$meta_key]['include'])) {
-              $field_def = $fields[$meta_key]['include'];
-            }
-          }
-        } else {
-          // Fallback: search all option pages
-          $option_pages = $metas->options_boxes();
-          foreach ($option_pages as $page_id => $page_data) {
-            $fields = awm_callback_library_options($page_data);
-            if (!empty($fields)) {
-              $fields = awm_callback_library($fields, $page_id);
-            }
-            if (isset($fields[$meta_key]) && isset($fields[$meta_key]['include'])) {
-              $field_def = $fields[$meta_key]['include'];
-              break;
-            }
-          }
-        }
+        $found = $this->find_option_modal($meta_key, $option_page);
+        $field_def = $found ? $found['include'] : false;
         break;
 
       case 'post':

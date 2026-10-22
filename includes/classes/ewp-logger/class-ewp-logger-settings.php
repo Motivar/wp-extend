@@ -82,6 +82,7 @@ class EWP_Logger_Settings
             'enabled'          => '',
             'rest_api_enabled' => '',
             'retention_months' => 6,
+            'max_entries_per_file' => 5000,
         ];
     }
 
@@ -128,6 +129,14 @@ class EWP_Logger_Settings
                 'attributes'  => ['min' => 1, 'max' => 12],
                 'default'     => 6,
                 'explanation' => __('Number of months to keep log data. Older entries are automatically deleted.', 'extend-wp'),
+            ],
+            'max_entries_per_file' => [
+                'label'       => __('Max entries per log file', 'extend-wp'),
+                'case'        => 'input',
+                'type'        => 'number',
+                'attributes'  => ['min' => 100, 'max' => 100000, 'step' => 100],
+                'default'     => 5000,
+                'explanation' => __('When a day\'s log file reaches this many entries, logging continues in a new file for the same day. Smaller files keep the log viewer fast.', 'extend-wp'),
             ]
         ]);
     }

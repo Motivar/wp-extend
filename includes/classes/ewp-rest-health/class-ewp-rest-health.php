@@ -101,8 +101,8 @@ class EWP_REST_Health
         $payload = [
             'route'        => $route,
             'method'       => $method,
-            'query_params' => $request->get_query_params(),
-            'body_params'  => array_merge($body_params, $json_params),
+            'query_params' => \EWP\Logger\EWP_Logger::redact((array) $request->get_query_params()),
+            'body_params'  => \EWP\Logger\EWP_Logger::redact(array_merge($body_params, $json_params)),
             'url_params'   => $request->get_url_params(),
             'status'       => $result->get_status(),
             'response'     => $this->truncate_response($result->get_data()),
@@ -156,33 +156,39 @@ class EWP_REST_Health
     // Static: captured payloads JSON file
     // -------------------------------------------------------------------------
 
+    /**
+     * Guarded, keyed path of the captured payloads file (see EWP\Private_Files).
+     *
+     * @return string Absolute path.
+     *
+     * @since 1.9.0 `payloads-{key}.php` instead of the public `payloads.json`.
+     */
     public static function get_payloads_path(): string
     {
-        return wp_upload_dir()['basedir'] . '/ewp-rest-health/payloads.json';
+        return wp_upload_dir()['basedir'] . '/ewp-rest-health/payloads-' . \EWP\Private_Files::key() . '.php';
     }
 
-    /** @return array[] Indexed array of payload objects, newest first. */
+    /**
+     * Captured payloads; moves a pre-1.9.0 `payloads.json` to the guarded file first.
+     *
+     * @return array[] Indexed array of payload objects, newest first.
+     */
     public static function read_payloads(): array
     {
         $path = self::get_payloads_path();
-        if (!file_exists($path)) {
-            return [];
-        }
-        $json = @file_get_contents($path);
-        $data = $json ? json_decode($json, true) : null;
-        return is_array($data) ? $data : [];
+        \EWP\Private_Files::migrate_json(dirname($path) . '/payloads.json', $path);
+        return \EWP\Private_Files::read_json($path);
     }
 
+    /**
+     * Store the captured payloads.
+     *
+     * @param array $payloads Required. Payload objects, newest first.
+     * @return void
+     */
     public static function write_payloads(array $payloads): void
     {
-        $path = self::get_payloads_path();
-        $dir  = dirname($path);
-        if (!is_dir($dir)) {
-            wp_mkdir_p($dir);
-            @file_put_contents($dir . '/.htaccess', 'Deny from all');
-            @file_put_contents($dir . '/index.php', '<?php exit;');
-        }
-        file_put_contents($path, wp_json_encode(array_values($payloads), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX);
+        \EWP\Private_Files::write_json(self::get_payloads_path(), array_values($payloads));
     }
 
     /** Extract a REST namespace from a route path (e.g. /filox/v1/rates → filox/v1). */

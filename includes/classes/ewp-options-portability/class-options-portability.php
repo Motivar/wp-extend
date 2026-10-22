@@ -319,10 +319,12 @@ class EWP_Options_Portability
 	 *   - 'dry_run'          => bool  (default false)
 	 *   - 'skip_url_replace' => bool  (default false)
 	 *   - 'actor'            => string ('admin', 'rest', 'cli')
-	 *   - 'backup_file'      => string|null (path to write backup JSON)
+	 *   - 'backup_file'      => string|null (path of a `.json` file to write the backup to;
+	 *                           skipped on a dry run, see write_backup_file())
 	 * @return array|WP_Error Summary array or WP_Error on validation failure.
 	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 `backup_file` must be a `.json` path in an existing directory and is not written on a dry run.
 	 */
 	public function import_options($import_data, $opts = array())
 	{
@@ -403,10 +405,12 @@ class EWP_Options_Portability
 		/* Step 4: Backup existing values */
 		$backup = $this->create_backup($field_keys);
 
-		/* Optionally write backup to file (CLI) */
-		if (!empty($opts['backup_file'])) {
-			$backup_json = wp_json_encode($backup, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-			file_put_contents($opts['backup_file'], $backup_json);
+		/* Optionally write backup to file (CLI), never on a dry run */
+		if (!empty($opts['backup_file']) && !$opts['dry_run']) {
+			$written = self::write_backup_file($opts['backup_file'], $backup);
+			if (is_wp_error($written)) {
+				return $written;
+			}
 		}
 
 		/* Step 5: URL replacement */
@@ -595,6 +599,37 @@ class EWP_Options_Portability
 		$current_major = intval(explode('.', $this->get_plugin_version())[0]);
 
 		return $import_major === $current_major;
+	}
+
+	/**
+	 * Write an import backup to a `.json` file.
+	 *
+	 * The path must end in `.json` and its directory must exist and be
+	 * writable, so a backup can never become an executable `.php` file or
+	 * create directories.
+	 *
+	 * @param string $path   Required. Target file path.
+	 * @param array  $backup Required. Backup from create_backup().
+	 * @return true|\WP_Error True when written, or a 400 error.
+	 *
+	 * @since 1.9.0
+	 */
+	public static function write_backup_file($path, array $backup)
+	{
+		$path = (string) $path;
+		$dir  = realpath(dirname($path));
+		if (strtolower(pathinfo($path, PATHINFO_EXTENSION)) !== 'json' || $dir === false || !wp_is_writable($dir)) {
+			return new \WP_Error(
+				'ewp_options_invalid_backup_file',
+				__('backup_file must be a .json file in an existing, writable directory.', 'extend-wp'),
+				array('status' => 400)
+			);
+		}
+		$json = wp_json_encode($backup, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+		if (file_put_contents($dir . '/' . basename($path), $json) === false) {
+			return new \WP_Error('ewp_options_backup_failed', __('Could not write backup_file.', 'extend-wp'), array('status' => 500));
+		}
+		return true;
 	}
 
 	/**

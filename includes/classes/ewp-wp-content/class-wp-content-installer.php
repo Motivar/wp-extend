@@ -37,12 +37,7 @@ class EWP_WP_Content_Installer
     add_filter('single_template', [$this, 'set_single'], 10);
     add_filter('archive_template', [$this, 'set_archive'], 10);
     add_filter('use_block_editor_for_post_type', [$this, 'disable_gutenburg'], 10, 2);
-    add_action('plugins_loaded', function () {
-      if (isset($_REQUEST['ewp_delete_trans'])) {
-        ewp_flush_cache();
-        die();
-      }
-    });
+    add_action('plugins_loaded', [$this, 'maybe_flush_cache_from_url']);
     Slug_Manager::instance();
 
     // Custom post status support
@@ -51,6 +46,25 @@ class EWP_WP_Content_Installer
     add_filter('wp_insert_post_data', [$this, 'fix_custom_status_save'], 10, 2);
     add_action('admin_footer-edit.php', [$this, 'fix_custom_status_column_display']);
     add_action('init', [$this, 'add_custom_status_to_gutenberg'], 20);
+  }
+
+  /**
+   * Flush Extend WP caches when an administrator loads any URL with `?ewp_delete_trans`.
+   *
+   * Before 1.9.0 anyone could trigger it. Other visitors are now ignored, and the
+   * request continues normally; `wp ewp delete-cache` and `POST extend-wp/v1/system/flush-cache`
+   * do the same.
+   *
+   * @return void
+   * @since 1.9.0 Requires `manage_options`.
+   */
+  public function maybe_flush_cache_from_url()
+  {
+    if (!isset($_GET['ewp_delete_trans']) || !current_user_can('manage_options')) {
+      return;
+    }
+    ewp_flush_cache();
+    die();
   }
 
 

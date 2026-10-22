@@ -399,7 +399,7 @@ class EWPLogViewer {
             <td class="ewp-col-level"><span class="ewp-level-badge ewp-level-${entry.level || 'editor'}">${this.escapeHtml(entry.level || '')}</span></td>
             <td class="ewp-col-behaviour"><span class="${statusClass}">${statusLabel}</span></td>
             <td class="ewp-col-user">${this.escapeHtml(String(userLabel))}</td>
-            <td class="ewp-col-message">${message}</td>
+            <td class="ewp-col-message">${this.escapeHtml(message)}</td>
         </tr>`;
     }
 

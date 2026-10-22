@@ -214,7 +214,7 @@ add_filter('ewp_meta_inheritance_map_filter', function ($map, $case) {
 }, 10, 2);
 ```
 
-> Both features read from the transient-cached post type/taxonomy settings, so run `wp ewp delete-cache` (or load any page with `?ewp_delete_trans`) if a change does not show up.
+> Both features read from the transient-cached post type/taxonomy settings, so run `wp ewp delete-cache` (or, as an administrator, load any page with `?ewp_delete_trans`) if a change does not show up.
 
 ---
 

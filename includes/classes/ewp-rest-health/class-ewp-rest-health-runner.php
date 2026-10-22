@@ -161,45 +161,56 @@ class EWP_REST_Health_Runner
     // Private: history file management
     // -------------------------------------------------------------------------
 
+    /**
+     * Guarded, keyed path of a user's history file (see EWP\Private_Files).
+     *
+     * @param int $user_id Required. User ID.
+     * @return string Absolute path.
+     *
+     * @since 1.9.0 `user-{id}-{key}.php` instead of the public `user-{id}.json`.
+     */
     private function get_history_path(int $user_id): string
     {
         $upload = wp_upload_dir();
-        return $upload['basedir'] . '/' . self::UPLOADS_SUBDIR . '/user-' . $user_id . '.json';
+        return $upload['basedir'] . '/' . self::UPLOADS_SUBDIR . '/user-' . $user_id . '-' . \EWP\Private_Files::key() . '.php';
     }
 
     /**
+     * A user's history; moves a pre-1.9.0 `user-{id}.json` to the guarded file first.
+     *
+     * @param int $user_id Required. User ID.
      * @return array{version: int, updated: string, entries: array[]}
      */
     private function read_history_file(int $user_id): array
     {
         $path = $this->get_history_path($user_id);
-        if (!file_exists($path)) {
-            return ['version' => 1, 'updated' => '', 'entries' => []];
-        }
-        $json = file_get_contents($path);
-        $data = $json ? json_decode($json, true) : null;
-        return is_array($data) ? $data : ['version' => 1, 'updated' => '', 'entries' => []];
+        \EWP\Private_Files::migrate_json(dirname($path) . '/user-' . $user_id . '.json', $path);
+        $data = \EWP\Private_Files::read_json($path);
+        return !empty($data) ? $data : ['version' => 1, 'updated' => '', 'entries' => []];
     }
 
+    /**
+     * Store a user's history.
+     *
+     * @param int   $user_id Required. User ID.
+     * @param array $data    Required. History document.
+     * @return void
+     */
     private function write_history_file(int $user_id, array $data): void
     {
-        $path = $this->get_history_path($user_id);
-        $dir  = dirname($path);
-
-        if (!is_dir($dir)) {
-            wp_mkdir_p($dir);
-            $this->create_security_files($dir);
-        }
-
-        file_put_contents($path, wp_json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX);
+        \EWP\Private_Files::write_json($this->get_history_path($user_id), $data);
     }
 
-    private function create_security_files(string $dir): void
-    {
-        file_put_contents($dir . '/.htaccess', 'Deny from all');
-        file_put_contents($dir . '/index.php', '<?php exit;');
-    }
-
+    /**
+     * Prepend a test run to the user's history for that route.
+     *
+     * @param string $route   Required. Route path.
+     * @param string $method  Required. HTTP method.
+     * @param array  $params  Required. Request parameters used.
+     * @param array  $result  Required. Run result (`status`, `duration_ms`, …).
+     * @param int    $user_id Required. User ID owning the history.
+     * @return void
+     */
     private function append_history(
         string $route,
         string $method,
@@ -273,6 +284,12 @@ class EWP_REST_Health_Runner
         }
     }
 
+    /**
+     * Log the summary of a batch test run.
+     *
+     * @param array $summary Required. `ok`, `total`, `errors`, `duration_ms`.
+     * @return void
+     */
     private function log_batch_summary(array $summary): void
     {
         if (!function_exists('ewp_log')) {

@@ -279,9 +279,57 @@ class EWP_Logger
     }
 
     /**
+     * Replace the values of secret-looking keys, recursively.
+     *
+     * A key is secret when one of its `_`/`-` separated segments (or the whole
+     * key) is in the `ewp_logger_redact_keys` list, compared case-insensitively:
+     * `password`, `user_pass`, `api_key`, `Authorization` and `card_number` are
+     * redacted; `passengers` and `meta_key` are not.
+     *
+     * @param array $data Required. Payload to log.
+     *
+     * @return array Payload with secret values replaced by `[redacted]`.
+     *
+     * @since 1.9.0
+     */
+    public static function redact(array $data)
+    {
+        static $keys = null;
+        if ($keys === null) {
+            /**
+             * Filter the key names whose values the logger never stores.
+             *
+             * Matched against whole keys and their `_`/`-` separated segments,
+             * case-insensitively.
+             *
+             * @param string[] $keys Key names.
+             *
+             * @since 1.9.0
+             */
+            $keys = array_map('strtolower', (array) apply_filters('ewp_logger_redact_keys', [
+                'password', 'passwd', 'pwd', 'pass', 'pass1', 'pass2', 'secret', 'token', 'nonce',
+                'api_key', 'apikey', 'access_key', 'secret_key', 'private_key', 'authorization',
+                'auth', 'session_tokens', 'card_number', 'cardnumber', 'cvv', 'cvc', 'iban',
+            ]));
+        }
+
+        foreach ($data as $key => $value) {
+            $name     = strtolower((string) $key);
+            $segments = preg_split('/[_\-]/', $name);
+            if (in_array($name, $keys, true) || array_intersect($segments, $keys)) {
+                $data[$key] = '[redacted]';
+            } elseif (is_array($value)) {
+                $data[$key] = self::redact($value);
+            }
+        }
+        return $data;
+    }
+
+    /**
      * Log an entry.
      *
-     * Queues a log entry for batch storage on shutdown. Core data is stored raw.
+     * Queues a log entry for batch storage on shutdown. Values under secret-looking
+     * keys in `$data` are replaced (see redact()); everything else is stored raw.
      *
      * @param string $owner       Plugin slug that owns the log.
      * @param string $action_type Registered action type key.
@@ -313,7 +361,7 @@ class EWP_Logger
             'user_id'         => get_current_user_id(),
             'object_id'       => 0,
             'message'         => $message,
-            'data'            => maybe_serialize($data),
+            'data'            => maybe_serialize(is_array($data) ? self::redact($data) : $data),
             'request_id'      => self::get_request_id(),
             'request_context' => self::get_request_context(),
             'created_at'      => current_time('mysql'),

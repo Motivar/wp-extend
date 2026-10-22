@@ -7,6 +7,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **Security audit fixes: modal-save privilege escalation, public log files, anonymous cache flush, options-import file write (1.9.0)** (`2026-10-22`):
+  - **Question/Prompt**: "can you run a security and performance audit on this?", then "yes do please and also add a logger limit so … we should have max entry limit per file." Covers the top four audit findings plus the requested per-file limit.
+  - **`POST extend-wp/v1/modal-save` let a Contributor become administrator (critical)**:
+    - **Before**: the route (Field_Builder_Resource) only requires `edit_posts`, and `AWM_API::save_modal_fields()` wrote any `meta_key` on any post, term, user or option. `{prefix}capabilities` on one's own user gave admin rights, and `view=option` could overwrite `active_plugins` or `siteurl`.
+    - **Now**: the new `AWM_API::authorized_modal_fields()` runs before both the save and `GET /modal-fields`, and:
+      - refuses role and capability keys (`EWP_Meta_Save_Guard::is_blocked_key()`) with 403;
+      - requires `edit_post` / `edit_term` / `edit_user` on the object, the capability of the options page that declares the field (default `manage_options`) for options, or `manage_options` for content rows, otherwise 403;
+      - requires the key to be a registered modal field (`lookup_modal_field_definition()` or the `awm_modal_field_definition_lookup` filter), otherwise 404.
+    - Only the modal's declared fields are kept from `values`.
+    - New private helpers `modal_capability()` and `find_option_modal()`. The options branch of the lookup now uses `find_option_modal()`.
+  - **Log files could be downloaded by anyone on nginx (high)**:
+    - **Before**: `uploads/ewp-logs/ewp-log-{date}.log` was protected only by `.htaccess`. Verified on the DDEV site: an anonymous request returned 200 and 8.1 MB. REST-health `payloads.json` and `history/user-{id}.json` had the same exposure.
+    - **Now**: new class `EWP\Private_Files` (`includes/classes/class-private-files.php`, loaded from `Setup.php`) provides:
+      - a per-site random key (option `ewp_private_file_key`, autoloaded);
+      - files that start with `<?php exit; ?>`;
+      - deny files;
+      - guarded JSON read, write and migration.
+    - Logs are now `ewp-log-{date}-{key}[-{n}].php`. REST-health captures are `payloads-{key}.php` and `history/user-{id}-{key}.php`.
+    - Old files are moved automatically the first time the directory is touched. REST-health's unused `create_security_files()` was removed.
+  - **Secrets are redacted before logging**: the new `EWP_Logger::redact()` replaces values under keys such as `password`, `pass`, `secret`, `token`, `nonce`, `api_key`, `authorization`, `card_number`, `cvv` and `iban` (whole key or a `_`/`-` segment, any depth) with `[redacted]`. It runs in `ewp_log()` and on REST-health captured query and body parameters. Filter: `ewp_logger_redact_keys`.
+  - **`?ewp_delete_trans` flushed every cache for anonymous visitors (medium)**:
+    - **Before**: the `plugins_loaded` closure in `EWP_WP_Content_Installer` ran `ewp_flush_cache()` (hard rewrite flush, `wp_cache_flush()`, all transients) and `die()` for anyone.
+    - **Now**: it is the method `maybe_flush_cache_from_url()`, which needs `manage_options` and reads `$_GET` only. For everyone else the request continues normally.
+  - **Options import wrote `backup_file` to any server path (high)**:
+    - **Before**: `backup_file` was accepted on REST and abilities, and written with `file_put_contents()` before the dry-run check. An admin, or an AI agent running the ability, could drop a `.php` file.
+    - **Now**: `Options_Resource::import_args()` refuses it outside WP-CLI (400 `ewp_options_backup_file_cli_only`). The new `EWP_Options_Portability::write_backup_file()` only writes a `.json` path in an existing, writable directory, and never on a dry run.
+  - **Log viewer XSS**: `class-ewp-log-viewer.js` now escapes the message column, the only column it inserted raw.
+  - **Files**:
+    - `includes/classes/class-private-files.php` (new), `includes/classes/Setup.php`
+    - `includes/classes/awm-api/class-awm-api.php`
+    - `includes/classes/ewp-logger/class-ewp-logger-file.php`, `class-ewp-logger.php`, `class-ewp-logger-settings.php`
+    - `includes/classes/ewp-rest-health/class-ewp-rest-health.php`, `class-ewp-rest-health-runner.php`
+    - `includes/classes/ewp-wp-content/class-wp-content-installer.php`
+    - `includes/classes/ewp-options-portability/class-options-portability.php`, `includes/classes/ewp-surfaces/resources/class-options-resource.php`
+    - `includes/classes/ewp-self-test/cases/class-field-builder-case.php` (two new checks: unknown key returns 404, capabilities key returns 403)
+    - `assets/js/admin/class-ewp-log-viewer.js`
+    - `includes/classes/awm-content-db-api/custom-content/readme.md`
+    - new `docs/logger-storage.md`, `HOOKS.md`
+    - new tests `tests/test-modal-save-security-test.php`, `tests/test-logger-file-storage-test.php`, `tests/test-security-hardening-test.php`
+    - `package.json`, `package-lock.json`, `extend-wp.php`, `build/version.php`
+  - **New hooks**: filters `ewp_logger_max_entries_per_file( int $max )` and `ewp_logger_redact_keys( string[] $keys )`. `ewp_logger_entry_matches_filters` (1.3.0) is now listed in HOOKS.md.
+  - **New settings/options**: logger setting `max_entries_per_file`; option `ewp_private_file_key`.
+  - **Backwards compatibility**:
+    - **Modal fields**: modal fields registered through meta, term, user or options boxes keep working for users who can edit the object. A modal whose definition comes only from `awm_modal_field_definition_lookup` with `view=option` needs `manage_options`. Values for keys the modal does not declare are dropped. `view=content_meta` needs `manage_options`; its storage helpers do not exist in this plugin, so it never saved anyway.
+    - **Reading log files directly**: anything that read `ewp-log-*.log` directly must use `EWP_Logger_Query` or the REST, CLI or ability surfaces.
+    - **Cache-flush URL**: `?ewp_delete_trans` no longer works for non-admins.
+    - **`backup_file`**: REST and ability callers that passed `backup_file` get a 400 and must drop it.
+    - **Bundled copy in filox**: the site runs the copy bundled in filox (`includes/3rd-party/extend-wp`), which keeps the vulnerable code until filox is re-bundled from this release.
+
+### Added
+- **Logger: maximum entries per log file (1.9.0)** (`2026-10-22`):
+  - **Question/Prompt**: "add a logger limit so for instance if a day has multiple instance we should have max entry limit per file."
+  - **Summary**:
+    - A day's log is now split into parts. New setting **Max entries per log file** (`max_entries_per_file`, default 5000, minimum 100), filter `ewp_logger_max_entries_per_file`.
+    - `EWP_Logger_File::insert()` takes the index lock (`ewp-log-index-{key}.php`, holding the current part and entry count of the last 7 days), so writes never count lines and concurrent writers cannot lose entries. When a day's file is full, writing continues in `-2`, `-3`, ….
+    - Queries, counts, deletes and retention cleanup read every part.
+    - `delete_by_filters()` now rewrites under the same lock (fixing the unlocked read-modify-write the audit found) and keeps the guard line.
+    - The directory-initialised flag is per directory, no longer one static boolean.
+  - **Files**: `includes/classes/ewp-logger/class-ewp-logger-file.php`, `class-ewp-logger-settings.php`, `docs/logger-storage.md`, `tests/test-logger-file-storage-test.php`.
+  - **Backwards compatibility**: the viewer, REST, CLI and abilities are unchanged. A day that already has more entries than the limit keeps them in one file; new entries start part 2.
+
 ### Fixed
 - **Options pages no longer wipe auto-translated fields when saved in a secondary WPML language** (`2026-10-22`):
   - **Question/Prompt**: onpelion.gr support ticket — saving the "Archives Options" page with `lang=en` removed the hero image of `/paralies/`.

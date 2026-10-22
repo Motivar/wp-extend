@@ -112,7 +112,7 @@ final class Options_Resource extends Resource
                     Field::string('file')->positional()->describe(__('Command line only: path to the JSON export file.', 'extend-wp')),
                     Field::bool('dry_run')->describe(__('Report the changes without applying them. Abilities default to true; REST and the CLI default to false.', 'extend-wp')),
                     Field::bool('skip_url_replace')->describe(__('Keep the URLs from the source site instead of rewriting them to this one.', 'extend-wp')),
-                    Field::string('backup_file')->describe(__('Server path to write a JSON backup of the affected options before importing.', 'extend-wp')),
+                    Field::string('backup_file')->describe(__('Command line only: path of a .json file (in an existing directory) to write a backup of the affected options to before importing. Not written on a dry run; refused on REST and abilities.', 'extend-wp')),
                     Field::bool('confirm')->describe(__('Must be true when dry_run is false on the ability surface.', 'extend-wp')),
                 ])
                 ->args([$this, 'import_args'])
@@ -207,6 +207,11 @@ final class Options_Resource extends Resource
     public function import_args(array $input, Context $ctx)
     {
         $data = isset($input['data']) ? $input['data'] : null;
+
+        // A server path chosen over HTTP or by an AI agent is never written to.
+        if (!empty($input['backup_file']) && $ctx->surface() !== Context::CLI) {
+            return new \WP_Error('ewp_options_backup_file_cli_only', __('backup_file is only accepted on the command line.', 'extend-wp'), ['status' => 400]);
+        }
 
         if ($ctx->surface() === Context::CLI && !empty($input['file'])) {
             $data = $this->read_export_file((string) $input['file']);
