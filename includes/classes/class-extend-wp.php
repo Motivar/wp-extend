@@ -592,6 +592,11 @@ class AWM_Meta
                             if (isset($data['case']) && $data['case'] === 'awm_modal') {
                                 continue;
                             }
+                            // Auto-translated fields are not rendered in a secondary WPML language;
+                            // registering them would make options.php save them as null and wipe the value.
+                            if (function_exists('awm_field_hidden_in_current_language') && awm_field_hidden_in_current_language($data)) {
+                                continue;
+                            }
                             register_setting($optionKey, $key, $args);
                         }
                         add_filter('option_page_capability_' . $optionKey, function () {

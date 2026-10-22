@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Options pages no longer wipe auto-translated fields when saved in a secondary WPML language** (`2026-10-22`):
+  - **Question/Prompt**: onpelion.gr support ticket — saving the "Archives Options" page with `lang=en` removed the hero image of `/paralies/`.
+  - **Summary**: `awm_show_content()` skips fields with `auto_translate` when the WPML language is not the default one, but `AWM_Meta::awm_register_option_settings()` still registered them with `register_setting()`. On save `options.php` updates every registered option of the page and writes `null` for those not in `$_POST`, so every auto-translated option (e.g. an archive image) was emptied. Both places now share the new helper `awm_field_hidden_in_current_language()`, so a field that is not rendered is not registered either and keeps its stored value.
+  - **Files**: `includes/functions/library.php`, `includes/classes/class-extend-wp.php`, new `tests/test-field-hidden-language-test.php`.
+  - **New hooks**: filter `awm_field_hidden_in_current_language( bool $hidden, array $field )`.
+  - **Backwards compatibility**: rendering is unchanged. Auto-translated options can only be saved from the default language, which is what the form already showed.
+  - **Follow-up**: `AWM_Meta` calls the helper behind `function_exists()`. When two copies of Extend WP load (the standalone plugin and the one bundled in filox), Composer includes `library.php` only once, from whichever copy loads first; a newer `AWM_Meta` next to an older `library.php` would otherwise fatal on `admin_init`. With an older `library.php` the old behaviour (fields registered) stays until that copy is updated too.
+
 - **Duplicated content rows keep a real creation time (1.8.1)** (`2026-10-22`):
   - **Question/Prompt**: "please clean up ddev and run via chrome connector an end to end check at wp-filox.ddev.site then push to main…" — the end-to-end check duplicated a filox coupon from the DataViews list and the copy showed `Created 0000-00-00 00:00:00`.
   - **Summary**: `awm_custom_content_duplicate()` removed the original's `created` / `modified` and inserted the copy without them, so the copy got the column's zero date and sorted last under "created desc". It now stamps both with `current_time('mysql')`. Pre-existing since the duplicate function was added; affects the legacy and the DataViews list (both use this function).
