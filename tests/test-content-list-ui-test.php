@@ -25,6 +25,7 @@ class Test_Content_List_UI extends WP_UnitTestCase
             'capability' => 'edit_posts',
             'metaboxes'  => array('main' => array('library' => array(
                 'colour' => array('case' => 'select', 'label' => 'Colour', 'admin_list' => true, 'options' => array('red' => array('label' => 'Red'), 'blue' => array('label' => 'Blue'))),
+                'size'   => array('case' => 'select', 'label' => 'Size', 'restrict_content' => true, 'options' => array('s' => array('label' => 'Small'), 'l' => array('label' => 'Large'))),
             ))),
         ));
         self::refresh_rest_routes();
@@ -55,25 +56,26 @@ class Test_Content_List_UI extends WP_UnitTestCase
     }
 
     /**
-     * Legacy by default for other types; the filter, the WordPress version and `?ewp_list_ui=legacy` decide.
+     * DataViews by default for every type (when supported); the filter, the WordPress version and
+     * `?ewp_list_ui=legacy` decide.
      *
      * @return void
      */
     public function test_mode()
     {
-        $this->assertSame('legacy', EWP_Content_List_UI::mode(self::$type));
-
-        $on = function ($mode, $type) {
-            return $type === self::$type ? 'dataviews' : $mode;
-        };
-        add_filter('ewp_content_list_ui', $on, 10, 2);
         $expected = EWP_Content_List_UI::supported() ? 'dataviews' : 'legacy';
-        $this->assertSame($expected, EWP_Content_List_UI::mode(self::$type));
+        $this->assertSame($expected, EWP_Content_List_UI::mode(self::$type), 'every registered type defaults to DataViews');
 
         $_GET['ewp_list_ui'] = 'legacy';
         $this->assertSame('legacy', EWP_Content_List_UI::mode(self::$type), '?ewp_list_ui=legacy forces the legacy list');
         unset($_GET['ewp_list_ui']);
-        remove_filter('ewp_content_list_ui', $on, 10);
+
+        $off = function ($mode, $type) {
+            return $type === self::$type ? 'legacy' : $mode;
+        };
+        add_filter('ewp_content_list_ui', $off, 10, 2);
+        $this->assertSame('legacy', EWP_Content_List_UI::mode(self::$type), 'a type opts out through the filter');
+        remove_filter('ewp_content_list_ui', $off, 10);
 
         add_filter('ewp_content_list_ui', function () {
             return 'dataviews';
@@ -82,14 +84,33 @@ class Test_Content_List_UI extends WP_UnitTestCase
     }
 
     /**
-     * Extend WP's own types default to DataViews on WordPress 6.8+ with the module built.
+     * DataViews needs WordPress 6.8+ with the module built.
      *
      * @return void
      */
     public function test_supported_requires_wp_68()
     {
         $this->assertSame(version_compare(get_bloginfo('version'), '6.8', '>=') && is_readable(awm_path . 'build/modules/ewp-dataviews-list.asset.php'), EWP_Content_List_UI::supported());
-        $this->assertContains('ewp_fields', EWP_Content_List_UI::DEFAULT_TYPES);
+    }
+
+    /**
+     * A `restrict_content` field that is not a column becomes a hidden, filter-only field with its options.
+     *
+     * @return void
+     */
+    public function test_restrict_filters_become_hidden_filter_fields()
+    {
+        $fields = array_column(EWP_Content_List_UI::fields(self::$type, $this->args()), null, 'id');
+
+        $this->assertArrayHasKey('size', $fields);
+        $this->assertTrue($fields['size']['hidden']);
+        $this->assertFalse($fields['size']['html']);
+        $this->assertSame(array('s', 'l'), array_column($fields['size']['elements'], 'value'));
+        $this->assertSame(array('isAny', 'isNone'), $fields['size']['operators']);
+
+        $config = EWP_Content_List_UI::config(self::$type, $this->args());
+        $this->assertNotContains('size', $config['defaultView']['fields'], 'filter-only fields are not shown as columns');
+        $this->assertContains('colour', $config['defaultView']['fields']);
     }
 
     /**

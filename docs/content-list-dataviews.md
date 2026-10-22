@@ -2,7 +2,7 @@
 
 Since 1.7.0 a content type's admin list can render with
 [`@wordpress/dataviews`](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-dataviews/)
-instead of the legacy `WP_List_Table` (`AWM_List_Table`). It has search, filters, sortable columns,
+instead of the legacy `WP_List_Table` (`AWM_List_Table`); since 1.8.0 it is the default for every content type. It has search, filters, sortable columns,
 table and list layouts, column visibility, bulk actions and a page size that is remembered per browser.
 
 ## Which list renders
@@ -11,18 +11,21 @@ table and list layouts, column visibility, bulk actions and a page size that is 
 
 | Condition | List |
 |---|---|
-| Filter `ewp_content_list_ui` returns `dataviews` (default for Extend WP's own `ewp_fields`, `ewp_post_types`, `ewp_taxonomies`, `ewp_search`, `ewp_content_type`) | DataViews |
-| Any other type (filox coupons, transactions, …) unless the filter opts it in | legacy |
+| Filter `ewp_content_list_ui` returns `dataviews` (the default for every registered content type) | DataViews |
+| The filter returns `legacy` for the type | legacy |
 | WordPress older than 6.8, or `build/modules/ewp-dataviews-list.*` not built | legacy |
 | `?ewp_list_ui=legacy` on the list URL ("Switch to the classic list" link) | legacy, for that request |
 
-Opt a type in:
+Keep a type on the legacy list (e.g. one whose screen relies on markup the legacy table prints):
 
 ```php
 add_filter('ewp_content_list_ui', function ($mode, $type) {
-    return $type === 'flx_coupon' ? 'dataviews' : $mode;
+    return $type === 'flx_coupon' ? 'legacy' : $mode;
 }, 10, 2);
 ```
+
+Before 1.8.0 only Extend WP's own types (`ewp_fields`, `ewp_post_types`, `ewp_taxonomies`, `ewp_search`,
+`ewp_content_type`) defaulted to DataViews and the `DEFAULT_TYPES` constant listed them; it is gone.
 
 ## How it works
 
@@ -49,6 +52,9 @@ add_filter('ewp_content_list_ui', function ($mode, $type) {
 - `status` and `select` / `radio` meta fields are filterable (`is any` / `is none`); `checkbox_multiple`
   fields filter with `is all` / `is not all`. DataViews 4.15 filters only fields with options; the
   REST/CLI/ability `query` accepts every operator.
+- Legacy restrict filters (library fields with `restrict_content`) that are not columns become hidden,
+  filter-only fields (`hidden: true`, not in the default view) when they have options, so a type keeps its
+  filters after switching.
 - Cells show the legacy cell HTML — `ewp_column_{type}_column_content_filter`, kses-filtered — when there
   is one, else the value (option labels for fields with options).
 
@@ -71,5 +77,5 @@ npm run test:js
 
 `npm run test:js` (Jest) covers the view → request mapping and field helpers
 (`assets/js/modules/ewp-dataviews-list/helpers.js`); `composer test` runs it on the host when Node 18+ is
-available. PHPUnit: `tests/test-content-list-ui-test.php` (mode, fields, config, rendered cells and
+available. PHPUnit: `tests/test-content-list-ui-test.php` (mode, fields, restrict filters, config, rendered cells and
 actions over REST, asset registration).

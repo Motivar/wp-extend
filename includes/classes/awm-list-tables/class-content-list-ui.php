@@ -6,9 +6,9 @@ if (!defined('ABSPATH')) {
 /**
  * The `@wordpress/dataviews` admin list for custom content types.
  *
- * A content type's list page renders either the legacy WP_List_Table
- * (AWM_List_Table) or this DataViews list, chosen per type by
- * `ewp_content_list_ui`. The DataViews list is a React module
+ * A content type's list page renders this DataViews list (the default for
+ * every content type since 1.8.0) or the legacy WP_List_Table
+ * (AWM_List_Table), chosen per type by `ewp_content_list_ui`. The DataViews list is a React module
  * (`assets/js/modules/ewp-dataviews-list.js`, bundled with DataViews 4.15,
  * the version WordPress 6.8 ships) loaded by the Dynamic Asset Loader when
  * its mount element is on the page. It reads and writes through the type's
@@ -34,9 +34,6 @@ class EWP_Content_List_UI
 
     /** Oldest WordPress whose @wordpress/components the bundled DataViews works with. */
     const MIN_WP = '6.8';
-
-    /** Extend WP's own content types, switched to DataViews by default. */
-    const DEFAULT_TYPES = array('ewp_fields', 'ewp_post_types', 'ewp_taxonomies', 'ewp_search', 'ewp_content_type');
 
     /** Cases whose options become DataViews filter elements. */
     const OPTION_CASES = array('select', 'radio', 'checkbox_multiple', 'awm_radio', 'awm_select');
@@ -96,18 +93,18 @@ class EWP_Content_List_UI
      */
     public static function mode($type)
     {
-        $default = in_array($type, self::DEFAULT_TYPES, true) ? 'dataviews' : 'legacy';
         /**
          * Filters which admin list a content type renders: the DataViews list or the legacy WP_List_Table.
          * The DataViews list also needs WordPress 6.8+ and a built module; otherwise the legacy list
          * renders whatever this returns. `?ewp_list_ui=legacy` on the list URL forces the legacy list.
          *
          * @since 1.7.0
+         * @since 1.8.0 Defaults to `dataviews` for every content type (before: only Extend WP's own types).
          *
-         * @param string $mode `dataviews` for Extend WP's own types, `legacy` for every other type.
+         * @param string $mode `dataviews` (default), or `legacy` to keep the WP_List_Table.
          * @param string $type Content type id.
          */
-        $mode = apply_filters('ewp_content_list_ui', $default, (string) $type);
+        $mode = apply_filters('ewp_content_list_ui', 'dataviews', (string) $type);
         if ($mode !== 'dataviews' || !self::supported() || self::requested_legacy()) {
             return 'legacy';
         }
@@ -220,7 +217,7 @@ class EWP_Content_List_UI
                 'page'    => 1,
                 'perPage' => 20,
                 'sort'    => array('field' => 'created', 'direction' => 'desc'),
-                'fields'  => array_values(array_diff(array_column($fields, 'id'), array('title', 'id'))),
+                'fields'  => self::visible_fields($fields),
                 'titleField' => 'title',
                 'layout'  => (object) array(),
             ),
@@ -237,7 +234,7 @@ class EWP_Content_List_UI
      *
      * @param string $type Content type id.
      * @param array  $args List arguments.
-     * @return array[] Field definitions: id, label, type, source, enableSorting, enableHiding, elements?, operators?, html.
+     * @return array[] Field definitions: id, label, type, source, enableSorting, enableHiding, elements?, operators?, html, hidden? (filter-only).
      */
     public static function fields($type, array $args)
     {
@@ -256,6 +253,7 @@ class EWP_Content_List_UI
         if (!in_array('status', array_column($fields, 'id'), true)) {
             $fields[] = self::field('status', 'status', __('Status', 'extend-wp'), $view['status'], array());
         }
+        $fields = array_merge($fields, self::restrict_fields($library, $view, array_column($fields, 'id')));
         foreach ($fields as &$field) {
             if ($field['id'] === 'status') {
                 $field['elements']  = self::elements((array) AWM_Add_Content_DB_Setup::$ewp_data_configuration[$type]['status']);
@@ -263,6 +261,50 @@ class EWP_Content_List_UI
             }
         }
         return $fields;
+    }
+
+    /**
+     * Filter-only fields for the legacy restrict filters (`restrict_content`) that are not list columns, so a type
+     * keeps its filters when it switches to DataViews. They are hidden columns (not in the default view).
+     *
+     * @param array    $library Resolved field library of the type.
+     * @param array    $view    Content_Service::view_fields() of the type.
+     * @param string[] $taken   Field ids already defined.
+     * @return array[] Field definitions with `hidden` true.
+     */
+    private static function restrict_fields(array $library, array $view, array $taken)
+    {
+        $fields = array();
+        foreach ($library as $key => $data) {
+            $id = (string) $key;
+            if (!is_array($data) || empty($data['restrict_content']) || in_array($id, $taken, true) || !isset($view[$id])) {
+                continue;
+            }
+            $label = isset($data['label']) ? (string) $data['label'] : $id;
+            $field = array_merge(self::field($id, $id, $label, $view[$id], $data), array('html' => false, 'hidden' => true));
+            if (isset($field['elements'])) {
+                $fields[] = $field;
+            }
+        }
+        return $fields;
+    }
+
+    /**
+     * Field ids the default view shows: every field except the title (shown as the title field), the id and
+     * filter-only (`hidden`) fields.
+     *
+     * @param array[] $fields Field definitions from fields().
+     * @return string[] Field ids.
+     */
+    private static function visible_fields(array $fields)
+    {
+        $ids = array();
+        foreach ($fields as $field) {
+            if (!in_array($field['id'], array('title', 'id'), true) && empty($field['hidden'])) {
+                $ids[] = $field['id'];
+            }
+        }
+        return $ids;
     }
 
     /**

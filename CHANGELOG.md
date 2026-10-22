@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **DataViews is the default admin list for every content type (1.8.0)** (`2026-10-22`):
+  - **Question/Prompt**: "all extend wp lists should the new default."
+  - **Summary**:
+    - `EWP_Content_List_UI::mode()`: the filter `ewp_content_list_ui` now defaults to `dataviews` for every registered content type, not only Extend WP's own five. A type stays on the legacy `WP_List_Table` by returning `legacy`; `?ewp_list_ui=legacy` and the WordPress 6.8 / built-module fallback are unchanged.
+    - `EWP_Content_List_UI::fields()`: legacy restrict filters (library fields with `restrict_content`) that are not list columns become hidden, filter-only DataViews fields (`hidden: true`, left out of the default view) when they have options, so a type keeps its dropdown filters after the switch. New private helpers `restrict_fields()` and `visible_fields()`.
+    - Removed the constant `EWP_Content_List_UI::DEFAULT_TYPES`.
+  - **Files**: `includes/classes/awm-list-tables/class-content-list-ui.php`, `tests/test-content-list-ui-test.php`, `docs/content-list-dataviews.md`, `HOOKS.md`, `package.json`, `extend-wp.php`, `build/version.php`.
+  - **Backwards compatibility**:
+    - Every filox list (coupons, transactions, clients, …) switches to DataViews on WordPress 6.8+. Legacy cells (`ewp_column_{type}_column_content_filter`) and row actions (`ewp_row_actions_{type}_filter`) still show; markup a screen printed around the legacy table (custom `extra_tablenav` output) does not. Opt a type out with `add_filter('ewp_content_list_ui', fn($m, $t) => $t === 'flx_coupon' ? 'legacy' : $m, 10, 2)`.
+    - Code that read `EWP_Content_List_UI::DEFAULT_TYPES` (added in 1.7.0) must drop it.
+
 ### Added
 - **DataViews admin list for custom content types (1.7.0, DB plan phase 5)** (`2026-10-22`):
   - **Question/Prompt**: "proceed with phases" (phase 5 of `.ai/context/db-layer-execution-plan.md`: DataViews UI with search, filters, actions, sortable columns, behind a per-type flag).
