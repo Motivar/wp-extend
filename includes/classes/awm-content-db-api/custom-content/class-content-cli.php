@@ -24,6 +24,8 @@ if (!class_exists('WP_CLI')) {
  *   wp ewp content create           — Create an item.
  *   wp ewp content update           — Update an item.
  *   wp ewp content delete           — Delete one or more items.
+ *   wp ewp content query            — Search, filter, sort and page items with a DataViews view.
+ *   wp ewp content set-status       — Set the status of several items.
  *
  * @package    EWP\ContentDB
  * @author     Motivar
@@ -72,6 +74,18 @@ class EWP_Content_CLI
   public static function update($args, $assoc_args)
   {
     return self::run('update', $args, $assoc_args);
+  }
+
+  /** @see Content_Resource `query` */
+  public static function query($args, $assoc_args)
+  {
+    return self::run('query', $args, $assoc_args);
+  }
+
+  /** @see Content_Resource `set-status` */
+  public static function set_status($args, $assoc_args)
+  {
+    return self::run('set-status', $args, $assoc_args);
   }
 
   /** @see Content_Resource `delete` */

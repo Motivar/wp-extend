@@ -8,6 +8,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **DataViews query layer: view queries and bulk status on REST, CLI and abilities (towards 1.7.0, DB plan phase 4)** (`2026-10-22`):
+  - **Question/Prompt**: "proceed with phases" (phase 4 of `.ai/context/db-layer-execution-plan.md`: view → query, totals, bulk operations on every surface).
+  - **Summary**:
+    - **`EWP\Db\View_Query::build($type, $view, $fields)`** turns a `@wordpress/dataviews` view (search, filters, sort, page, perPage) into a WHERE / ORDER BY / LIMIT for `{type}_main`. Column fields filter and sort directly; meta fields filter through `content_id [NOT] IN (SELECT content_id FROM {type}_data …)`. Operators: is, isNot, isAny, isNone, isAll, isNotAll, lessThan, greaterThan, lessThanOrEqual, greaterThanOrEqual, before, after, beforeInc, afterInc, between, contains, notContains, startsWith. `isAll` / `isNotAll` match plain values and serialised lists, both the slashed form `insert_db_data()` stores and the unslashed form updates store. Search covers title, searchable meta and a numeric id, LIKE-escaped. An unknown field, operator or sort throws `Invalid_Where`, which becomes a 400.
+    - **`EWP\Db\Where` casts**: a condition may carry `'cast' => 'number'|'date'`, compared as `CAST(col AS DECIMAL(30,10) | DATETIME)`, so numeric meta compares as numbers. Unknown casts are refused, and the shadow comparison skips cast conditions.
+    - **`AWM_DB_Creator::count_db_data($table, $where)`** and `EWP\Db\Sql::count()`: COUNT(*) with the same rules and read cache as `get_db_data()`.
+    - **`Content_Service::query_items($type, $view, $with_meta)`** returns `{ items, count, total, total_pages, page, per_page }`. `view_fields($type)` builds the field map (filter `ewp_content_view_fields`). `set_status($type, $ids, $status)` changes up to 200 rows through the normal save, so save hooks fire per row.
+    - **Surfaces** (kit resources, never by hand): `Content_Resource` gains `query` (`wp ewp content query`, ability `ewp-content/query-items`) and `set-status` (`wp ewp content set-status`, ability `ewp-content/set-status`). Each `Content_Type_Rest_Resource` gains `GET {prefix}/{type}/query` (read capability, or anonymous with `public_read`) and `POST {prefix}/{type}/status` (writable types). `EWP_Content_CLI::query()` and `set_status()` are added for in-process callers.
+    - **Legacy list fixes** (`AWM_List_Table`), found by the phase-0 baseline:
+      - status, restrict filter and search are now ANDed. They were OR'ed, so a search widened a status view.
+      - `?orderby=` now accepts the SQL column the WP_List_Table header links carry (`content_title`). The list used to ignore every sort and fall back to `content_id`.
+      - the search text is LIKE-escaped.
+      - the pager counts the filtered list instead of the whole table.
+      - a list without `save_columns` no longer warns.
+    - Self-test fixture cleanup drops tables with `AWM_DB_Creator::drop_table()`, which also invalidates cached reads.
+  - **Tests**:
+    - `tests/test-content-view-query-test.php` (13), covering:
+      - the field map;
+      - sort and paging with total and total_pages;
+      - column filters;
+      - meta filters: contains, notContains, numeric greaterThan and between with the cast (`9 < 10 < 100`), isAll and isNotAll on a checkbox-multiple field; an empty filter is ignored;
+      - search on title, meta and id, ANDed with filters, with literal `%`;
+      - seven invalid views → 400;
+      - perPage and page bounds;
+      - Where cast SQL and an injected cast refused; shadow skipping casts;
+      - `count_db_data()` following writes;
+      - `set_status()`: updated / not_found, save hook per row, meta untouched, bad status / no ids / unknown ids refused;
+      - a 20-row page with meta = 3 queries;
+      - legacy list: status AND search, and `orderby=content_title` sorting.
+    - New self-test case `content-query`: the same view and bulk status on REST, CLI and abilities; listed in `manifest.json`.
+    - Full suite: PHPUnit 352 (1 skipped), self-test 15 passed, lint clean.
+  - **Affected Files**:
+    - new: `includes/classes/ewp-db/class-view-query.php`, `includes/classes/ewp-self-test/cases/class-content-query-case.php`, `tests/test-content-view-query-test.php`;
+    - `ewp-db`: `class-where.php`, `class-sql.php`, `class-shadow.php`, `init.php`;
+    - `includes/classes/awm-db/class-db-creator.php`, `includes/classes/ewp-content/class-content-service.php`;
+    - `ewp-surfaces`: `class-content-schema.php`, `resources/class-content-resource.php`, `resources/class-content-type-rest-resource.php`;
+    - `includes/classes/awm-content-db-api/custom-content/class-content-cli.php`, `includes/classes/awm-list-tables/class-list-table.php`;
+    - `ewp-self-test`: `class-ewp-self-test.php`, `manifest.json`, `cases/trait-fixture-content-type.php`;
+    - docs: `docs/custom-tables.md`, `docs/surfaces.md`, `docs/self-test.md`, `HOOKS.md`.
+  - **New hooks/routes/settings**:
+    - filter `ewp_content_view_fields`;
+    - REST `GET {prefix}/{type}/query`, `POST {prefix}/{type}/status`;
+    - CLI `wp ewp content query`, `wp ewp content set-status`;
+    - abilities `ewp-content/query-items`, `ewp-content/set-status`;
+    - `AWM_DB_Creator::count_db_data()`, Where `cast`.
+  - **Backwards Compatibility**:
+    - existing routes, commands and abilities are unchanged; the list op still returns a plain array.
+    - legacy admin lists: a status view combined with a search now shows only rows matching both (before: either), and clicking a sortable header now sorts.
+    - consumers that relied on the old OR behaviour (none found in the filox repos) would see fewer rows.
+
 - **Store-level performance: read cache, batched meta, `_data` index (1.6.2, DB plan phase 3)** (`2026-10-22`):
   - **Question/Prompt**: "which are the phases remaining here?" → "proceed with phases" (phase 3 of `.ai/context/db-layer-execution-plan.md`: read cache, batched meta, `_data` index).
   - **Summary**:

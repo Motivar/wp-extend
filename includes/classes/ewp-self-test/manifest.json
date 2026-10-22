@@ -43,6 +43,35 @@
             }
         },
         {
+            "id": "content-query",
+            "label": "Custom content query (DataViews view) and bulk status",
+            "category": "content",
+            "layers": [
+                "rest",
+                "cli",
+                "ability"
+            ],
+            "class": "EWP\\SelfTest\\Cases\\Content_Query_Case",
+            "requires": [],
+            "args": {
+                "namespace": "ewp"
+            },
+            "covers": {
+                "rest": [
+                    "{prefix}/{type}/query",
+                    "{prefix}/{type}/status"
+                ],
+                "cli": [
+                    "ewp content query",
+                    "ewp content set-status"
+                ],
+                "ability": [
+                    "ewp-content/query-items",
+                    "ewp-content/set-status"
+                ]
+            }
+        },
+        {
             "id": "search-filters",
             "label": "Search filters (read-only surfaces + filter execution)",
             "category": "search",

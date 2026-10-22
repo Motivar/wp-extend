@@ -59,6 +59,7 @@ The plugin's CLI classes guard themselves with `class_exists('WP_CLI')`. In a we
 | id | what it proves |
 | --- | --- |
 | `content-crud` | a throwaway content type (real tables) goes through create → read → update → delete on REST, `wp ewp content` and `ewp-content/*`; cleanup drops the tables |
+| `content-query` | three rows of a throwaway content type queried with the same DataViews view (meta filter, sort, paging, search, unknown field refused) and bulk status changes on REST `{type}/query` / `{type}/status`, `wp ewp content query` / `set-status` and `ewp-content/query-items` / `set-status` |
 | `search-filters` | read surfaces on all layers, `ewp-filter/{id}` execution, and that no write routes exist (`writable => false`) |
 | `cache-flush` | `wp ewp delete-cache` and `ewp-system/flush-cache` both go through `ewp_flush_cache()` (hooks fire) |
 | `logger` | writes one entry, reads it back on REST / CLI / abilities, runs a no-op retention cleanup; cleanup deletes the `ewp-self-test` entries |

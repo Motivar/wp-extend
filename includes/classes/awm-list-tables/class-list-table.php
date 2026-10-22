@@ -657,7 +657,8 @@ class AWM_List_Table extends WP_List_Table
         $this->process_bulk_action();
         $where = $this->get_list_where_clause();
         $totals = $this->get_total_items();
-        $total_items = $totals['items'];
+        /* the pager follows the filtered list, not the whole table */
+        $total_items = empty($where) ? $totals['items'] : (int) AWM_DB_Creator::count_db_data($this->table_name, $where);
         $per_page = $this->results_per_page; // constant, how much records will be shown per page
         $columns = $this->get_columns();
         $hidden = array();
@@ -673,7 +674,7 @@ class AWM_List_Table extends WP_List_Table
         $paged = isset($_REQUEST['paged']) ? ($per_page * max(0, intval($_REQUEST['paged']) - 1)) : 0;
 
 
-        $order_by = (isset($_REQUEST['orderby']) && in_array($_REQUEST['orderby'], array_keys($sortable))) ? $_REQUEST['orderby'] : $this->db_search_key;
+        $order_by = $this->requested_order_by($sortable);
 
 
         $order = (isset($_REQUEST['order']) && in_array($_REQUEST['order'], array('asc', 'desc'))) ? $_REQUEST['order'] : 'desc';
@@ -696,6 +697,26 @@ class AWM_List_Table extends WP_List_Table
     }
 
     /**
+     * ORDER BY column from `?orderby=`. WP_List_Table links carry the sortable
+     * column's SQL name (`content_title`), not its key (`title`); both are
+     * accepted. Anything else sorts by the search key.
+     *
+     * @param array $sortable Column key => array(sql column, initially descending).
+     * @return string Column to sort by.
+     */
+    private function requested_order_by(array $sortable)
+    {
+        $requested = isset($_REQUEST['orderby']) ? sanitize_key(wp_unslash($_REQUEST['orderby'])) : '';
+        foreach ($sortable as $key => $definition) {
+            $column = is_array($definition) ? (string) reset($definition) : (string) $definition;
+            if ($requested !== '' && ($requested === $key || $requested === $column)) {
+                return $column;
+            }
+        }
+        return $this->db_search_key;
+    }
+
+    /**
      * Load the meta of every listed row of a content type with one query, so the
      * meta columns (`ewp_column_{id}_column_content_filter`) render without a query per row.
      * Does nothing for lists of other tables.
@@ -714,61 +735,57 @@ class AWM_List_Table extends WP_List_Table
     }
 
     /**
-     * WHERE node from the request: status, restrict filters and search (title-like
-     * columns plus a `content_id IN (SELECT … FROM {type}_data WHERE meta_value LIKE …)`
-     * subquery). Values are bound by EWP\Db\Where.
+     * WHERE node from the request: status AND restrict filter AND search, where
+     * search is (searchable columns LIKE … OR `content_id IN (SELECT … FROM
+     * {type}_data WHERE meta_value LIKE …)`). Values are bound by EWP\Db\Where;
+     * the search text is LIKE-escaped.
      *
      * @return array WHERE node, empty for none.
      */
     public function get_list_where_clause()
     {
 
-        $where_clause = array();
+        global $wpdb;
+
+        $args    = $this->_args['ewp_custom_args'];
+        $columns = isset($args['save_columns']) && is_array($args['save_columns']) ? $args['save_columns'] : array();
         $clauses = array();
-        /* check if we have certain status to search in*/
+        /* status, restrict filter and search narrow the list together (AND); before 1.7.0 they were OR'ed */
         if (isset($_REQUEST['ewp_status'])) {
             $clauses[] = array('column' => 'status', 'value' => sanitize_key(wp_unslash($_REQUEST['ewp_status'])), 'compare' => '=');
         }
-        /*check if we have certain restrict list to check in*/
         if (isset($_REQUEST['awm_restict_custom_list'])) {
-            foreach ($this->_args['ewp_custom_args']['save_columns'] as $column_key => $column_conf) {
+            foreach ($columns as $column_key => $column_conf) {
                 if (isset($column_conf['restrict_content']) && isset($_REQUEST[$column_key])) {
                     $sql_key = isset($column_conf['sql_key']) ? $column_conf['sql_key'] : $column_key;
-                    $clauses[] = array('column' => $sql_key, 'value' => sanitize_text_field($_REQUEST[$column_key]), 'compare' => '=');
+                    $clauses[] = array('column' => $sql_key, 'value' => sanitize_text_field(wp_unslash($_REQUEST[$column_key])), 'compare' => '=');
                     break;
                 }
             }
         }
 
-
         if (isset($_REQUEST['s']) && !empty($_REQUEST['s'])) {
-            $search_value = '%' . sanitize_text_field($_REQUEST['s']) . '%';
-            foreach ($this->_args['ewp_custom_args']['save_columns'] as $column_key => $column_conf) {
+            $search_value = '%' . $wpdb->esc_like(sanitize_text_field(wp_unslash($_REQUEST['s']))) . '%';
+            $search = array();
+            foreach ($columns as $column_key => $column_conf) {
                 if (isset($column_conf['searchable'])) {
-                    $column_key = isset($column_conf['sql_key']) ? $column_conf['sql_key'] : $column_key;
-                    $clauses[] = array('column' => $column_key, 'value' => $search_value, 'compare' => 'LIKE');
+                    $search[] = array('column' => isset($column_conf['sql_key']) ? $column_conf['sql_key'] : $column_key, 'value' => $search_value, 'compare' => 'LIKE');
                 }
             }
-            $clauses[] = array(
-                'column' => 'content_id',
-                'compare' => 'IN',
-                'subquery' => array(
-                    'table' => $this->_args['ewp_custom_args']['id'] . '_data',
-                    'select' => 'content_id',
-                    'where' => array('column' => 'meta_value', 'value' => $search_value, 'compare' => 'LIKE'),
-                ),
-            );
+            if (isset($args['table_name_meta'])) {
+                $search[] = array(
+                    'column' => 'content_id',
+                    'compare' => 'IN',
+                    'subquery' => array(
+                        'table' => $args['table_name_meta'],
+                        'select' => 'content_id',
+                        'where' => array('column' => 'meta_value', 'value' => $search_value, 'compare' => 'LIKE'),
+                    ),
+                );
+            }
+            $clauses[] = array('operator' => 'OR', 'clause' => $search);
         }
-        if (!empty($clauses)) {
-            $where_clause = array(
-                "clause" => array(
-                    array(
-                        "operator" => "OR",
-                        "clause" => $clauses,
-                    )
-                )
-            );
-        }
+        $where_clause = empty($clauses) ? array() : array('clause' => array(array('operator' => 'AND', 'clause' => $clauses)));
         return $where_clause;
     }
 

@@ -50,7 +50,7 @@ final class Shadow
      * Whether the pre-1.6 builder can express a WHERE node at all, so the
      * comparison means something. It only knew the legacy shape — a root
      * with `clause`, conditions with `column`, `compare` and a scalar or
-     * string `value` — not array values, sub-queries or bare conditions,
+     * string `value` — not array values, sub-queries, casts or bare conditions,
      * which extend-wp's own callers use since 1.6.0.
      *
      * @param mixed $where WHERE node.
@@ -73,7 +73,7 @@ final class Shadow
     private static function legacy_node(array $node)
     {
         if (array_key_exists('column', $node)) {
-            return isset($node['compare']) && !isset($node['subquery']) && array_key_exists('value', $node) && is_scalar($node['value']);
+            return isset($node['compare']) && !isset($node['subquery']) && !isset($node['cast']) && array_key_exists('value', $node) && is_scalar($node['value']);
         }
         if (!isset($node['clause']) || !is_array($node['clause'])) {
             return false;

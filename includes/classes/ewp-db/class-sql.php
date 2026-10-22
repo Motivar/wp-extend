@@ -65,6 +65,22 @@ final class Sql
     }
 
     /**
+     * `SELECT COUNT(*)` statement (read rules: an invalid filter matches nothing).
+     *
+     * @param string $table Table name without the WordPress prefix.
+     * @param mixed  $where WHERE node (see Where), empty for none.
+     * @return array { sql: string, errors: string[] }.
+     */
+    public static function count($table, $where)
+    {
+        global $wpdb;
+
+        $built = Where::build($where, Table_Columns::of($table));
+        $sql   = 'SELECT COUNT(*) FROM %i' . ($built['sql'] === '' ? '' : ' WHERE ' . $built['sql']);
+        return array('sql' => $wpdb->prepare($sql, array_merge(array($wpdb->prefix . $table), $built['values'])), 'errors' => $built['errors']); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- placeholders only.
+    }
+
+    /**
      * UPDATE statement.
      *
      * @param string $table Table name without the WordPress prefix.

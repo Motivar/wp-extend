@@ -27,7 +27,9 @@ if (!defined('ABSPATH')) {
  * list counts as an AND group). Columns must exist in the table and are bound
  * with %i; values are bound with %d/%f/%s; operators and comparisons come
  * from fixed lists. IN accepts an array, a legacy "('a','b')" string (see
- * Legacy_In_List) or a `subquery` node.
+ * Legacy_In_List) or a `subquery` node. A condition may add
+ * `'cast' => 'number'|'date'` to compare its column as DECIMAL / DATETIME
+ * (meta values are LONGTEXT, so `9 < 10` needs it).
  *
  * Errors: in read mode an invalid condition becomes `1=0` (it matches
  * nothing, so it can never widen a result) and is reported in `errors`; in
@@ -43,6 +45,9 @@ final class Where
 
     /** Group operators. */
     const OPERATORS = array('AND', 'OR');
+
+    /** Casts a condition may apply to its column (`cast` key), e.g. numeric or date order on LONGTEXT meta values. */
+    const CASTS = array('number' => 'DECIMAL(30,10)', 'date' => 'DATETIME');
 
     /** Comparisons. */
     const COMPARES = array('=', '!=', '<>', '<', '<=', '>', '>=', 'LIKE', 'NOT LIKE', 'IN', 'NOT IN', 'BETWEEN', 'NOT BETWEEN', 'IS NULL', 'IS NOT NULL');
@@ -67,6 +72,9 @@ final class Where
 
     /** @var int Conditions seen so far. */
     private $conditions = 0;
+
+    /** @var string|null SQL type the current condition casts its column to. */
+    private $cast = null;
 
     /**
      * @param array $columns Allowed columns (lower case => stored name).
@@ -173,7 +181,25 @@ final class Where
         if (!in_array($compare, self::COMPARES, true)) {
             return $this->fail('unknown comparison ' . self::describe($compare));
         }
-        return $this->comparison($column, $compare, $node);
+        if (isset($node['cast']) && !isset(self::CASTS[$node['cast']])) {
+            return $this->fail('unknown cast ' . self::describe($node['cast']));
+        }
+        $this->cast = isset($node['cast']) ? self::CASTS[$node['cast']] : null;
+        $sql        = $this->comparison($column, $compare, $node);
+        $this->cast = null;
+        return $sql;
+    }
+
+    /**
+     * Bind the condition's column, wrapped in CAST(… AS type) when the condition asked for one.
+     *
+     * @param string $column Stored column name.
+     * @return string `%i` or `CAST(%i AS type)`.
+     */
+    private function column_sql($column)
+    {
+        $placeholder = $this->bind_identifier($column);
+        return $this->cast === null ? $placeholder : 'CAST(' . $placeholder . ' AS ' . $this->cast . ')';
     }
 
     /**
@@ -187,7 +213,7 @@ final class Where
     private function comparison($column, $compare, array $node)
     {
         if ($compare === 'IS NULL' || $compare === 'IS NOT NULL') {
-            return $this->bind_identifier($column) . ' ' . $compare;
+            return $this->column_sql($column) . ' ' . $compare;
         }
         if (($compare === 'IN' || $compare === 'NOT IN') && isset($node['subquery'])) {
             return $this->subquery($column, $compare, $node['subquery']);
@@ -202,7 +228,7 @@ final class Where
         if (!is_scalar($value)) {
             return $this->fail('the value of ' . $column . ' must be a scalar');
         }
-        return $this->bind_identifier($column) . ' ' . $compare . ' ' . $this->bind($value);
+        return $this->column_sql($column) . ' ' . $compare . ' ' . $this->bind($value);
     }
 
     /**
@@ -234,7 +260,7 @@ final class Where
             }
         }
         // Bind order must follow placeholder order: the column first, then the list.
-        $sql          = $this->bind_identifier($column) . ' ' . $compare . ' (';
+        $sql          = $this->column_sql($column) . ' ' . $compare . ' (';
         $placeholders = array();
         foreach ($value as $item) {
             $placeholders[] = $this->bind($item);
@@ -256,7 +282,7 @@ final class Where
             return $this->fail('BETWEEN on ' . $column . ' needs an array of two values');
         }
         $value = array_values($value);
-        return $this->bind_identifier($column) . ' ' . $compare . ' ' . $this->bind($value[0]) . ' AND ' . $this->bind($value[1]);
+        return $this->column_sql($column) . ' ' . $compare . ' ' . $this->bind($value[0]) . ' AND ' . $this->bind($value[1]);
     }
 
     /**
@@ -278,11 +304,14 @@ final class Where
             return $this->fail('unknown subquery column ' . self::describe($subquery['select']));
         }
 
-        $sql    = $this->bind_identifier($column) . ' ' . $compare . ' (SELECT ' . $this->bind_identifier($select) . ' FROM ' . $this->bind_identifier($this->prefix . $subquery['table']);
+        $sql    = $this->column_sql($column) . ' ' . $compare . ' (SELECT ' . $this->bind_identifier($select) . ' FROM ' . $this->bind_identifier($this->prefix . $subquery['table']);
         $outer  = $this->columns;
+        $cast   = $this->cast;
         $this->columns = (array) $columns;
+        $this->cast    = null;
         $where  = empty($subquery['where']) ? '' : $this->node($subquery['where'], 1);
         $this->columns = $outer;
+        $this->cast    = $cast;
         return $sql . ($where === '' ? '' : ' WHERE ' . $where) . ')';
     }
 

@@ -141,6 +141,7 @@ final class EWP_Self_Test
         foreach ([
             'trait-fixture-content-type',
             'class-content-crud-case',
+            'class-content-query-case',
             'class-search-filter-case',
             'class-cache-flush-case',
             'class-logger-case',

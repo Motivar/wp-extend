@@ -136,6 +136,25 @@ final class Content_Resource extends Resource
                 ->cli('list', ['columns' => ['id', 'title', 'status', 'modified']])
                 ->ability('list-items'),
 
+            'query' => Operation::read('query_items')
+                ->label(__('Query custom content items', 'extend-wp'))
+                ->description(__('Search, filter, sort and page the rows of one content type with a DataViews view, including filters on meta values. Returns one page plus total and total_pages. Use list-items for a quick look; use this when you need meta filters, sorting or the total count.', 'extend-wp'))
+                ->input(array_merge([$type], Content_Schema::view_fields()))
+                ->output(Content_Schema::query_result())
+                ->args([$this, 'query_args'])
+                ->cli('query', ['columns' => ['id', 'title', 'status', 'modified']])
+                ->ability('query-items'),
+
+            'set-status' => Operation::write('set_status')
+                ->annotations(['idempotent' => true])
+                ->label(__('Set the status of custom content items', 'extend-wp'))
+                ->description(__('Change the status of up to 200 rows of a content type at once, through the normal save (save hooks fire per row). The status must be one reported by list-content-types for the type.', 'extend-wp'))
+                ->input(array_merge([$type], Content_Schema::status_fields()))
+                ->output(Content_Schema::status_result())
+                ->args([$this, 'status_args'])
+                ->cli('set-status', ['success' => 'Set %count% %content_type% item(s) to %status%.'])
+                ->ability('set-status'),
+
             'get' => Operation::read('get_item')
                 ->label(__('Get a custom content item', 'extend-wp'))
                 ->description(__('Return one row of a content type by id, including every stored meta value. Use this after list-items when you need the full configuration of a single item.', 'extend-wp'))
@@ -211,6 +230,26 @@ final class Content_Resource extends Resource
         }
 
         return [$input['content_type'], (int) $input['id'], $patch];
+    }
+
+    /**
+     * @param array $input Normalised input.
+     *
+     * @return array query_items($content_type, array $view, $with_meta)
+     */
+    public function query_args(array $input)
+    {
+        return [$input['content_type'], isset($input['view']) ? (array) $input['view'] : [], !isset($input['with_meta']) || (bool) $input['with_meta']];
+    }
+
+    /**
+     * @param array $input Normalised input.
+     *
+     * @return array set_status($content_type, array $ids, $status)
+     */
+    public function status_args(array $input)
+    {
+        return [$input['content_type'], isset($input['ids']) ? (array) $input['ids'] : [], isset($input['status']) ? (string) $input['status'] : ''];
     }
 
     /**

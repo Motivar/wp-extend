@@ -394,6 +394,194 @@ class Content_Service
     }
 
     /**
+     * Query rows of a content type with a DataViews view: search, filters on
+     * columns and meta, sort, pagination, plus the total for the pager.
+     *
+     * The shared implementation behind REST `{prefix}/{type}/query`,
+     * `wp ewp content query` and the `ewp-content/query-items` ability.
+     *
+     * @param string $content_type Content type id.
+     * @param array  $view         DataViews view: search (string), filters (list of {field, operator, value}),
+     *                             sort ({field, direction}), page (int, from 1), perPage (int, 1–200, default 20).
+     * @param bool   $with_meta    Include every meta value per row (one batched query).
+     *
+     * @return array|\WP_Error { items, count, total, total_pages, page, per_page }; 400 on an unknown field,
+     *                         operator or sort.
+     *
+     * @since 1.7.0
+     */
+    public function query_items($content_type, array $view, $with_meta = true)
+    {
+        try {
+            $query = \EWP\Db\View_Query::build($content_type, $view, $this->view_fields($content_type));
+        } catch (\EWP\Db\Invalid_Where $e) {
+            return new \WP_Error('ewp_content_invalid_view', $e->getMessage(), ['status' => 400]);
+        }
+
+        $table = $content_type . '_main';
+        $rows  = \AWM_DB_Creator::get_db_data($table, '*', $query['where'], $query['order_by'], $query['limit'], $query['offset']);
+        $rows  = is_array($rows) ? $rows : [];
+        $total = (int) \AWM_DB_Creator::count_db_data($table, $query['where']);
+
+        if ($with_meta && $rows !== []) {
+            awm_get_db_content_metas($content_type, array_column($rows, 'content_id'));
+        }
+
+        $items = [];
+        foreach ($rows as $row) {
+            $items[] = $this->normalize_row($content_type, $row, $with_meta);
+        }
+
+        return [
+            'items'       => $items,
+            'count'       => count($items),
+            'total'       => $total,
+            'total_pages' => (int) ceil($total / $query['per_page']),
+            'page'        => $query['page'],
+            'per_page'    => $query['per_page'],
+        ];
+    }
+
+    /**
+     * Fields a view may filter, search and sort on: the `_main` columns plus
+     * every meta field of the type's library.
+     *
+     * @param string $content_type Content type id.
+     *
+     * @return array Field id => { source: column|meta, key, type, label, sortable, searchable }.
+     *
+     * @since 1.7.0
+     */
+    public function view_fields($content_type)
+    {
+        $fields = [
+            'id'       => ['source' => 'column', 'key' => 'content_id', 'type' => 'integer', 'label' => __('ID', 'extend-wp'), 'sortable' => true, 'searchable' => false],
+            'title'    => ['source' => 'column', 'key' => 'content_title', 'type' => 'text', 'label' => __('Title', 'extend-wp'), 'sortable' => true, 'searchable' => true],
+            'status'   => ['source' => 'column', 'key' => 'status', 'type' => 'text', 'label' => __('Status', 'extend-wp'), 'sortable' => true, 'searchable' => false],
+            'created'  => ['source' => 'column', 'key' => 'created', 'type' => 'datetime', 'label' => __('Created', 'extend-wp'), 'sortable' => true, 'searchable' => false],
+            'modified' => ['source' => 'column', 'key' => 'modified', 'type' => 'datetime', 'label' => __('Modified', 'extend-wp'), 'sortable' => true, 'searchable' => false],
+            'user_id'  => ['source' => 'column', 'key' => 'user_id', 'type' => 'integer', 'label' => __('Author', 'extend-wp'), 'sortable' => true, 'searchable' => false],
+        ];
+
+        $config = $this->get_config($content_type);
+        $known  = array_merge(['content_id', 'title', 'ewp_date', 'modified', 'status', 'user_id', 'hash'], array_keys($fields));
+        foreach (isset($config['save_columns']) ? (array) $config['save_columns'] : [] as $key => $column) {
+            if (in_array($key, $known, true) || !is_array($column) || empty($column['sql'])) {
+                continue;
+            }
+            $fields[$key] = [
+                'source'     => 'column',
+                'key'        => isset($column['sql_key']) ? (string) $column['sql_key'] : (string) $key,
+                'type'       => self::field_type($column),
+                'label'      => isset($column['label']) ? (string) $column['label'] : (string) $key,
+                'sortable'   => true,
+                'searchable' => !empty($column['searchable']),
+            ];
+        }
+
+        foreach ($this->resolve_library($content_type) as $key => $field) {
+            $case = is_array($field) && isset($field['case']) ? (string) $field['case'] : '';
+            if (isset($fields[$key]) || !is_array($field) || !empty($field['exclude_meta']) || in_array($case, self::PRESENTATION_CASES, true)) {
+                continue;
+            }
+            $type         = self::field_type($field);
+            $fields[$key] = [
+                'source'     => 'meta',
+                'key'        => (string) $key,
+                'type'       => $type,
+                'label'      => isset($field['label']) ? (string) $field['label'] : (string) $key,
+                'sortable'   => false,
+                'searchable' => $type === 'text' && !in_array($case, ['repeater', 'section', 'image', 'gallery'], true),
+            ];
+        }
+
+        /**
+         * Filters the fields a DataViews view may use for a content type.
+         *
+         * @since 1.7.0
+         *
+         * @param array  $fields       Field id => { source: column|meta, key, type, label, sortable, searchable }.
+         * @param string $content_type Content type id.
+         */
+        return (array) apply_filters('ewp_content_view_fields', $fields, $content_type);
+    }
+
+    /**
+     * View field type of a library field or `_main` column.
+     *
+     * @param array $field Library field (`case`, `type` / `attributes.type`) or column (`sql`).
+     *
+     * @return string text|integer|number|date|datetime.
+     *
+     * @since 1.7.0
+     */
+    private static function field_type(array $field)
+    {
+        $input = isset($field['attributes']['type']) ? $field['attributes']['type'] : (isset($field['type']) ? $field['type'] : '');
+        $map   = ['number' => 'number', 'range' => 'number', 'date' => 'date', 'datetime-local' => 'datetime'];
+        if (isset($map[$input])) {
+            return $map[$input];
+        }
+        $sql = isset($field['sql']) ? strtolower((string) $field['sql']) : '';
+        if (preg_match('/^(tinyint|smallint|mediumint|int|bigint)/', $sql)) {
+            return 'integer';
+        }
+        if (preg_match('/^(decimal|float|double)/', $sql)) {
+            return 'number';
+        }
+        return preg_match('/^(datetime|timestamp)/', $sql) ? 'datetime' : (strpos($sql, 'date') === 0 ? 'date' : 'text');
+    }
+
+    /**
+     * Set the status of several rows through the normal save pipeline, so
+     * `{type}_save_action` and `ewp_custom_content_save_action` fire per row.
+     *
+     * The shared implementation behind REST `{prefix}/{type}/status`,
+     * `wp ewp content set-status` and the `ewp-content/set-status` ability.
+     *
+     * @param string $content_type Content type id.
+     * @param array  $ids          Row ids (at most MAX_LIMIT).
+     * @param string $status       One of the type's statuses.
+     *
+     * @return array|\WP_Error { count, updated: int[], not_found: int[] }.
+     *
+     * @since 1.7.0
+     */
+    public function set_status($content_type, array $ids, $status)
+    {
+        $ids = array_slice(array_values(array_unique(array_filter(array_map('intval', $ids)))), 0, self::MAX_LIMIT);
+        if (empty($ids)) {
+            return new \WP_Error('ewp_abilities_invalid_id', __('At least one item id is required.', 'extend-wp'), ['status' => 400]);
+        }
+        if ((string) $status === '') {
+            return new \WP_Error('ewp_abilities_invalid_status', __('A status is required.', 'extend-wp'), ['status' => 400]);
+        }
+        $status = $this->resolve_status($content_type, $status);
+        if (is_wp_error($status)) {
+            return $status;
+        }
+
+        $updated = $not_found = [];
+        foreach ($ids as $id) {
+            $result = $this->update_item($content_type, $id, ['status' => $status]);
+            if (is_wp_error($result) && $result->get_error_code() === 'ewp_abilities_not_found') {
+                $not_found[] = $id;
+                continue;
+            }
+            if (is_wp_error($result)) {
+                return $result;
+            }
+            $updated[] = $id;
+        }
+
+        if (empty($updated)) {
+            return new \WP_Error('ewp_abilities_not_found', __('None of the given ids exist.', 'extend-wp'), ['status' => 404]);
+        }
+
+        return ['count' => count($updated), 'updated' => $updated, 'not_found' => $not_found];
+    }
+
+    /**
      * Return one row with all of its meta.
      *
      * @param string $content_type Content type id.

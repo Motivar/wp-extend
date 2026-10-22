@@ -58,6 +58,7 @@ remove them.
 | `drop_columns($table, array $columns)` | Removes columns now (one-off migrations). Returns the removed columns, `false` on an invalid/missing table or a failed ALTER. Fires `ewp_database_columns_dropped`. |
 | `truncate_table($table)` | Removes every row and resets `AUTO_INCREMENT`; schema and version stay. Tables referenced by a foreign key (a content type's `_main`) fall back to `DELETE` + counter reset, which fails — deleting nothing — while referencing rows exist: empty `{type}_data` before `{type}_main`. Fires `ewp_database_truncated`; caches built from the table are not flushed. |
 | `get_db_data()`, `insert_db_data()`, `update_db_data()`, `delete_db_data()`, `insert_update_db_data()` | Row CRUD on prepared statements (since 1.6.0, see "Querying rows"). |
+| `count_db_data($table, $where)` | Rows a WHERE matches (since 1.7.0); same rules and cache as `get_db_data()`. |
 | `reset()` | Forgets the per-request caches (tests). |
 
 All table and column names must be plain identifiers (`[A-Za-z0-9_]`); others are refused.
@@ -92,6 +93,8 @@ $rows = AWM_DB_Creator::get_db_data('flx_rates', '*', $where, array('column' => 
   (`EWP\Db\Legacy_In_List`); anything that is not a plain list of quoted strings or numbers is refused.
   For a sub-select pass `'subquery' => array('table' => 'type_data', 'select' => 'content_id', 'where' => …)`.
 - **BETWEEN**: an array of two values.
+- **Casts** (since 1.7.0): `'cast' => 'number'` or `'date'` compares the column as `DECIMAL(30,10)` /
+  `DATETIME` — for numbers and dates stored in text columns such as `meta_value`.
 - **Reads fail safe**: an invalid condition (unknown column or comparison, bad IN list) becomes
   `1=0` — it matches nothing and can never widen a result; an unknown ORDER BY or SELECT column is
   dropped. With `WP_DEBUG` the reason is logged (`SQL Notice (table): …`). `prepare_only` returns the
@@ -109,6 +112,40 @@ $rows = AWM_DB_Creator::get_db_data('flx_rates', '*', $where, array('column' => 
 `awm_get_db_content()` passes `status`, `include`, `include_hashes` as arrays and turns `meta_query`
 into `content_id IN (SELECT content_id FROM {type}_data WHERE meta_key = … AND meta_value <compare> …)`
 per condition, joined by `relation`; `compare` uses the list above.
+
+### Querying with a DataViews view (since 1.7.0)
+
+`Content_Service::query_items($type, $view, $with_meta)` — REST `GET {prefix}/{type}/query?view=…`,
+`wp ewp content query --type=… --view='{json}'`, ability `ewp-content/query-items` — takes a
+`@wordpress/dataviews` view and returns `{ items, count, total, total_pages, page, per_page }`.
+`EWP\Db\View_Query` turns the view into a WHERE / ORDER BY / LIMIT for `{type}_main`:
+
+```json
+{"search": "red", "filters": [{"field": "price", "operator": "greaterThan", "value": 9},
+ {"field": "status", "operator": "isAny", "value": ["enabled"]}],
+ "sort": {"field": "title", "direction": "asc"}, "page": 1, "perPage": 20}
+```
+
+- **Fields** (`Content_Service::view_fields()`, filter `ewp_content_view_fields`): `id`, `title`,
+  `status`, `created`, `modified`, `user_id`, the type's extra `_main` columns, and every meta field of its
+  library. Column fields filter and sort the row directly; meta fields filter through
+  `content_id [NOT] IN (SELECT content_id FROM {type}_data WHERE meta_key = … AND meta_value …)` and do
+  not sort. Number / date inputs compare meta as `DECIMAL` / `DATETIME` (Where `cast`), so `9 < 10`.
+- **Operators**: `is` `isNot` `isAny` `isNone` `isAll` `isNotAll` `lessThan` `greaterThan`
+  `lessThanOrEqual` `greaterThanOrEqual` `before` `after` `beforeInc` `afterInc` `between` `contains`
+  `notContains` `startsWith`. Negations on meta keep items that do not have the key. `isAll` /
+  `isNotAll` match a plain value or a serialised list (checkbox-multiple) containing it. A filter
+  without a value is ignored.
+- **Search**: title and other searchable columns, searchable (text) meta values, and the id for a
+  numeric term — LIKE-escaped, ANDed with the filters.
+- **Refused with 400**: unknown field or operator, a list where one value is expected, `between`
+  without two values, sorting by a meta field, a bad direction. `perPage` is 1–200 (default 20).
+- `total` comes from `AWM_DB_Creator::count_db_data($table, $where)` (cached like reads). A page with
+  meta costs three queries: rows, count, one batched meta query.
+
+Bulk status: `Content_Service::set_status($type, $ids, $status)` — REST `POST {prefix}/{type}/status`,
+`wp ewp content set-status`, ability `ewp-content/set-status` — saves each row through
+`awm_custom_content_save()`, so `{type}_save_action` and `ewp_custom_content_save_action` fire per row.
 
 ### Read cache (since 1.6.2)
 
@@ -176,4 +213,4 @@ Tests: `tests/test-db-creator-schema-lifecycle-test.php`, `tests/test-db-creator
 `tests/test-db-where-test.php`, `tests/test-db-sql-injection-test.php`,
 `tests/test-db-compat-fixtures-test.php` (every WHERE recorded from filox selects the same rows as
 before), `tests/test-db-shadow-test.php`, `tests/test-db-read-cache-test.php` (cache, batched meta,
-`_data` index).
+`_data` index), `tests/test-content-view-query-test.php` (views, casts, counts, bulk status, legacy list).

@@ -110,9 +110,86 @@ final class Content_Schema
         ];
     }
 
+    /**
+     * The result of a view query: one page of rows plus the pager numbers.
+     *
+     * @return array
+     *
+     * @since 1.7.0
+     */
+    public static function query_result()
+    {
+        return [
+            'type'       => 'object',
+            'properties' => [
+                'items'       => ['type' => 'array', 'items' => self::row()],
+                'count'       => ['type' => 'integer', 'description' => 'Rows on this page.'],
+                'total'       => ['type' => 'integer', 'description' => 'Rows matching the view on every page.'],
+                'total_pages' => ['type' => 'integer'],
+                'page'        => ['type' => 'integer'],
+                'per_page'    => ['type' => 'integer'],
+            ],
+            'additionalProperties' => true,
+        ];
+    }
+
+    /**
+     * The result of a bulk status change.
+     *
+     * @return array
+     *
+     * @since 1.7.0
+     */
+    public static function status_result()
+    {
+        return [
+            'type'       => 'object',
+            'properties' => [
+                'count'     => ['type' => 'integer'],
+                'updated'   => ['type' => 'array', 'items' => ['type' => 'integer']],
+                'not_found' => ['type' => 'array', 'items' => ['type' => 'integer']],
+            ],
+            'additionalProperties' => true,
+        ];
+    }
+
     /* ---------------------------------------------------------------------
      * Input fields
      * ------------------------------------------------------------------ */
+
+    /**
+     * A DataViews view and whether rows carry their meta.
+     *
+     * @return Field[]
+     *
+     * @since 1.7.0
+     */
+    public static function view_fields()
+    {
+        return [
+            Field::object('view')->describe(__('A DataViews view: {"search":"text","filters":[{"field":"status","operator":"isAny","value":["enabled"]}],"sort":{"field":"created","direction":"desc"},"page":1,"perPage":20}. Fields are id, title, status, created, modified, user_id, extra columns and the meta keys reported by list-content-types; operators: is, isNot, isAny, isNone, isAll, isNotAll, lessThan, greaterThan, lessThanOrEqual, greaterThanOrEqual, before, after, beforeInc, afterInc, between, contains, notContains, startsWith. Only columns sort. perPage is at most 200. Omit for the first 20 rows, newest first.', 'extend-wp')),
+            Field::bool('with_meta')->default_value(true)->describe(__('Include every meta value for each row (one extra query for the page). Defaults to true.', 'extend-wp')),
+        ];
+    }
+
+    /**
+     * Ids and status of a bulk status change.
+     *
+     * @param callable|null $statuses Returns the allowed statuses; null accepts any string (checked by the service).
+     *
+     * @return Field[]
+     *
+     * @since 1.7.0
+     */
+    public static function status_fields(?callable $statuses = null)
+    {
+        $status = $statuses !== null ? Field::enum('status', $statuses) : Field::string('status');
+
+        return [
+            Field::int_list('ids')->required()->describe(__('Ids of the items to change, comma separated (at most 200).', 'extend-wp')),
+            $status->required()->describe(__('The new status; one of the statuses reported for this content type.', 'extend-wp')),
+        ];
+    }
 
     /**
      * The `content_type` selector of the generic resource (`--type` on the CLI).

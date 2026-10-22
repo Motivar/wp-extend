@@ -974,6 +974,42 @@ class AWM_DB_Creator
     }
 
     /**
+     * Count the rows a WHERE matches (same rules as get_db_data(); cached like it).
+     *
+     * @since 1.7.0
+     *
+     * @param string $tableName    Table name without the WordPress prefix.
+     * @param mixed  $where_clause WHERE node (see EWP\Db\Where); empty for every row.
+     * @return int|false Row count, false when the table does not exist or the query failed.
+     */
+    public static function count_db_data($tableName, $where_clause = '')
+    {
+        global $wpdb;
+
+        if (empty($tableName) || !self::check_table_exists($tableName)) {
+            return false;
+        }
+        $built = \EWP\Db\Sql::count($tableName, $where_clause);
+        self::log_query_problems($tableName, $built['errors']);
+
+        $tables = \EWP\Db\Read_Cache::tables_of($tableName, $where_clause);
+        $cache  = self::cache_enabled($tables);
+        $cached = $cache ? \EWP\Db\Read_Cache::get($tables, $built['sql']) : null;
+        if ($cached !== null) {
+            return (int) $cached[0];
+        }
+        $count = $wpdb->get_var($built['sql']); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepared by EWP\Db\Sql.
+        if ($wpdb->last_error) {
+            error_log('SQL Error: Count query failed: ' . $wpdb->last_error);
+            return false;
+        }
+        if ($cache) {
+            \EWP\Db\Read_Cache::set($tables, $built['sql'], array((int) $count));
+        }
+        return (int) $count;
+    }
+
+    /**
      * Whether a read may be served from / stored in the object cache: every table it reads must be cached.
      *
      * @param string[] $tables Tables the query reads, without prefix.

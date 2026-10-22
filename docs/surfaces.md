@@ -34,8 +34,8 @@ output schema therefore have exactly one definition.
 
 | Resource | Service | REST | CLI | Abilities |
 |---|---|---|---|---|
-| `content` | `EWP\Content\Content_Service` | (per type, below) | `wp ewp content types\|list\|get\|create\|update\|delete` | `ewp-content/list-content-types`, `list-items`, `get-item`, `create-item`, `update-item`, `delete-item` |
-| per content type (`Content_Type_Rest_Resource`) | `Content_Service` | `{prefix}/{type}`, `/{id}`, `/create/`, `/update/{id}`, `/delete/` | — | — |
+| `content` | `EWP\Content\Content_Service` | (per type, below) | `wp ewp content types\|list\|query\|get\|create\|update\|set-status\|delete` | `ewp-content/list-content-types`, `list-items`, `query-items`, `get-item`, `create-item`, `update-item`, `set-status`, `delete-item` |
+| per content type (`Content_Type_Rest_Resource`) | `Content_Service` | `{prefix}/{type}`, `/query` (DataViews view, since 1.7.0), `/{id}`, `/create/`, `/update/{id}`, `/status` (since 1.7.0), `/delete/` | — | — |
 | `fields` | `Content_Service` + `Field_Vocabulary` | — | — | `ewp-fields/*` (6) |
 | `wp-content` | `Content_Service` | — | — | `ewp-wp-content/*` (10) |
 | `search` | `Content_Service` | — | — | `ewp-search/list-filters`, `get-filter` |

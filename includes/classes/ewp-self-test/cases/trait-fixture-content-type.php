@@ -82,9 +82,9 @@ trait Fixture_Content_Type
 
         foreach (['_data', '_main'] as $suffix) {
             $table = $type . $suffix;
-            $wpdb->query('DROP TABLE IF EXISTS `' . esc_sql($wpdb->prefix . $table) . '`'); // phpcs:ignore WordPress.DB.PreparedSQL
-            delete_option('ewp_version_' . $table);
-            $messages[] = sprintf(__('Dropped table %s.', 'extend-wp'), $wpdb->prefix . $table);
+            // Also deletes the version option and invalidates cached reads of the table (since 1.6.2).
+            \AWM_DB_Creator::drop_table($table);
+            $messages[]= sprintf(__('Dropped table %s.', 'extend-wp'), $wpdb->prefix . $table);
         }
 
         if (class_exists('AWM_Add_Content_DB_Setup') && isset(\AWM_Add_Content_DB_Setup::$ewp_data_configuration[$type])) {

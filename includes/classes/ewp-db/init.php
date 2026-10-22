@@ -17,3 +17,4 @@ require_once __DIR__ . '/class-sql.php';
 require_once __DIR__ . '/class-shadow.php';
 require_once __DIR__ . '/class-read-cache.php';
 require_once __DIR__ . '/class-content-meta.php';
+require_once __DIR__ . '/class-view-query.php';
