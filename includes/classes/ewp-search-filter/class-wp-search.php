@@ -261,7 +261,7 @@ class Extend_WP_Search_Filters
         return rest_ensure_response(new WP_REST_Response(false), 400);
       }
       global $ewp_search_id;
-      $ewp_search_id = $params['id'];
+      $ewp_search_id = absint($params['id']);
       $args = $this->query_prepare($params, $conf);
       /*get and set global the results*/
       global $ewp_search_query;
@@ -434,16 +434,20 @@ class Extend_WP_Search_Filters
 
   public function ewp_display_search($atts)
   {
-    extract(shortcode_atts(array(
+    $atts = shortcode_atts(array(
       'id' => '',
       'hash' => ''
-    ), $atts));
+    ), $atts);
+    /*shortcode attributes are author input: id is an integer, hash alphanumeric*/
+    $id = absint($atts['id']);
+    $hash = preg_replace('/[^A-Za-z0-9]/', '', (string) $atts['hash']);
     /*check if empty*/
     if (empty($id) && empty($hash)) {
       return '';
     }
 
-    if (empty($hash)) {
+    /*with an id, the stored hash wins over the attribute*/
+    if (!empty($id)) {
       $hash = awm_get_db_content('ewp_search', array('include' => $id));
       if (empty($hash)) {
         return '';
@@ -456,7 +460,7 @@ class Extend_WP_Search_Filters
       if (empty($id)) {
         return '';
       }
-      $id = $id[0]['content_id'];
+      $id = absint($id[0]['content_id']);
     }
 
     /*get the fields*/
@@ -495,11 +499,13 @@ class Extend_WP_Search_Filters
     }
 
     unset($fields['query_fields']);
-    $form = '<div id="ewp-search-' . $id . '" class="ewp-search-box ' . $fields['async'] . ' ' . $fields['orientation'] . '" options="' . htmlspecialchars(str_replace('"', '\'', json_encode($fields))) . '" search-id="' . $id . '"><form id="ewp-search-form-' . $id . '">' . awm_show_content(($form_fields)) . '</form>';
+    $async = isset($fields['async']) ? $fields['async'] : '';
+    $orientation = isset($fields['orientation']) ? $fields['orientation'] : '';
+    $form = '<div id="ewp-search-' . $id . '" class="ewp-search-box ' . esc_attr($async) . ' ' . esc_attr($orientation) . '" options="' . esc_attr(str_replace('"', '\'', wp_json_encode($fields))) . '" search-id="' . $id . '"><form id="ewp-search-form-' . $id . '">' . awm_show_content(($form_fields)) . '</form>';
     /*check whether search engine is async or not*/
-    switch ($fields['async']) {
+    switch ($async) {
       case 'not_async':
-        $form .= '<div class="ewp-search-actions"><div class="ewp-search-actions-wrapper"><div class="ewp-search-apply" onclick="ewp_apply_search_form(' . $id . ')">' . __($fields['button_apply'], 'extend-wp') . '</div><div class="ewp-search-reset"  onclick="ewp_reset_search_form(' . $id . ')">' . __($fields['button_reset'], 'extend-wp') . '</div></div></div>';
+        $form .= '<div class="ewp-search-actions"><div class="ewp-search-actions-wrapper"><div class="ewp-search-apply" onclick="ewp_apply_search_form(' . $id . ')">' . esc_html__($fields['button_apply'], 'extend-wp') . '</div><div class="ewp-search-reset"  onclick="ewp_reset_search_form(' . $id . ')">' . esc_html__($fields['button_reset'], 'extend-wp') . '</div></div></div>';
         break;
     }
 

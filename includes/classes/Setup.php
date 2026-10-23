@@ -43,6 +43,8 @@ class Setup
   require_once 'class-request-context.php';
   /*guarded, unguessable files under uploads (logger, REST-health); before the logger*/
   require_once 'class-private-files.php';
+  /*object-free unserialize for stored meta, logs and imports*/
+  require_once 'class-serialization.php';
   $front_end = Request_Context::is_front_end();
   $has_cli   = class_exists('WP_CLI');
 

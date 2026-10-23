@@ -271,7 +271,7 @@ class AWM_API
     }
 
     $current_value = $this->get_modal_value($view, $object_id, $meta_key);
-    $current_value = maybe_unserialize($current_value);
+    $current_value = \EWP\Serialization::unserialize($current_value);
     $current_value = is_array($current_value) ? $current_value : array();
 
     $metas = array();

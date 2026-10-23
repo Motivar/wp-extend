@@ -9,6 +9,26 @@ if (!isset($GLOBALS['awm_field_configs'])) {
     $GLOBALS['awm_field_configs'] = array();
 }
 
+if (!function_exists('awm_safe_unserialize_array')) {
+    /**
+     * Stored section / repeater value as an array, unserialized without creating objects.
+     *
+     * Self-contained (no EWP\Serialization dependency) because Composer may load
+     * this file from another bundled copy of Extend WP.
+     *
+     * @since 1.10.0
+     *
+     * @param mixed $value Required. Stored value (array or serialized string).
+     * @return array The value as an array; anything else becomes an empty array.
+     */
+    function awm_safe_unserialize_array($value)
+    {
+        if (is_string($value) && is_serialized($value)) {
+            $value = @unserialize(trim($value), array('allowed_classes' => false));
+        }
+        return is_array($value) ? $value : array();
+    }
+}
 
 if (!function_exists('awm_show_explanation')) {
     /**
@@ -57,6 +77,16 @@ if (!function_exists('awm_get_field_value')) {
                 $val = 0;
                 break;
         }
+        /**
+         * Filter a field value read for display or editing.
+         *
+         * @since 1.0.0
+         *
+         * @param mixed  $val           Stored value.
+         * @param int    $id            Object ID.
+         * @param string $original_meta Meta key.
+         * @param string $view          post|term|user|option|restrict_manage_posts.
+         */
         $val = apply_filters('awm_show_content_value_filter', $val, $id, $original_meta, $view);
         return $val;
     }
@@ -157,6 +187,14 @@ if (!function_exists('awm_encrypt_field_value')) {
         $algorithm = isset($field_config['encrypt_algorithm']) ? $field_config['encrypt_algorithm'] : '';
 
         // Apply filter before encryption
+        /**
+         * Filter a field value before it is encrypted.
+         *
+         * @since 1.0.0
+         *
+         * @param mixed $value        Plain value.
+         * @param array $field_config Field definition (encrypt settings).
+         */
         $value = apply_filters('ewp_encrypt_field_value', $value, $field_config);
 
         // Encrypt the value
@@ -201,6 +239,14 @@ if (!function_exists('awm_decrypt_field_value')) {
         }
 
         // Apply filter after decryption
+        /**
+         * Filter a field value after it is decrypted.
+         *
+         * @since 1.0.0
+         *
+         * @param mixed $decrypted    Decrypted value.
+         * @param array $field_config Field definition (encrypt settings).
+         */
         $decrypted = apply_filters('ewp_decrypt_field_value', $decrypted, $field_config);
 
         return $decrypted;
@@ -853,8 +899,25 @@ if (!function_exists('awm_get_object_type_options')) {
             $cache[$cache_key]    = $options;
         }
 
+        /**
+         * Filter the options of an object-type select (posts, terms, users, content rows).
+         *
+         * @since 1.0.0
+         *
+         * @param array  $options    Value => label.
+         * @param array  $config     Field configuration.
+         * @param string $field_name Field name, may be empty.
+         */
         $options = apply_filters('awm_object_type_options', $options, $config, $field_name);
         if (!empty($field_name)) {
+            /**
+             * Filter the options of one named object-type select (`awm_object_type_options_{$field_name}`).
+             *
+             * @since 1.0.0
+             *
+             * @param array $options Value => label.
+             * @param array $config  Field configuration.
+             */
             $options = apply_filters('awm_object_type_options_' . $field_name, $options, $config);
         }
         return $options;
@@ -897,11 +960,30 @@ if (!function_exists('awm_object_search_query')) {
         );
         $args = array_merge($defaults, $args);
 
+        /**
+         * Filter the arguments of an object search before it runs.
+         *
+         * @since 1.5.8
+         *
+         * @param array  $args   Query arguments (limit, …).
+         * @param string $group  Object group: post_type|taxonomy|user|custom_content.
+         * @param string $slug   Post type, taxonomy or content type.
+         * @param string $search Search text.
+         */
         $args        = apply_filters('awm_object_search_query_args', $args, $group, $slug, $search);
-        $limit       = max(1, absint($args['limit']));
+        /**
+         * Filter the largest number of results one object search may return.
+         *
+         * @since 1.10.0
+         *
+         * @param int $max Maximum `limit` (and `include` ids). Default 100.
+         */
+        $max         = max(1, (int) apply_filters('awm_object_search_max_limit', 100));
+        $limit       = min($max, max(1, absint($args['limit'])));
         $exclude     = array_filter(array_map('absint', (array) $args['exclude']));
-        $include     = array_filter(array_map('absint', (array) $args['include']));
-        $search_meta = (bool) $args['search_meta'];
+        $include     = array_slice(array_filter(array_map('absint', (array) $args['include'])), 0, $max);
+        /*an empty term would make the meta LIKE '%%' scan the whole meta table*/
+        $search_meta = (bool) $args['search_meta'] && $search !== '';
         $type        = $group . ':' . $slug;
         $results     = array();
 
@@ -939,6 +1021,8 @@ if (!function_exists('awm_object_search_query')) {
                     $ids = array_diff(array_unique($ids), $exclude);
                     $ids = array_slice($ids, 0, $limit);
                 }
+                /*one query for every title instead of one per id*/
+                _prime_post_caches(array_map('absint', $ids), false, false);
                 foreach ($ids as $pid) {
                     $title = get_the_title($pid);
                     $results[] = array(
@@ -1000,25 +1084,26 @@ if (!function_exists('awm_object_search_query')) {
                 break;
 
             case 'custom_content':
-                if (!function_exists('awm_get_db_content')) {
+                /*the slug becomes a table name below: registered content types only*/
+                if (!function_exists('awm_get_db_content') || $slug !== sanitize_key($slug) || !class_exists('AWM_Add_Content_DB_Setup') || !isset(AWM_Add_Content_DB_Setup::$ewp_data_configuration[$slug])) {
                     break;
                 }
                 $rows = array();
                 if (!empty($include)) {
                     $rows = awm_get_db_content($slug, array('include' => $include));
                 } else {
-                    $rows = awm_get_db_content($slug, array('title' => $search, 'limit' => $limit));
+                    $rows = (array) awm_get_db_content($slug, array('title' => $search, 'limit' => $limit));
                     if ($search_meta && count($rows) < $limit) {
                         $like     = '%' . $wpdb->esc_like($search) . '%';
-                        $data_tbl = $wpdb->prefix . $slug . '_data';
                         $meta_ids = $wpdb->get_col($wpdb->prepare(
-                            "SELECT DISTINCT content_id FROM `{$data_tbl}` WHERE meta_value LIKE %s LIMIT %d",
+                            "SELECT DISTINCT content_id FROM %i WHERE meta_value LIKE %s LIMIT %d",
+                            $wpdb->prefix . $slug . '_data',
                             $like,
                             $limit
                         ));
                         $meta_ids = array_filter(array_map('absint', (array) $meta_ids));
                         if (!empty($meta_ids)) {
-                            $rows = array_merge($rows, awm_get_db_content($slug, array('include' => $meta_ids)));
+                            $rows = array_merge($rows, (array) awm_get_db_content($slug, array('include' => $meta_ids)));
                         }
                     }
                 }
@@ -1036,6 +1121,17 @@ if (!function_exists('awm_object_search_query')) {
                 break;
         }
 
+        /**
+         * Filter object search results.
+         *
+         * @since 1.5.8
+         *
+         * @param array  $results Results (id, label).
+         * @param string $group   Object group.
+         * @param string $slug    Post type, taxonomy or content type.
+         * @param string $search  Search text.
+         * @param array  $args    Query arguments.
+         */
         return apply_filters('awm_object_search_results', $results, $group, $slug, $search, $args);
     }
 }
@@ -1203,6 +1299,15 @@ if (!function_exists('awm_show_content')) {
                     }
                     $label_class[] = $a['case'];
 
+                    /**
+                     * Filter the CSS classes of a field wrapper.
+                     *
+                     * @since 1.0.0
+                     *
+                     * @param string[] $label_class Classes.
+                     * @param array    $a           Field definition.
+                     * @param string   $required    Required attribute markup, or empty.
+                     */
                     $label_class = apply_filters('awm_label_class_filter', $label_class, $a, $required);
                     if (in_array('awm-needed', $label_class)) {
                         $required = '';
@@ -1521,7 +1626,7 @@ if (!function_exists('awm_show_content')) {
                                 $ins .= '<div class="section-header">' . $a['label'] . $explanation . '</div>';
                             }
                             $ins .= '<div class="awm-inner-section-content">';
-                            $val = !empty($val) ? maybe_unserialize($val) : array();
+                            $val = !empty($val) ? awm_safe_unserialize_array($val) : array();
                             $section_fields = array();
                             foreach ($a['include'] as $key => $data) {
 
@@ -1586,9 +1691,9 @@ if (!function_exists('awm_show_content')) {
                             break;
                         case 'map':
                             $label_class[] = 'awm-cls-100';
-                            $lat = (isset($val['lat']) && !empty($val['lat'])) ? $val['lat'] : '';
-                            $lng = (isset($val['lng']) && !empty($val['lng'])) ? $val['lng'] : '';
-                            $address = (isset($val['address']) && !empty($val['address'])) ? $val['address'] : '';
+                            $lat = (isset($val['lat']) && !empty($val['lat'])) ? esc_attr($val['lat']) : '';
+                            $lng = (isset($val['lng']) && !empty($val['lng'])) ? esc_attr($val['lng']) : '';
+                            $address = (isset($val['address']) && !empty($val['address'])) ? esc_attr($val['address']) : '';
                             $ins .= '<input id="awm_map' . $original_meta_id . '_search_box" class="controls" type="text" placeholder="' . __('Type to search', 'awm') . '" value="' . $address . '" ' . $required . ' onkeypress="return noenter()"><div class="awm_map" id="awm_map' . $original_meta_id . '"></div>';
                             $ins .= '<input type="hidden" name="' . $original_meta . '[lat]" id="awm_map' . $original_meta_id . '_lat" value="' . $lat . '" />';
                             $ins .= '<input type="hidden" name="' . $original_meta . '[lng]" id="awm_map' . $original_meta_id . '_lng" value="' . $lng . '" />';
@@ -1602,7 +1707,7 @@ if (!function_exists('awm_show_content')) {
                                 $r_label = isset($a['label']) ? $a['label'] : '';
                                 $ins .= '<div class="awm-repeater-title">' . $r_label . $explanation . '</div>';
                                 $ins .= '<div class="awm-repeater-contents">';
-                                $val = !empty($val) ? array_values(maybe_unserialize($val)) : array();
+                                $val = !empty($val) ? array_values(awm_safe_unserialize_array($val)) : array();
                                 if ((empty($val)) && isset($a['prePopulated'])) {
                                     $val = $a['prePopulated'];
                                 }
@@ -1823,6 +1928,20 @@ if (!function_exists('awm_show_content')) {
             return '';
         }
 
+        /**
+         * Filter the rendered markup of a field library.
+         *
+         * @since 1.0.0
+         *
+         * @param string $msg      Rendered HTML.
+         * @param int    $id       Object ID.
+         * @param array  $arrs     Field library.
+         * @param string $view     post|term|user|option|…
+         * @param string $target   edit|display.
+         * @param bool   $label    Whether labels are shown.
+         * @param string $specific Single field key to render, or empty.
+         * @param string $sep      Separator for display values.
+         */
         $msg = apply_filters('awm_show_content_filter', $msg, $id, $arrs, $view, $target, $label, $specific, $sep);
 
 
@@ -1836,6 +1955,16 @@ if (!function_exists('awm_show_content')) {
     }
 }
 
+/**
+ * Render one row of a repeater field.
+ *
+ * @param int|string $i                Row index, or `template` for the JS row template.
+ * @param string     $original_meta    Input name of the repeater.
+ * @param array      $a                Repeater definition.
+ * @param string     $original_meta_id Repeater element id.
+ * @param array      $val              Stored rows.
+ * @return string Row HTML.
+ */
 function awm_repeater_content($i, $original_meta, $a, $original_meta_id, $val)
 {
 
@@ -1894,6 +2023,16 @@ function awm_repeater_content($i, $original_meta, $a, $original_meta_id, $val)
 }
 
 
+/**
+ * Save the posted values of a field library to an object.
+ *
+ * @param array  $data     Meta keys to save.
+ * @param array  $dataa    Posted values.
+ * @param int    $id       Object ID.
+ * @param string $view     Optional. post|term|user. Default post.
+ * @param string $postType Optional. Post type or taxonomy. Default empty.
+ * @return void
+ */
 function awm_save_custom_meta($data, $dataa, $id, $view = 'post', $postType = '')
 {
     if (isset($data) && !empty($data)) {
@@ -1929,6 +2068,15 @@ if (!function_exists('awm_find_tranlsatable_fields')) {
                 }
             }
         }
+        /**
+         * Filter the fields WPML should copy to translations.
+         *
+         * @since 1.0.0
+         *
+         * @param array  $autoTranslate Meta keys to translate.
+         * @param string $case          Box type.
+         * @param array  $metabox       Boxes searched.
+         */
         return apply_filters('awm_auto_translate_fields_filter', $autoTranslate, $case, $metabox);
     }
 }
@@ -1967,6 +2115,15 @@ if (!function_exists('awm_field_hidden_in_current_language')) {
     }
 }
 
+/**
+ * Copy auto-translated fields from an object to its WPML translations.
+ *
+ * @param array  $data  Meta keys saved.
+ * @param array  $dataa Posted values.
+ * @param int    $id    Object ID.
+ * @param string $view  post|term|user.
+ * @return void
+ */
 function awm_auto_translate($data, $dataa, $id, $view)
 {
     /*wpml check*/
@@ -2019,6 +2176,15 @@ function awm_auto_translate($data, $dataa, $id, $view)
 }
 
 
+/**
+ * Write each posted meta key to the object, encrypting flagged fields.
+ *
+ * @param array  $meta  Meta keys to save.
+ * @param array  $metaa Posted values.
+ * @param int    $id    Object ID.
+ * @param string $view  post|term|user.
+ * @return void
+ */
 function awm_custom_meta_update_vars($meta, $metaa, $id, $view)
 {
     global $awm_field_configs;
@@ -2138,10 +2304,27 @@ if (!function_exists('awm_translated_ids')) {
             $ids['translations'][] = $tran_id;
         }
 
+        /**
+         * Filter the original and translated IDs of an object.
+         *
+         * @since 1.0.0
+         *
+         * @param array $ids `original` and `translations` IDs.
+         */
         return apply_filters('awm_translated_ids_filter', $ids);
     }
 }
 
+/**
+ * Display value of a field (list columns, read-only views).
+ *
+ * @param string $meta           Meta key.
+ * @param array  $data           Field definition.
+ * @param int    $postId         Optional. Object ID. Default 0.
+ * @param mixed  $external_value Optional. Value to show instead of the stored one. Default false.
+ * @param string $case           Optional. post_type|taxonomy|user|… Default post_type.
+ * @return string HTML.
+ */
 function awm_display_meta_value($meta, $data, $postId = 0, $external_value = false, $case = 'post_type')
 {
     global $awm_post_id;
@@ -2488,11 +2671,22 @@ function awm_gallery_meta_box_html($meta, $val)
 }
 
 
+/**
+ * REST permission callback: the user can manage options.
+ *
+ * @return bool
+ */
 function ewp_rest_check_user_is_admin()
 {
     return current_user_can('manage_options');
 }
 
+/**
+ * Normalise quotes in repeater values, recursively.
+ *
+ * @param mixed $value Value or array of values.
+ * @return mixed
+ */
 function awm_repeater_check_quotes($value)
 {
     if (is_array($value)) {

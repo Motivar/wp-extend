@@ -15,9 +15,9 @@ if (empty($ewp_search_query_terms)) {
  <?php
  foreach ($ewp_search_query_terms as $term_key => $term_data) {
  ?>
-  <div class="ewp-search-term-wrapper" form-id="<?php echo $term_key; ?>">
-   <div class="label"><?php echo $term_data; ?></div>
-   <div class="action" onclick="ewp_search_remove_filter('<?php echo $term_key; ?>',<?php echo $ewp_search_id; ?>)"><span aria-hidden=" true">&times;</span></div>
+  <div class="ewp-search-term-wrapper" form-id="<?php echo esc_attr($term_key); ?>">
+   <div class="label"><?php echo esc_html(is_array($term_data) ? implode(', ', $term_data) : $term_data); ?></div>
+   <div class="action" onclick="ewp_search_remove_filter('<?php echo esc_js($term_key); ?>',<?php echo absint($ewp_search_id); ?>)"><span aria-hidden=" true">&times;</span></div>
   </div>
  <?php
  }

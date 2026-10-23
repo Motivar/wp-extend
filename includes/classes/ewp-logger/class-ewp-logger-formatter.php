@@ -44,7 +44,7 @@ class EWP_Logger_Formatter
     {
         // Unserialize data payload
         if (!empty($entry['data'])) {
-            $entry['data'] = maybe_unserialize($entry['data']);
+            $entry['data'] = \EWP\Serialization::unserialize($entry['data']);
         }
 
         // Owner label

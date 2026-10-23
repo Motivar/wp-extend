@@ -16,19 +16,19 @@ global $ewp_args, $ewp_content_id;
 $list_name = $ewp_args['list_name'];
 $is_data_encrypted = $ewp_args['is_data_encrypted'];
 $view = $ewp_args['page_hook'];
-$display_id = isset($_REQUEST['id']) ? $_REQUEST['id'] : 'new';
+$display_id = isset($_REQUEST['id']) && absint($_REQUEST['id']) ? absint($_REQUEST['id']) : 'new';
 ?>
-<div class="wrap <?php echo $ewp_args['id']; ?>" id="ewp-content-form">
+<div class="wrap <?php echo esc_attr($ewp_args['id']); ?>" id="ewp-content-form">
  <div class=" icon32 icon32-posts-post" id="icon-edit"><br></div>
- <h2><?php _e(ucwords($list_name), 'extend-wp') ?> <a class="add-new-h2" href="<?php echo get_admin_url(get_current_blog_id(), 'admin.php?page=' . $ewp_args['id']); ?>"><?php _e('See all', 'extend-wp') ?></a>
+ <h2><?php echo esc_html__(ucwords($list_name), 'extend-wp'); ?> <a class="add-new-h2" href="<?php echo esc_url(get_admin_url(get_current_blog_id(), 'admin.php?page=' . $ewp_args['id'])); ?>"><?php _e('See all', 'extend-wp') ?></a>
   <?php if (!$ewp_args['disable_new']) { ?>
-   <a class="add-new-h2" href="<?php echo awm_edit_screen_link($ewp_args); ?>"><?php echo sprintf(__('New %s', 'awm'), $ewp_args['list_name_singular']) ?></a>
+   <a class="add-new-h2" href="<?php echo esc_url(awm_edit_screen_link($ewp_args)); ?>"><?php echo esc_html(sprintf(__('New %s', 'awm'), $ewp_args['list_name_singular'])); ?></a>
   <?php } ?>
   <?php do_action('awm_edit_screen_h2_header_action', $ewp_args); ?>
  </h2>
 
  <form name="ewp-custom-list-form" method="post">
-  <input type="hidden" name="content_id" id="ewp_content_id" value="<?php echo $display_id; ?>" />
+  <input type="hidden" name="content_id" id="ewp_content_id" value="<?php echo esc_attr($display_id); ?>" />
   <?php wp_nonce_field($view, 'ewp_list_page_hook_nonce');
 
   /* Used to save closed meta boxes and their order */

@@ -48,21 +48,58 @@ class AWM_Add_Content_DB_Setup
   }
 
 
+  /** Content types whose rows configure WordPress itself (fields, post types, taxonomies, search filters, content types). */
+  const CONFIG_TYPES = array('ewp_fields', 'ewp_post_types', 'ewp_taxonomies', 'ewp_search', 'ewp_content_type');
+
   /**
-   * Clear transients once per request.
-   * Uses a static flag to prevent multiple ewp_flush_cache() calls
-   * when several AWM_Add_Content_DB_Setup instances are registered.
+   * Clear caches after a content save or delete, once per request.
    *
+   * Saving a configuration type (CONFIG_TYPES) runs the full ewp_flush_cache():
+   * post types, taxonomies and capabilities may have changed. Any other type
+   * only deletes the Extend WP transients (which plugins such as filox use for
+   * their own caches); before 1.10.0 every save also emptied the whole object
+   * cache and rebuilt the rewrite rules. The content tables' read cache is
+   * invalidated by AWM_DB_Creator itself.
+   *
+   * @param string $content_type Content type id (first argument of both actions).
    * @return void
+   * @since 1.10.0 Full flush only for configuration types (filter `ewp_content_save_full_flush`).
    */
-  public function clear_transients()
+  public function clear_transients($content_type = '')
   {
-    static $flushed = false;
-    if ($flushed) {
+    static $done = array();
+    $full = self::needs_full_flush((string) $content_type);
+    if (isset($done['full']) || isset($done[$full ? 'full' : 'transients'])) {
       return;
     }
-    $flushed = true;
-    ewp_flush_cache();
+    $done[$full ? 'full' : 'transients'] = true;
+    if ($full) {
+      ewp_flush_cache();
+      return;
+    }
+    awm_delete_transient_all();
+  }
+
+  /**
+   * Whether saving a row of this content type needs the full cache flush.
+   *
+   * @param string $content_type Required. Content type id.
+   * @return bool
+   * @since 1.10.0
+   */
+  public static function needs_full_flush($content_type)
+  {
+    /**
+     * Filter whether a content save or delete runs the full ewp_flush_cache()
+     * (object cache, rewrite rules, capabilities) instead of only deleting
+     * the Extend WP transients.
+     *
+     * @since 1.10.0
+     *
+     * @param bool   $full         True for Extend WP's configuration types.
+     * @param string $content_type Content type id.
+     */
+    return (bool) apply_filters('ewp_content_save_full_flush', in_array($content_type, self::CONFIG_TYPES, true), $content_type);
   }
 
 
@@ -214,7 +251,7 @@ class AWM_Add_Content_DB_Setup
         if (!empty($results)) {
           $final_results = array();
           foreach ($results as $result) {
-            $final_results[$result['meta_key']] = maybe_unserialize(maybe_unserialize($result['meta_value']));
+            $final_results[$result['meta_key']] = \EWP\Serialization::unserialize_twice($result['meta_value']);
           }
           $this->item_meta[$id] = $final_results;
           return isset($this->item_meta[$id][$original_meta]) ? $this->item_meta[$id][$original_meta] : false;

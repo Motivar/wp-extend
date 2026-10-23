@@ -273,9 +273,9 @@ if (!function_exists('awm_get_db_content_meta')) {
     }
     foreach ($results as $result) {
       if ($single) {
-        return maybe_unserialize(maybe_unserialize($result['meta_value']));
+        return \EWP\Serialization::unserialize_twice($result['meta_value']);
       }
-      $return[$result['meta_key']] = maybe_unserialize(maybe_unserialize($result['meta_value']));
+      $return[$result['meta_key']] = \EWP\Serialization::unserialize_twice($result['meta_value']);
     }
     return $return;
   }
@@ -571,8 +571,12 @@ if (!function_exists('awm_custom_content_duplicate')) {
      */
     do_action($field . '_after_duplicate_action', $new_id, $id);
 
-    // Clear the cache and delete all related transients
-    ewp_flush_cache();
+    // Same cache clearing as a save: full flush only for configuration types.
+    if (class_exists('AWM_Add_Content_DB_Setup') && !AWM_Add_Content_DB_Setup::needs_full_flush($field)) {
+      awm_delete_transient_all();
+    } else {
+      ewp_flush_cache();
+    }
 
     // Return the ID of the newly duplicated content
     return $new_id;

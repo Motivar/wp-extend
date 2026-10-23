@@ -578,10 +578,9 @@ class AWM_Meta
                                 if (isset($fieldData['not_editable_by']) && !empty($fieldData['not_editable_by'])) {
                                     $fieldData['not_editable_by'] = is_array($fieldData['not_editable_by']) ? $fieldData['not_editable_by'] : array($fieldData['not_editable_by']);
                                     $matching_roles = array_intersect($user_roles, $fieldData['not_editable_by']);
+                                    // Not registered, so options.php cannot write it for this role (it renders read-only elsewhere).
                                     if (!empty($matching_roles)) {
-                                        $options[$fieldKey]['attributes']['disabled'] = 'disabled';
-                                        $options[$fieldKey]['attributes']['readonly'] = 'readonly';
-                                        $options[$fieldKey]['disabled'] = true;
+                                        unset($options[$fieldKey]);
                                     }
                                 }
                             }
@@ -599,8 +598,10 @@ class AWM_Meta
                             }
                             register_setting($optionKey, $key, $args);
                         }
-                        add_filter('option_page_capability_' . $optionKey, function () {
-                            return 'edit_posts';
+                        // options.php checks this capability; it must match the page's own (was always edit_posts before 1.10.0).
+                        $page_cap = !empty($optionData['cap']) ? $optionData['cap'] : 'manage_options';
+                        add_filter('option_page_capability_' . $optionKey, function () use ($page_cap) {
+                            return $page_cap;
                         });
                     }
                 }

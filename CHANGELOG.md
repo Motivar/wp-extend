@@ -8,6 +8,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Security
+- **Audit batch 2: XSS, PHP object injection, template paths, options page capability (1.10.0)** (`2026-10-23`):
+  - **Question/Prompt**: "yes, take the next batch" (remaining findings of the 2026-10-22 security and performance audit).
+  - **XSS fixes**:
+    - **`[ewp_search]` (stored XSS by Contributors)**: `id` and `hash` went raw into HTML attributes and `onclick`. `ewp_display_search()` now casts `id` with `absint()`, keeps only alphanumerics in `hash`, and resolves the hash from the stored row whenever an `id` is given. The `async` and `orientation` classes, the `options` JSON and the button labels are escaped. `extract()` is gone.
+    - **Search results**: `results-terms.php` escapes term labels and keys and casts the filter id. `results.php` casts the filter id, and `result.php` escapes the title. `$ewp_search_id` is cast where it is set.
+    - **Map field**: stored `lat`, `lng` and `address` were echoed into `value=""` unescaped (`library.php`).
+    - **Content edit screen**: `templates/admin-view/edit-post.php` echoed `$_REQUEST['id']` raw (reflected XSS). It now casts it to an integer and escapes the type id, links and titles.
+    - **JSON import log**: `assets/js/admin/import-export.js` built the log with `innerHTML` from keys in the uploaded file. It now builds DOM nodes through the new `ewpImportLogLine()`.
+  - **PHP object injection**:
+    - **The problem**: a user-supplied string that looks serialized was turned into an object on render or read. The affected spots were section and repeater fields (`maybe_unserialize` in `awm_show_content`) and the double `maybe_unserialize` of custom-content meta (`awm_get_db_content_meta`, `AWM_Add_Content_DB_Setup`, `EWP\Db\Content_Meta`), plus options import URL replacement, the logger formatter and the modal field read.
+    - **The fix**: all of these now use the new `EWP\Serialization::unserialize()` / `unserialize_twice()` (`includes/classes/class-serialization.php`, loaded from `Setup.php`), or `awm_safe_unserialize_array()` in `library.php`. Both use `allowed_classes => false`. `awm_safe_unserialize_array()` is self-contained because Composer may load `library.php` from another bundled copy.
+  - **Template paths**:
+    - **Taxonomy `template` setting**: it was joined to `WP_CONTENT_DIR` unchecked (`../`, uploads, any extension). The new `EWP_WP_Content_Installer::content_template_path()` requires a `.php` file inside wp-content and outside uploads.
+    - **`template_source` slugs**: `EWP_Template_Resolver::parse()` now rejects slugs that are not keys.
+  - **Options pages**:
+    - **Capability**: `option_page_capability_{$page}` returned `edit_posts` for every Extend WP options page, so `options.php` accepted saves from any author who had a page's nonce. It now returns the page's own `cap` (default `manage_options`).
+    - **`not_editable_by`**: fields hidden from a role this way were only rendered read-only and could still be posted. They are no longer `register_setting`'d for that role.
+  - **Object search**: the custom-content branch only runs for registered content types with key slugs, and queries the table through `%i`.
+  - **Files**:
+    - `includes/classes/class-serialization.php` (new), `includes/classes/Setup.php`, `includes/functions/library.php`
+    - `includes/classes/ewp-search-filter/class-wp-search.php`, `templates/frontend/search/results-terms.php`, `results.php`, `result.php`
+    - `templates/admin-view/edit-post.php`, `assets/js/admin/import-export.js`
+    - `includes/classes/awm-content-db-api/custom-content/content-functions.php`, `class-content-setup.php`
+    - `includes/classes/ewp-db/class-content-meta.php`, `includes/classes/ewp-options-portability/class-options-portability.php`
+    - `includes/classes/ewp-logger/class-ewp-logger-formatter.php`, `includes/classes/awm-api/class-awm-api.php`
+    - `includes/classes/ewp-wp-content/class-wp-content-installer.php`, `class-template-resolver.php`
+    - `includes/classes/class-extend-wp.php`
+    - new `tests/test-security-hardening-batch-2-test.php`
+    - `package.json`, `package-lock.json`, `extend-wp.php`, `build/version.php`
+  - **Docblocks**: `library.php` gained docblocks for 7 functions and 11 hooks that had none.
+  - **Backwards compatibility**:
+    - **Stored objects**: values that really stored PHP objects in meta now come back as `__PHP_Incomplete_Class`. None of Extend WP's field types store objects.
+    - **Shortcode**: `[ewp_search id=… hash=…]` now uses the stored hash of `id`.
+    - **Taxonomy templates**: a `template` pointing outside wp-content, into uploads, or at a non-PHP file is ignored, and the theme's default template is used.
+    - **Options page capability**: a user without an options page's `cap` can no longer save it through `options.php`. This matches who can open the page.
+
+### Changed
+- **Performance: cache flush on content save, auto-import, object search (1.10.0)** (`2026-10-23`):
+  - **Question/Prompt**: same as above.
+  - **Content save, delete and duplicate**:
+    - **Before**: every save, delete or duplicate of any content type ran `ewp_flush_cache()`. That emptied the whole object cache (`wp_cache_flush()`, all of Redis on a shared instance), rebuilt and rewrote the rewrite rules, and reset capabilities.
+    - **Now**: only Extend WP's configuration types do that (`AWM_Add_Content_DB_Setup::CONFIG_TYPES`, filter `ewp_content_save_full_flush`). Other types (e.g. filox bookings and coupons) delete only the Extend WP transients, which filox's own caches also use, so they stay correct. `clear_transients()` now receives the content type id. `awm_custom_content_duplicate()` follows the same rule.
+  - **Auto import**: `Extend_WP_Import_Export::auto_import_content()` ran on every `admin_init`, including admin-ajax and heartbeat, for any logged-in user, and flushed every cache whenever the configured file was missing or invalid. It now runs for administrators on normal admin page loads only, and never flushes on failure. The error notice is escaped.
+  - **Object search**:
+    - **Limit**: `limit` is capped at 100 (filter `awm_object_search_max_limit`; the REST, CLI and ability field allow 1–100), and so is `include`.
+    - **Empty search**: an empty search no longer runs the meta `LIKE '%%'` scan.
+    - **Titles**: post titles are primed with one `_prime_post_caches()` call instead of one query per id.
+  - **Files**:
+    - `includes/classes/awm-content-db-api/custom-content/class-content-setup.php`, `content-functions.php`
+    - `includes/classes/awm-content-db-api/import-export/class-import-export.php`
+    - `includes/functions/library.php`, `includes/classes/ewp-surfaces/resources/class-object-search-resource.php`
+    - `HOOKS.md`, `tests/test-security-hardening-batch-2-test.php`
+  - **New hooks**: filters `ewp_content_save_full_flush( bool $full, string $content_type )` and `awm_object_search_max_limit( int $max )`.
+  - **Not changed**: the auto-import cleanup of stale rows is dead code, because its conditions are inverted and it deletes by a `hash` column that `{type}_data` lacks. Fixing it would start deleting rows, so it is left for a separate decision.
+  - **Backwards compatibility**: code that relied on a filox or other non-configuration content save to empty the object cache or flush rewrite rules must call `ewp_flush_cache()` itself, or return true from `ewp_content_save_full_flush`.
+
 - **Security audit fixes: modal-save privilege escalation, public log files, anonymous cache flush, options-import file write (1.9.0)** (`2026-10-22`):
   - **Question/Prompt**: "can you run a security and performance audit on this?", then "yes do please and also add a logger limit so … we should have max entry limit per file." Covers the top four audit findings plus the requested per-file limit.
   - **`POST extend-wp/v1/modal-save` let a Contributor become administrator (critical)**:

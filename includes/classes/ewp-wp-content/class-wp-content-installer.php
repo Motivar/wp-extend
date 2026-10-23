@@ -161,6 +161,31 @@ class EWP_WP_Content_Installer
     return apply_filters('gallery_meta_box_post_types_filter', $post_types);
   }
 
+  /**
+   * Absolute path of a template file configured relative to wp-content.
+   *
+   * The path must resolve inside WP_CONTENT_DIR, outside uploads, and end in
+   * `.php`, so a setting such as `../../x` or `uploads/2026/10/image.jpg`
+   * cannot include an arbitrary file.
+   *
+   * @param string $relative Required. Path relative to wp-content (e.g. `themes/x/taxonomy.php`).
+   * @return string Absolute path, or '' when it is missing or not allowed.
+   * @since 1.10.0
+   */
+  public static function content_template_path($relative)
+  {
+    $path = realpath(WP_CONTENT_DIR . '/' . ltrim((string) $relative, '/'));
+    $root = realpath(WP_CONTENT_DIR);
+    $uploads = realpath(wp_upload_dir(null, false)['basedir']);
+    if ($path === false || $root === false || strpos($path, $root . DIRECTORY_SEPARATOR) !== 0) {
+      return '';
+    }
+    if (($uploads && strpos($path, $uploads . DIRECTORY_SEPARATOR) === 0) || strtolower(pathinfo($path, PATHINFO_EXTENSION)) !== 'php') {
+      return '';
+    }
+    return $path;
+  }
+
   function taxonomy_page_redirect($template)
   {
 
@@ -187,7 +212,7 @@ class EWP_WP_Content_Installer
           return $inherited;
         }
 
-        $file_path = (!empty($taxonomy['template']) && file_exists(WP_CONTENT_DIR . '/' . $taxonomy['template'])) ? WP_CONTENT_DIR . '/' . $taxonomy['template'] :  '';
+        $file_path = !empty($taxonomy['template']) ? self::content_template_path($taxonomy['template']) : '';
         if ($file_path != '') {
           return $file_path;
         }

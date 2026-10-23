@@ -791,7 +791,7 @@ class EWP_Options_Portability
 
 		/* Handle serialized strings safely */
 		if (is_string($data) && is_serialized($data)) {
-			$unserialized = maybe_unserialize($data);
+			$unserialized = \EWP\Serialization::unserialize($data);
 			$replaced     = $this->recursive_url_replace($unserialized, $replacements);
 			return maybe_serialize($replaced);
 		}

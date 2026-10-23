@@ -10,6 +10,6 @@ if (!defined('ABSPATH')) {
 global $post;
 ?>
 <div class="ewp-search-result" id="<?php echo $post->ID; ?>">
- <h2><?php echo $post->post_title; ?></h2>
+ <h2><?php echo esc_html(get_the_title($post)); ?></h2>
  <a href="<?php echo get_permalink(($post->ID)); ?>" target="_blank"><?php echo __('view more', 'extend-wp'); ?></a>
 </div>

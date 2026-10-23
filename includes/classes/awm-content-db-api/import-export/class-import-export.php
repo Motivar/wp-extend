@@ -40,8 +40,20 @@ class Extend_WP_Import_Export
   return apply_filters('ewp_auto_import_settings_filter', get_option('ewp_auto_import_settings', array()));
  }
 
+ /**
+  * Import `ewp_configuration.json` from the configured path when it changed (auto import).
+  *
+  * Runs on `admin_init` for administrators only, never on admin-ajax.
+  *
+  * @return true|void True after a successful import.
+  * @since 1.10.0 Administrators only; no cache flush when the import fails.
+  */
  public function auto_import_content()
  {
+  /*admin_init also fires for admin-ajax and heartbeat and for every logged-in user; import only on an administrator's page load*/
+  if (wp_doing_ajax() || !current_user_can('manage_options')) {
+   return;
+  }
   try {
    $options = $this->get_import_options();
 
@@ -129,10 +141,10 @@ class Extend_WP_Import_Export
    // Add a dismissible admin notice for the error
    add_action('admin_notices', function () use ($e) {
     echo '<div class="notice notice-error">';
-    echo '<p>' . sprintf(__('Import failed: %s. Please check your php error_logs.', 'extend-wp'), $e->getMessage()) . '</p>';
+    echo '<p>' . esc_html(sprintf(__('Import failed: %s. Please check your php error_logs.', 'extend-wp'), $e->getMessage())) . '</p>';
     echo '</div>';
    });
-   ewp_flush_cache();
+   /*no cache flush here: nothing was imported, and a broken file would flush on every admin request*/
   }
  }
 

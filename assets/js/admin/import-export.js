@@ -1,3 +1,25 @@
+/**
+ * Append one line to the import log. Values from the uploaded file are inserted
+ * as text, never parsed as HTML.
+ *
+ * @param {HTMLElement}                  logDiv Log container.
+ * @param {Array<string|{b: (string|number)}>} parts  Text, or `{b: value}` for bold text.
+ * @return {void}
+ */
+function ewpImportLogLine(logDiv, parts) {
+  const line = document.createElement('p');
+  parts.forEach((part) => {
+    if (part !== null && typeof part === 'object') {
+      const bold = document.createElement('b');
+      bold.textContent = String(part.b);
+      line.appendChild(bold);
+      return;
+    }
+    line.appendChild(document.createTextNode(String(part)));
+  });
+  logDiv.appendChild(line);
+}
+
 async function ewp_init_import_export_button(form) {
   var action_case = form.querySelector('select[name="case"]').value;
   let method = 'get';
@@ -22,22 +44,21 @@ async function ewp_init_import_export_button(form) {
               if (key !== 'modified') {
                 const contentData = jsonData[key];
                 const entries = Object.keys(contentData).length;
-                logDiv.innerHTML += `<div>`;
-                logDiv.innerHTML += `<p>Importing <b>${entries}</b> entries for <b>${key}</b></p>`;
+                ewpImportLogLine(logDiv, ['Importing ', { b: entries }, ' entries for ', { b: key }]);
                 import_data = { ...form_data, content_type: key, content: contentData, length: entries };
 
                 try {
                   const response = await sendRequest(import_data, method, action_case);
-                  logDiv.innerHTML += `<p>Successfully imported <b>${entries}</b> entries for <b>${key}</b></p></div>`;
+                  ewpImportLogLine(logDiv, ['Successfully imported ', { b: entries }, ' entries for ', { b: key }]);
                 } catch (error) {
-                  logDiv.innerHTML += `<p>Error importing entries for <b>${key}</b>: ${error.message || error}</p></div>`;
+                  ewpImportLogLine(logDiv, ['Error importing entries for ', { b: key }, ': ' + (error.message || error)]);
                 }
               }
             }
-            logDiv.innerHTML += "<p>All imports completed.</p>";
+            ewpImportLogLine(logDiv, ['All imports completed.']);
           } catch (error) {
             console.error("Error parsing JSON file:", error);
-            logDiv.innerHTML = "Invalid JSON file.";
+            logDiv.textContent = "Invalid JSON file.";
           }
         };
         reader.readAsText(fileInput.files[0]);

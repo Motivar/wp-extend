@@ -97,7 +97,7 @@ final class Object_Search_Resource extends Resource
                     Field::string('search')->positional()->describe(__('Text to match against the object name.', 'extend-wp')),
                     Field::int_list('exclude')->describe(__('Ids to leave out of the results.', 'extend-wp')),
                     Field::int_list('include')->describe(__('Ids to fetch directly instead of searching, e.g. to label saved values. Ids of another type are left out.', 'extend-wp')),
-                    Field::int('limit')->min(1)->describe(__('Maximum results. Defaults to 20.', 'extend-wp')),
+                    Field::int('limit')->min(1)->max(100)->describe(__('Maximum results, 1 to 100. Defaults to 20.', 'extend-wp')),
                     Field::bool('search_meta')->describe(__('Also match meta values. Defaults to true.', 'extend-wp')),
                 ])
                 ->args(function (array $input) {

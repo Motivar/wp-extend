@@ -108,7 +108,8 @@ class EWP_Template_Resolver
    return array();
   }
   list($type, $slug) = explode(':', $source, 2);
-  if ($slug === '' || !in_array($type, array(self::SOURCE_POST_TYPE, self::SOURCE_TAXONOMY), true)) {
+  /*slugs are keys; anything else (e.g. `../x`) would reach locate_template() as a path*/
+  if ($slug === '' || $slug !== sanitize_key($slug) || !in_array($type, array(self::SOURCE_POST_TYPE, self::SOURCE_TAXONOMY), true)) {
    return array();
   }
   return array('type' => $type, 'slug' => $slug);

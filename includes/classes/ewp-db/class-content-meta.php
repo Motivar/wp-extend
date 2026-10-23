@@ -108,7 +108,7 @@ final class Content_Meta
             array('column' => 'content_id', 'compare' => 'IN', 'value' => $ids)
         );
         foreach (is_array($rows) ? $rows : array() as $row) {
-            $items[(int) $row['content_id']][$row['meta_key']] = maybe_unserialize(maybe_unserialize($row['meta_value']));
+            $items[(int) $row['content_id']][$row['meta_key']] = \EWP\Serialization::unserialize_twice($row['meta_value']);
         }
         return $items;
     }

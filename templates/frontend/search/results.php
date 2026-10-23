@@ -11,7 +11,7 @@ global $ewp_search_id;
 
 do_action('ewp_search_results_show', $ewp_search_query);
 ?>
-<div class="ewp-search-results" id="ewp-results-<?php echo $ewp_search_id; ?>" data-form="<?php echo $ewp_search_id; ?>">
+<div class="ewp-search-results" id="ewp-results-<?php echo absint($ewp_search_id); ?>" data-form="<?php echo absint($ewp_search_id); ?>">
  <?php echo awm_parse_template(awm_path . 'templates/frontend/search/results_header.php'); ?>
  <div class="ewp-search-articles">
   <?php while ($ewp_search_query->have_posts()) : $ewp_search_query->the_post();
