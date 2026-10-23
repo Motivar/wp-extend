@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Admin look: on tabbed options pages the description and the Save button sat on the card's edges** (`2026-10-23`):
+  - **Question/Prompt** (from Filox): "Also please check buttons and messages distances on edges. In Bookings Settings & Gateway Settings" (screenshot: "Configure your booking settings" clipped at the card's left edge, Save Changes against its right and bottom edges).
+  - **Cause**: a tabbed page's card has no padding (`form.awm-form:has(.awm-tab-wrapper)`, so the tab bar and tab content run to its edges). The tab wrapper's title (`.awm-tab-wrapper-title`) had no styling of its own, and the page-wide `.awm-form-submit-area` only a 24px top padding.
+  - **Now** (`assets/css/admin/ewp-admin-ui.scss`, `.min.css` rebuilt): on tabbed pages the title has 28px 44px 0 padding (15px, semibold, ink colour) and the Save area 24px 44px 28px with 32px above, the tab content's 44px at the sides; below 782px 20px 18px 0 and 20px 18px 22px, matching the mobile tab content. Untabbed pages keep the card's own 36px 44px padding. WordPress notices ("Settings saved.") already line up with the card and are unchanged.
+  - **Verified** in Filox (Bookings → Booking Settings and Gateway Settings, the built CSS copied over Filox's bundled copy for the check and restored afterwards), headless Chrome: Save Changes 44px from the card's right edge and 28px from its bottom at 1500px, 18px / 26px at 390px; the description inset like the fields.
+
 ### Security
 - **Audit batch 2: XSS, PHP object injection, template paths, options page capability (1.10.0)** (`2026-10-23`):
   - **Question/Prompt**: "yes, take the next batch" (remaining findings of the 2026-10-22 security and performance audit).

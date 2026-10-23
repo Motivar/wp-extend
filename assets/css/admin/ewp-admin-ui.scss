@@ -387,6 +387,30 @@ body.ewp-admin-ui .wrap.awm-settings-form > form.awm-form:has(.awm-tab-wrapper) 
   overflow: hidden;
 }
 
+// With no card padding, the page description above the tabs and the Save
+// area below them bring their own, the tab content's 44px at the sides, so
+// neither sits on the card's edge.
+body.ewp-admin-ui #wpbody-content .wrap.awm-settings-form > form.awm-form:has(.awm-tab-wrapper) {
+  .awm-tab-wrapper-title {
+    margin: 0;
+    padding: 28px 44px 0;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--ewp-ui-ink);
+  }
+
+  > .awm-form-submit-area {
+    margin-top: 32px;
+    padding: 24px 44px 28px;
+
+    .submit {
+      margin: 0;
+      padding: 0;
+    }
+  }
+}
+
 /* ---- Tabs ---------------------------------------------------------------- */
 
 body.ewp-admin-ui .awm-tab-wrapper {
@@ -920,6 +944,17 @@ body.ewp-admin-ui-fields :is(#edittag, #addtag, #your-profile) {
       .awm_tabcontent {
         margin-top: 14px;
         padding: 26px 18px 0;
+      }
+    }
+
+    #wpbody-content .wrap.awm-settings-form > form.awm-form:has(.awm-tab-wrapper) {
+      .awm-tab-wrapper-title {
+        padding: 20px 18px 0;
+      }
+
+      > .awm-form-submit-area {
+        margin-top: 24px;
+        padding: 20px 18px 22px;
       }
     }
 
