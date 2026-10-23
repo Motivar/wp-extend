@@ -15,7 +15,6 @@ if (!defined('ABSPATH')) {
  * - Transaction-safe imports with rollback on failure
  * - URL replacement (home_url, site_url, content_url, upload_url, scheme changes)
  * - Serialized data safety (never raw str_replace in serialized blobs)
- * - Enriched logging via ewp_log()
  * - Dry-run mode for previewing imports
  * - Versioning metadata in export payload
  *
@@ -64,7 +63,6 @@ class EWP_Options_Portability
 	public function __construct()
 	{
 		add_filter('ewp_register_dynamic_assets', [$this, 'register_dynamic_assets']);
-		add_action('ewp_logger_initialized', [$this, 'register_log_types']);
 
 		/*
 		 * The REST routes, `wp ewp options` commands and `ewp-options/*`
@@ -102,7 +100,7 @@ class EWP_Options_Portability
 		$boxes  = $meta->options_boxes();
 
 		/* Internal pages to exclude by default */
-		$exclude = array('ewp-import-export', 'ewp-log-viewer');
+		$exclude = array('ewp-import-export');
 
 		foreach ($boxes as $key => $data) {
 			if (in_array($key, $exclude, true)) {
@@ -283,24 +281,6 @@ class EWP_Options_Portability
 		 */
 		$data = apply_filters('ewp_options_portability_export_data', $data, $page_keys, $actor);
 
-		/* Log the export */
-		ewp_log(
-			'extend-wp',
-			'options_export',
-			sprintf('Exported %d pages (%d fields)', count($export_pages), $total_fields),
-			array(
-				'actor'           => $actor,
-				'pages_requested' => $pages_requested,
-				'pages_exported'  => array_keys($export_pages),
-				'fields_exported' => $total_fields,
-				'home_url'        => home_url(),
-				'site_url'        => site_url(),
-			),
-			'developer',
-			'option',
-			1
-		);
-
 		return $data;
 	}
 
@@ -455,20 +435,6 @@ class EWP_Options_Portability
 
 				$this->rollback($backup);
 
-				ewp_log(
-					'extend-wp',
-					'options_import',
-					sprintf('Import failed and rolled back: %s', $e->getMessage()),
-					array(
-						'actor'   => $opts['actor'],
-						'error'   => $e->getMessage(),
-						'backup'  => true,
-					),
-					'developer',
-					'option',
-					0
-				);
-
 				return new \WP_Error(
 					'import_failed',
 					sprintf(__('Import failed and was rolled back: %s', 'extend-wp'), $e->getMessage()),
@@ -499,22 +465,6 @@ class EWP_Options_Portability
 			'plugin_version_match' => $this->check_major_version_match($import_data),
 			'warnings'             => $warnings,
 			'backup_created'       => true,
-		);
-
-		/* Step 8: Log */
-		$log_behaviour = empty($skipped_pages) ? 1 : 2;
-		$log_message   = $opts['dry_run']
-			? sprintf('Dry-run: %d pages, %d fields would be imported', count($imported_pages), $fields_imported)
-			: sprintf('Imported %d pages (%d fields)', count($imported_pages), $fields_imported);
-
-		ewp_log(
-			'extend-wp',
-			'options_import',
-			$log_message,
-			$summary,
-			'developer',
-			'option',
-			$log_behaviour
 		);
 
 		/**
@@ -895,36 +845,6 @@ class EWP_Options_Portability
 		);
 
 		return $assets;
-	}
-
-	/* =========================================================
-	 * Section: Logger Registration
-	 * ========================================================= */
-
-	/**
-	 * Register logger action types for options portability.
-	 *
-	 * @param object $logger Logger instance.
-	 * @return void
-	 *
-	 * @hook ewp_logger_initialized
-	 * @since 1.0.0
-	 */
-	public function register_log_types($logger)
-	{
-		ewp_register_log_type(
-			'extend-wp',
-			'options_export',
-			'Options Export',
-			'EWP option page values were exported.'
-		);
-
-		ewp_register_log_type(
-			'extend-wp',
-			'options_import',
-			'Options Import',
-			'EWP option page values were imported.'
-		);
 	}
 
 	/* =========================================================

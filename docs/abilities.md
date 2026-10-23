@@ -2,7 +2,7 @@
 
 Extend WP registers its own functionality with the [WordPress Abilities API](https://developer.wordpress.org/) so any consumer of that API — the core AI client, the MCP Adapter, the `ai` plugin — can inspect and change the plugin's configuration without bespoke transport code.
 
-Module: `includes/classes/ewp-abilities/`. The logger's five read-only abilities live separately in `includes/classes/ewp-logger/class-ewp-logger-abilities.php` and are unchanged.
+Module: `includes/classes/ewp-abilities/`.
 
 ## Requirements
 
@@ -21,7 +21,6 @@ On an older WordPress nothing is hooked, the plugin behaves exactly as before, a
 
 | Category | Covers |
 | --- | --- |
-| `ewp-logger` | activity log (read abilities from the logger module, plus the write ability here) |
 | `ewp-content` | generic CRUD for any registered custom content type |
 | `ewp-fields` | UI-configured custom field groups (`ewp_fields`) |
 | `ewp-wp-content` | UI-registered post types and taxonomies |
@@ -32,23 +31,6 @@ On an older WordPress nothing is hooked, the plugin behaves exactly as before, a
 ## Ability inventory
 
 Annotations are shown as read-only / idempotent / destructive. Every ability below is generated from a kit resource in `includes/classes/ewp-surfaces/resources/` next to its REST route and WP-CLI command; see `docs/surfaces.md`.
-
-### `ewp-logger`
-
-| Ability | Annotations | Capability | Input |
-| --- | --- | --- | --- |
-| `ewp-logger/write-entry` | no / no / no | logger viewer capability | `owner`\*, `action_type`\*, `message`\*, `data`, `level` (`editor`\|`developer`), `object_type`, `behaviour` (`error`\|`success`\|`warning`) |
-| `ewp-logger/search` | yes / yes / no | logger viewer capability | date window, `owner`, `action_type`, `object_type`, `behaviour`, `level`, `user_id`, `object_id`, `request_id`, `search_text`, `limit`, `offset`, `order` |
-| `ewp-logger/get-stats` | yes / yes / no | logger viewer capability | `date_from`, `date_to`, `owner` |
-| `ewp-logger/list-vocabulary` | yes / yes / no | logger viewer capability | none |
-| `ewp-logger/get-entry` | yes / yes / no | logger viewer capability | `log_id`\*, `date`, date window |
-| `ewp-logger/get-request-trace` | yes / yes / no | logger viewer capability | `request_id`\*, date window |
-| `ewp-logger/cleanup` | no / yes / **yes** | logger viewer capability | `months`, `confirm`\* |
-| `ewp-logger/delete-entries` | no / yes / **yes** | logger viewer capability | the search filters, `confirm`\* |
-
-The read abilities and `cleanup` exist only while logging is enabled and `ewp_logger_ai_enabled` is true; `write-entry` is always registered and answers 503 when logging is off. All of them are generated from `EWP\Surfaces\Resources\Logger_Resource` together with the `extend-wp/v1/logs*` routes and `wp ewp log *`.
-
-This is the ability behind `flx_log()` and every sibling helper: they all delegate to `ewp_log()` with their own owner slug, so one generic write ability covers them all. It returns `503` when logging is switched off.
 
 ### `ewp-content`
 
@@ -108,8 +90,6 @@ WordPress registers the object on the **next** request, after the cache flush th
 | `ewp-system/get-site-info` | yes / yes / no | `read` | none |
 | `ewp-system/flush-cache` | no / yes / no | `manage_options` | none |
 | `ewp-system/search-objects` | yes / yes / no | `awm_object_search_capability` (default per type since 1.5.8: post type `edit_posts`, taxonomy `assign_terms`, else `manage_options`) | `object_type`\* (`group:slug`), `search`, `exclude`, `include` (1.5.8), `limit`, `search_meta` |
-| `ewp-rest-health/list-plugins` | yes / yes / no | super admin | `refresh` |
-| `ewp-rest-health/list-endpoints` | yes / yes / no | super admin | `plugins`\* |
 
 Search filter rows are decorated with their `shortcode` and `rest_endpoint`. Writing them is deliberately not exposed here; use the generic `ewp-content` abilities if you need it.
 
@@ -119,7 +99,6 @@ Search filter rows are decorated with their `shortcode` and `rest_endpoint`. Wri
 
 - **Explicit confirmation.** Every destructive ability requires a literal `confirm: true` in its input, because neither the Abilities API nor an MCP client offers a confirmation step of its own. `ewp-options/import` requires it only when `dry_run` is `false`; imports are a dry run unless you say otherwise.
 - **Capability per content type.** The generic content abilities resolve the capability from the content type's own registration rather than assuming one.
-- **Auditing.** Every non-read-only `ewp-*` ability execution is written to the activity log as owner `extend-wp`, action type `ability_write`, level `developer`, with the ability name, a noise-filtered and truncated copy of the input and an outcome summary. Failures are logged with the error behaviour. Content writes therefore produce two entries: the logger's own `content_save` and this one, sharing a `request_id`.
 - **Cache flushing is automatic.** Writes go through `awm_custom_content_save()` / `awm_custom_content_delete()`, which fire the actions that flush the transients, so `ewp-system/flush-cache` is rarely needed.
 
 ## Authorization across surfaces
@@ -154,7 +133,6 @@ Read-only abilities run over `GET`, the rest over `POST` with the input in the b
 | `ewp_surfaces_resources` | `(Resource[] $resources, Content_Service $service)` | Add or replace the kit resources every ability (and route, and command) is generated from. |
 | `ewp_abilities_capability` | `(string $capability, string $ability_name)` | Change the capability an ability enforces. |
 | `ewp_abilities_allow_unknown_meta` | `(bool $allow, string $content_type)` | Accept meta keys a content type does not declare. |
-| `ewp_abilities_audit_enabled` | `(bool $record, string $ability_name)` | Skip audit logging for an ability. |
 
 ## Extending
 

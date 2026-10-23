@@ -9,7 +9,7 @@ if (!defined('ABSPATH')) {
 /**
  * Private files under a public directory (uploads).
  *
- * Log files and REST-health captures live under `uploads/`, which the web
+ * Private files live under `uploads/`, which the web
  * server serves directly. `.htaccess` only protects Apache, so files written
  * through this class rely on two server-independent guards instead:
  *

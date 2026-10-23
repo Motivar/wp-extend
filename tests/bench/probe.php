@@ -24,10 +24,6 @@ $out['abilities'] = function_exists('wp_get_abilities') ? count(wp_get_abilities
 $out['abilities_ms'] = round((microtime(true) - $t) * 1000, 2);
 
 $cases = [
-    'logs'          => ['GET', '/extend-wp/v1/logs', ['per_page' => 20]],
-    'logs_types'    => ['GET', '/extend-wp/v1/logs/types', []],
-    'rh_plugins'    => ['GET', '/extend-wp/v1/rest-health/plugins', []],
-    'rh_endpoints'  => ['POST', '/extend-wp/v1/rest-health/endpoints', ['plugins' => ['wp-extend']]],
     'op_pages'      => ['GET', '/extend-wp/v1/options-portability/pages', []],
     'obj_search'    => ['GET', '/extend-wp/v1/objects/search', ['object_type' => 'post_type:post', 'search' => 'a', 'per_page' => 5]],
 ];

@@ -409,24 +409,6 @@ class AWM_API
     $result = $this->save_modal_value($view, $object_id, $meta_key, $sanitized_values);
 
     if (!$result) {
-      // Log detailed error information
-      if (function_exists('ewp_log')) {
-        ewp_log(
-          'extend-wp',
-          'modal_save_error',
-          sprintf('Modal save failed for meta_key: %s', $meta_key),
-          array(
-            'meta_key' => $meta_key,
-            'view' => $view,
-            'object_id' => $object_id,
-            'values_count' => count($sanitized_values),
-          ),
-          'developer',
-          '',
-          0
-        );
-      }
-
       return new WP_Error(
         'ewp_modal_save_failed',
         __('Failed to save data', 'extend-wp'),

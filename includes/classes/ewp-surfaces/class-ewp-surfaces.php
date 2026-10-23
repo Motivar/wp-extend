@@ -7,12 +7,9 @@ use EWP\Surfaces\Resources\Content_Resource;
 use EWP\Surfaces\Resources\Content_Type_Rest_Resource;
 use EWP\Surfaces\Resources\Content_Portability_Resource;
 use EWP\Surfaces\Resources\Object_Search_Resource;
-use EWP\Surfaces\Resources\Rest_Health_Resource;
 use EWP\Surfaces\Resources\Block_Preview_Resource;
-use EWP\Surfaces\Resources\Rest_Health_Probes_Resource;
 use EWP\Surfaces\Resources\Field_Builder_Resource;
 use EWP\Surfaces\Resources\Fields_Resource;
-use EWP\Surfaces\Resources\Logger_Resource;
 use EWP\Surfaces\Resources\Options_Resource;
 use EWP\Surfaces\Resources\System_Resource;
 use EWP\Surfaces\Resources\Search_Resource;
@@ -76,8 +73,6 @@ final class EWP_Surfaces
     {
         Kit::on_ready([$this, 'attach']);
         add_filter('mmwp_kit_operation_capability', [$this, 'reemit_ability_capability'], 10, 4);
-        add_filter('mmwp_kit_ability_definitions', [$this, 'reemit_logger_definitions'], 10, 2);
-        add_filter('ewp_rest_health_runtime_namespaces', [$this, 'report_rest_namespaces']);
     }
 
     /**
@@ -129,7 +124,6 @@ final class EWP_Surfaces
         // the registry boots (e.g. an abilities call from a front-end request).
         require_once dirname(__DIR__) . '/awm-api/class-awm-api.php';
         require_once dirname(__DIR__) . '/ewp-options-portability/class-options-portability.php';
-        \EWP\Logger\EWP_Logger::load_read_side();
         require_once __DIR__ . '/class-content-schema.php';
         require_once __DIR__ . '/class-library-fields.php';
         require_once __DIR__ . '/class-field-vocabulary.php';
@@ -139,18 +133,13 @@ final class EWP_Surfaces
         require_once __DIR__ . '/resources/class-fields-resource.php';
         require_once __DIR__ . '/resources/class-wp-content-resource.php';
         require_once __DIR__ . '/resources/class-search-resource.php';
-        require_once __DIR__ . '/resources/class-logger-resource.php';
         require_once __DIR__ . '/class-system-service.php';
         require_once __DIR__ . '/resources/class-system-resource.php';
         require_once __DIR__ . '/resources/class-options-resource.php';
         require_once dirname(__DIR__) . '/ewp-content/class-content-portability.php';
         require_once dirname(__DIR__) . '/ewp-search/class-object-search.php';
-        require_once __DIR__ . '/class-rest-health-inventory.php';
         require_once __DIR__ . '/resources/class-content-portability-resource.php';
         require_once __DIR__ . '/resources/class-object-search-resource.php';
-        require_once __DIR__ . '/resources/class-rest-health-resource.php';
-        require_once __DIR__ . '/class-rest-health-probes.php';
-        require_once __DIR__ . '/resources/class-rest-health-probes-resource.php';
         require_once __DIR__ . '/resources/class-field-builder-resource.php';
         require_once __DIR__ . '/resources/class-recently-seen-resource.php';
         require_once __DIR__ . '/resources/class-block-preview-resource.php';
@@ -172,13 +161,10 @@ final class EWP_Surfaces
             'fields'     => new Fields_Resource($this->service),
             'wp-content' => new WP_Content_Resource($this->service),
             'search'     => new Search_Resource($this->service),
-            'logger'     => new Logger_Resource(new \EWP\Logger\EWP_Logger_Query()),
             'options'    => new Options_Resource(),
             'system'     => new System_Resource(new System_Service($this->service)),
             'content-portability' => new Content_Portability_Resource(new \EWP\Content\Content_Portability()),
             'objects'    => new Object_Search_Resource(new \EWP\Search\Object_Search()),
-            'rest-health' => new Rest_Health_Resource(new Rest_Health_Inventory()),
-            'rest-health-probes' => new Rest_Health_Probes_Resource(new Rest_Health_Probes()),
             'field-builder' => new Field_Builder_Resource(new \AWM_API()),
         ], $this->service);
 
@@ -319,63 +305,6 @@ final class EWP_Surfaces
     public function service()
     {
         return $this->service;
-    }
-
-    /**
-     * Tell REST-health discovery which namespaces this plugin's resources own.
-     *
-     * Per-type content resources are skipped: a type registered by another
-     * plugin belongs to that plugin, and the registry does not know which.
-     *
-     * @param array<string,string> $runtime Namespace => plugin path.
-     *
-     * @return array<string,string>
-     *
-     * @since 1.5.0
-     */
-    public function report_rest_namespaces(array $runtime)
-    {
-        $registry = $this->registry();
-        if ($registry === null || !defined('awm_path')) {
-            return $runtime;
-        }
-
-        $owner = plugin_basename(awm_path . 'extend-wp.php');
-        foreach ($registry->all() as $resource) {
-            $namespace = $resource->rest_namespace();
-            if ($namespace === null || $namespace === '' || $resource instanceof Content_Type_Rest_Resource) {
-                continue;
-            }
-            $runtime[$namespace] = $owner;
-        }
-
-        return $runtime;
-    }
-
-    /**
-     * Keep the `ewp_logger_ability_definitions` filter working for the logger abilities.
-     *
-     * @param array    $definitions Definitions keyed by ability name.
-     * @param Resource $resource    Owning resource.
-     *
-     * @return array
-     *
-     * @since 1.5.0
-     */
-    public function reemit_logger_definitions(array $definitions, Resource $resource)
-    {
-        if ($resource->name() !== 'logger') {
-            return $definitions;
-        }
-
-        /**
-         * Filter the EWP Logger ability definitions before registration.
-         *
-         * @param array $definitions Ability definitions keyed by ability name.
-         *
-         * @since 1.3.0
-         */
-        return apply_filters('ewp_logger_ability_definitions', $definitions);
     }
 
     /**

@@ -93,7 +93,7 @@ final class EWP_Self_Test
 
         $registry->register(self::SLUG, __DIR__ . '/manifest.json', [
             'label'        => 'Extend WP',
-            'requirements' => ['abilities', 'logger', 'ai'],
+            'requirements' => ['abilities', 'ai'],
             'cli_loaders'  => [[__CLASS__, 'load_cli']],
         ]);
     }
@@ -144,14 +144,11 @@ final class EWP_Self_Test
             'class-content-query-case',
             'class-search-filter-case',
             'class-cache-flush-case',
-            'class-logger-case',
             'class-options-portability-case',
             'class-ai-case',
             'class-content-portability-case',
             'class-object-search-case',
-            'class-rest-health-case',
             'class-typed-content-case',
-            'class-rest-health-probes-case',
             'class-field-builder-case',
             'class-recently-seen-case',
             'class-block-preview-case',
@@ -173,9 +170,6 @@ final class EWP_Self_Test
     public static function load_cli()
     {
         $base = dirname(__DIR__);
-
-        // Declares EWP_Logger_CLI under the shim (class_exists('WP_CLI') is true by now).
-        \EWP\Logger\EWP_Logger::load_read_side();
 
         if (!class_exists('EWP_Content_CLI', false)) {
             include $base . '/awm-content-db-api/custom-content/class-content-cli.php';

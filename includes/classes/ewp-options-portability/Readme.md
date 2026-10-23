@@ -121,25 +121,6 @@ wp ewp options import backup.json --skip-url-replace
 wp ewp options import backup.json --backup-file=/tmp/pre-import-backup.json
 ```
 
-## Logging
-
-All export/import operations are logged via `ewp_log()` with detailed data:
-
-| Field | Description |
-|---|---|
-| `actor` | `'cli'`, `'rest'`, or `'admin'` |
-| `dry_run` | Whether this was a dry-run |
-| `pages_requested` | Page keys requested |
-| `pages_imported` / `pages_skipped` | Results |
-| `fields_imported` / `fields_skipped` | Field counts |
-| `old_home_url` / `new_home_url` | URL context |
-| `url_replace_applied` | Whether URLs were replaced |
-| `plugin_version_match` | Whether plugin versions matched |
-| `warnings` | Array of warning strings |
-| `backup_created` | Whether backup was created |
-
-Action types registered: `options_export`, `options_import`.
-
 ## Filters & Hooks
 
 | Filter/Action | Description |

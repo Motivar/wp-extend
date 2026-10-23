@@ -295,23 +295,6 @@ if (!function_exists('awm_encrypt_meta_on_save')) {
         if (!empty($meta_value)) {
             $encrypted_value = awm_encrypt_field_value($meta_value, $field_config);
 
-            // Log encryption event
-            if (function_exists('ewp_log')) {
-                ewp_log(
-                    'extend-wp',
-                    'field_encrypted',
-                    sprintf('Meta field "%s" encrypted for object ID %d', $meta_key, $object_id),
-                    [
-                        'meta_key' => $meta_key,
-                        'object_id' => $object_id,
-                        'meta_id' => $meta_id,
-                        'value_length' => strlen($meta_value),
-                    ],
-                    'developer',
-                    '',
-                    1
-                );
-            }
 
             return $encrypted_value;
         }
@@ -452,23 +435,6 @@ if (!function_exists('awm_encrypt_option_field')) {
 
         // Encrypt the field
         $option_value[$field_key] = EWP_Encryption::encrypt($raw);
-
-        // Log encryption event
-        if (function_exists('ewp_log')) {
-            ewp_log(
-                'extend-wp',
-                'field_encrypted',
-                sprintf('Option field "%s[%s]" encrypted', $option_name, $field_key),
-                [
-                    'option_name' => $option_name,
-                    'field_key' => $field_key,
-                    'value_length' => strlen($raw),
-                ],
-                'developer',
-                '',
-                1
-            );
-        }
 
         return $option_value;
     }

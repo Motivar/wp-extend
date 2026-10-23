@@ -37,20 +37,6 @@ class EWP_Abilities
     const MIN_WP_VERSION = '6.9';
 
     /**
-     * Log action type recorded for every write ability execution.
-     *
-     * @var string
-     */
-    const LOG_ACTION_TYPE = 'ability_write';
-
-    /**
-     * Log owner used for ability auditing.
-     *
-     * @var string
-     */
-    const LOG_OWNER = 'extend-wp';
-
-    /**
      * Singleton instance.
      *
      * @var EWP_Abilities|null
@@ -238,10 +224,6 @@ class EWP_Abilities
 
         $this->service = new EWP_Abilities_Content_Service();
 
-        $audit = new EWP_Abilities_Audit();
-        $audit->init();
-
-        add_action('ewp_logger_initialized', [$this, 'register_log_type']);
     }
 
     /**
@@ -254,27 +236,6 @@ class EWP_Abilities
     public function get_service()
     {
         return $this->service;
-    }
-
-    /**
-     * Register the audit log action type with the logger.
-     *
-     * @return void
-     *
-     * @since 1.4.0
-     */
-    public function register_log_type()
-    {
-        if (!function_exists('ewp_register_log_type')) {
-            return;
-        }
-
-        ewp_register_log_type(
-            self::LOG_OWNER,
-            self::LOG_ACTION_TYPE,
-            __('Ability write', 'extend-wp'),
-            __('A write ability was executed through the WordPress Abilities API.', 'extend-wp')
-        );
     }
 
     /**

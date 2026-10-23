@@ -8,7 +8,7 @@ projected onto three surfaces:
 |---|---|---|
 | REST | `MammothWP\WpKit\Adapters\Rest_Adapter` | `GET /wp-json/extend-wp/v1/logs` |
 | WP-CLI | `MammothWP\WpKit\Adapters\Cli_Adapter` | `wp ewp log list` |
-| Abilities API | `MammothWP\WpKit\Adapters\Ability_Adapter` | `ewp-logger/search` |
+| Abilities API | `MammothWP\WpKit\Adapters\Ability_Adapter` | `ewp-options/export` |
 
 The declarations live in `includes/classes/ewp-surfaces/resources/` and are
 registered by `EWP\Surfaces\EWP_Surfaces`. `Kit::on_ready()` only attaches
@@ -39,13 +39,10 @@ output schema therefore have exactly one definition.
 | `fields` | `Content_Service` + `Field_Vocabulary` | — | — | `ewp-fields/*` (6) |
 | `wp-content` | `Content_Service` | — | — | `ewp-wp-content/*` (10) |
 | `search` | `Content_Service` | — | — | `ewp-search/list-filters`, `get-filter` |
-| `logger` | `EWP\Logger\EWP_Logger_Query` (+ `EWP_Logger_Diagnose` for the REST-only `diagnose`) | `extend-wp/v1/logs`, `/stats`, `/types`, `/owners`, `/entry/{log_id}`, `/trace/{request_id}`, `/cleanup`, `/diagnose` (REST only) | `wp ewp log list\|get\|trace\|stats\|types\|write\|delete\|cleanup` | `ewp-logger/*` (8) |
 | `options` | `EWP_Options_Portability` | `extend-wp/v1/options-portability/pages\|export\|import` | `wp ewp options list\|export\|import` | `ewp-options/list-pages`, `export`, `import` |
 | `system` | `EWP\Surfaces\System_Service` | `extend-wp/v1/system/info`, `/flush-cache` | `wp ewp system info`, `wp ewp delete-cache` | `ewp-system/get-site-info`, `flush-cache` |
 | `content-portability` | `EWP\Content\Content_Portability` | `ewp/v1/export`, `ewp/v1/import` | `wp ewp content export\|import` | `ewp-content/export`, `import` |
 | `objects` | `EWP\Search\Object_Search` | `extend-wp/v1/objects/search` | `wp ewp objects search` | `ewp-system/search-objects` |
-| `rest-health` | `EWP\Surfaces\Rest_Health_Inventory` | `extend-wp/v1/rest-health/plugins`, `/endpoints` | `wp ewp rest-health plugins\|endpoints` | `ewp-rest-health/list-plugins`, `list-endpoints` |
-| `rest-health-probes` (REST only) | `EWP\Surfaces\Rest_Health_Probes` | `extend-wp/v1/rest-health/openapi`, `/test`, `/batch`, `/history` (GET, DELETE), `/monitor` (GET, POST), `/monitor/payloads` (GET, DELETE), `/preferences` (GET, POST) | — | — |
 | `recently-seen` (REST only, public) | `EWP_Recently_Seen_UTIL` | `ewp/v1/recently-seen/{id}` | — | — |
 | per block (`Block_Preview_Resource`, REST only) | `EWP_Dynamic_Blocks` | `{namespace}/{name}/preview` | — | — |
 | `field-builder` (REST only) | `AWM_API` | `extend-wp/v1/get-case-fields`, `/get-query-fields`, `/get-position-fields`, `/get-php-code`, `/awm-map-options`, `/modal-fields`, `/modal-save` | — | — |
@@ -58,9 +55,8 @@ commands and abilities it generates and the surfaces it deliberately skips.
 
 Several resources are REST-only by declaration (`Resource::surfaces()`
 returns `[Context::REST]`, or a callable that does while a feature is
-enabled): the REST-health page probes, the wp-admin field-builder/modal
-helpers, the logger's AI diagnose box (an operation on the logger
-resource), the anonymous recently-seen recorder and the per-block editor
+enabled): the wp-admin field-builder/modal
+helpers, the anonymous recently-seen recorder and the per-block editor
 previews. They render for a browser script, so a command or ability would
 have no caller, but they still get typed and described arguments, the
 shared authorization path and inventory entries. The only routes that
@@ -78,9 +74,8 @@ all surfaces by `Operation::run()`:
 - Content operations use the content type's own `capability` for reads and
   writes. A type may opt into anonymous reads with `'public_read' => true`
   in its `awm_register_content_db` definition.
-- The logger uses `EWP_Logger::get_viewer_capability()`; options and cache
-  flushing `manage_options`; site info and the type inventory `read`; the
-  REST-health inventory `is_super_admin()`; object search the
+- Options and cache
+  flushing `manage_options`; site info and the type inventory `read`; object search the
   `awm_object_search_capability` filter (default per object type since
   1.5.8: the post type's `edit_posts`, the taxonomy's `assign_terms`,
   otherwise `manage_options`; posts the user cannot read are left out).
@@ -103,10 +98,6 @@ real by default over REST and the CLI as before.
 
 Surface differences are declared in the resource, never in three classes:
 
-- **Logger search**: REST is unbounded in time and pages with
-  `page`/`per_page` up to 10000 (the viewer's export needs it), keeping its
-  `{data, total, page, per_page}` body; the CLI is unbounded; abilities
-  default to a 7-day window, 50 entries, 200 at most and compact payloads.
 - **Options export**: REST still accepts the admin form's `pages` and
   `option_pages[]` names; the CLI defaults to every page and writes
   `--file`.
@@ -114,9 +105,6 @@ Surface differences are declared in the resource, never in three classes:
   (the admin screen downloads it); import answers `true`.
 - **Object search**: REST keeps `{success, data}`; abilities get
   `{count, results}`.
-- **Logger surfaces gate themselves**: reads exist only while logging is
-  enabled, their ability only while AI access is enabled; the write ability
-  is always registered and answers 503 when logging is off.
 
 ## Adding a feature
 
@@ -154,6 +142,4 @@ from a missing registration.
 |---|---|---|
 | `ewp_surfaces_resources` | filter | `(Resource[] $resources, Content_Service $service)` |
 | `ewp_abilities_capability` | filter | `(string $capability, string $ability_name)` |
-| `ewp_logger_ability_definitions` | filter | `(array $definitions)` |
-| `ewp_rest_health_runtime_namespaces` | filter | `(array<string,string> $namespace_to_plugin)` |
 | `mmwp_kit_*` | see `lib/mammothwp/wp-kit/HOOKS.md` | |

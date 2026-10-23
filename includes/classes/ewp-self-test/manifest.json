@@ -127,52 +127,6 @@
             }
         },
         {
-            "id": "logger",
-            "label": "Activity log (write + read)",
-            "category": "logger",
-            "layers": [
-                "rest",
-                "cli",
-                "ability"
-            ],
-            "class": "EWP\\SelfTest\\Cases\\Logger_Case",
-            "requires": [
-                "logger"
-            ],
-            "args": {},
-            "covers": {
-                "rest": [
-                    "extend-wp/v1/logs",
-                    "extend-wp/v1/logs/types",
-                    "extend-wp/v1/logs/owners",
-                    "extend-wp/v1/logs/stats",
-                    "extend-wp/v1/logs/entry/{log_id}",
-                    "extend-wp/v1/logs/trace/{request_id}",
-                    "extend-wp/v1/logs/cleanup"
-                ],
-                "cli": [
-                    "ewp log list",
-                    "ewp log get",
-                    "ewp log trace",
-                    "ewp log stats",
-                    "ewp log types",
-                    "ewp log write",
-                    "ewp log delete",
-                    "ewp log cleanup"
-                ],
-                "ability": [
-                    "ewp-logger/write-entry",
-                    "ewp-logger/search",
-                    "ewp-logger/get-stats",
-                    "ewp-logger/get-entry",
-                    "ewp-logger/get-request-trace",
-                    "ewp-logger/list-vocabulary",
-                    "ewp-logger/cleanup",
-                    "ewp-logger/delete-entries"
-                ]
-            }
-        },
-        {
             "id": "options-portability",
             "label": "Options portability (list / export / dry-run import)",
             "category": "options",
@@ -221,18 +175,14 @@
                     "ewp-wp-content",
                     "ewp-search",
                     "ewp-options",
-                    "ewp-system",
-                    "ewp-logger"
+                    "ewp-system"
                 ]
             },
             "covers": {
-                "rest": [
-                    "extend-wp/v1/logs/diagnose"
-                ],
+                "rest": [],
                 "cli": [],
                 "ability": [
-                    "ewp-* categories registered with core",
-                    "ewp-logger diagnose provider availability"
+                    "ewp-* categories registered with core"
                 ]
             }
         },
@@ -288,33 +238,6 @@
             }
         },
         {
-            "id": "rest-health",
-            "label": "REST route inventory",
-            "category": "system",
-            "layers": [
-                "rest",
-                "cli",
-                "ability"
-            ],
-            "class": "EWP\\SelfTest\\Cases\\Rest_Health_Case",
-            "requires": [],
-            "args": {},
-            "covers": {
-                "rest": [
-                    "extend-wp/v1/rest-health/plugins",
-                    "extend-wp/v1/rest-health/endpoints"
-                ],
-                "cli": [
-                    "ewp rest-health plugins",
-                    "ewp rest-health endpoints"
-                ],
-                "ability": [
-                    "ewp-rest-health/list-plugins",
-                    "ewp-rest-health/list-endpoints"
-                ]
-            }
-        },
-        {
             "id": "typed-content",
             "label": "Typed content abilities (field groups, post types, taxonomies)",
             "category": "content",
@@ -347,30 +270,6 @@
                     "ewp-wp-content/update-taxonomy",
                     "ewp-wp-content/delete-taxonomy"
                 ]
-            }
-        },
-        {
-            "id": "rest-health-probes",
-            "label": "REST-health page probes",
-            "category": "system",
-            "layers": [
-                "rest"
-            ],
-            "class": "EWP\\SelfTest\\Cases\\Rest_Health_Probes_Case",
-            "requires": [],
-            "args": {},
-            "covers": {
-                "rest": [
-                    "extend-wp/v1/rest-health/openapi",
-                    "extend-wp/v1/rest-health/test",
-                    "extend-wp/v1/rest-health/batch",
-                    "extend-wp/v1/rest-health/history",
-                    "extend-wp/v1/rest-health/monitor",
-                    "extend-wp/v1/rest-health/monitor/payloads",
-                    "extend-wp/v1/rest-health/preferences"
-                ],
-                "cli": [],
-                "ability": []
             }
         },
         {

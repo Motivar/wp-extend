@@ -34,14 +34,11 @@ class Setup
    load_plugin_textdomain('extend-wp', false, awm_relative_path . '/languages');
   });
 
-  // Initialize the EWP Logger system early (priority 0) so viewer can register
-  // assets before Dynamic Asset Loader collects them (priority 1)
-  add_action('init', function () {
-   $logger = \EWP\Logger\EWP_Logger::instance();
-   $logger->init();
-  }, 0);
   require_once 'class-request-context.php';
-  /*guarded, unguessable files under uploads (logger, REST-health); before the logger*/
+  /*one-time removal of the options, cron and transients of the removed REST API Health and logger*/
+  require_once 'class-removed-features-cleanup.php';
+  (new Removed_Features_Cleanup())->init();
+  /*guarded, unguessable files under uploads */
   require_once 'class-private-files.php';
   /*object-free unserialize for stored meta, logs and imports*/
   require_once 'class-serialization.php';
@@ -91,7 +88,6 @@ class Setup
   }
   require_once 'dev-tools/init.php';
   require_once 'class-dynamic-asset-loader.php';
-  require_once 'ewp-logger/class-ewp-logger.php';
   /*admin page, REST and CLI only; EWP_Surfaces::boot() requires it again on demand for Options_Resource*/
   if (!$front_end) {
    require_once 'ewp-options-portability/class-options-portability.php';
@@ -102,7 +98,7 @@ class Setup
   } else {
    require_once 'ewp-self-test/class-ewp-self-test.php';
   }
-  /*must stay after every module it wraps: the abilities read the content type registry, the logger, options portability and the self-test runner*/
+  /*must stay after every module it wraps: the abilities read the content type registry, options portability and the self-test runner*/
   require_once 'ewp-abilities/class-ewp-abilities.php';
   /*declares the plugin's resources with the mammothwp/wp-kit package (lib/, loaded by Composer); REST, WP-CLI and abilities are generated from them (must follow the modules whose services it wraps)*/
   require_once 'ewp-surfaces/class-ewp-surfaces.php';

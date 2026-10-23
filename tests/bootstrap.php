@@ -29,13 +29,6 @@ tests_add_filter('muplugins_loaded', function () {
 });
 
 /**
- * Run the logger in PHPUnit so its REST routes, commands and abilities can
- * be exercised end to end. Entries go to a throwaway directory, never to
- * the site's uploads.
- */
-tests_add_filter('ewp_logger_enabled', '__return_true');
-
-/**
  * Build the surfaces registry during bootstrap, as WP-CLI does. On web
  * requests it is built lazily on the first `rest_api_init` / abilities
  * init, but WP_UnitTestCase restores the hook table after every test, so
@@ -45,9 +38,6 @@ tests_add_filter('ewp_logger_enabled', '__return_true');
 tests_add_filter('plugins_loaded', function () {
     \EWP\Surfaces\EWP_Surfaces::instance()->boot();
 }, -50);
-tests_add_filter('ewp_logger_file_directory', function () {
-    return sys_get_temp_dir() . '/ewp-logs-phpunit-' . getmypid();
-});
 
 require $_tests_dir . '/includes/bootstrap.php';
 

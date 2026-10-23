@@ -7,3 +7,4 @@ if (!defined('ABSPATH')) {
 require_once 'main.php';
 require_once 'library.php';
 require_once 'transient_functions.php';
+require_once 'deprecated-logger.php';

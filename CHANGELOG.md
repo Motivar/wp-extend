@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **Removed REST API Health (moving to a standalone plugin) and the EWP logger / log viewer (1.10.1)** (`2026-10-23`):
+  - **Question/Prompt**: "Remove two features from Extend-WP completely: the REST API Health screen and the EWP logger. Pure removal, do not change how anything else works."
+  - **REST API Health removed**: the `ewp-rest-health` admin page, `extend-wp/v1/rest-health/*` (`plugins`, `endpoints`, `openapi`, `test`, `batch`, `history`, `monitor`, `monitor/payloads`, `preferences`), `wp ewp rest-health`, the `ewp-rest-health/*` abilities, the Monitor (and its REST dispatch hooks), the Swagger UI enqueue from unpkg, `ewp-rest-health.js/.css`, the `ewp_rest_health_runtime_namespaces` and `ewp_rh_page_fields` filters, and the self-test cases `rest-health` and `rest-health-probes`.
+  - **EWP logger removed**: `includes/classes/ewp-logger/` (storage, queue, settings, cleanup cron, viewer page `ewp-log-viewer` "FLX Log", AI diagnose box), `extend-wp/v1/logs/*`, `wp ewp log`, the `ewp-logger/*` abilities, `Logger_Resource`, `EWP_Abilities_Audit` (ability audit logging, filter `ewp_abilities_audit_enabled`), the logger assets, the `logger` self-test case, and the filters/actions `ewp_logger_*`. `ewp_log()` call sites were deleted without touching the surrounding logic: `awm-db/class-db-creator.php`, `awm-api/class-awm-api.php` (modal save failure), `functions/library.php` (two encryption events) and `ewp-options-portability/class-options-portability.php` (export, import, rollback).
+  - **Kept for consumers**: `ewp_log()`, `ewp_register_log_type()` and `ewp_register_log_owner()` remain as `@deprecated` no-op stubs (`includes/functions/deprecated-logger.php`) so Filox and other plugins do not fatal. `ewp_log()` returns `false`. The system-info `logger_enabled` key stays, always `false`.
+  - **Upgrade cleanup** (`EWP\Removed_Features_Cleanup`, runs once): deletes the options `ewp_rh_monitor_active|started|count|namespaces`, `ewp_logger_settings`, `ewp_logger_db_table_dropped`, `ewp_version_ewp_logs`, the `ewp_rh_preferences` user meta, the `ewp_logger_cleanup_hook` cron event and the `ewp_rh_ns_map_*` transients. No table is dropped and no file is deleted: existing `uploads/ewp-logs` and REST-health capture files stay on disk.
+  - **Tests**: removed the logger test files and the REST-health tests; the self-test manifest and `ai-abilities` case no longer reference either feature.
+  - **Backwards compatibility**: no other REST route, hook or function changed. Anything calling the removed routes, `wp ewp log`, `wp ewp rest-health` or the `ewp_logger_*` / `ewp_rest_health_runtime_namespaces` hooks now finds nothing.
+
 ### Fixed
 - **Admin look: on tabbed options pages the description and the Save button sat on the card's edges** (`2026-10-23`):
   - **Question/Prompt** (from Filox): "Also please check buttons and messages distances on edges. In Bookings Settings & Gateway Settings" (screenshot: "Configure your booking settings" clipped at the card's left edge, Save Changes against its right and bottom edges).

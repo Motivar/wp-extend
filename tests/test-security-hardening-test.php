@@ -1,10 +1,9 @@
 <?php
 /**
- * 1.9.0 security fixes outside the logger and the modal routes:
+ * 1.9.0 security fixes outside the modal routes:
  * - `?ewp_delete_trans` flushed every cache for anonymous visitors;
  * - options import wrote `backup_file` to any server path from REST and
- *   abilities, even on a dry run;
- * - REST-health captures were public `.json` files under uploads.
+ *   abilities, even on a dry run.
  */
 class Test_Security_Hardening extends WP_UnitTestCase
 {
@@ -79,25 +78,5 @@ class Test_Security_Hardening extends WP_UnitTestCase
         $this->assertTrue(EWP_Options_Portability::write_backup_file($json, ['a' => 1]));
         $this->assertSame(['a' => 1], json_decode(file_get_contents($json), true));
         unlink($json);
-    }
-
-    /**
-     * Rest health payloads are guarded and migrated.
-     *
-     * @return void
-     */
-    public function test_rest_health_payloads_are_guarded_and_migrated()
-    {
-        $path   = EWP_REST_Health::get_payloads_path();
-        $legacy = dirname($path) . '/payloads.json';
-        wp_mkdir_p(dirname($path));
-        @unlink($path);
-        file_put_contents($legacy, wp_json_encode([['route' => '/a', 'method' => 'GET']]));
-
-        $this->assertStringEndsWith('payloads-' . \EWP\Private_Files::key() . '.php', $path);
-        $this->assertSame([['route' => '/a', 'method' => 'GET']], EWP_REST_Health::read_payloads());
-        $this->assertFileDoesNotExist($legacy);
-        $this->assertStringStartsWith("<?php exit; ?>\n", file_get_contents($path));
-        unlink($path);
     }
 }

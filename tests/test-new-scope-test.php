@@ -1,6 +1,6 @@
 <?php
 /**
- * Content export/import, object search and the REST-health inventory on
+ * Content export/import and object search on
  * their new surfaces, with the historical REST bodies preserved.
  */
 class Test_New_Scope_Surfaces extends WP_UnitTestCase
@@ -90,34 +90,9 @@ class Test_New_Scope_Surfaces extends WP_UnitTestCase
         $this->assertSame('awm_invalid_object_type', $bad->get_error_code());
     }
 
-    public function test_rest_health_inventory_lists_this_plugin_on_every_surface()
-    {
-        grant_super_admin(get_current_user_id());
-        // The test bootstrap requires the plugin directly; the inventory reads the active_plugins option.
-        update_option('active_plugins', ['wp-extend/extend-wp.php']);
-
-        $plugins = $this->rest('GET', '/extend-wp/v1/rest-health/plugins', ['refresh' => true]);
-        $this->assertSame(200, $plugins->get_status());
-        $paths = array_column($plugins->get_data(), 'path');
-        $mine  = array_values(array_filter($paths, function ($path) {
-            return strpos($path, 'extend-wp.php') !== false;
-        }));
-        $this->assertNotEmpty($mine, 'wp-extend must appear in its own inventory');
-
-        $endpoints = $this->rest('POST', '/extend-wp/v1/rest-health/endpoints', ['plugins' => [$mine[0]]]);
-        $this->assertSame(200, $endpoints->get_status());
-        $this->assertNotEmpty($endpoints->get_data());
-
-        $ability = wp_get_ability('ewp-rest-health/list-endpoints')->execute(['plugins' => [$mine[0]]]);
-        $this->assertNotWPError($ability);
-        $this->assertNotEmpty($ability);
-
-        $this->assertSame(400, $this->rest('POST', '/extend-wp/v1/rest-health/endpoints', ['plugins' => []])->get_status());
-    }
-
     public function test_new_commands_and_abilities_are_registered()
     {
-        foreach (['ewp-content/export', 'ewp-content/import', 'ewp-system/search-objects', 'ewp-rest-health/list-plugins', 'ewp-rest-health/list-endpoints'] as $name) {
+        foreach (['ewp-content/export', 'ewp-content/import', 'ewp-system/search-objects'] as $name) {
             $this->assertTrue(wp_has_ability($name), "{$name} must be registered");
         }
     }

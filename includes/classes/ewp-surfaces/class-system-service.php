@@ -56,7 +56,7 @@ final class System_Service
             'content_types'     => $content_types,
             'ewp_post_types'    => array_keys(apply_filters('epw_get_post_types', [])),
             'ewp_taxonomies'    => array_keys(apply_filters('epw_get_taxonomies', [])),
-            'logger_enabled'    => class_exists('EWP\\Logger\\EWP_Logger') ? \EWP\Logger\EWP_Logger::is_enabled() : false,
+            'logger_enabled'    => false, // the logger was removed; key kept so the response shape is unchanged
             'abilities_enabled' => class_exists('EWP\\Abilities\\EWP_Abilities') ? \EWP\Abilities\EWP_Abilities::is_enabled() : false,
         ];
     }
