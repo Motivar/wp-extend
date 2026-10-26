@@ -190,6 +190,7 @@ class EWP_Content_List_UI
     public static function config($type, array $args)
     {
         $registry  = AWM_Add_Content_DB_Setup::$ewp_data_configuration[$type];
+        $surfaces  = AWM_Add_Content_DB_Setup::normalize_surfaces(isset($registry['surfaces']) ? $registry['surfaces'] : array());
         $fields    = self::fields($type, $args);
         $page_link = self::page_link($args);
         $statuses = array();
@@ -203,7 +204,10 @@ class EWP_Content_List_UI
             'fields'      => $fields,
             'statuses'    => $statuses,
             'writable'    => !empty($registry['writable']),
-            'canDelete'   => !empty($registry['writable']) && !empty($registry['show_delete']),
+            /* since 1.11.0: the type's `surfaces`; set status and delete still call the REST routes, which route them through Content_Service */
+            'canSetStatus' => !empty($registry['writable']) && $surfaces['set_status'] !== false,
+            'canDelete'   => !empty($registry['writable']) && !empty($registry['show_delete']) && $surfaces['delete'] !== false,
+            'canDuplicate' => $surfaces['duplicate'],
             'editUrl'     => awm_edit_screen_link($args) . '&id=',
             /* the legacy duplicate row action, handled by AWM_List_Table::process_bulk_action() on this page; the nonce does not depend on the id */
             'duplicateUrl' => wp_nonce_url(admin_url($page_link . '&action=duplicate'), $page_link . '_duplicate') . '&id=',
@@ -422,6 +426,7 @@ class EWP_Content_List_UI
 
     /**
      * Row actions as the legacy list builds them (Edit, Duplicate, Delete) after `ewp_row_actions_{type}_filter`.
+     * Duplicate / Delete are left out when the type's `surfaces` turn them off (since 1.11.0).
      *
      * @param array $args List arguments.
      * @param array $row  Raw `_main` row.
@@ -434,11 +439,14 @@ class EWP_Content_List_UI
         }
         $id        = (int) $row['content_id'];
         $page_link = self::page_link($args);
+        $surfaces  = AWM_Add_Content_DB_Setup::normalize_surfaces(isset($args['surfaces']) ? $args['surfaces'] : array());
         $actions   = array(
             'edit'      => sprintf('<a href="%s">%s</a>', esc_url(awm_edit_screen_link($args) . '&id=' . $id), __('Edit', 'extend-wp')),
-            'duplicate' => sprintf('<a href="%s">%s</a>', esc_url(wp_nonce_url(admin_url($page_link . '&id=' . $id . '&action=duplicate'), $page_link . '_duplicate')), __('Duplicate', 'extend-wp')),
         );
-        if (!isset($args['show_delete']) || $args['show_delete']) {
+        if ($surfaces['duplicate']) {
+            $actions['duplicate'] = sprintf('<a href="%s">%s</a>', esc_url(wp_nonce_url(admin_url($page_link . '&id=' . $id . '&action=duplicate'), $page_link . '_duplicate')), __('Duplicate', 'extend-wp'));
+        }
+        if ((!isset($args['show_delete']) || $args['show_delete']) && $surfaces['delete'] !== false) {
             $actions['delete'] = sprintf('<a href="%s" class="awm-delete-content-id">%s</a>', esc_url(wp_nonce_url(admin_url($page_link . '&id=' . $id . '&action=delete'), $page_link . '_delete')), __('Delete', 'extend-wp'));
         }
         /** This filter is documented in includes/classes/awm-list-tables/class-list-table.php */
