@@ -15,6 +15,21 @@ class AWM_Add_Content_DB_Setup
   */
   public static $ewp_data_configuration = array();
 
+  /**
+   * Setup instances keyed by content type id, so tables can be created outside `admin_init` (ensure_tables()).
+   *
+   * @var AWM_Add_Content_DB_Setup[]
+   */
+  private static $instances = array();
+
+  /** Defaults of the `surfaces` registration key (see normalize_surfaces()). */
+  const SURFACE_DEFAULTS = array(
+    'duplicate' => true,
+    'set_status' => null,
+    'delete' => null,
+    'generic_write' => true,
+  );
+
   private $data_id;
   private $prefix;
   private $data_content;
@@ -187,8 +202,74 @@ class AWM_Add_Content_DB_Setup
       /*REST namespace and base of the type's routes (`{rest_prefix}/{rest_base}`, see rest_endpoints()); the DataViews list calls them (since 1.7.0)*/
       'rest_prefix' => $this->prefix,
       'rest_base' => $this->data_id,
+      /*since 1.11.0: menu icon of a top-level list page (add_menu_page()); before it was never passed on*/
+      'icon_url' => isset($this->data_content['icon_url']) ? (string) $this->data_content['icon_url'] : '',
+      /*since 1.11.0: rows per page of the legacy list (was always 50)*/
+      'results_per_page' => isset($this->data_content['results_per_page']) ? max(1, (int) $this->data_content['results_per_page']) : 50,
+      /*since 1.11.0: true keeps the row's author: user_id is written on insert only, never on update*/
+      'keep_user' => !empty($this->data_content['keep_user']),
+      /*since 1.11.0: which generic actions the type allows or routes to its own code (normalize_surfaces())*/
+      'surfaces' => self::normalize_surfaces(isset($this->data_content['surfaces']) ? $this->data_content['surfaces'] : array()),
     );
     self::$ewp_data_configuration[$this->content_id] = $this->list;
+    self::$instances[$this->content_id] = $this;
+  }
+
+  /**
+   * Normalize the `surfaces` registration key.
+   *
+   * - `duplicate` (bool, default true): false hides Duplicate in both admin lists and refuses it.
+   * - `set_status` (callable|false|null, default null): null uses the generic save; a callable
+   *   `fn(int[] $ids, string $status, string $content_type)` replaces it (return an array
+   *   `{count, updated, not_found}`, true, or a WP_Error); false refuses it.
+   * - `delete` (callable|false|null, default null): same for deletes, `fn(int[] $ids, string $content_type)`.
+   * - `generic_write` (bool, default true): false makes Content_Service create/update refuse the
+   *   type on REST, WP-CLI and abilities (the type's own admin form keeps saving).
+   *
+   * @param mixed $surfaces Registration value; anything that is not an array means the defaults.
+   * @return array { duplicate: bool, set_status: callable|false|null, delete: callable|false|null, generic_write: bool }.
+   * @since 1.11.0
+   */
+  public static function normalize_surfaces($surfaces)
+  {
+    $surfaces = is_array($surfaces) ? array_merge(self::SURFACE_DEFAULTS, $surfaces) : self::SURFACE_DEFAULTS;
+    foreach (array('set_status', 'delete') as $key) {
+      $route = $surfaces[$key];
+      if ($route !== false && !is_callable($route)) {
+        $surfaces[$key] = null;
+      }
+    }
+    $surfaces['duplicate'] = (bool) $surfaces['duplicate'];
+    $surfaces['generic_write'] = (bool) $surfaces['generic_write'];
+    return array_intersect_key($surfaces, self::SURFACE_DEFAULTS);
+  }
+
+  /**
+   * Create or upgrade the tables of registered content types now, outside `admin_init`
+   * (WP-CLI, cron, migrations). Registers the content types first when that has not happened yet.
+   * A no-op for tables whose schema version is already applied.
+   *
+   * @param string $content_type Optional. Content type id (e.g. `flx_booking`); empty for every registered type.
+   * @return array Content type id => bool (true when both tables exist afterwards); empty for an unknown type.
+   * @since 1.11.0
+   */
+  public static function ensure_tables($content_type = '')
+  {
+    if (empty(self::$instances) && class_exists('AWM_Content_DB')) {
+      AWM_Content_DB::get_instance()->register_content();
+    }
+    $content_type = (string) $content_type;
+    $instances = $content_type === '' ? self::$instances : array_intersect_key(self::$instances, array($content_type => true));
+    $result = array();
+    foreach ($instances as $type => $setup) {
+      /* a type forgotten since (self-test cleanup unsets its configuration) must not get its tables back */
+      if (!isset(self::$ewp_data_configuration[$type])) {
+        continue;
+      }
+      $setup->on_load();
+      $result[$type] = AWM_DB_Creator::check_table_exists($type . '_main') && AWM_DB_Creator::check_table_exists($type . '_data');
+    }
+    return $result;
   }
 
 
@@ -400,7 +481,7 @@ class AWM_Add_Content_DB_Setup
   }
 
   /**
-   * Create or upgrade both tables (runs on `admin_init`; a no-op unless the schema version changed).
+   * Create or upgrade both tables (runs on `admin_init`, and from ensure_tables(); a no-op unless the schema version changed).
    *
    * @return void
    */

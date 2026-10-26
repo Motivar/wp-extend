@@ -484,6 +484,8 @@ class AWM_DB_Creator
 
                     // Update table version
                     update_option(self::VERSION_OPTION_PREFIX . $table, $currentVersion, true);
+                    // Since 1.11.0: a check_table_exists() that ran before the creation in this request no longer reports it missing.
+                    unset(self::$table_existence_cache[$wpdb->prefix . $table]);
                     \EWP\Db\Table_Columns::forget($table);
                     \EWP\Db\Read_Cache::invalidate($table);
                     $message = sprintf(__('Table "%s" just updated! Current version is %s.', 'filox'), $table, $currentVersion);
@@ -1079,7 +1081,8 @@ class AWM_DB_Creator
 
             // Prepare the data for insertion
             foreach ($data as $key => $value) {
-                $final_data[$key] = addslashes(maybe_serialize($value));
+                // (string): null was already stored as '' — addslashes(null) is only deprecated since PHP 8.1.
+                $final_data[$key] = addslashes((string) maybe_serialize($value));
             }
 
             // Insert new row

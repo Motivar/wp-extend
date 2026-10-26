@@ -94,8 +94,24 @@ if (!function_exists('awm_insert_db_content_meta')) {
 if (!function_exists('awm_get_db_content')) {
   /**
    * Similar to get_posts.
+   *
    * @param string $field The database object to search.
-   * @param array $args Similar structure to get_posts.
+   * @param array  $args  {
+   *     Optional. Query arguments.
+   *
+   *     @type string|array $fields         Columns to select (default `*`).
+   *     @type int          $limit          Rows to return, -1 for all (default -1).
+   *     @type int          $offset         Rows to skip before the first returned one (default 0; since 1.11.0). Only applies with a limit.
+   *     @type array        $order_by       { column, type } (default created desc).
+   *     @type array        $include        Content ids.
+   *     @type array        $include_hashes Row hashes.
+   *     @type array        $meta_query     See awm_db_content_meta_query_where().
+   *     @type string|array $status         One status or a list.
+   *     @type string       $title          Title to match.
+   *     @type string       $title_compare  `LIKE` (default, as before 1.11.0: the value is used as given, add `%` yourself)
+   *                                        or `=` for an exact match (since 1.11.0). A `title` given as
+   *                                        `array('value' => …, 'compare' => '='|'LIKE')` sets both; its compare defaults to `=`.
+   * }
    * @return array $results All the results.
    */
   function awm_get_db_content($field, $args = array())
@@ -110,19 +126,17 @@ if (!function_exists('awm_get_db_content')) {
       'include_hashes' => array(),
       'meta_query' => array(),
       'title' => '',
+      'title_compare' => 'LIKE',
+      'offset' => 0,
     );
 
     $query_args = array_merge($defaults, $args);
     $wheres = array();
     $where_clause = '';
 
-
-    if (!empty($query_args['title'])) {
-      $wheres[] = array(
-        'column' => 'content_title',
-        'value' => sanitize_text_field($query_args['title']),
-        'compare' => 'LIKE'
-      );
+    $title = awm_db_content_title_where($query_args['title'], $query_args['title_compare']);
+    if ($title !== null) {
+      $wheres[] = $title;
     }
 
     if (!empty($query_args['status'])) {
@@ -174,9 +188,59 @@ if (!function_exists('awm_get_db_content')) {
       );
     }
 
-    $results = AWM_DB_Creator::get_db_data($field . '_main', $query_args['fields'], $where_clause, $query_args['order_by'], $query_args['limit'], 0);
+    $results = AWM_DB_Creator::get_db_data($field . '_main', $query_args['fields'], $where_clause, $query_args['order_by'], $query_args['limit'], max(0, (int) $query_args['offset']));
 
     return $results;
+  }
+}
+
+if (!function_exists('awm_db_content_title_where')) {
+  /**
+   * WHERE condition of awm_get_db_content()'s `title` argument.
+   *
+   * @param string|array $title   Title, or `array('value' => string, 'compare' => '='|'LIKE')` (compare defaults to `=`).
+   * @param string       $compare For a string title: `LIKE` (default, the pre-1.11 behaviour) or `=`. Anything else means `LIKE`.
+   * @return array|null Condition on `content_title`, null when no title was given.
+   * @since 1.11.0
+   */
+  function awm_db_content_title_where($title, $compare = 'LIKE')
+  {
+    if (is_array($title)) {
+      $compare = isset($title['compare']) ? $title['compare'] : '=';
+      $title = isset($title['value']) ? $title['value'] : '';
+    }
+    if (!is_scalar($title) || (string) $title === '') {
+      return null;
+    }
+    $compare = strtoupper(trim((string) $compare)) === '=' ? '=' : 'LIKE';
+    return array(
+      'column' => 'content_title',
+      'value' => sanitize_text_field((string) $title),
+      'compare' => $compare,
+    );
+  }
+}
+
+if (!function_exists('ewp_content_ensure_tables')) {
+  /**
+   * Create or upgrade a content type's `{type}_main` / `{type}_data` tables now, outside `admin_init`
+   * (WP-CLI, cron, migrations). Wraps AWM_Add_Content_DB_Setup::ensure_tables().
+   *
+   * @param string $content_type Optional. Content type id (e.g. `flx_booking`); empty for every registered type.
+   * @return bool|array For one type: true when both tables exist afterwards, false for an unknown type or a
+   *                    failed creation. Without a type: content type id => bool.
+   * @since 1.11.0
+   */
+  function ewp_content_ensure_tables($content_type = '')
+  {
+    if (!class_exists('AWM_Add_Content_DB_Setup')) {
+      return $content_type === '' ? array() : false;
+    }
+    $result = AWM_Add_Content_DB_Setup::ensure_tables($content_type);
+    if ((string) $content_type === '') {
+      return $result;
+    }
+    return !empty($result[$content_type]);
   }
 }
 
@@ -369,10 +433,13 @@ if (!function_exists('awm_custom_content_delete')) {
 
 if (!function_exists('awm_main_table_data')) {
   /**
-   * with this function we set the main table to update
-   * @param string $id the object id
-   * @param array $data the data posted to be saved
-   * 
+   * The `{type}_main` row a content save writes: the posted values of the type's columns plus
+   * `modified`, `user_id` (the current user; on updates only when the type has no `keep_user`)
+   * and, for a new row, `created` and `hash`.
+   *
+   * @param string $id   Content type id.
+   * @param array  $data Posted data (`content_id` = 'new' or empty for a new row).
+   * @return array|false { table_data, exclude } after `awm_main_table_data_filter`; false when a required column is missing.
    */
   function awm_main_table_data($id, $data)
   {
@@ -382,6 +449,7 @@ if (!function_exists('awm_main_table_data')) {
       "modified" => current_time('mysql'),
       "user_id" => get_current_user_id(),
     );
+    $is_new = !isset($data['content_id']) || $data['content_id'] === 'new' || !$data['content_id'];
     $exclude = array();
     foreach ($main_data_structure as $key => $conf) {
       if (isset($conf['sql'])) {
@@ -395,10 +463,14 @@ if (!function_exists('awm_main_table_data')) {
         }
       }
     }
-    if ($main_data['content_id'] === 'new' || !$main_data['content_id']) {
+    if ($is_new) {
       $main_data['created'] = current_time('mysql');
       $main_data['hash'] = md5(serialize($main_data));
       unset($main_data['content_id']);
+    }
+    /* keep_user (since 1.11.0): the author is set on insert only; an update leaves the stored user_id alone */
+    if (!$is_new && !empty($setup['keep_user'])) {
+      unset($main_data['user_id']);
     }
     /**
      * Filters the `{type}_main` row a content save writes.
