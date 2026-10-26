@@ -111,7 +111,16 @@ Surface differences are declared in the resource, never in three classes:
   `option_pages[]` names; the CLI defaults to every page and writes
   `--file`.
 - **Content export**: REST answers with the payload encoded as a string
-  (the admin screen downloads it); import answers `true`.
+  (the admin screen downloads it); import answers `true`. Since 1.11.0 every
+  surface takes `page` / `per_page` (1–1000) for one page plus `pagination`;
+  the CLI without them streams every row to `--file` in batches of 500
+  (`export_args()` passes `file` only on the CLI).
+- **Per-type `surfaces`** (since 1.11.0): a content type's registration can
+  route `set-status` / `delete` to its own callables, refuse them, or refuse
+  generic `create` / `update` (`generic_write => false`). The routes, commands
+  and abilities stay registered — the inventory does not change — and the
+  shared `Content_Service` answers `ewp_content_surface_disabled` (403) on
+  all three surfaces alike. The DataViews list hides the refused actions.
 - **Object search**: REST keeps `{success, data}`; abilities get
   `{count, results}`.
 - **Logger surfaces gate themselves**: reads exist only while logging is

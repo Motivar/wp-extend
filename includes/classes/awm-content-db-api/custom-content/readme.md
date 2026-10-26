@@ -169,6 +169,99 @@ CRUD operations are built-in and abstracted for convenience:
   awm_custom_content_delete('my_content_type', array($id));
   ```
 
+### 6a. Querying (`awm_get_db_content()` arguments)
+
+| Argument | Meaning |
+|---|---|
+| `fields` | `*` (default) or a list of `_main` columns. |
+| `limit` / `offset` | Rows to return (`-1` = all) and, since 1.11.0, rows to skip (with a limit) — page through big tables with `order_by => array('column' => 'content_id', 'type' => 'asc')`. |
+| `order_by` | `{ column, type }`, default `created desc`. |
+| `include` / `include_hashes` | Content ids / row hashes. |
+| `status` | One status or a list. |
+| `title` | Title match. A string uses `LIKE` (as always — add `%` yourself); `title_compare => '='` matches exactly (1.11.0). `array('value' => …, 'compare' => '='\|'LIKE')` sets both, compare defaulting to `=`. |
+| `meta_query` | `{ key, value, compare }` conditions plus `relation`, see `docs/custom-tables.md`. |
+
+### 6b. Registration keys (`awm_register_content_db`)
+
+Besides `list_name`, `list_name_singular`, `statuses`, `metaboxes`, `capability`, `version`, `parent`,
+`custom_prefix`, `main_table_data` (extra `_main` columns), `meta_table_data`, `show_new`, `show_delete`,
+`disable_new`, `writable` and `public_read`, a type may set (all since 1.11.0, each defaulting to the
+previous behaviour):
+
+| Key | Default | Effect |
+|---|---|---|
+| `icon_url` | `''` | Menu icon of a top-level list page (`add_menu_page()`; ignored for sub-menus). |
+| `results_per_page` | `50` | Rows per page of the legacy list. |
+| `keep_user` | `false` | `true`: `user_id` is written when a row is created and never overwritten by later saves (the author stays the author). |
+| `surfaces` | see below | Turn generic actions off or route them to the type's own code. |
+
+`surfaces` keys:
+
+| Key | Default | Effect |
+|---|---|---|
+| `duplicate` | `true` | `false` hides Duplicate in both admin lists and makes `Content_Service::duplicate_item()` / the `?action=duplicate` link refuse it. |
+| `set_status` | `null` | `null` = the generic save per row. A callable `fn(int[] $ids, string $status, string $content_type)` replaces it on REST `{prefix}/{type}/status`, `wp ewp content set-status`, `ewp-content/set-status` and the DataViews bulk action; return `{updated: int[], not_found?: int[]}`, `true` or a `WP_Error`. `false` refuses it. |
+| `delete` | `null` | Same for deletes (REST `/delete`, `wp ewp content delete`, `ewp-content/delete-item`, both admin lists, the edit form's Delete link): `fn(int[] $ids, string $content_type)`, called with the ids that exist. `false` refuses it and hides Delete. |
+| `generic_write` | `true` | `false`: `Content_Service::create_item()` / `update_item()` refuse the type, so REST `/create` and `/update/{id}`, `wp ewp content create\|update` and `ewp-content/create-item\|update-item` answer `ewp_content_surface_disabled` (403). The type's own admin form and `awm_custom_content_save()` keep working; bulk set-status follows `set_status`. |
+
+A refused action returns the `WP_Error` `ewp_content_surface_disabled` with status 403.
+
+```php
+add_filter('awm_register_content_db', function ($types) {
+    $types['booking'] = array(
+        'custom_prefix'      => 'flx',
+        'list_name'          => __('Bookings', 'filox'),
+        'list_name_singular' => __('Booking', 'filox'),
+        'capability'         => 'edit_posts',
+        'icon_url'           => 'dashicons-calendar-alt',
+        'results_per_page'   => 30,
+        'keep_user'          => true,
+        'surfaces'           => array(
+            'duplicate'     => false,
+            'set_status'    => array('Filox_Booking_Status', 'bulk_set'), /* runs the booking's own transitions */
+            'delete'        => array('Filox_Booking', 'cancel_many'),     /* soft delete */
+            'generic_write' => false,                                     /* bookings are written by the checkout only */
+        ),
+        'main_table_data'    => array('data' => array(
+            'start_date' => array('sql' => 'date', 'label' => __('Check-in', 'filox')),
+        )),
+        'metaboxes'          => array(/* … */),
+    );
+    return $types;
+});
+```
+
+Rows returned by `Content_Service` (REST, CLI, abilities) carry the type's own `_main` columns under their
+registration key (`start_date` above), next to `id`, `title`, `status`, … and `meta` (since 1.11.0).
+
+### 6c. Creating the tables outside `admin_init`
+
+Tables are created and upgraded on `admin_init`. WP-CLI commands, cron jobs and migrations that run before
+any admin request can create them now (since 1.11.0):
+
+```php
+ewp_content_ensure_tables('flx_booking'); /* true when both tables exist afterwards */
+ewp_content_ensure_tables();              /* every registered type: type id => bool */
+AWM_Add_Content_DB_Setup::ensure_tables('flx_booking'); /* the same, as a static call */
+```
+
+It registers the content types first when `init` has not done it yet, and is a no-op for tables whose
+schema version is already applied.
+
+### 6d. Per-type hooks
+
+The dynamic part `{type}` is the content type id (`flx_booking`):
+
+| Hook | Type | Parameters | Fired |
+|---|---|---|---|
+| `{type}_save_action` | action | `int $object_id`, `array $data` (posted) | `awm_custom_content_save()`, after the row and meta were written, before `ewp_custom_content_save_action` |
+| `{type}_pre_delete_action` | action | `array $ids`, `array $where_clause` (the IN value is an array since 1.6.0) | `awm_custom_content_delete()`, before the `_data` and `_main` rows are deleted |
+| `{type}_after_delete_action` | action | `array $ids`, `array $where_clause` | `awm_custom_content_delete()`, after the delete, before `ewp_custom_content_delete_action` |
+| `{type}_after_duplicate_action` | action | `int $new_id`, `int $id` (original) | `awm_custom_content_duplicate()`, after the copy and its meta were written |
+
+A `surfaces.delete` callable replaces `awm_custom_content_delete()`, so the delete hooks fire only if the
+callable calls it.
+
 ### 7. Admin Interface
 When the custom content type is registered, a new menu item will appear in the WordPress admin. The interface allows users to:
    - View a paginated list of custom content items.

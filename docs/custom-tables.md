@@ -143,9 +143,33 @@ per condition, joined by `relation`; `compare` uses the list above.
 - `total` comes from `AWM_DB_Creator::count_db_data($table, $where)` (cached like reads). A page with
   meta costs three queries: rows, count, one batched meta query.
 
+Paging with `awm_get_db_content()` (since 1.11.0): `limit` + `offset` (rows to skip) with a stable
+`order_by` such as `content_id asc`. Its `title` argument matches with `LIKE` as before; `title_compare =>
+'='` (or `'title' => array('value' => …, 'compare' => '=')`) matches exactly.
+
 Bulk status: `Content_Service::set_status($type, $ids, $status)` — REST `POST {prefix}/{type}/status`,
 `wp ewp content set-status`, ability `ewp-content/set-status` — saves each row through
 `awm_custom_content_save()`, so `{type}_save_action` and `ewp_custom_content_save_action` fire per row.
+A type's `surfaces` registration key (since 1.11.0) can route bulk status and delete to its own callables,
+refuse them, hide / refuse Duplicate and refuse generic create / update — see
+`includes/classes/awm-content-db-api/custom-content/readme.md` ("Registration keys").
+
+### Content type tables outside `admin_init` (since 1.11.0)
+
+A content type's tables are created on `admin_init`. `ewp_content_ensure_tables($type)` (or
+`AWM_Add_Content_DB_Setup::ensure_tables($type)`; no argument = every registered type) creates or upgrades
+them at once — for WP-CLI, cron and migrations — and returns whether both tables exist. `AWM_DB_Creator`
+now forgets a cached "table missing" answer of `check_table_exists()` when it creates the table, so reads
+later in the same request (a CLI migration) find it.
+
+### Exporting large tables (since 1.11.0)
+
+`Content_Portability::export($types, $options)` (REST `GET ewp/v1/export`, `wp ewp content export`,
+ability `ewp-content/export`) reads 500 rows per query, ordered by id, with the read cache off for the
+exported tables and the primed meta dropped after every batch. `page` / `per_page` (1–1000) return one page
+of every type plus `pagination` (`type => {page, per_page, total, total_pages}`); the CLI streams to its
+`--file` batch by batch (`Content_Portability::export_file()`), so a 90k-row table never sits in memory.
+Without options REST and abilities still return every row in one payload.
 
 ### Read cache (since 1.6.2)
 
@@ -213,4 +237,6 @@ Tests: `tests/test-db-creator-schema-lifecycle-test.php`, `tests/test-db-creator
 `tests/test-db-where-test.php`, `tests/test-db-sql-injection-test.php`,
 `tests/test-db-compat-fixtures-test.php` (every WHERE recorded from filox selects the same rows as
 before), `tests/test-db-shadow-test.php`, `tests/test-db-read-cache-test.php` (cache, batched meta,
-`_data` index), `tests/test-content-view-query-test.php` (views, casts, counts, bulk status, legacy list).
+`_data` index), `tests/test-content-view-query-test.php` (views, casts, counts, bulk status, legacy list),
+`tests/test-content-type-surfaces-test.php` (ensure_tables, keep_user, offset / title compare, custom
+columns, `surfaces`, list capabilities, paged / streamed export).
