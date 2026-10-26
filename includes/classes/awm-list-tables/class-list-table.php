@@ -344,15 +344,17 @@ class AWM_List_Table extends WP_List_Table
 
         $actions = array(
             'edit' => sprintf('<a href="' . $this->page_link . '_form&id=%d">%s</a>', $item_id, __('Edit', 'extend-wp')),
-            'duplicate' => sprintf(
+        );
+        if ($this->surface('duplicate') !== false) {
+            $actions['duplicate'] = sprintf(
                 '<a href="%s" class="cstm_tbl_duplicate" id="duplicate-%s-%s">%s</a>',
                 $this->get_nonce_url('duplicate', $item_id, 'row'),
                 esc_attr($item_id),
                 esc_attr($this->list_name),
                 __('Duplicate', 'extend-wp')
-            )
-        );
-        if ($this->show_delete) {
+            );
+        }
+        if ($this->can_delete()) {
             $actions['delete'] = sprintf(
                 '<a href="%s" class="cstm_tbl_delete awm-delete-content-id" id="delete-%s-%s">%s</a>',
                 $this->get_nonce_url('delete', $item_id, 'row'),
@@ -437,10 +439,49 @@ class AWM_List_Table extends WP_List_Table
     function get_bulk_actions()
     {
         $actions = array();
-        if ($this->show_delete) {
+        if ($this->can_delete()) {
             $actions['delete'] = __('Delete', 'extend-wp');
         }
         return $actions;
+    }
+
+    /**
+     * How the list's content type handles a generic action (its `surfaces` registration key).
+     *
+     * @param string $surface `duplicate`, `set_status`, `delete` or `generic_write`.
+     * @return bool|callable|null See Content_Service::get_surface().
+     * @since 1.11.0
+     */
+    private function surface($surface)
+    {
+        $service = new \EWP\Content\Content_Service();
+        return $service->get_surface($this->page_id, $surface);
+    }
+
+    /**
+     * Whether the list offers Delete: `show_delete` is on and the type did not refuse deletes (`surfaces.delete` false).
+     *
+     * @return bool
+     * @since 1.11.0
+     */
+    private function can_delete()
+    {
+        return $this->show_delete && $this->surface('delete') !== false;
+    }
+
+    /**
+     * Admin notice after a row or bulk action.
+     *
+     * @param string $class   `success` or `error`.
+     * @param string $message Plain-text message.
+     * @return void
+     * @since 1.11.0
+     */
+    private function notice($class, $message)
+    {
+        add_action('admin_notices', function () use ($class, $message) {
+            echo '<div class="notice notice-' . esc_attr($class) . ' is-dismissible"><p>' . esc_html($message) . '</p></div>';
+        });
     }
 
     /**
@@ -514,6 +555,12 @@ class AWM_List_Table extends WP_List_Table
             return '';
         }
 
+        // Since 1.11.0 the content type's capability is required too (before only the nonce was checked)
+        $capability = isset($this->_args['ewp_custom_args']['capability']) ? (string) $this->_args['ewp_custom_args']['capability'] : 'manage_options';
+        if (!AWM_Add_Custom_List::user_can($capability)) {
+            wp_die(esc_html__('Sorry, you are not allowed to change these items.', 'extend-wp'), '', array('response' => 403, 'back_link' => true));
+        }
+
         // Determine if this is a row action or bulk action
         // Row actions have a single ID, bulk actions may have multiple IDs
         $is_row_action = isset($_REQUEST['id']) && !is_array($_REQUEST['id']);
@@ -544,22 +591,15 @@ class AWM_List_Table extends WP_List_Table
 
                     // Only proceed if we have valid IDs
                     if (!empty($ids)) {
-                        $result = awm_custom_content_delete($this->_args['ewp_custom_args']['id'], $ids);
+                        // Content_Service, so the type's `surfaces.delete` routes or refuses it (since 1.11.0)
+                        $service = new \EWP\Content\Content_Service();
+                        $result = $service->delete_items($this->_args['ewp_custom_args']['id'], $ids);
 
                         // Display success or failure message
-                        if ($result) {
-                            add_action('admin_notices', function () use ($ids) {
-                                $count = count($ids);
-                                echo '<div class="notice notice-success is-dismissible"><p>' .
-                                    sprintf(__('Items deleted: %d', 'extend-wp'), $count) .
-                                    '</p></div>';
-                            });
+                        if (!is_wp_error($result)) {
+                            $this->notice('success', sprintf(__('Items deleted: %d', 'extend-wp'), $result['count']));
                         } else {
-                            add_action('admin_notices', function () {
-                                echo '<div class="notice notice-error is-dismissible"><p>' .
-                                    __('Failed to delete items.', 'extend-wp') .
-                                    '</p></div>';
-                            });
+                            $this->notice('error', $result->get_error_code() === 'ewp_content_surface_disabled' ? $result->get_error_message() : __('Failed to delete items.', 'extend-wp'));
                         }
                     } else {
                         wp_die(__('Invalid item IDs for deletion.', 'extend-wp'));
@@ -593,21 +633,15 @@ class AWM_List_Table extends WP_List_Table
 
                     // Only proceed if we have a valid ID
                     if ($id > 0) {
-                        $new_id = awm_custom_content_duplicate($this->_args['ewp_custom_args']['id'], $id);
+                        // Content_Service, so a type with `surfaces.duplicate` false refuses it (since 1.11.0)
+                        $service = new \EWP\Content\Content_Service();
+                        $copy = $service->duplicate_item($this->_args['ewp_custom_args']['id'], $id);
 
                         // Display success or failure message
-                        if ($new_id) {
-                            add_action('admin_notices', function () use ($new_id) {
-                                echo '<div class="notice notice-success is-dismissible"><p>' .
-                                    sprintf(__('Item duplicated successfully. New ID: %d', 'extend-wp'), $new_id) .
-                                    '</p></div>';
-                            });
+                        if (!is_wp_error($copy)) {
+                            $this->notice('success', sprintf(__('Item duplicated successfully. New ID: %d', 'extend-wp'), $copy['id']));
                         } else {
-                            add_action('admin_notices', function () {
-                                echo '<div class="notice notice-error is-dismissible"><p>' .
-                                    __('Failed to duplicate item.', 'extend-wp') .
-                                    '</p></div>';
-                            });
+                            $this->notice('error', $copy->get_error_code() === 'ewp_content_surface_disabled' ? $copy->get_error_message() : __('Failed to duplicate item.', 'extend-wp'));
                         }
                     } else {
                         wp_die(__('Invalid item ID for duplication.', 'extend-wp'));

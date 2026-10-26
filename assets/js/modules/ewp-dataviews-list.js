@@ -177,7 +177,9 @@ function DeleteModal( { items, closeModal, onActionPerformed, onDelete } ) {
 }
 
 /**
- * DataViews actions: edit, duplicate, one "set status" per status, delete. Every
+ * DataViews actions: edit, duplicate, one "set status" per status, delete; duplicate,
+ * set status and delete follow the type's `surfaces` (canDuplicate, canSetStatus,
+ * canDelete). Every
  * action has an icon: DataViews 4.15 lists a bulk action in the selection
  * footer only when it has one.
  *
@@ -196,16 +198,18 @@ function buildActions( config, setState ) {
 				window.location.href = config.editUrl + items[ 0 ].id;
 			},
 		},
-		{
+	];
+	if ( config.canDuplicate !== false ) {
+		actions.push( {
 			id: 'duplicate',
 			label: __( 'Duplicate', 'extend-wp' ),
 			icon: copy,
 			callback: ( items ) => {
 				window.location.href = config.duplicateUrl + items[ 0 ].id;
 			},
-		},
-	];
-	if ( config.writable ) {
+		} );
+	}
+	if ( config.canSetStatus ?? config.writable ) {
 		config.statuses.forEach( ( status ) => {
 			actions.push( {
 				id: 'status-' + status.value,
