@@ -95,11 +95,11 @@ final class Content_Portability_Resource extends Resource
                 ->input([
                     Field::array('content_types')->items('string')->required()->cli_name('types')->describe(__('Content type ids to export, comma separated on REST and the CLI.', 'extend-wp')),
                     Field::enum('method', ['json', 'php'])->describe(__('REST only: encode the payload as json (default) or a PHP serialized string.', 'extend-wp')),
-                    Field::string('file')->describe(__('Command line only: write the payload to this path (default ./ewp-content-export.json).', 'extend-wp')),
+                    Field::string('file')->describe(__('Command line only: write the payload to this path (default ./ewp-content-export.json). Rows are streamed to the file in batches, so large tables do not have to fit in memory.', 'extend-wp')),
+                    Field::int('page')->min(1)->describe(__('Optional. Export only this page (from 1) of every type; the payload then carries pagination (type => page, per_page, total, total_pages). Omit for every row. Ignored with the command line file output unless per_page is set too.', 'extend-wp')),
+                    Field::int('per_page')->min(1)->max(Content_Portability::MAX_PER_PAGE)->describe(__('Optional. Rows per page and type for a paged export, 1-1000 (default 500 when page is given).', 'extend-wp')),
                 ])
-                ->args(function (array $input) {
-                    return [(array) $input['content_types']];
-                })
+                ->args([$this, 'export_args'])
                 ->transform([$this, 'export_transform'])
                 ->output(['type' => 'object', 'additionalProperties' => true])
                 ->rest('GET', 'export')
@@ -123,6 +123,32 @@ final class Content_Portability_Resource extends Resource
                 ->cli('import', ['success' => 'Imported %count% row(s) into %content_type%.'])
                 ->ability('import'),
         ];
+    }
+
+    /**
+     * export($content_types, $options): the CLI without a page streams to its file; every other call
+     * passes the page options (never `file`, which only the CLI may set).
+     *
+     * @param array   $input Normalised input.
+     * @param Context $ctx   Invocation context.
+     *
+     * @return array Arguments of Content_Portability::export().
+     *
+     * @since 1.11.0
+     */
+    public function export_args(array $input, Context $ctx)
+    {
+        $options = [];
+        foreach (['page', 'per_page'] as $key) {
+            if (!empty($input[$key])) {
+                $options[$key] = (int) $input[$key];
+            }
+        }
+        if ($ctx->surface() === Context::CLI && $options === []) {
+            $options['file'] = !empty($input['file']) ? (string) $input['file'] : './ewp-content-export.json';
+        }
+
+        return [(array) $input['content_types'], $options];
     }
 
     /**
@@ -196,6 +222,11 @@ final class Content_Portability_Resource extends Resource
      */
     public function present_export($data, array $input, $format)
     {
+        if (isset($data['file'], $data['types'], $data['count'])) {
+            \WP_CLI::success(sprintf('Exported %d row(s) of %d content type(s) to %s.', (int) $data['count'], count((array) $data['types']), $data['file']));
+            return;
+        }
+
         $file = !empty($input['file']) ? (string) $input['file'] : './ewp-content-export.json';
         $json = wp_json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($json === false || file_put_contents($file, $json) === false) {
@@ -203,7 +234,7 @@ final class Content_Portability_Resource extends Resource
             return;
         }
 
-        $types = array_diff(array_keys($data), ['modified']);
+        $types = array_diff(array_keys($data), ['modified', 'pagination']);
         \WP_CLI::success(sprintf('Exported %d content type(s) to %s.', count($types), $file));
     }
 

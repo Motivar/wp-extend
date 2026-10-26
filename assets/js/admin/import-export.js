@@ -41,7 +41,7 @@ async function ewp_init_import_export_button(form) {
             const jsonData = JSON.parse(fileContent);
 
             for (const key of Object.keys(jsonData)) {
-              if (key !== 'modified') {
+              if (key !== 'modified' && key !== 'pagination') {
                 const contentData = jsonData[key];
                 const entries = Object.keys(contentData).length;
                 ewpImportLogLine(logDiv, ['Importing ', { b: entries }, ' entries for ', { b: key }]);
