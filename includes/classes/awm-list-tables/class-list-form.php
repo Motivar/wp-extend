@@ -77,6 +77,13 @@ class AWM_Add_Custom_List
   private $show_delete;
 
   /**
+   * Capability needed to save or delete items on this page (the content type's `capability`).
+   *
+   * @var string
+   */
+  private $capability = 'manage_options';
+
+  /**
    * Hook suffixes of every registered edit form page (`{id}_form`), so other
    * modules can tell these screens apart (EWP_Admin_UI styles their fields).
    *
@@ -159,7 +166,9 @@ class AWM_Add_Custom_List
           // Declare an inline function that calls the handler function with arguments. Inline function uses parameters
           function () use ($args) {
             flx_table_list_page_handler($args);
-          }
+          },
+          /* since 1.11.0: the registration's icon_url reaches the menu */
+          $args['icon_url']
         );
       }
       // Edit page form
@@ -204,6 +213,7 @@ class AWM_Add_Custom_List
       $this->update_metas = isset($args['update_metas']) ? $args['update_metas'] : array();
       $this->page_id = $args['id'];
       $this->show_delete = isset($args['show_delete']) ? $args['show_delete'] : true;
+      $this->capability = !empty($args['capability']) ? (string) $args['capability'] : 'manage_options';
 
       // Create a method to handle parent path validation
       $pre = $this->validateParentPath($args);
@@ -232,10 +242,20 @@ class AWM_Add_Custom_List
   }
 
 
+  /**
+   * Handle the edit form's save and the form's Delete link (`admin_init`).
+   *
+   * Both need the page's nonce and, since 1.11.0, the content type's capability (before only the nonce
+   * was checked). The delete goes through Content_Service::delete_items(), so a type's `surfaces.delete`
+   * routes or refuses it.
+   *
+   * @return void
+   */
   public function save_page()
   {
     /*save function*/
     if (isset($_POST['ewp_list_page_hook_nonce']) && wp_verify_nonce($_POST['ewp_list_page_hook_nonce'], $this->page_hook)) {
+      $this->require_capability();
       $id = awm_custom_content_save($this->custom_id, $_POST);
       if (is_wp_error($id)) {
         echo $id->get_error_message();
@@ -245,10 +265,40 @@ class AWM_Add_Custom_List
       exit;
     }
     if (isset($_REQUEST['_wpnonce']) && wp_verify_nonce($_REQUEST['_wpnonce'], $this->page_id . '_delete') && isset($_REQUEST['id'])) {
-      awm_custom_content_delete($this->custom_id, explode(',', $_REQUEST['id']));
+      $this->require_capability();
+      $service = new \EWP\Content\Content_Service();
+      $result = $service->delete_items($this->custom_id, explode(',', (string) wp_unslash($_REQUEST['id'])));
+      if (is_wp_error($result) && $result->get_error_code() !== 'ewp_abilities_not_found') {
+        wp_die(esc_html($result->get_error_message()), '', array('response' => 403, 'back_link' => true));
+      }
       wp_redirect($this->page_link . '&deleted=1');
       exit;
     }
+  }
+
+  /**
+   * Stop the request unless the current user has the page's capability.
+   *
+   * @return void
+   * @since 1.11.0
+   */
+  private function require_capability()
+  {
+    if (!self::user_can($this->capability)) {
+      wp_die(esc_html__('Sorry, you are not allowed to change these items.', 'extend-wp'), '', array('response' => 403, 'back_link' => true));
+    }
+  }
+
+  /**
+   * Whether the current user may save or delete items guarded by a capability.
+   *
+   * @param string $capability Capability (the content type's `capability`).
+   * @return bool
+   * @since 1.11.0
+   */
+  public static function user_can($capability)
+  {
+    return current_user_can($capability !== '' ? $capability : 'manage_options');
   }
 
   public function on_page_footer()
