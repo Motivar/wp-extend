@@ -56,6 +56,8 @@ ddev exec bash -c "cd wp-content/plugins/wp-extend && WP_CORE_DIR=/var/www/html 
 ddev exec bash -c "cd wp-content/plugins/wp-extend && WP_CORE_DIR=/var/www/html WP_TESTS_DB_HOST=db php lib/mammothwp/wp-self-test/bin/run.php"
 ```
 
+The two lines above assume the docroot is the project root and the site runs as `development`; `composer test` works out both itself (plugin path and `WP_CORE_DIR` from `.ddev/config.yaml`'s `docroot`, `WP_ENVIRONMENT_TYPE=development` for the run). On a `docroot: web` site such as filox-test the manual form is `cd web/wp-content/plugins/wp-extend && WP_ENVIRONMENT_TYPE=development WP_CORE_DIR=/var/www/html/web …`.
+
 Against the live DDEV site instead of the test database: `ddev exec wp mmwp self-test run --cleanup --user=1`. One-time setup: `cd tests && composer install` (own vendor dir, never `lib/`), and the `wp_extend_tests` database (`tests/run-tests.sh` creates it).
 
 ## Testing (required for every code change)

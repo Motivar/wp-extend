@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Tests: `composer test` failed on DDEV sites with a `web/` docroot, without a development environment, or on a fresh test database** (`2026-10-26`):
+  - **Question/Prompt**: "look at why the test suite won't boot on filox-test first, then push" (the 1.10.1 loader fix could not pass the pre-push gate from filox-test).
+  - **Causes** (none in the plugin code):
+    1. `tests/run-tests.sh` built the container path as `wp-content/plugins/<repo>` and `WP_CORE_DIR=/var/www/html`, i.e. assumed the docroot is the project root. On filox-test (`docroot: web`) the toolchain install failed at once.
+    2. The suites need the `mammothwp/wp-self-test` package, which stays off on `production` (package 0.7.0+). The script relied on the site setting `WP_ENVIRONMENT_TYPE=development`; filox-test does not, so the package never booted: 7 errors / 2 failures in PHPUnit (`Class "MammothWP\SelfTest\Self_Test" not found`), and the self-test runner stopped ("did not load the mammothwp/wp-self-test package").
+    3. The built-in content types' tables (`ewp_fields_main`, `ewp_post_types_main`, `ewp_taxonomies_main`, …) are created on `admin_init`, which neither suite fires, and carry no table prefix, so the test installer never drops them. The `typed-content` self-test case passed only on a `wp_extend_tests` that an older run had left them in; on a fresh one its create steps returned "Not saved".
+  - **Now**:
+    - `tests/run-tests.sh` finds the DDEV project root (the nearest `.ddev/config.yaml`, or `DDEV_APPROOT` inside the container) and its `docroot`, and runs the suites with the plugin path relative to it and `WP_CORE_DIR=/var/www/html/<docroot>`. Repos outside a DDEV project keep the old path.
+    - It runs PHPUnit and the self-test runner with `WP_ENVIRONMENT_TYPE=development` unless the caller sets another value. The site's own environment type is not touched.
+    - `tests/bootstrap.php` creates the tables of every registered content type after WordPress boots (`get_table_conf()` + `on_load()`, the same calls `init()` makes, without adding hooks).
+    - `CLAUDE.md`: the manual commands' assumptions and the `docroot: web` form.
+  - **Verified** on filox-test from a dropped `wp_extend_tests`: `composer test` → Jest 9/9, prepared-SQL lint clean, PHPUnit OK (388 tests, 5411 assertions), self-test 15/15 (123 checks).
+  - **Affected files**: `tests/run-tests.sh`, `tests/bootstrap.php`, `CLAUDE.md`.
+  - **Backwards compatibility**: test tooling only. On sites where the docroot is the project root and the environment is development, the commands run exactly as before.
 - **Dynamic Asset Loader: `checkAssets()` / `refresh()` injected every matching script again (1.10.1)** (`2026-10-26`):
   - **Question/Prompt** (from Filox Advanced Search, Phase 2 AJAX renderer): "No go ahead with the Extend WP fixes first" — after the FXA renderer found that a `checkAssets()` call after an AJAX swap re-ran every script of the page (`Identifier 'FiloxDeferredRatesProcessor' has already been declared`).
   - **Cause**: `assets/js/class-dynamic-asset-loader.js` declared `isAssetLoaded()` twice. The later "public API" one, `isAssetLoaded(handle) { return this.loadedAssets.has(handle); }`, replaced the handle+type version added on 2026-05-20, and the set only holds `handle:type` keys, so every asset always read as not loaded. On page load each asset is visited once, so nothing showed; any later `checkAssets()`, `refresh()`, `loadAssetByHandle()` or `forceLoadAsset()` injected the script or stylesheet a second time. Same leftover in two more places: a failed script/style deleted the bare handle (so it stayed marked and was never retried), and `loadCriticalAssets()` tested the bare handle.
