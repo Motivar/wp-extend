@@ -6,6 +6,11 @@
  * Reads the configuration from `data-config` and talks to the type's REST
  * routes: GET `{restPath}/query` (view → rows, total, rendered legacy cells),
  * POST `{restPath}/status` and DELETE `{restPath}/delete`.
+ *
+ * Declared filters (since 1.12.0) live in DataViews' own filter panel: element
+ * filters natively, date / number / text filters through the panel widget that
+ * webpack swaps into the bundled DataViews (ewp-dataviews-list/filter-widget.js).
+ * Links marked `data-ewp-dataviews-view-link="{type}"` follow the current view.
  */
 import { createRoot, useState, useEffect, useMemo, useCallback, RawHTML } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
@@ -18,6 +23,11 @@ import { copy, notAllowed, pencil, published, tag, trash } from '@wordpress/icon
 import '../../css/admin/sass/_ewp-dataviews-list.scss';
 import {
 	queryArgs,
+	requestView,
+	filterSpecs,
+	isInputFilter,
+	inputElements,
+	viewLinkUrl,
 	fieldValue,
 	renderedCell,
 	extraActions,
@@ -76,13 +86,23 @@ function saveView( key, view ) {
 	}
 }
 
+/** Words of the input filter chips. */
+const CHIP_WORDS = { from: __( 'from', 'extend-wp' ), to: __( 'to', 'extend-wp' ) };
+
 /**
  * DataViews field definitions from the PHP configuration.
  *
- * @param {Object} config List configuration.
+ * A field is filterable when it has `elements` (pre-1.12) or declares a `filter`
+ * (select, multiselect, date, number, text; see helpers.js filterSpec()). Input
+ * filters (date, number, text) get one element built from their current value
+ * (inputElements()), so DataViews 4.15 shows them in its panel and labels the chip.
+ *
+ * @param {Object}   config  List configuration.
+ * @param {Object}   specs   Filter specs by field id (filterSpecs()).
+ * @param {Object[]} filters Current view filters.
  * @return {Object[]} Fields.
  */
-function buildFields( config ) {
+function buildFields( config, specs, filters ) {
 	return config.fields.map( ( field ) => {
 		const definition = {
 			id: field.id,
@@ -94,12 +114,45 @@ function buildFields( config ) {
 			getValue: ( { item } ) => fieldValue( item, field ),
 			render: ( { item } ) => renderField( item, field, config ),
 		};
-		if ( field.elements ) {
-			definition.elements = field.elements;
-			definition.filterBy = { operators: field.operators || [ 'isAny', 'isNone' ] };
+		const spec = specs[ field.id ];
+		if ( ! spec ) {
+			return definition;
 		}
+		if ( isInputFilter( spec ) ) {
+			const current = ( filters || [] ).find( ( f ) => f.field === field.id );
+			definition.elements = inputElements( spec, current ? current.value : undefined, CHIP_WORDS );
+			definition.filterBy = { operators: [ 'is' ], isPrimary: spec.isPrimary };
+			return definition;
+		}
+		definition.elements = spec.elements;
+		definition.filterBy = { operators: spec.operators, isPrimary: spec.isPrimary };
 		return definition;
 	} );
+}
+
+/**
+ * Point the links that follow this list's filters (`data-ewp-dataviews-view-link="{type}"`,
+ * e.g. an export button) at the current view, and announce the view with the
+ * `ewp-dataviews-list:view` event on the mount element.
+ *
+ * @param {Element} element Mount element.
+ * @param {string}  type    Content type (config.type).
+ * @param {Object}  request Request view (requestView()).
+ * @return {void}
+ */
+function publishView( element, type, request ) {
+	document.querySelectorAll( '[data-ewp-dataviews-view-link]' ).forEach( ( link ) => {
+		if ( link.dataset.ewpDataviewsViewLink !== type ) {
+			return;
+		}
+		if ( ! link.dataset.ewpDataviewsBaseHref ) {
+			link.dataset.ewpDataviewsBaseHref = link.getAttribute( 'href' ) || '';
+		}
+		link.setAttribute( 'href', viewLinkUrl( link.dataset.ewpDataviewsBaseHref, request ) );
+	} );
+	if ( element ) {
+		element.dispatchEvent( new window.CustomEvent( 'ewp-dataviews-list:view', { bubbles: true, detail: { type, view: request } } ) );
+	}
 }
 
 /**
@@ -240,14 +293,16 @@ function buildActions( config, setState ) {
 /**
  * The list.
  *
- * @param {Object} props        Props.
- * @param {Object} props.config List configuration.
+ * @param {Object}  props         Props.
+ * @param {Object}  props.config  List configuration.
+ * @param {Element} props.element Mount element.
  * @return {Element} List.
  */
-function ContentList( { config } ) {
-	const fields = useMemo( () => buildFields( config ), [ config ] );
-	const fieldIds = useMemo( () => fields.map( ( f ) => f.id ), [ fields ] );
+function ContentList( { config, element } ) {
+	const specs = useMemo( () => filterSpecs( config.fields ), [ config ] );
+	const fieldIds = useMemo( () => config.fields.map( ( f ) => f.id ), [ config ] );
 	const [ view, setView ] = useState( () => restoreView( config.defaultView, loadView( config.storageKey ), fieldIds ) );
+	const fields = useMemo( () => buildFields( config, specs, view.filters ), [ config, specs, view.filters ] );
 	const [ result, setResult ] = useState( { items: [], total: 0, total_pages: 0 } );
 	const [ loading, setLoading ] = useState( true );
 	const [ notice, setNotice ] = useState( null );
@@ -256,7 +311,8 @@ function ContentList( { config } ) {
 	useEffect( () => {
 		let cancelled = false;
 		setLoading( true );
-		apiFetch( { path: addQueryArgs( config.restPath + '/query', queryArgs( view ) ) } )
+		publishView( element, config.type, requestView( view, specs ) );
+		apiFetch( { path: addQueryArgs( config.restPath + '/query', queryArgs( view, specs ) ) } )
 			.then( ( response ) => {
 				if ( ! cancelled ) {
 					setResult( response );
@@ -272,7 +328,7 @@ function ContentList( { config } ) {
 		return () => {
 			cancelled = true;
 		};
-	}, [ view, reload, config.restPath ] );
+	}, [ view, reload, config.restPath, config.type, specs, element ] );
 
 	const onChangeView = useCallback( ( next ) => {
 		setView( next );
@@ -338,7 +394,7 @@ function mount() {
 		}
 		element.dataset.mounted = '1';
 		element.textContent = '';
-		createRoot( element ).render( <ContentList config={ config } /> );
+		createRoot( element ).render( <ContentList config={ config } element={ element } /> );
 		ewpLog( 'Mounted', { type: config.type } );
 	} );
 }

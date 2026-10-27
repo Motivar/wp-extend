@@ -168,6 +168,32 @@ class Test_Content_View_Query extends WP_UnitTestCase
     }
 
     /**
+     * The conditions the DataViews panel sends for declared filters (since 1.12.0): a date range on a datetime
+     * column (a date-only upper bound covers its whole day), number ranges, `contains` on a column.
+     *
+     * @return void
+     */
+    public function test_declared_filter_conditions()
+    {
+        $ids  = $this->seed();
+        $sort = array('field' => 'title', 'direction' => 'asc');
+        $row  = awm_get_db_content(self::$type, array('include' => array($ids['Apple'])));
+        $day  = substr((string) $row[0]['created'], 0, 10);
+        $next = gmdate('Y-m-d', strtotime($day . ' +1 day'));
+
+        $this->assertSame(array('Apple', 'Banana', 'Cherry'), $this->titles(array('sort' => $sort, 'filters' => array(array('field' => 'created', 'operator' => 'between', 'value' => array($day, $day))))), 'a one-day range includes rows created during that day');
+        $this->assertSame(array('Apple', 'Banana', 'Cherry'), $this->titles(array('sort' => $sort, 'filters' => array(array('field' => 'created', 'operator' => 'beforeInc', 'value' => $day)))), 'a date-only upper bound covers the day');
+        $this->assertSame(array(), $this->titles(array('sort' => $sort, 'filters' => array(array('field' => 'created', 'operator' => 'afterInc', 'value' => $next)))));
+        $this->assertSame(array('Banana', 'Cherry'), $this->titles(array('sort' => $sort, 'filters' => array(array('field' => 'price', 'operator' => 'between', 'value' => array(10, 100))))));
+        $this->assertSame(array('Cherry'), $this->titles(array('sort' => $sort, 'filters' => array(array('field' => 'price', 'operator' => 'greaterThanOrEqual', 'value' => 11)))));
+        $this->assertSame(array('Apple', 'Banana'), $this->titles(array('sort' => $sort, 'filters' => array(array('field' => 'price', 'operator' => 'lessThanOrEqual', 'value' => 10)))));
+        $this->assertSame(array('Banana'), $this->titles(array('sort' => $sort, 'filters' => array(array('field' => 'title', 'operator' => 'contains', 'value' => 'nan')))));
+
+        $parts = View_Query::build(self::$type, array('filters' => array(array('field' => 'created', 'operator' => 'beforeInc', 'value' => '2026-01-31 10:00:00'))), $this->service->view_fields(self::$type));
+        $this->assertSame('2026-01-31 10:00:00', $parts['where']['clause'][0]['value'], 'a bound with a time is kept');
+    }
+
+    /**
      * Search covers the title, searchable meta and a numeric id, ANDed with filters.
      *
      * @return void
