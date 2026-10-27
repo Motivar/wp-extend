@@ -14,22 +14,29 @@
   --ewp-dataviews-gap: 16px;
   --ewp-dataviews-muted: #646970;
   --ewp-dataviews-actions-gap: 8px;
-  --ewp-dataviews-filter-width: 280px;
   --ewp-dataviews-filter-padding: 12px;
 }
 
 // Input filters (date / number / text) in DataViews' filter popover (ewp-dataviews-list/filter-widget.js).
+// The popover is 230px wide (DataViews), so the inputs stack and never overflow it.
 .ewp-dataviews-filter {
   display: flex;
   flex-direction: column;
   gap: var(--ewp-dataviews-actions-gap);
-  width: var(--ewp-dataviews-filter-width);
+  width: 100%;
+  box-sizing: border-box;
   padding: var(--ewp-dataviews-filter-padding);
 
   &__range {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--ewp-dataviews-actions-gap);
+  }
+
+  input,
+  select {
+    min-width: 0;
+    max-width: 100%;
   }
 
   &__actions {
