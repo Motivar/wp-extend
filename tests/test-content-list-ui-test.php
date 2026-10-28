@@ -184,6 +184,40 @@ class Test_Content_List_UI extends WP_UnitTestCase
     }
 
     /**
+     * `multiple` selects (since 1.13.0): list operators only, flagged `multiple`; single selects stay single.
+     *
+     * @return void
+     */
+    public function test_multiple_select_filters()
+    {
+        $elements = array('a' => 'A', 'b' => 'B');
+        $multiple = EWP_Content_List_UI::normalize_filter('product', array('type' => 'select', 'multiple' => true, 'elements' => $elements));
+        $this->assertSame(array('isAny', 'isNone'), $multiple['operators']);
+        $this->assertTrue($multiple['multiple']);
+
+        $single = EWP_Content_List_UI::normalize_filter('product', array('type' => 'select', 'elements' => $elements));
+        $this->assertSame(array('is', 'isNot'), $single['operators']);
+        $this->assertFalse($single['multiple']);
+
+        $implied = EWP_Content_List_UI::normalize_filter('product', array('type' => 'select', 'operators' => array('isAny'), 'elements' => $elements));
+        $this->assertSame(array('isAny'), $implied['operators'], 'list operators alone make a select multiple');
+        $this->assertTrue($implied['multiple']);
+
+        $mixed = EWP_Content_List_UI::normalize_filter('product', array('type' => 'select', 'multiple' => true, 'operators' => array('is', 'isNone'), 'elements' => $elements));
+        $this->assertSame(array('isNone'), $mixed['operators'], 'DataViews cannot mix single and list operators: a multiple select keeps its list ones');
+
+        $this->assertSame(array('isAny', 'isNone'), EWP_Content_List_UI::filter_operators('multiselect', array()));
+        $this->assertSame(array('is', 'isNot'), EWP_Content_List_UI::filter_operators('select', array('operators' => array('isAll'))));
+
+        $values = EWP_Content_List_UI::declared_values(self::$type, array('list_filters' => array(
+            'status' => array('type' => 'select', 'multiple' => true, 'elements' => array('enabled' => 'Enabled')),
+            'pick'   => array('type' => 'multiselect', 'field' => 'colour', 'elements' => array(array('value' => 'red', 'label' => 'Red'))),
+            'when'   => array('type' => 'date'),
+        )));
+        $this->assertSame(array('status' => array('enabled'), 'colour' => array('red')), $values, 'element filters allowlist their target field, input filters nothing');
+    }
+
+    /**
      * The module configuration carries the REST path, URLs, statuses and a default view of known fields.
      *
      * @return void

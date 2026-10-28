@@ -11,6 +11,7 @@
  * filters natively, date / number / text filters through the panel widget that
  * webpack swaps into the bundled DataViews (ewp-dataviews-list/filter-widget.js).
  * Links marked `data-ewp-dataviews-view-link="{type}"` follow the current view.
+ * Only one filter popover is open at a time (since 1.13.0, ewp-dataviews-list/single-popover.js).
  */
 import { createRoot, useState, useEffect, useMemo, useCallback, RawHTML } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
@@ -33,8 +34,10 @@ import {
 	extraActions,
 	displayValue,
 	restoreView,
+	fitViewFilters,
 	statusIcon,
 } from './ewp-dataviews-list/helpers';
+import { installSinglePopover } from './ewp-dataviews-list/single-popover';
 
 /** Icons of the status actions, by statusIcon() key. */
 const STATUS_ICONS = { published, notAllowed, tag };
@@ -301,7 +304,11 @@ function buildActions( config, setState ) {
 function ContentList( { config, element } ) {
 	const specs = useMemo( () => filterSpecs( config.fields ), [ config ] );
 	const fieldIds = useMemo( () => config.fields.map( ( f ) => f.id ), [ config ] );
-	const [ view, setView ] = useState( () => restoreView( config.defaultView, loadView( config.storageKey ), fieldIds ) );
+	const [ view, setView ] = useState( () => {
+		const restored = restoreView( config.defaultView, loadView( config.storageKey ), fieldIds );
+		// Saved / linked filters from before a filter became multi-select (since 1.13.0).
+		return { ...restored, filters: fitViewFilters( restored.filters, specs ) };
+	} );
 	const fields = useMemo( () => buildFields( config, specs, view.filters ), [ config, specs, view.filters ] );
 	const [ result, setResult ] = useState( { items: [], total: 0, total_pages: 0 } );
 	const [ loading, setLoading ] = useState( true );
@@ -384,6 +391,7 @@ function ContentList( { config, element } ) {
  * @return {void}
  */
 function mount() {
+	installSinglePopover( document );
 	document.querySelectorAll( '.ewp-dataviews-list:not([data-mounted])' ).forEach( ( element ) => {
 		let config;
 		try {

@@ -194,6 +194,52 @@ class Test_Content_View_Query extends WP_UnitTestCase
     }
 
     /**
+     * Multi-select (since 1.13.0): `isAny` / `isNone` with several values on a column and on meta, the
+     * declared filter's element values as an allowlist, and the cap on list values.
+     *
+     * @return void
+     */
+    public function test_multiselect_conditions()
+    {
+        $this->seed();
+        $sort = array('field' => 'title', 'direction' => 'asc');
+        $cond = function ($field, $operator, $value) use ($sort) {
+            return array('sort' => $sort, 'filters' => array(array('field' => $field, 'operator' => $operator, 'value' => $value)));
+        };
+
+        $this->assertSame(array('Apple', 'Cherry'), $this->titles($cond('title', 'isAny', array('Apple', 'Cherry'))), 'column IN');
+        $this->assertSame(array('Banana', 'Cherry'), $this->titles($cond('title', 'isNone', array('Apple'))), 'column NOT IN');
+        $this->assertSame(array('Apple', 'Cherry'), $this->titles($cond('example_field', 'isAny', array('red fruit', 'red stone'))), 'meta IN');
+        $this->assertSame(array('Banana', 'Cherry'), $this->titles($cond('example_field', 'isNone', array('red fruit'))), 'meta NOT IN');
+
+        $parts = View_Query::build(self::$type, $cond('title', 'isAny', array('Apple', "x' OR 1=1 -- ")), $this->service->view_fields(self::$type));
+        $this->assertSame(array('column' => 'content_title', 'compare' => 'IN', 'value' => array('Apple', "x' OR 1=1 -- ")), $parts['where']['clause'][0], 'values stay bound values');
+        $sql = Where::build($parts['where'], array('content_title' => 'content_title'));
+        $this->assertStringContainsString('IN (%s, %s)', str_replace('%s,%s', '%s, %s', $sql['sql']), 'one placeholder per value');
+        $this->assertSame(array('content_title', 'Apple', "x' OR 1=1 -- "), $sql['values']);
+
+        $too_many = $this->service->query_items(self::$type, $cond('title', 'isAny', array_map('strval', range(1, View_Query::MAX_VALUES + 1))), false);
+        $this->assertSame(400, $too_many->get_error_data()['status'], 'more than MAX_VALUES values is a 400');
+
+        $declare = function ($filters, $type) {
+            return $type === self::$type ? array_merge($filters, array('title' => array('type' => 'select', 'multiple' => true, 'elements' => array('Apple' => 'Apple', 'Banana' => 'Banana')))) : $filters;
+        };
+        add_filter('ewp_content_list_filters', $declare, 10, 2);
+        $fields  = $this->service->view_fields(self::$type);
+        $allowed = $this->service->query_items(self::$type, $cond('title', 'isAny', array('Apple', 'Banana')), false);
+        $refused = $this->service->query_items(self::$type, $cond('title', 'isNone', array('Apple', 'Cherry')), false);
+        $search  = $this->service->query_items(self::$type, array('sort' => $sort, 'filters' => array(array('field' => 'title', 'operator' => 'contains', 'value' => 'Cher'))), false);
+        remove_filter('ewp_content_list_filters', $declare, 10);
+
+        $this->assertSame(array('Apple', 'Banana'), $fields['title']['values'], 'the declared elements are the field allowlist');
+        $this->assertSame(array('Apple', 'Banana'), array_column($allowed['items'], 'title'));
+        $this->assertWPError($refused, 'a value the declared filter does not offer is refused');
+        $this->assertSame(400, $refused->get_error_data()['status']);
+        $this->assertSame(array('Cherry'), array_column($search['items'], 'title'), 'operators that do not pick elements are not restricted');
+        $this->assertArrayNotHasKey('values', $this->service->view_fields(self::$type)['title'], 'nothing is restricted without a declaration');
+    }
+
+    /**
      * Search covers the title, searchable meta and a numeric id, ANDed with filters.
      *
      * @return void

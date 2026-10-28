@@ -20,6 +20,8 @@ import {
 	inputElements,
 	withFilterValue,
 	viewLinkUrl,
+	fitElementFilter,
+	fitViewFilters,
 	NO_VALUE,
 } from '../helpers';
 
@@ -223,6 +225,44 @@ describe( 'restoreView with page filters', () => {
 		const view = restoreView( defaults, { filters: [ { field: 'status', operator: 'isAny', value: [ 'disabled' ] } ] }, [ 'status' ] );
 		expect( view.filters ).toEqual( defaults.filters );
 		expect( view.search ).toBe( 'B-1' );
+	} );
+} );
+
+describe( 'multi-select filters (1.13.0)', () => {
+	const elements = [ { value: '11', label: 'Villa A' }, { value: '12', label: 'Villa B' } ];
+	const multiple = filterSpec( { id: 'product', label: 'Product', filter: { type: 'select', multiple: true, elements } } );
+	const single = filterSpec( { id: 'venue', label: 'Venue', filter: { type: 'select', elements } } );
+
+	it( 'gives a `multiple` select the isAny / isNone operators', () => {
+		expect( multiple.operators ).toEqual( [ 'isAny', 'isNone' ] );
+		expect( single.operators ).toEqual( [ 'is', 'isNot' ] );
+		expect( filterSpec( { id: 'p', filter: { type: 'select', multiple: true, operators: [ 'isNone' ], elements } } ).operators ).toEqual( [ 'isNone' ] );
+	} );
+
+	it( 'sends several values as one isAny / isNone condition', () => {
+		const specs = { product: multiple };
+		expect( requestFilters( [ { field: 'product', operator: 'isAny', value: [ '11', '12' ] } ], specs ) ).toEqual( [ { field: 'product', operator: 'isAny', value: [ '11', '12' ] } ] );
+		expect( requestFilters( [ { field: 'product', operator: 'isNone', value: [ '12' ] } ], specs ) ).toEqual( [ { field: 'product', operator: 'isNone', value: [ '12' ] } ] );
+	} );
+
+	it( 'turns a saved single value into a list (old views and links keep working)', () => {
+		expect( fitElementFilter( { field: 'product', operator: 'is', value: '12' }, multiple ) ).toEqual( { field: 'product', operator: 'isAny', value: [ '12' ] } );
+		expect( fitElementFilter( { field: 'product', operator: 'isNot', value: 12 }, multiple ) ).toEqual( { field: 'product', operator: 'isNone', value: [ '12' ] } );
+		expect( fitElementFilter( { field: 'product', operator: 'is', value: undefined }, multiple ) ).toEqual( { field: 'product', operator: 'isAny', value: undefined } );
+		expect( requestFilters( [ { field: 'product', operator: 'is', value: '12' } ], { product: multiple } ) ).toEqual( [ { field: 'product', operator: 'isAny', value: [ '12' ] } ] );
+	} );
+
+	it( 'keeps the first value when a list reaches a single-value filter', () => {
+		expect( fitElementFilter( { field: 'venue', operator: 'isAny', value: [ '11', '12' ] }, single ) ).toEqual( { field: 'venue', operator: 'is', value: '11' } );
+	} );
+
+	it( 'leaves matching, input and unknown filters alone', () => {
+		const ok = { field: 'product', operator: 'isAny', value: [ '11' ] };
+		expect( fitElementFilter( ok, multiple ) ).toBe( ok );
+		const range = { field: 'total', operator: 'is', value: '{"from":"1"}' };
+		expect( fitElementFilter( range, filterSpec( { id: 'total', label: 'Total', filter: { type: 'number' } } ) ) ).toBe( range );
+		expect( fitViewFilters( [ ok, { field: 'other', operator: 'is', value: 'x' } ], { product: multiple } ) ).toEqual( [ ok, { field: 'other', operator: 'is', value: 'x' } ] );
+		expect( fitViewFilters( undefined, {} ) ).toEqual( [] );
 	} );
 } );
 
