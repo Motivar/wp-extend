@@ -26,6 +26,7 @@ Wp-extend is a powerful library designed to simplify WordPress development by pr
 - **Admin Interface**
   - Custom admin messages system
   - Dynamic list table creation
+  - DataViews admin lists for custom content types, with declared filters (select, date / number ranges, text) in the toolbar filter panel ([docs/content-list-dataviews.md](docs/content-list-dataviews.md))
   - Enhanced admin UI components
 
 - **API Integration**

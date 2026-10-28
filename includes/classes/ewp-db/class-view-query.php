@@ -176,6 +176,7 @@ final class View_Query
         if (in_array(isset($field['type']) ? $field['type'] : '', array('integer'), true)) {
             $vals = array_map('intval', $vals);
         }
+        $vals = self::end_of_day($field, $operator, $vals);
         if ($list) {
             return $vals;
         }
@@ -183,6 +184,29 @@ final class View_Query
             throw new Invalid_Where('Operator "' . $operator . '" takes one value.');
         }
         return $vals[0];
+    }
+
+    /**
+     * A date-only upper bound (`beforeInc`, the second value of `between`) on a date / datetime field covers
+     * that whole day: `2026-01-31` becomes `2026-01-31 23:59:59`, so a range picked with day inputs includes
+     * rows created during its last day. Since 1.12.0.
+     *
+     * @param array  $field    Field definition.
+     * @param string $operator Positive operator.
+     * @param array  $vals     Values.
+     * @return array Values.
+     */
+    private static function end_of_day(array $field, $operator, array $vals)
+    {
+        $type  = isset($field['type']) ? $field['type'] : '';
+        $index = $operator === 'between' ? 1 : ($operator === 'beforeInc' ? 0 : null);
+        if ($index === null || !in_array($type, array('date', 'datetime'), true) || !isset($vals[$index])) {
+            return $vals;
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $vals[$index])) {
+            $vals[$index] .= ' 23:59:59';
+        }
+        return $vals;
     }
 
     /**

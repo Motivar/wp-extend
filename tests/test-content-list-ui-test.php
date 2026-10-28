@@ -137,6 +137,53 @@ class Test_Content_List_UI extends WP_UnitTestCase
     }
 
     /**
+     * Declared filters (since 1.12.0): `list_filters` and `ewp_content_list_filters` attach a normalised `filter`
+     * to a column or add a filter-only field; anything outside the view fields or of an unknown type is dropped.
+     *
+     * @return void
+     */
+    public function test_declared_filters()
+    {
+        $declare = function ($filters, $type) {
+            if ($type !== self::$type) {
+                return $filters;
+            }
+            return array_merge($filters, array(
+                'created' => array('type' => 'date'),
+                'when'    => array('type' => 'date', 'label' => 'When', 'fields' => array('created' => 'Created', 'modified' => 'Modified', 'nope' => 'Nope')),
+                'colour'  => array('type' => 'select', 'elements' => array(array('value' => 'red', 'label' => 'Red')), 'operators' => array('is', 'isAll'), 'isPrimary' => true),
+                'title'   => array('type' => 'text'),
+                'ghost'   => array('type' => 'number'),
+                'odd'     => array('type' => 'colour', 'field' => 'title'),
+                'empty'   => array('type' => 'multiselect', 'field' => 'status'),
+            ));
+        };
+        add_filter('ewp_content_list_filters', $declare, 10, 2);
+        $fields = EWP_Content_List_UI::fields(self::$type, $this->args());
+        remove_filter('ewp_content_list_filters', $declare, 10);
+        $by_id = array_column($fields, null, 'id');
+
+        $this->assertSame(array('type' => 'date', 'field' => 'created', 'fields' => array(), 'isPrimary' => false), $by_id['created']['filter']);
+        $this->assertSame(array('created', 'modified'), array_column($by_id['when']['filter']['fields'], 'value'), 'range targets outside the view fields are dropped');
+        $this->assertTrue($by_id['when']['hidden'], 'an id that is not a column becomes a filter-only field');
+        $this->assertFalse($by_id['when']['enableHiding']);
+        $this->assertSame('When', $by_id['when']['label']);
+        $this->assertSame(array('is'), $by_id['colour']['filter']['operators'], 'operators outside the type allowlist are dropped');
+        $this->assertTrue($by_id['colour']['filter']['isPrimary']);
+        $this->assertSame('text', $by_id['title']['filter']['type']);
+        $this->assertArrayNotHasKey('ghost', $by_id, 'a filter on an unknown view field is dropped');
+        $this->assertArrayNotHasKey('odd', $by_id, 'an unknown type is dropped');
+        $this->assertArrayNotHasKey('empty', $by_id, 'an element filter without elements is dropped');
+
+        $plain = array_column(EWP_Content_List_UI::fields(self::$type, $this->args()), null, 'id');
+        $this->assertArrayNotHasKey('filter', $plain['created'], 'nothing changes for a type without declarations');
+        $this->assertSame(array('isAny', 'isNone'), $plain['status']['operators']);
+
+        $own = EWP_Content_List_UI::normalize_filter('total', array('type' => 'number', 'fields' => array(array('value' => 'total', 'label' => 'Total'))));
+        $this->assertSame('total', $own['fields'][0]['value'], 'without a view field map (own REST adapter) nothing is checked');
+    }
+
+    /**
      * The module configuration carries the REST path, URLs, statuses and a default view of known fields.
      *
      * @return void

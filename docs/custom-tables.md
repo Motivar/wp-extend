@@ -135,7 +135,9 @@ per condition, joined by `relation`; `compare` uses the list above.
   `lessThanOrEqual` `greaterThanOrEqual` `before` `after` `beforeInc` `afterInc` `between` `contains`
   `notContains` `startsWith`. Negations on meta keep items that do not have the key. `isAll` /
   `isNotAll` match a plain value or a serialised list (checkbox-multiple) containing it. A filter
-  without a value is ignored.
+  without a value is ignored. Since 1.12.0 a date-only upper bound (`beforeInc`, the second value of
+  `between`) on a `date` / `datetime` field means the end of that day (`2026-01-31 23:59:59`). The
+  DataViews list's declared filters send exactly these conditions (`docs/content-list-dataviews.md`).
 - **Search**: title and other searchable columns, searchable (text) meta values, and the id for a
   numeric term — LIKE-escaped, ANDed with the filters.
 - **Refused with 400**: unknown field or operator, a list where one value is expected, `between`

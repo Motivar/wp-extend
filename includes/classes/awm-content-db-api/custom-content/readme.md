@@ -194,6 +194,7 @@ previous behaviour):
 | `results_per_page` | `50` | Rows per page of the legacy list. |
 | `keep_user` | `false` | `true`: `user_id` is written when a row is created and never overwritten by later saves (the author stays the author). |
 | `surfaces` | see below | Turn generic actions off or route them to the type's own code. |
+| `list_filters` | `array()` | Since 1.12.0: filters of the DataViews list's filter panel (select, multiselect, date / number ranges, text), keyed by field id; see `docs/content-list-dataviews.md` ("Filters"). Also `ewp_content_list_filters`. |
 
 `surfaces` keys:
 

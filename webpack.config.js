@@ -8,7 +8,20 @@
 const path = require('path');
 const fs = require('fs');
 const defaultConfig = require("@wordpress/scripts/config/webpack.config");
+const webpack = require('webpack');
 const { version } = require('./package.json');
+
+/**
+ * DataViews' internal filter popover widget, replaced by our own (which renders the original for
+ * element filters and inputs for date / number / text filters). Pinned to the bundled
+ * @wordpress/dataviews 4.15.4: the build fails if the file moves, so a DataViews upgrade has to
+ * revisit assets/js/modules/ewp-dataviews-list/filter-widget.js (see docs/content-list-dataviews.md).
+ */
+const DATAVIEWS_BUILD = path.resolve(__dirname, 'node_modules/@wordpress/dataviews/build-module');
+const DATAVIEWS_FILTER_WIDGET = path.join(DATAVIEWS_BUILD, 'components/dataviews-filters/search-widget.js');
+if (!fs.existsSync(DATAVIEWS_FILTER_WIDGET)) {
+  throw new Error('DataViews filter widget not found at ' + DATAVIEWS_FILTER_WIDGET + ': check the @wordpress/dataviews version (filter-widget.js replaces it).');
+}
 
 /**
  * Webpack plugin that emits build/version.php during every build.
@@ -54,6 +67,11 @@ module.exports = {
   plugins: [
     ...(defaultConfig.plugins || []),
     new EmitVersionPhpPlugin(),
+    // Swap DataViews' filter popover widget for ours (the original is imported back with `?ewp-original`).
+    new webpack.NormalModuleReplacementPlugin(
+      /[\\/]@wordpress[\\/]dataviews[\\/]build-module[\\/]components[\\/]dataviews-filters[\\/]search-widget\.js$/,
+      path.resolve(__dirname, 'assets/js/modules/ewp-dataviews-list/filter-widget.js')
+    ),
   ],
  entry: {
   index: path.resolve(__dirname, 'src/index.js'),
@@ -75,6 +93,8 @@ module.exports = {
     alias: {
       ...defaultConfig.resolve?.alias,
       '@modules': path.resolve(__dirname, 'assets/js/modules'),
+      // DataViews internals (not in the package's `exports`), for filter-widget.js.
+      '@ewp-dataviews-build': DATAVIEWS_BUILD,
     },
   },
   optimization: {
