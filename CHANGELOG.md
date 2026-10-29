@@ -8,6 +8,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Field engine, phase 3: every remaining field case as a type + template; legacy switch removed** (`2026-10-29`):
+  - **Question/Prompt**: "Start Phase 3".
+  - **Snapshot coverage**: new fixtures for `function`, empty `message`, a `button` with a leading-underscore key, `awm_gallery`, `image` (stored and empty), `map`, `section` (plain and `keep_inputs`), `awm_tab`, `repeater` (stored rows with row titles, `minrows`, `no_template` + `hide_buttons`, `prePopulated`), `awm_modal` (with and without `include`) and `object_id_filter` (saved type and an unresolvable saved id), in all 7 views. That makes 336 snapshots. The modal's per-run `data-object-id` is normalised. Recording them showed two existing bugs that this change leaves alone: a `function` field whose callback does not exist fatals in `awm_resolve_field_options()`, and a label-less field raises an undefined-key warning in the term-row wrapper of `awm_show_content()`.
+  - **Engine**:
+    - `Field_Output::without_meta_marker()` / `has_meta_marker()`: a type can drop the automatic `awm_custom_meta[]` save marker (the modal saves through REST; the object picker posts its own two markers).
+    - `Field_Context` gains a last `$context_id` parameter and `context_id()`: the options page id passed to `awm_show_content()`, needed by the modal.
+  - **Nested and stateful types** (`includes/classes/ewp-field-engine/types/`, templates in `templates/fields/`):
+    - `Section_Field` → `section.php`.
+    - `Tab_Field` → `tabs.php`.
+    - `Repeater_Field` → `repeater.php`, `repeater-row.php`, `repeater-actions.php`. `awm_repeater_content()` becomes a wrapper around `Repeater_Field::row()`, and `awm_show_actions_html` still receives the same six arguments (the `sync` plugin hooks it).
+    - `Modal_Field` → `modal.php`.
+    - `Object_Id_Filter_Field` → `object-id-filter.php`.
+    - Nested fields still render through `awm_show_content()`.
+  - **Leaf types**:
+    - `Message_Field`, `Callback_Field` and `Gallery_Field` share `message-box.php`.
+    - `Button_Field` → `button.php`, `Image_Field` → `image.php`, `Map_Field` → `map.php`.
+    - `Media_Field_Renderer` (`class-media-field-renderer.php`, template `media.php`) now backs `awm_media_field_html()`, which keeps its signature and still applies `awm_media_field_html_filter` with the same arguments.
+    - Message bodies and `function` callback output stay raw, as before. They are developer markup that may contain form elements and scripts, which `wp_kses_post()` would strip.
+    - The map placeholder uses the `extend-wp` text domain instead of `awm`.
+  - **Legacy switch removed**: `awm_show_content()` now only prepares fields and dispatches through `Field_Registry`. The `$is_modal_field` special case is gone, because `Modal_Field` returns `without_meta_marker()`. An unknown case still renders nothing inside the row wrapper. `library.php` is down from 2,698 to about 2,080 lines.
+  - **HOOKS.md**:
+    - New row for `awm_show_actions_html`, now fired in `Repeater_Field`.
+    - `awm_media_field_html_filter` and `awm_modal_field_args` now point to where they fire.
+  - **Behaviour changes** (none visible in the snapshots):
+    - `awm_tab` with a tab `callback` + `callback_variables` read the callback from an undefined `$data` and failed. It now calls the tab's own callback with its variables.
+    - `awm_modal_field_args` fired after the modal title, button label, class and view were read, so it could change nothing. It now fires first. Nothing in this workspace hooks it.
+    - Labels, titles and item names that were echoed raw now pass through `wp_kses_post()`, and ids and values through `esc_attr()`.
+  - **Tests**:
+    - New `tests/test-field-nested-types-test.php` and `tests/test-field-leaf-types-test.php`.
+    - `tests/test-field-engine-test.php` now uses an unknown case as its unmigrated example.
+    - The `object_id_filter` fixture pins its type lists, because a post type registered by an earlier test leaked into it during the full run.
+    - Verification: all 336 snapshots are byte-identical to the baseline recorded with the legacy code. PHPUnit: 429 tests, OK, 1 skipped (as before). Self-test: 15/15.
+  - **Files**:
+    - `includes/classes/ewp-field-engine/`: `class-field-output.php`, `class-field-context.php`, `class-field-registry.php`, `init.php`, `README.md`, new `class-media-field-renderer.php`, new `types/class-{message,callback,gallery,button,image,map,section,tab,repeater,modal,object-id-filter}-field.php`
+    - new `templates/fields/{message-box,button,image,map,media,section,tabs,repeater,repeater-row,repeater-actions,modal,object-id-filter}.php`
+    - `includes/functions/library.php`, `HOOKS.md`, `CLAUDE.md`
+    - tests and `tests/fixtures/field-snapshots/`
+  - **Backwards compatibility**:
+    - `awm_show_content()`, `awm_media_field_html()` and `awm_repeater_content()` keep their signatures.
+    - Every filter fires with the same arguments. The one exception is `awm_modal_field_args`, which now fires earlier so that its result takes effect.
+    - The markup is unchanged for the snapshot fixtures. Values containing quotes or HTML in ids, labels and item names are now escaped or kses'd where they were echoed raw.
+    - Inline handlers (tabs, repeater actions, map search) are kept, because the admin scripts call them. Moving them to delegated listeners is a separate JS change.
 - **Field engine, phase 2: textarea, select, radio and checkbox_multiple as templates** (`2026-10-29`):
   - **Question/Prompt**: "Start Phase 2".
   - **`Field_Output` (new, `includes/classes/ewp-field-engine/class-field-output.php`)**: `Field_Type::render()` now returns an immutable `Field_Output` instead of a string. It carries the field's HTML and its effect on the view's row wrapper: `without_wrapper()`, `with_wrapper_classes()`, `with_wrapper_attributes()` and `suppressed()` (render nothing). These map onto `$display_wrapper`, `$label_class`, `$label_attrs` and `$stop` in `awm_show_content()`. `Field_Type::has_wrapper()` is removed. Cases that change their row wrapper (textarea's `awm-cls-100`, checkbox_multiple's exclusive mode, select suppressed in list-table filters) need this, and `has_wrapper()` could not express it. `Input_Field` and the engine tests are updated; the snapshots are unchanged.

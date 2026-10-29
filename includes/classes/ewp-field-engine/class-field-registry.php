@@ -2,8 +2,19 @@
 
 namespace EWP\Fields;
 
+use EWP\Fields\Types\Button_Field;
+use EWP\Fields\Types\Callback_Field;
 use EWP\Fields\Types\Checkbox_Multiple_Field;
+use EWP\Fields\Types\Gallery_Field;
+use EWP\Fields\Types\Image_Field;
 use EWP\Fields\Types\Input_Field;
+use EWP\Fields\Types\Map_Field;
+use EWP\Fields\Types\Message_Field;
+use EWP\Fields\Types\Modal_Field;
+use EWP\Fields\Types\Object_Id_Filter_Field;
+use EWP\Fields\Types\Repeater_Field;
+use EWP\Fields\Types\Section_Field;
+use EWP\Fields\Types\Tab_Field;
 use EWP\Fields\Types\Radio_Field;
 use EWP\Fields\Types\Select_Field;
 use EWP\Fields\Types\Textarea_Field;
@@ -107,6 +118,17 @@ final class Field_Registry
         $this->register(new Select_Field($this->templates));
         $this->register(new Radio_Field($this->templates));
         $this->register(new Checkbox_Multiple_Field($this->templates));
+        $this->register(new Message_Field($this->templates));
+        $this->register(new Callback_Field($this->templates));
+        $this->register(new Gallery_Field($this->templates));
+        $this->register(new Button_Field($this->templates));
+        $this->register(new Image_Field($this->templates));
+        $this->register(new Map_Field($this->templates));
+        $this->register(new Section_Field($this->templates));
+        $this->register(new Tab_Field($this->templates));
+        $this->register(new Repeater_Field($this->templates));
+        $this->register(new Modal_Field($this->templates));
+        $this->register(new Object_Id_Filter_Field($this->templates));
 
         /**
          * Register or replace field types rendered by awm_show_content().

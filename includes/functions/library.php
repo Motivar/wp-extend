@@ -1340,11 +1340,14 @@ if (!function_exists('awm_show_content')) {
                     }
                     $extraa .= \EWP\Fields\Field_Attributes::render($attributes);
 
-                    /*migrated cases render through EWP\Fields; the switch below keeps the rest until they move*/
+                    /*every case renders through EWP\Fields (includes/classes/ewp-field-engine); unknown cases render nothing inside the wrapper*/
                     $field_type = \EWP\Fields\Field_Registry::instance()->get($a['case']);
                     if ($field_type) {
-                        $field_context = new \EWP\Fields\Field_Context($original_meta, $original_meta_id, $val, $a, $attributes, $class, !empty($required), $view, $id, $explanation);
+                        $field_context = new \EWP\Fields\Field_Context($original_meta, $original_meta_id, $val, $a, $attributes, $class, !empty($required), $view, $id, $explanation, $context_id);
                         $field_output = $field_type->render($field_context);
+                        if (!$field_output->has_meta_marker()) {
+                            $a['exclude_meta'] = true;
+                        }
                         $ins .= $field_output->html();
                         $display_wrapper = $field_output->has_wrapper();
                         $label_class = array_merge($label_class, $field_output->wrapper_classes());
@@ -1352,293 +1355,8 @@ if (!function_exists('awm_show_content')) {
                         $stop = $field_output->is_suppressed() ? 1 : $stop;
                     }
 
-                    switch ($field_type ? '' : $a['case']) {
-                        case 'function':
-                            if (isset($a['callback'])  && function_exists($a['callback'])) {
-                                $ins = '<div class="awm-meta-message" id="' . $original_meta_id . '"><div class="awm-meta-message-label">' . $a['label'] . $explanation . '</div><div class="awm-meta-message-inner">'  . call_user_func_array($a['callback'], array($id)) . '</div></div>';
-                            }
-                            break;
-                        case 'awm_gallery':
-                            if (!did_action('wp_enqueue_media')) {
-                                wp_enqueue_media();
-                                wp_enqueue_script('jquery-ui-sortable');
-                            }
-                            $gallery_val = !empty($val) ? (is_array($val) ? $val : array($val)) : array();
-                            $ins = '<div class="awm-meta-message" id="' . $original_meta_id . '"><div class="awm-meta-message-label">' . $a['label'] . $explanation . '</div>' . awm_media_field_html($original_meta, $gallery_val, 0) . '</div>';
-                            break;
-                        case 'message':
-                            if (isset($a['value']) && !empty($a['value'])) {
-                                $ins = '<div class="awm-meta-message" id="' . $original_meta_id . '"><div class="awm-meta-message-label">' . $a['label'] . $explanation . '</div><div class="awm-meta-message-inner">' . $a['value'] . '</div></div>';
-                            }
-                            break;
-                        case 'button':
-                            $link = isset($a['link']) ? $a['link'] : '#';
-                            $ins = '<a href="' . esc_url($link) . '" id="' . esc_attr($n) . '" title="' . esc_attr(wp_strip_all_tags($a['label'])) . '" class="' . esc_attr($class) . '" ' . $extraa . '>' . wp_kses_post($a['label']) . '</a>';
-                            break;
-                        case 'image':
-                            if (!did_action('wp_enqueue_media')) {
-                                wp_enqueue_media();
-                                wp_enqueue_script('jquery-ui-sortable');
-                            }
-                            $ins .= '<label for="' . $original_meta_id . '" class="awm-input-label">' . $a['label'] . '</label>' . $explanation;
-                            $ins .= awm_media_field_html($original_meta, $val, 1);
-                            $label_class[] = 'awm-custom-image-meta';
-                            break;
-                        case 'section':
-                            $label_class[] = 'awm-section-field';
-                            $ins .= '<div class="awm-inner-section">';
-                            if (isset($a['label'])) {
-                                $ins .= '<div class="section-header">' . $a['label'] . $explanation . '</div>';
-                            }
-                            $ins .= '<div class="awm-inner-section-content">';
-                            $val = !empty($val) ? awm_safe_unserialize_array($val) : array();
-                            $section_fields = array();
-                            foreach ($a['include'] as $key => $data) {
-
-                                $inputname = !isset($a['keep_inputs']) ? $original_meta_id . '[' . $key . ']' : $key;
-
-                                $data['attributes']['id'] = isset($a['keep_inputs']) ? $original_meta_id . '_' . $key : $key;
-                                $data['attributes']['exclude_meta'] = true;
-                                if (!isset($a['keep_inputs']) && !empty($val) && isset($val[$key])) {
-                                    $data['attributes']['value'] = $val[$key];
-                                }
-                                $section_fields[$inputname] = $data;
-
-                                // Register field config for section fields so masking works
-                                $awm_field_configs[$key] = $data;
-                            }
-                            $ins .= awm_show_content($section_fields);
-                            $ins .= '</div></div>';
-
-                            break;
-                        case 'awm_tab':
-                            if (isset($a['awm_tabs']) && !empty($a['awm_tabs'])) {
-                                $main_tab_id = $original_meta;
-                                $tabs = '';
-                                $tab_contents = '';
-                                $ins .= '<div class="awm-tab-wrapper">';
-                                $ins .= '<div class="awm-tab-wrapper-title">' . $a['label'] . '</div>';
-                                $first_visit = 0;
-                                $val = !empty($val) ? $val : array();
-                                foreach ($a['awm_tabs'] as $tab_id => $tab_intro) {
-                                    ++$first_visit;
-                                    $show = $first_visit == 1 ? 'awm-tab-show active' : '';
-                                    $style = $first_visit == 1 ? 'style="display: block;"' : '';
-                                    $tabs .= '<div id="' . $tab_id . '_tab" class="awm_tablinks ' . $show . '" onclick="awm_open_tab(event,\'' . $tab_id . '\')">' . $tab_intro['label'] . '</div>';
-                                    $tab_contents .= '<div id="' . $tab_id . '_content_tab" class="awm_tabcontent" ' . $style . '>';
-                                    $tab_meta = array();
-                                    if (isset($tab_intro['callback'])) {
-                                        $callback_options = array();
-                                        if (!empty($tab_intro['callback_variables'])) {
-                                            $callback_options = call_user_func_array($data['callback'], $data['callback_variables']);
-                                        }
-                                        $tab_intro['include'] = empty($callback_options) ? call_user_func($tab_intro['callback']) : $callback_options;
-                                    }
-                                    foreach ($tab_intro['include'] as $key => $data) {
-                                        $inputname = $main_tab_id . '[' . $tab_id . '][' . $key . ']';
-                                        $data['attributes']['id'] = $main_tab_id . '_' . $tab_id . '_' . $key;
-                                        if (isset($val[$tab_id][$key])) {
-                                            $data['attributes']['value'] = $val[$tab_id][$key];
-                                        }
-                                        $data['attributes']['exclude_meta'] = true;
-                                        $tab_meta[$inputname] = $data;
-                                    }
-                                    if (!empty($explanation)) {
-                                        $tab_contents .= '<div class="tab-explanation">' . $explanation . '</div>';
-                                    }
-                                    $tab_contents .= awm_show_content($tab_meta);
-                                    $tab_contents .= '</div>';
-                                }
-                                $ins .= '<div class="awm-tab">' . $tabs . '</div>' . $tab_contents;
-                                $ins .= '</div>';
-                            }
-
-                            break;
-                        case 'map':
-                            $label_class[] = 'awm-cls-100';
-                            $lat = (isset($val['lat']) && !empty($val['lat'])) ? esc_attr($val['lat']) : '';
-                            $lng = (isset($val['lng']) && !empty($val['lng'])) ? esc_attr($val['lng']) : '';
-                            $address = (isset($val['address']) && !empty($val['address'])) ? esc_attr($val['address']) : '';
-                            $ins .= '<input id="awm_map' . $original_meta_id . '_search_box" class="controls" type="text" placeholder="' . __('Type to search', 'awm') . '" value="' . $address . '" ' . $required . ' onkeypress="return noenter()"><div class="awm_map" id="awm_map' . $original_meta_id . '"></div>';
-                            $ins .= '<input type="hidden" name="' . $original_meta . '[lat]" id="awm_map' . $original_meta_id . '_lat" value="' . $lat . '" />';
-                            $ins .= '<input type="hidden" name="' . $original_meta . '[lng]" id="awm_map' . $original_meta_id . '_lng" value="' . $lng . '" />';
-                            $ins .= '<input type="hidden" name="' . $original_meta . '[address]" id="awm_map' . $original_meta_id . '_address" value="' . $address . '" />';
-                            break;
-                        case 'repeater':
-                            if (!empty($a['include'])) {
-                                $minrows = isset($a['minrows']) ? absint($a['minrows']) : 0;
-                                $maxrows = isset($a['maxrows']) ? absint($a['maxrows']) : '';
-                                $ins .= '<div class="awm-repeater" data-count="' . count($a['include']) . '" data-id="' . $original_meta_id . '" maxrows="' . $maxrows . '">';
-                                $r_label = isset($a['label']) ? $a['label'] : '';
-                                $ins .= '<div class="awm-repeater-title">' . $r_label . $explanation . '</div>';
-                                $ins .= '<div class="awm-repeater-contents">';
-                                $val = !empty($val) ? array_values(awm_safe_unserialize_array($val)) : array();
-                                if ((empty($val)) && isset($a['prePopulated'])) {
-                                    $val = $a['prePopulated'];
-                                }
-                                $a['include']['awm_key'] = array(
-                                    'case' => 'input',
-                                    'type' => 'hidden',
-                                    'attributes' => array('data-unique' => true)
-                                );
-                                $counter = !empty($val) ? count($val) : $minrows;
-                                if ($counter != 0) {
-                                    for ($i = 0; $i < $counter; ++$i) {
-                                        $ins .= awm_repeater_content($i, $original_meta, $a, $original_meta_id, $val);
-                                    }
-                                }
-                                if (!isset($a['no_template'])) {
-                                    $ins .= awm_repeater_content('template', $original_meta, $a, $original_meta_id, array());
-                                }
-                                $ins .= '</div>';
-
-                                $ins .= '</div>';
-                            }
-                            break;
-                        case 'awm_modal':
-                            /**
-                             * Modal field case — renders a trigger button that opens a modal overlay
-                             * with nested fields loaded via REST API.
-                             * 
-                             * Field definitions are looked up server-side using meta_key and optional option_page.
-                             * Values are saved directly to DB via REST API on modal save.
-                             * No hidden input — just the trigger button.
-                             * 
-                             * @since 1.2.0
-                             */
-                            if (!empty($a['include'])) {
-                                $modal_title = isset($a['modal_title']) ? $a['modal_title'] : $a['label'];
-                                $button_label = isset($a['button_label']) ? $a['button_label'] : $a['label'];
-                                $button_class = isset($a['button_class']) ? $a['button_class'] : 'button button-secondary';
-
-                                // Allow field definition to override the view (e.g. 'option' on settings pages).
-                                $modal_view = isset($a['modal_view']) ? $a['modal_view'] : $view;
-                                if ($modal_view === 'none') {
-                                    $modal_view = 'post';
-                                }
-
-                                /**
-                                 * Filter modal field arguments before rendering
-                                 * 
-                                 * @param array  $a             Field configuration
-                                 * @param string $original_meta Meta key
-                                 * @param string $view          View type
-                                 * @param int    $id            Object ID
-                                 * @since 1.2.0
-                                 */
-                                $a = apply_filters('awm_modal_field_args', $a, $original_meta, $view, $id);
-
-                                $ins .= '<div class="awm-modal-field-wrap" id="awm-modal-wrap-' . $original_meta_id . '">';
-                                $ins .= '<button type="button" class="awm-modal-trigger ' . esc_attr($button_class) . '"';
-                                $ins .= ' data-modal-id="' . esc_attr($original_meta_id) . '"';
-                                $ins .= ' data-meta-key="' . esc_attr($original_meta) . '"';
-                                $ins .= ' data-view="' . esc_attr($modal_view) . '"';
-                                $ins .= ' data-object-id="' . esc_attr($id) . '"';
-                                $ins .= ' data-modal-title="' . esc_attr($modal_title) . '"';
-                                // Add option_page for direct lookup when rendering in options context
-                                if (!empty($context_id) && $modal_view === 'option') {
-                                    $ins .= ' data-option-page="' . esc_attr($context_id) . '"';
-                                }
-                                $ins .= '>' . esc_html($button_label) . '</button>';
-                                $ins .= '</div>';
-                            }
-                            break;
-                        case 'object_id_filter':
-                            /**
-                             * Reusable object picker: a type selector (post type /
-                             * taxonomy / custom content) plus a remote-search multi-select
-                             * of object IDs. Stores TWO flat meta keys — the selected type
-                             * ({field}) and the selected IDs ({field}_ids by default).
-                             *
-                             * @since 1.4.0
-                             */
-                            $oif_config   = awm_object_id_filter_config($a, $original_meta);
-                            $id_field     = $oif_config['id_field_name'];
-                            $type_options = awm_get_object_type_options($oif_config, $original_meta);
-                            $type_optgroups = isset($type_options['optgroups']) ? $type_options['optgroups'] : array();
-                            unset($type_options['optgroups']);
-
-                            // Saved values (server-side preload, no extra REST round-trip).
-                            $saved_type = is_array($val) ? reset($val) : $val;
-                            $saved_ids  = awm_get_field_value($view, $a, $id, $id_field);
-                            $saved_ids  = !empty($saved_ids) ? array_filter(array_map('absint', (array) $saved_ids)) : array();
-
-                            // JS config carried per-instance on the wrapper.
-                            $js_config = array(
-                                'restUrl'        => esc_url_raw(rest_url('extend-wp/v1')),
-                                'minSearchChars' => $oif_config['min_search_chars'],
-                                'maxResults'     => $oif_config['max_results'],
-                                'searchMeta'     => $oif_config['search_meta'],
-                                'typeFieldName'  => $original_meta,
-                                'idFieldName'    => $id_field,
-                            );
-
-                            $ins .= '<div class="awm-object-id-filter-wrap" data-config="' . str_replace('"', '\'', json_encode($js_config)) . '">';
-
-                            // --- Type selector (reuses the standard optgroup select markup) ---
-                            $ins .= '<div class="awm-object-type-field">';
-                            $ins .= '<label for="' . esc_attr($original_meta_id) . '" class="awm-input-label"><span>' . wp_kses_post($label) . '</span></label>' . $explanation;
-                            $ins .= '<select name="' . $original_meta . '" id="' . $original_meta_id . '" class="awm-object-type-select" awm-skip-selectr="1">';
-                            $ins .= '<option value="" data-placeholder="true">' . __('— Select type —', 'extend-wp') . '</option>';
-                            foreach ($type_optgroups as $group_id => $group_data) {
-                                $ins .= '<optgroup label="' . esc_attr($group_data['label']) . '">';
-                                foreach ($type_options as $opt_key => $opt_data) {
-                                    if (!isset($opt_data['optgroup']) || $opt_data['optgroup'] !== $group_id) {
-                                        continue;
-                                    }
-                                    $selected = ($saved_type !== '' && $saved_type === $opt_key) ? ' selected' : '';
-                                    $opt_label = isset($opt_data['label']) ? $opt_data['label'] : $opt_key;
-                                    $ins .= '<option value="' . esc_attr($opt_key) . '"' . $selected . '>' . esc_html($opt_label) . '</option>';
-                                }
-                                $ins .= '</optgroup>';
-                            }
-                            $ins .= '</select></div>';
-
-                            // --- Object IDs multi-select (initialized by the JS module) ---
-                            $disabled = empty($saved_type) ? ' disabled' : '';
-                            $ins .= '<div class="awm-object-id-field">';
-                            $ins .= '<label for="' . esc_attr($id_field) . '" class="awm-input-label"><span>' . __('Select objects', 'extend-wp') . '</span></label>';
-                            $ins .= '<span class="awm-explanation">' . sprintf(
-                                /* translators: %d: minimum number of characters before search triggers */
-                                _n('Type at least %d character to search.', 'Type at least %d characters to search.', $oif_config['min_search_chars'], 'extend-wp'),
-                                $oif_config['min_search_chars']
-                            ) . '</span>';
-                            $ins .= '<select name="' . esc_attr($id_field) . '[]" id="' . esc_attr($id_field) . '" multiple class="awm-object-id-search" awm-skip-selectr="1"' . $disabled . ' data-object-type-target="' . $original_meta_id . '" data-min-chars="' . $oif_config['min_search_chars'] . '">';
-                            $saved_ids = array_values($saved_ids);
-
-                            if (!empty($saved_type) && !empty($saved_ids)) {
-                                $parts = explode(':', $saved_type, 2);
-                                if (count($parts) === 2) {
-                                    $preloaded = awm_object_search_query($parts[0], $parts[1], '', array('include' => $saved_ids, 'limit' => count($saved_ids)));
-                                    // Keep the developer's original ordering of saved IDs.
-                                    $by_id = array();
-                                    foreach ($preloaded as $row) {
-                                        $by_id[$row['id']] = $row['label'];
-                                    }
-                                    foreach ($saved_ids as $sid) {
-                                        $opt_label = isset($by_id[$sid]) ? $by_id[$sid] : sprintf(__('#%d', 'extend-wp'), $sid);
-                                        $ins .= '<option value="' . absint($sid) . '" selected>' . esc_html($opt_label) . '</option>';
-                                    }
-                                }
-                            }
-                            $ins .= '</select></div>';
-                            $ins .= '</div>';
-
-                            // Persist BOTH keys via the standard save pipeline; suppress the
-                            // single auto hidden input below and emit our own pair.
-                            $a['exclude_meta'] = true;
-                            if ($view != 'none') {
-                                $ins .= '<input type="hidden" name="awm_custom_meta[]" value="' . esc_attr($original_meta) . '"/>';
-                                $ins .= '<input type="hidden" name="awm_custom_meta[]" value="' . esc_attr($id_field) . '"/>';
-                            }
-
-                            break;
-                        default:
-                            break;
-                    }
-                    // Exclude awm_modal from awm_custom_meta[] — modal saves directly via REST API
-                    $is_modal_field = ($a['case'] === 'awm_modal');
-                    if ($label && !(isset($a['attributes']['exclude_meta'])) && $view != 'none' && !isset($a['attributes']['disabled']) && !isset($a['exclude_meta']) && !$is_modal_field) {
+                    /*save marker; types that save elsewhere (awm_modal) or post their own (object_id_filter) set exclude_meta via Field_Output::without_meta_marker()*/
+                    if ($label && !(isset($a['attributes']['exclude_meta'])) && $view != 'none' && !isset($a['attributes']['disabled']) && !isset($a['exclude_meta'])) {
                         $ins .= '<input type="hidden" name="awm_custom_meta[]" value="' . $original_meta . '"/>';
                     }
 
@@ -1732,59 +1450,7 @@ if (!function_exists('awm_show_content')) {
  */
 function awm_repeater_content($i, $original_meta, $a, $original_meta_id, $val)
 {
-
-    $class = '';
-    if (!is_int($i) && $i == 'template') {
-        $class = 'temp-source';
-    }
-    $html = '<div id="awm-' . str_replace('[', '_', str_replace(']', '', str_replace('][', '_', $original_meta))) . '-' . $i . '" class="awm-repeater-content ' . $class . '" data-counter="' . $i . '" data-id="' . $original_meta_id . '"><div class="awm-repeater-inputs">';
-    $new_metas = array();
-    $action = '';
-    foreach ($a['include'] as $key => $data) {
-        $data['attributes'] = (isset($data['attributes']) ? $data['attributes'] : array()) + (isset($a['attributes']) ? $a['attributes'] : array());
-        $inputname = $original_meta . '[' . $i . '][' . $key . ']';
-        if (isset($val[$i][$key])) {
-            $data['attributes']['value'] = awm_repeater_check_quotes($val[$i][$key]);
-        }
-        $data['attributes']['exclude_meta'] = true;
-        $data['attributes']['id'] = str_replace(']', '_', str_replace('[', '_', $original_meta)) . '_' . $i . '_' . $key;
-        $data['attributes']['input-name'] = $original_meta;
-        $data['attributes']['input-key'] = $key;
-        if (!is_int($i) && $i == 'template') {
-            $data['attributes']['disabled'] = true;
-            $data['attributes']['awm-template'] = true;
-            $data['attributes']['readonly'] = true;
-            $data['disabled'] = true;
-        }
-
-        $new_metas[$inputname] = $data;
-    }
-    if (isset($a['row_title']) && is_int($i)) {
-        $normal = $i + 1;
-        $html .= '<div class="row-title">' . sprintf($a['row_title'], $normal) . '</div>';
-    }
-    $html .= awm_show_content($new_metas);
-    $item = isset($a['item_name']) ? $a['item_name'] : __('Row', 'extend-wp');
-    $html .= '</div>';
-    if (!isset($a['hide_buttons'])) {
-        $action = '<div class="awm-repeater-clone" onclick="ewp_repeater_clone_row(this)"><span class="awm_action ">' . __('Clone', 'extend-wp') . '</span></div><div class="awm-repeater-move-up" onclick="awm_repeater_order(this,true)"><span class="awm_action ">' . __('Move up', 'extend-wp') . '</span></div><div class="awm-repeater-move-down" onclick="awm_repeater_order(this,false)"><span class="awm_action ">' . __('Move down', 'extend-wp') . '</span></div><div class="awm-repeater-remove"><span class="awm_action awm-remove" onclick="repeater(this)">' . __('Remove', 'extend-wp') . ' ' . $item . '</span></div>';
-        if (!is_int($i) && $i == 'template') {
-            $action .= '<div class="awm-repeater-add" data-id="' . $original_meta_id . '"><span class="awm_action awm-add" onclick="repeater(this)">' . __('Add', 'extend-wp') . ' ' . $item . '</span></div>';
-        }
-        $html .= '<div class="awm-actions">' . apply_filters(
-            'awm_show_actions_html',
-            $action,
-            $i,
-            $original_meta,
-            $a,
-            $original_meta_id,
-            $val
-        ) . '</div>';
-    }
-
-    $html .= '</div>';
-    return $html;
-    /*repeater content end*/
+    return (new \EWP\Fields\Types\Repeater_Field(new \EWP\Fields\Template_Loader()))->row($i, $original_meta, (array) $a, $original_meta_id, $val);
 }
 
 
@@ -2353,6 +2019,7 @@ if (!function_exists('awm_callback_library_options')) {
  * @param string    $allowed_types Comma-separated MIME types for the media library filter.
  *                                 Use 'image' for images only (gallery default),
  *                                 or empty string '' for all file types (image default).
+ * @since 1.0.0
  * @return string   HTML output.
  *
  * @example
@@ -2367,75 +2034,7 @@ if (!function_exists('awm_callback_library_options')) {
  */
 function awm_media_field_html($meta, $val, $max_images = 0, $allowed_types = '')
 {
-    /* Normalise value to an array of IDs */
-    $images = array();
-    if (!empty($val)) {
-        $images = is_array($val) ? array_filter(array_map('absint', $val)) : array(absint($val));
-    }
-
-    $is_single   = ($max_images === 1);
-    $input_name  = $is_single ? esc_attr($meta) : esc_attr($meta) . '[]';
-    $default_img = home_url() . '/wp-includes/images/media/document.png';
-
-    /* Resolve allowed types: gallery defaults to 'image', single defaults to all */
-    if ($allowed_types === '' && $max_images !== 1) {
-        $allowed_types = 'image';
-    }
-
-    /* Container */
-    $content  = '<div class="awm-media-field' . ($is_single ? ' awm-media-field--single' : '') . '"';
-    $content .= ' id="' . esc_attr($meta) . '-field"';
-    $content .= ' data-id="' . esc_attr($meta) . '"';
-    $content .= ' data-max="' . esc_attr($max_images) . '"';
-    $content .= ' data-library="' . esc_attr($allowed_types) . '">';
-
-    /* Image list */
-    $content .= '<ul class="awm-gallery-images-list">';
-    foreach ($images as $image_id) {
-        if (!$image_id || !get_attached_file($image_id)) {
-            continue;
-        }
-
-        /* Try image thumbnail first, then WP mime-type icon for non-images */
-        $thumb = wp_get_attachment_thumb_url($image_id);
-        if (!$thumb) {
-            $icon = wp_mime_type_icon(get_post_mime_type($image_id));
-            $thumb = $icon ? $icon : $default_img;
-        }
-
-        $content .= '<li class="awm-gallery-image" data-image-id="' . esc_attr($image_id) . '">';
-        $content .= '<div class="awm-img-wrapper"><img src="' . esc_url($thumb) . '" alt=""></div>';
-        $content .= '<a href="#" class="awm-remove-image">' . esc_html__('Remove', 'extend-wp') . '</a>';
-        $content .= '<input type="hidden" name="' . $input_name . '" value="' . esc_attr($image_id) . '">';
-        $content .= '</li>';
-    }
-    $content .= '</ul>';
-
-    /* Add / Select button */
-    if ($is_single) {
-        $button_label = empty($images) ? __('Select Image', 'extend-wp') : __('Change Image', 'extend-wp');
-    } else {
-        $button_label = empty($images) ? __('Select Images', 'extend-wp') : __('Add Images', 'extend-wp');
-    }
-
-    $content .= '<button type="button" class="button awm-media-field-button"';
-    $content .= ' data-id="' . esc_attr($meta) . '"';
-    $content .= ' data-max="' . esc_attr($max_images) . '">';
-    $content .= esc_html($button_label);
-    $content .= '</button>';
-
-    $content .= '</div>';
-
-    /**
-     * Filter the unified media field HTML output.
-     *
-     * @param string $content    Generated HTML.
-     * @param string $meta       Meta key / field name.
-     * @param array  $images     Array of attachment IDs.
-     * @param int    $max_images    Maximum number of images.
-     * @param string $allowed_types  Allowed MIME types.
-     */
-    return apply_filters('awm_media_field_html_filter', $content, $meta, $images, $max_images, $allowed_types);
+    return (new \EWP\Fields\Media_Field_Renderer())->render($meta, $val, $max_images, $allowed_types);
 }
 
 

@@ -10,6 +10,19 @@
  * intentional markup change (and record the change in CHANGELOG.md).
  */
 
+if (!function_exists('ewp_snapshot_callback')) {
+    /**
+     * Callback rendered by the `function` field fixture.
+     *
+     * @param mixed $object_id Object id (ignored; varies per run). awm_prepare_field() also calls it without one.
+     * @return string
+     */
+    function ewp_snapshot_callback($object_id = 0)
+    {
+        return '<b>callback output</b>';
+    }
+}
+
 class Test_Field_Render_Snapshot extends WP_UnitTestCase
 {
     /** @var string Snapshot directory. */
@@ -64,6 +77,15 @@ class Test_Field_Render_Snapshot extends WP_UnitTestCase
             'snap_multi_sel' => array('a', 'c'),
             'snap_multi_excl' => array('b'),
             'snap_rich'      => '<b>bold</b> and <i>italic</i> text',
+            'snap_gallery'   => array(999998, 999999),
+            'snap_image'     => 999999,
+            'snap_map'       => array('lat' => '37.98', 'lng' => '23.72', 'address' => 'Athens "GR"'),
+            'snap_section'   => array('sec_text' => 'in section', 'sec_select' => 'c'),
+            'sec_text'       => 'kept input',
+            'snap_tabs'      => array('tab_one' => array('t_text' => 'tab value')),
+            'snap_rep'       => array(array('r_text' => 'row 1', 'r_select' => 'a'), array('r_text' => 'row "2"', 'r_select' => 'b')),
+            'snap_oif'       => 'post_type:post',
+            'snap_oif_ids'   => array(999999),
         );
     }
 
@@ -115,6 +137,47 @@ class Test_Field_Render_Snapshot extends WP_UnitTestCase
             'message' => array('snap_msg' => array('case' => 'message', 'label' => 'Msg', 'value' => '<p>Body</p>')),
             'html' => array('snap_html' => array('case' => 'html', 'label' => 'Html', 'value' => '<em>raw</em>', 'show_label' => true)),
             'button' => array('snap_btn' => array('case' => 'button', 'label' => 'Go', 'link' => 'https://example.com/?a=1&b=2')),
+            'function' => array('snap_fn' => array('case' => 'function', 'label' => 'Fn', 'explanation' => 'Exp', 'callback' => 'ewp_snapshot_callback')),
+            'message-empty' => array('snap_msg' => array('case' => 'message', 'label' => 'Msg')),
+            'button-underscore' => array('_snap_btn' => array('case' => 'button', 'label' => '<b>Go</b>', 'class' => array('button'), 'attributes' => array('target' => '_blank'))),
+            'gallery' => array('snap_gallery' => array('case' => 'awm_gallery', 'label' => 'Gallery', 'explanation' => 'Pick images')),
+            'image' => array('snap_image' => array('case' => 'image', 'label' => 'Image', 'explanation' => 'One image')),
+            'image-empty' => array('snap_image_none' => array('case' => 'image', 'label' => 'Image')),
+            'map' => array('snap_map' => array('case' => 'map', 'label' => 'Map', 'required' => true)),
+            'section' => array('snap_section' => array('case' => 'section', 'label' => 'Section', 'explanation' => 'Grouped', 'include' => array(
+                'sec_text'   => array('case' => 'input', 'type' => 'text', 'label' => 'Inner text'),
+                'sec_select' => array('case' => 'select', 'label' => 'Inner select', 'options' => $options),
+            ))),
+            'section-keep-inputs' => array('snap_section' => array('case' => 'section', 'label' => 'Kept section', 'keep_inputs' => true, 'include' => array(
+                'sec_text' => array('case' => 'input', 'type' => 'text', 'label' => 'Kept'),
+            ))),
+            'tabs' => array('snap_tabs' => array('case' => 'awm_tab', 'label' => 'Tabs', 'explanation' => 'Per tab', 'awm_tabs' => array(
+                'tab_one' => array('label' => 'One', 'include' => array('t_text' => array('case' => 'input', 'type' => 'text', 'label' => 'T text'))),
+                'tab_two' => array('label' => 'Two', 'include' => array('t_check' => array('case' => 'input', 'type' => 'checkbox', 'label' => 'T check'))),
+            ))),
+            'repeater' => array('snap_rep' => array('case' => 'repeater', 'label' => 'Rows', 'explanation' => 'Many', 'row_title' => 'Row %d', 'item_name' => 'Item', 'maxrows' => 5, 'include' => array(
+                'r_text'   => array('case' => 'input', 'type' => 'text', 'label' => 'R text'),
+                'r_select' => array('case' => 'select', 'label' => 'R select', 'options' => $options),
+            ))),
+            'repeater-min-rows' => array('snap_rep_empty' => array('case' => 'repeater', 'label' => 'Min', 'minrows' => 2, 'include' => array(
+                'r_text' => array('case' => 'input', 'type' => 'text', 'label' => 'R text'),
+            ))),
+            'repeater-bare' => array('snap_rep' => array('case' => 'repeater', 'label' => 'Bare', 'no_template' => true, 'hide_buttons' => true, 'include' => array(
+                'r_text' => array('case' => 'input', 'type' => 'text', 'label' => 'R text'),
+            ))),
+            'repeater-prepopulated' => array('snap_rep_empty' => array('case' => 'repeater', 'label' => 'Pre', 'prePopulated' => array(array('r_text' => 'pre')), 'include' => array(
+                'r_text' => array('case' => 'input', 'type' => 'text', 'label' => 'R text'),
+            ))),
+            'modal' => array('snap_modal' => array('case' => 'awm_modal', 'label' => 'Modal', 'modal_title' => 'Edit "it"', 'button_label' => 'Open', 'include' => array(
+                'm_text' => array('case' => 'input', 'type' => 'text', 'label' => 'M text'),
+            ))),
+            'modal-empty' => array('snap_modal' => array('case' => 'awm_modal', 'label' => 'Modal')),
+            /*types pinned so post types registered by other tests in the same run do not leak into the list*/
+            'object-id-filter' => array('snap_oif' => array('case' => 'object_id_filter', 'label' => 'Objects', 'explanation' => 'Pick',
+                'post_types'     => array('post', 'page', 'attachment'),
+                'taxonomies'     => array('category', 'post_tag', 'post_format'),
+                'custom_content' => array('ewp_fields', 'ewp_post_types', 'ewp_taxonomies', 'ewp_search', 'ewp_content_type'),
+            )),
             'mixed-order' => array(
                 'snap_select' => array('case' => 'select', 'label' => 'Second', 'options' => $options, 'order' => 2),
                 'snap_text'   => array('case' => 'input', 'type' => 'text', 'label' => 'First', 'order' => 1),
@@ -176,6 +239,8 @@ class Test_Field_Render_Snapshot extends WP_UnitTestCase
     {
         $html = preg_replace('/\s+/', ' ', $html);
         $html = preg_replace('/\s+(\/?>)/', '$1', $html);
+        /*the modal trigger carries the (per-run) object id*/
+        $html = preg_replace('/data-object-id="\d+"/', 'data-object-id="{ID}"', $html);
         /*checkbox_multiple suffixes option ids with rand()*/
         $html = preg_replace('/(snap_multi_[a-z_]+)_\d+"/', '$1_{RAND}"', $html);
         return str_replace('><', ">\n<", trim($html)) . "\n";

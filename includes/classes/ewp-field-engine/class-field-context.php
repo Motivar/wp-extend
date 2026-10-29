@@ -49,6 +49,9 @@ final class Field_Context
     /** @var string Pre-rendered explanation markup (`<span class="awm-explanation">…</span>`), '' for none. */
     private $explanation;
 
+    /** @var string Context id passed to awm_show_content() (e.g. the options page id), '' for none. */
+    private $context_id;
+
     /**
      * @param string $name       Input name (meta key).
      * @param string $id         DOM id.
@@ -60,8 +63,9 @@ final class Field_Context
      * @param string $view       Render view (see $view property).
      * @param mixed  $object_id  Object id the field renders against.
      * @param string $explanation Pre-rendered explanation HTML ('' for none).
+     * @param string $context_id  Context id passed to awm_show_content() (options page id), '' for none.
      */
-    public function __construct($name, $id, $value, array $field, array $attributes, $classes, $required, $view, $object_id, $explanation = '')
+    public function __construct($name, $id, $value, array $field, array $attributes, $classes, $required, $view, $object_id, $explanation = '', $context_id = '')
     {
         $this->name       = (string) $name;
         $this->id         = (string) $id;
@@ -73,6 +77,7 @@ final class Field_Context
         $this->view       = (string) $view;
         $this->object_id  = $object_id;
         $this->explanation = (string) $explanation;
+        $this->context_id  = (string) $context_id;
     }
 
     /**
@@ -191,5 +196,15 @@ final class Field_Context
     public function explanation()
     {
         return $this->explanation;
+    }
+
+    /**
+     * Context id passed to awm_show_content() (the options page id on settings pages).
+     *
+     * @return string
+     */
+    public function context_id()
+    {
+        return $this->context_id;
     }
 }

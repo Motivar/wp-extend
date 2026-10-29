@@ -31,6 +31,9 @@ final class Field_Output
     /** @var bool Render nothing for this field (not even the wrapper). */
     private $suppressed = false;
 
+    /** @var bool Emit the automatic `awm_custom_meta[]` save marker. */
+    private $meta_marker = true;
+
     /**
      * @param string $html Field markup.
      */
@@ -90,6 +93,19 @@ final class Field_Output
     }
 
     /**
+     * Copy without the automatic `awm_custom_meta[]` save marker (the field
+     * saves elsewhere, or emits its own markers).
+     *
+     * @return self
+     */
+    public function without_meta_marker()
+    {
+        $copy              = clone $this;
+        $copy->meta_marker = false;
+        return $copy;
+    }
+
+    /**
      * Field markup.
      *
      * @return string
@@ -137,5 +153,15 @@ final class Field_Output
     public function is_suppressed()
     {
         return $this->suppressed;
+    }
+
+    /**
+     * Whether awm_show_content() adds the `awm_custom_meta[]` save marker.
+     *
+     * @return bool
+     */
+    public function has_meta_marker()
+    {
+        return $this->meta_marker;
     }
 }

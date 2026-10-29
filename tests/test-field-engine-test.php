@@ -173,7 +173,7 @@ class Test_Field_Engine extends WP_UnitTestCase
         Field_Registry::reset();
 
         $this->assertSame($custom, Field_Registry::instance()->get('input'));
-        $this->assertNull(Field_Registry::instance()->get('image'), 'Unmigrated cases fall back to the legacy switch.');
+        $this->assertNull(Field_Registry::instance()->get('no_such_case'), 'Unregistered cases fall back to the legacy switch.');
         $html = awm_show_content(array('f' => array('case' => 'input', 'type' => 'text', 'label' => 'F')), 0, 'none');
         $this->assertStringContainsString('<i>custom</i>', $html);
 

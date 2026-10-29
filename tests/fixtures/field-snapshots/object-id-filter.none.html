@@ -1,0 +1,38 @@
+<div id="" class="awm-show-content" count="1">
+<div class="awm-object-id-filter-wrap" data-config="{'restUrl':'http:\/\/example.org\/index.php?rest_route=\/extend-wp\/v1','minSearchChars':2,'maxResults':20,'searchMeta':true,'typeFieldName':'snap_oif','idFieldName':'snap_oif_ids'}">
+<div class="awm-object-type-field">
+<label for="snap_oif" class="awm-input-label">
+<span>Objects</span>
+</label>
+<span class="awm-explanation">Pick</span>
+<select name="snap_oif" id="snap_oif" class="awm-object-type-select" awm-skip-selectr="1">
+<option value="" data-placeholder="true">— Select type —</option>
+<optgroup label="Post Types">
+<option value="post_type:post">Post (post)</option>
+<option value="post_type:page">Page (page)</option>
+<option value="post_type:attachment">Media (attachment)</option>
+</optgroup>
+<optgroup label="Taxonomies">
+<option value="taxonomy:category">Category (category)</option>
+<option value="taxonomy:post_tag">Tag (post_tag)</option>
+<option value="taxonomy:post_format">Format (post_format)</option>
+</optgroup>
+<optgroup label="Custom Content">
+<option value="custom_content:ewp_fields">Field (ewp_fields)</option>
+<option value="custom_content:ewp_post_types">Post type (ewp_post_types)</option>
+<option value="custom_content:ewp_taxonomies">Taxonomy (ewp_taxonomies)</option>
+<option value="custom_content:ewp_search">Search Filter (ewp_search)</option>
+<option value="custom_content:ewp_content_type">Content type (ewp_content_type)</option>
+</optgroup>
+</select>
+</div>
+<div class="awm-object-id-field">
+<label for="snap_oif_ids" class="awm-input-label">
+<span>Select objects</span>
+</label>
+<span class="awm-explanation">Type at least 2 characters to search.</span>
+<select name="snap_oif_ids[]" id="snap_oif_ids" multiple class="awm-object-id-search" awm-skip-selectr="1" disabled data-object-type-target="snap_oif" data-min-chars="2">
+</select>
+</div>
+</div>
+</div>
