@@ -8,6 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Field engine, phase 4: `awm_show_content()` becomes `Field_Renderer`; row wrappers, labels and containers as templates** (`2026-10-29`):
+  - **Question/Prompt**: "commit and continue" (after phase 3).
+  - **What moved**: the remaining ~300 lines of `awm_show_content()` moved into `EWP\Fields\Field_Renderer` (`includes/classes/ewp-field-engine/class-field-renderer.php`). That covers sorting, language and role visibility, preparation, encrypted-value masking, `attributes.value` and `default`, the id override, wrapper classes, the shared label, `show-when` / `disable-elements`, type dispatch, the save marker, the row wrapper per view, the `html` case and the container. It is split into small methods, each under 100 lines. `awm_show_content()` is now a one-line wrapper with the same signature.
+  - **New templates** (`templates/fields/`):
+    - `wrapper/default.php`, `wrapper/term-new.php`, `wrapper/term.php`, `wrapper/user.php`
+    - `label.php`, `explanation.php`, `html.php`, `save-marker.php`, `container.php`
+    - No field markup is built as a PHP string any more.
+  - **Snapshot coverage**: 7 more libraries (`html` with `strip`, an empty `html`, `show` 0, `label_class` with `awm_no_show`, `disable-elements`, a submit input, an unknown case), for 385 snapshots in total. They were recorded with the legacy code, and the new renderer reproduces them byte-for-byte on its first run.
+  - **Tests**: new `tests/test-field-renderer-test.php` covers what snapshots cannot: `not_visible_by` (hidden and dropped from the filtered library), `not_editable_by` (disabled, read-only, no save marker), administrators exempt, `specific` with a leading underscore, the admin-only `information` tooltip, filter arguments and order, `$awm_post_id`, the legacy empty return values, and re-entrant nested rendering. PHPUnit: 437 tests, OK, 1 skipped (as before). Self-test: 15/15.
+  - **Behaviour changes** (no snapshot changed):
+    - `awm_show_content_filter` gets one fragment per field. Before, the user and default wrappers pushed 2–4 pieces each. Nothing in the workspace hooks this filter.
+    - Its `$label` argument is now the caller's flag. Before, the last field's label leaked into it.
+    - `information`, wrapper labels, explanations and ids are escaped or kses'd where they were echoed raw.
+    - Term and user wrappers no longer raise an undefined-key warning for label-less fields. This fixes the bug noted in phase 3.
+    - An empty filter result returns `''`. Before, the filtered empty value was returned.
+  - **Kept for compatibility**:
+    - `global $awm_post_id` is still set (`filox-multi-vendor` reads it), and `$awm_field_configs` is still filled.
+    - `awm_label_class_filter` keeps its arguments (filox hooks it).
+    - The current user's roles are still resolved once per request.
+    - An empty library still returns `array()`.
+  - **Files**:
+    - new `includes/classes/ewp-field-engine/class-field-renderer.php`, `init.php`, `README.md`
+    - new templates above
+    - `includes/functions/library.php` (now about 1,800 lines, down from 2,698 at the start of the refactor), `HOOKS.md` (`awm_show_content_filter` and `awm_label_class_filter` rows), `CLAUDE.md`
+    - new `tests/test-field-renderer-test.php`, `tests/test-field-render-snapshot-test.php`, `tests/fixtures/field-snapshots/`
+  - **Backwards compatibility**: same signature and return contract for `awm_show_content()`, and the same markup.
 - **Field engine, phase 3: every remaining field case as a type + template; legacy switch removed** (`2026-10-29`):
   - **Question/Prompt**: "Start Phase 3".
   - **Snapshot coverage**: new fixtures for `function`, empty `message`, a `button` with a leading-underscore key, `awm_gallery`, `image` (stored and empty), `map`, `section` (plain and `keep_inputs`), `awm_tab`, `repeater` (stored rows with row titles, `minrows`, `no_template` + `hide_buttons`, `prePopulated`), `awm_modal` (with and without `include`) and `object_id_filter` (saved type and an unresolvable saved id), in all 7 views. That makes 336 snapshots. The modal's per-run `data-object-id` is normalised. Recording them showed two existing bugs that this change leaves alone: a `function` field whose callback does not exist fatals in `awm_resolve_field_options()`, and a label-less field raises an undefined-key warning in the term-row wrapper of `awm_show_content()`.

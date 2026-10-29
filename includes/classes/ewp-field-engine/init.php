@@ -39,3 +39,4 @@ require_once __DIR__ . '/types/class-repeater-field.php';
 require_once __DIR__ . '/types/class-modal-field.php';
 require_once __DIR__ . '/types/class-object-id-filter-field.php';
 require_once __DIR__ . '/class-field-registry.php';
+require_once __DIR__ . '/class-field-renderer.php';

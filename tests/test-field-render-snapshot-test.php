@@ -178,6 +178,19 @@ class Test_Field_Render_Snapshot extends WP_UnitTestCase
                 'taxonomies'     => array('category', 'post_tag', 'post_format'),
                 'custom_content' => array('ewp_fields', 'ewp_post_types', 'ewp_taxonomies', 'ewp_search', 'ewp_content_type'),
             )),
+            'html-strip' => array(
+                'snap_text'  => array('case' => 'input', 'type' => 'text', 'label' => 'Dropped', 'order' => 1),
+                'snap_strip' => array('case' => 'html', 'value' => '<p>only this</p>', 'strip' => true, 'order' => 2),
+            ),
+            'html-empty' => array('snap_html_empty' => array('case' => 'html', 'label' => 'Empty html')),
+            'show-zero' => array(
+                'snap_text'   => array('case' => 'input', 'type' => 'text', 'label' => 'Shown'),
+                'snap_hidden' => array('case' => 'input', 'type' => 'text', 'label' => 'Not shown', 'show' => 0),
+            ),
+            'label-class-no-show' => array('snap_text' => array('case' => 'input', 'type' => 'text', 'label' => 'Uncounted', 'label_class' => array('custom-row', 'awm_no_show'))),
+            'disable-elements' => array('snap_check_on' => array('case' => 'input', 'type' => 'checkbox', 'label' => 'Toggle', 'disable-elements' => array('#a', '#b'))),
+            'input-submit' => array('snap_submit' => array('case' => 'input', 'type' => 'submit', 'label' => 'Send', 'attributes' => array('value' => 'Send'))),
+            'unknown-case' => array('snap_unknown' => array('case' => 'no_such_case', 'label' => 'Unknown')),
             'mixed-order' => array(
                 'snap_select' => array('case' => 'select', 'label' => 'Second', 'options' => $options, 'order' => 2),
                 'snap_text'   => array('case' => 'input', 'type' => 'text', 'label' => 'First', 'order' => 1),

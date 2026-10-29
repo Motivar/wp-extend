@@ -4,15 +4,17 @@ OOP renderers behind `awm_show_content()` (`includes/functions/library.php`). Si
 
 ## How a field renders
 
-1. `awm_show_content()` does the shared preparation every field goes through: sorting, role and language visibility, `awm_prepare_field()`, value lookup and default, the `attributes.id` override, attributes and `required`, and the label.
+1. `awm_show_content()` is a thin wrapper around `Field_Renderer::render()`, which does the shared preparation every field goes through: sorting, role and language visibility, `awm_prepare_field()`, value lookup (masked when encrypted) and default, the `attributes.id` override, wrapper classes (`awm_label_class_filter`), attributes and `required`, and the shared label.
 2. It asks `Field_Registry::instance()->get( $case )` for a `Field_Type`.
    - **Registered type:** it builds a `Field_Context` and calls `$type->render( $context )`, which returns a `Field_Output`: the field's HTML plus its effect on the view's row wrapper (`div`, term `tr`, user `tr`) — skip it (`without_wrapper()`), add classes or attributes to it, or render nothing at all (`suppressed()`).
    - **No registered type** (an unknown case): nothing renders inside the row wrapper, as before.
    - A type can also drop the automatic `awm_custom_meta[]` save marker (`without_meta_marker()`), e.g. the modal, which saves through REST.
 3. A type normalises data and renders a template under `templates/fields/` through `Template_Loader`. Markup belongs in templates, not in classes.
+4. The renderer adds the `awm_custom_meta[]` save marker (`fields/save-marker`) and the view's row wrapper (`fields/wrapper/default`, `term-new`, `term`, `user`; none in view `none`), then filters the rows (`awm_show_content_filter`) and wraps them in `fields/container`. The shared label is `fields/label`, explanations are `fields/explanation`, and a non-empty `html` field renders `fields/html` without a row wrapper (or replaces everything before it with `strip`).
 
 | Class | Role |
 |---|---|
+| `Field_Renderer` | Renders a whole library (behind `awm_show_content()`). Re-entrant for nested libraries. Role list injectable for tests (`new Field_Renderer( null, null, array( 'editor' ) )`); the current user's roles are cached per request. |
 | `Field_Context` | Immutable, render-ready field state: name, DOM id, value, definition, attributes, classes, required, view, object id, explanation (pre-rendered HTML), context id (options page id). |
 | `Field_Type` | Interface: `case_name()`, `render( Field_Context ): Field_Output`. |
 | `Field_Output` | Immutable result: `html()`, plus row-wrapper settings (`without_wrapper()`, `with_wrapper_classes()`, `with_wrapper_attributes()`, `suppressed()`, `without_meta_marker()`). |
@@ -48,7 +50,7 @@ OOP renderers behind `awm_show_content()` (`includes/functions/library.php`). Si
 | `repeater` | 1.11.0 | `fields/repeater.php`, `fields/repeater-row.php`, `fields/repeater-actions.php` |
 | `awm_modal`, `object_id_filter` | 1.11.0 | `fields/modal.php`, `fields/object-id-filter.php` |
 
-`html` is still special-cased before preparation in `awm_show_content()` (it can replace the whole output with `strip`).
+`html` is handled by `Field_Renderer` itself (no `Field_Type`): it skips `awm_prepare_field()` and the row wrapper, and with `strip` replaces everything rendered before it.
 
 ## Adding or replacing a type
 
