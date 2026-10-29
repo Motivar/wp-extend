@@ -4,6 +4,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/*OOP field renderers (EWP\Fields) used by awm_show_content()*/
+require_once dirname(__DIR__) . '/classes/ewp-field-engine/init.php';
+
 // Initialize global field config registry for encryption/decryption
 if (!isset($GLOBALS['awm_field_configs'])) {
     $GLOBALS['awm_field_configs'] = array();
@@ -1331,26 +1334,21 @@ if (!function_exists('awm_show_content')) {
                     if (isset($a['disable-elements']) && !empty($a['disable-elements']) && is_array($a['disable-elements'])) {
                         $a['attributes']['disable-elements'] = str_replace('"', '\'', json_encode($a['disable-elements']));
                     }
-                    if (!empty($a['attributes']) && is_array($a['attributes'])) {
+                    $attributes = (!empty($a['attributes']) && is_array($a['attributes'])) ? \EWP\Fields\Field_Attributes::prepare($a['attributes']) : array();
+                    if (isset($attributes['min']) && $val == 0) {
+                        $val = $attributes['min'];
+                    }
+                    $extraa .= \EWP\Fields\Field_Attributes::render($attributes);
 
-                        foreach ($a['attributes'] as $k => $v) {
-                            if (is_array($v)) {
-                                $v = implode(',', $v);
-                            }
-                            if ($k == 'placeholder') {
-                                $v = __($v, 'extend-wp');
-                            }
-                            $extra_fields2[] = esc_attr($k) . '="' . esc_attr($v) . '"';
-                            if ($k == 'min' && $val == 0) {
-                                $val = $v;
-                            }
-                        }
+                    /*migrated cases render through EWP\Fields; the switch below keeps the rest until they move*/
+                    $field_type = \EWP\Fields\Field_Registry::instance()->get($a['case']);
+                    if ($field_type) {
+                        $field_context = new \EWP\Fields\Field_Context($original_meta, $original_meta_id, $val, $a, $attributes, $class, !empty($required), $view, $id);
+                        $ins .= $field_type->render($field_context);
+                        $display_wrapper = $field_type->has_wrapper($field_context);
                     }
 
-
-                    $extraa .= isset($extra_fields2) ? implode(' ', $extra_fields2) : '';
-
-                    switch ($a['case']) {
+                    switch ($field_type ? '' : $a['case']) {
                         case 'function':
                             if (isset($a['callback'])  && function_exists($a['callback'])) {
                                 $ins = '<div class="awm-meta-message" id="' . $original_meta_id . '"><div class="awm-meta-message-label">' . $a['label'] . $explanation . '</div><div class="awm-meta-message-inner">'  . call_user_func_array($a['callback'], array($id)) . '</div></div>';
@@ -1372,49 +1370,6 @@ if (!function_exists('awm_show_content')) {
                         case 'button':
                             $link = isset($a['link']) ? $a['link'] : '#';
                             $ins = '<a href="' . esc_url($link) . '" id="' . esc_attr($n) . '" title="' . esc_attr(wp_strip_all_tags($a['label'])) . '" class="' . esc_attr($class) . '" ' . $extraa . '>' . wp_kses_post($a['label']) . '</a>';
-                            break;
-                        case 'input':
-                            $input_type = $a['type'];
-                            $after_message = (isset($a['after_message']) && !empty($a['after_message'])) ? '<span class="awm-after-message"><label for="' . $original_meta_id . '">' . $a['after_message'] . '</span></label>' : '';
-
-                            switch ($input_type) {
-                                case 'number':
-                                    $val = (int) $val;
-                                    break;
-                                case 'checkbox':
-                                    if ($val == 1) {
-                                        $extraa .= ' checked';
-                                    }
-                                    $val = 1;
-                                    break;
-                                case 'time':
-                                    if (!empty($val) && strpos($val, ':') === false) {
-                                        $val = gmdate('H:i', strtotime($val));
-                                    }
-                                    break;
-                                case 'hidden':
-                                    $ins .= '<input type="' . esc_attr($input_type) . '" name="' . esc_attr($original_meta) . '" id="' . esc_attr($original_meta_id) . '" value="' . esc_attr($val) . '" ' . $extraa . ' class="' . esc_attr($class) . '" ' . $required . '/>';
-                                    $display_wrapper = false;
-                                    break;
-                                default:
-                                    break;
-                            }
-                            if ($display_wrapper) {
-                                $input_html = '<input type="' . esc_attr($input_type) . '" name="' . esc_attr($original_meta) . '" id="' . esc_attr($original_meta_id) . '" value="' . esc_attr($val) . '" ' . $extraa . ' class="' . esc_attr($class) . '" ' . $required . '/>';
-
-                                $ins .= '<div class="input-wrapper">';
-                                $ins .=  $input_html . $after_message;
-                                if ($a['type'] == 'password') {
-                                    $ins .= '<div class="eye" data-toggle="password" data-id="' . $original_meta_id . '"></div>';
-                                }
-                                $ins .= '</div>';
-
-                                // Add hidden encryption marker for fields that need encryption
-                                if (awm_should_encrypt_field($a)) {
-                                    $ins .= '<input type="hidden" name="ewp_encrypt[]" value="' . esc_attr($original_meta) . '">';
-                                }
-                            }
-
                             break;
                         case 'checkbox_multiple':
                             $ins .= '<label class="awm-checkboxes-title"><span>' . $a['label'] . '</span></label>' . $explanation;
@@ -2461,6 +2416,17 @@ function awm_display_meta_value($meta, $data, $postId = 0, $external_value = fal
             break;
     }
 
+    /**
+     * Filter the display value of a field (list columns, read-only views).
+     *
+     * @since 1.0.0
+     *
+     * @param mixed  $value          Display value (usually HTML) built for the field.
+     * @param string $meta           Meta key.
+     * @param mixed  $original_value Raw stored (or external) value before formatting.
+     * @param array  $data           Field definition.
+     * @param int    $postId         Object ID.
+     */
     return apply_filters('awm_display_meta_value_filter', $value, $meta, $original_value, $data, $postId);
 }
 
@@ -2518,6 +2484,14 @@ if (!function_exists('awm_callback_library')) {
      */
     function awm_callback_library($library, $id)
     {
+        /**
+         * Filter the field library returned for a library id.
+         *
+         * @since 1.0.0
+         *
+         * @param array  $library Field library.
+         * @param string $id      Library id.
+         */
         return apply_filters('awm_show_content_fields_filter', $library, $id);
     }
 }

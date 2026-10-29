@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Field engine, phase 1: OOP renderers and templates behind `awm_show_content()`, starting with `input`** (`2026-10-29`):
+  - **Question/Prompt**: "can we somehow optimize and refactor code for library.php? we need it OOP and what is more we need all inputs as templates if possible. the code is too old". Then: "please proceed and optimize model use in order to avoid unnecessary costs".
+  - **Plan**: `library.php` moves to `EWP\Fields` one field `case` at a time, with no change to the procedural API (56 files in filox and themes call `awm_show_content()`). Phase 0 is the safety net, phase 1 the core plus the `input` pilot. Later phases cover the remaining cases, then saving, display formatting, options and encryption, and finally reduce `library.php` to thin wrappers.
+  - **Phase 0, snapshot tests**: the new `tests/test-field-render-snapshot-test.php` records the markup of 17 field libraries (every input type, textarea, select, radio, checkbox_multiple, message, html, button, ordering, `awm-id`) in 6 views (post, new term, term, user, option, none). That is 102 snapshots in `tests/fixtures/field-snapshots/`. Whitespace inside tags and the random `checkbox_multiple` id suffixes are normalised. Rewrite them with `EWP_UPDATE_SNAPSHOTS=1`.
+  - **Phase 1, engine** (`includes/classes/ewp-field-engine/`, docs in its `README.md`):
+    - `Field_Context`: immutable field state.
+    - `Field_Type`: interface for field types.
+    - `Field_Registry`: maps a case to its type, built lazily.
+    - `Template_Loader`: theme override, then plugin template, then filter, rendered by `awm_parse_template()`. Template names are allow-listed.
+    - `Field_Attributes`: the attribute loop extracted from `awm_show_content()`.
+    - `Types\Input_Field` with `templates/fields/input.php` and `templates/fields/input-hidden.php`.
+    - `awm_show_content()` asks the registry first and falls back to the legacy switch for cases that are not migrated yet. The ~45-line `input` branch is removed.
+  - **Markup change (intended, only one)**: `after_message` was emitted with its tags closed in the wrong order (`<span><label>…</span></label>`). It is now `<span class="awm-after-message"><label for="…">…</label></span>`. Browsers already parsed the old markup into the same DOM. The message now passes through `wp_kses_post()`. All other snapshots are byte-identical.
+  - **New hooks**:
+    - `ewp_register_field_types` (action): add or replace field types.
+    - `ewp_field_template_path` (filter): swap a field template's file.
+    - Themes can override templates at `extend-wp/fields/{name}.php`.
+  - **HOOKS.md**: also lists the 16 existing `library.php` hooks that were missing (`awm_show_content_filter`, `awm_show_content_value_filter`, `awm_label_class_filter`, …). There are new docblocks on `awm_display_meta_value_filter` and `awm_show_content_fields_filter`.
+  - **Loading**: `library.php` requires `ewp-field-engine/init.php` from its own copy, because Composer may load another bundled copy of Extend WP. A `class_exists` guard prevents redeclaring the classes. The code is PHP 7.4-compatible, the same baseline as `mammothwp/wp-kit`.
+  - **Files**:
+    - new `includes/classes/ewp-field-engine/` (`init.php`, `class-field-context.php`, `interface-field-type.php`, `class-field-registry.php`, `class-template-loader.php`, `class-field-attributes.php`, `types/class-input-field.php`, `README.md`)
+    - new `templates/fields/input.php`, `templates/fields/input-hidden.php`
+    - `includes/functions/library.php`, `HOOKS.md`
+    - new `tests/test-field-render-snapshot-test.php`, `tests/test-field-engine-test.php`, `tests/fixtures/field-snapshots/*.html`
+  - **Backwards compatibility**: the signatures of `awm_show_content()` and every other `awm_*` function are unchanged. All existing filters fire as before (`awm_label_class_filter`, `awm_show_content_value_filter`, `awm_show_content_filter`). A plugin that registers its own `input` type through `ewp_register_field_types` replaces the built-in one.
+
 ### Security
 - **Audit batch 2: XSS, PHP object injection, template paths, options page capability (1.10.0)** (`2026-10-23`):
   - **Question/Prompt**: "yes, take the next batch" (remaining findings of the 2026-10-22 security and performance audit).
