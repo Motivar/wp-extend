@@ -432,6 +432,18 @@
                 "cli": [],
                 "ability": []
             }
+        },
+        {
+            "id": "field-engine",
+            "label": "Field engine: render, browser-style submit, save and re-render a meta box",
+            "category": "fields",
+            "layers": [
+                "core"
+            ],
+            "class": "EWP\\SelfTest\\Cases\\Field_Engine_Case",
+            "requires": [],
+            "args": {},
+            "covers": {}
         }
     ]
 }

@@ -12,7 +12,7 @@ Since 1.5.0 the runner, the dashboard, the REST routes, the commands, the abilit
 | --- | --- |
 | `id` | case id, used by `--cases=`, `ids[]` and the dashboard |
 | `label`, `category` | display |
-| `layers` | surfaces the case drives: `rest`, `cli`, `ability` |
+| `layers` | surfaces the case drives: `rest`, `cli`, `ability`, or `core` for in-process PHP checks (no surface; `covers` stays `{}`) |
 | `class` | a class extending `MammothWP\SelfTest\Case_Base` (the old `EWP\SelfTest\EWP_Self_Test_Case` name is aliased) |
 | `requires` | site requirements: `abilities`, `logger`, `ai` (reported as *unavailable*, never as failures) |
 | `args` | free-form config passed to the case |
@@ -65,6 +65,7 @@ The plugin's CLI classes guard themselves with `class_exists('WP_CLI')`. In a we
 | `logger` | writes one entry, reads it back on REST / CLI / abilities, runs a no-op retention cleanup; cleanup deletes the `ewp-self-test` entries |
 | `options-portability` | list / export / dry-run import on all layers — never writes an option |
 | `ai-abilities` | every `ewp-*` category (content, fields, wp-content, search, options, system, logger) is registered with core; reports whether an AI provider is configured (skipped, not failed, when it is not; no paid completion is ever requested) |
+| `field-engine` | `core` layer, in place of clicking through an edit screen: registers a post meta box covering every major field case (input text/number/checkbox/hidden/encrypted password, textarea, select multiple, radio, checkbox_multiple, map, section, awm_tab, repeater), renders it with `awm_show_content()`, submits it like a browser (enabled controls, checked boxes, selected options) with edited values, saves through `EWP_Meta_Save_Guard::save()` with the post nonce, then checks the stored meta (unchecked checkbox deleted, arrays for multi-value and nested fields, repeater template row not saved, encrypted value encrypted) and that the re-rendered form submits the same values. Does not run the admin JavaScript. Cleanup deletes the post |
 
 ## Request kinds and environments
 

@@ -155,6 +155,7 @@ final class EWP_Self_Test
             'class-field-builder-case',
             'class-recently-seen-case',
             'class-block-preview-case',
+            'class-field-engine-case',
         ] as $file) {
             require_once __DIR__ . '/cases/' . $file . '.php';
         }

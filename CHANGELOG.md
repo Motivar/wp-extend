@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **Encrypted post/term/user meta was stored in plain text; new end-to-end `field-engine` self-test** (`2026-10-29`):
+  - **Question/Prompt**: "can you do it via wp-self-test?" (replace the manual browser check of the field-engine refactor), then "Fix it now, then Phase 5".
+  - **The bug** (present since 1.3.0): fields with `encrypt => true` saved through meta boxes (post, term, user) were stored in plain text.
+    - `Setup.php` registered `awm_encrypt_meta_on_save()` with `add_filter('update_{post,user,term}_meta', …)`. Those are *actions*, so WordPress ignored the encrypted return value, and a first save goes through `add_*_meta` and never reaches that hook at all.
+    - Because the stored value was not encrypted, the edit form did not mask it either: the plain secret was printed into the password input's `value`.
+    - Options were not affected: `awm_encrypt_option_after_save()` re-saves on `updated_option`.
+  - **The fix**:
+    - New `awm_meta_save_encryption($meta_key, $value, $markers)` in `library.php`. `awm_custom_meta_update_vars()` calls it before writing. A value is encrypted when its field config asks for it, or when the form posted the key in `ewp_encrypt[]`; already-encrypted values are left alone.
+    - A masked value means the field was left untouched, so the stored ciphertext is kept. The old hook would have stored the mask string.
+    - The three no-op `update_*_meta` registrations are removed. `awm_encrypt_meta_on_save()` is kept as a function for external callers.
+    - **Existing data**: values saved before this fix stay in plain text until the field is saved again. No migration is included.
+  - **New self-test case `field-engine`** (`includes/classes/ewp-self-test/cases/class-field-engine-case.php`, manifest layer `core`, no surface coverage). It runs this round-trip on the real site:
+    - registers a post meta box covering every major field case;
+    - renders it with `awm_show_content()`;
+    - submits it like a browser, editing some values;
+    - saves through `EWP_Meta_Save_Guard::save()` with a real nonce;
+    - checks the stored meta (including the encrypted value) and that the re-rendered form submits the same values.
+    - It replaces the manual browser check of the refactor. The admin JavaScript (repeater cloning, tab switching) is still not exercised. It found the bug above.
+  - **Tests**: new `tests/test-meta-encryption-test.php` covers a new value encrypted, config-only encryption, a masked value keeping the ciphertext, no double encryption, plain keys untouched, and the render masking the stored secret. PHPUnit: 442 tests, OK, 1 skipped (as before). Self-test: 16/16.
+  - **Files**:
+    - `includes/functions/library.php`, `includes/classes/Setup.php`
+    - `includes/classes/ewp-self-test/` (`manifest.json`, `class-ewp-self-test.php`, `cases/class-field-engine-case.php`)
+    - `docs/self-test.md`, `tests/test-meta-encryption-test.php`
+  - **Backwards compatibility**: no hook was removed that ever had an effect. Flagged meta values are now actually encrypted, so code reading them must decrypt explicitly (`awm_decrypt_field_value()` / `EWP_Encryption::decrypt()`), as the encryption feature always documented.
+
 ### Changed
 - **Field engine, phase 4: `awm_show_content()` becomes `Field_Renderer`; row wrappers, labels and containers as templates** (`2026-10-29`):
   - **Question/Prompt**: "commit and continue" (after phase 3).

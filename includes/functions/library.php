@@ -256,6 +256,36 @@ if (!function_exists('awm_decrypt_field_value')) {
     }
 }
 
+if (!function_exists('awm_meta_save_encryption')) {
+    /**
+     * How a field save must treat a value with respect to encryption.
+     *
+     * A key is encrypted when its field config (from the request-wide
+     * `$awm_field_configs` registry) asks for it, or when the form posted its
+     * `ewp_encrypt[]` marker. A masked value means the user left the field
+     * untouched, so the stored ciphertext must be kept.
+     *
+     * @since 1.11.0
+     *
+     * @param string $meta_key Required. Meta key being saved.
+     * @param mixed  $value    Required. Submitted (unslashed or slashed) value.
+     * @param array  $markers  Optional. Keys posted in `ewp_encrypt[]`. Default empty.
+     * @return array{0: string, 1: mixed} [`skip` (keep stored value), `write` (store the returned value)], and the value to store.
+     */
+    function awm_meta_save_encryption($meta_key, $value, array $markers = array())
+    {
+        global $awm_field_configs;
+        $config = isset($awm_field_configs[$meta_key]) ? (array) $awm_field_configs[$meta_key] : array();
+        if (!is_string($value) || (!awm_should_encrypt_field($config) && !in_array($meta_key, $markers, true))) {
+            return array('write', $value);
+        }
+        if (EWP_Encryption::is_masked($value)) {
+            return array('skip', $value);
+        }
+        return array('write', awm_encrypt_field_value($value, $config));
+    }
+}
+
 if (!function_exists('awm_encrypt_meta_on_save')) {
     /**
      * Encrypt meta values before they're saved to the database.
@@ -1374,6 +1404,12 @@ function awm_custom_meta_update_vars($meta, $metaa, $id, $view)
             }
             $val = isset($chk) ? $chk : '';
             $arr[$k] = $val;
+        }
+
+        /*encrypt flagged values here: the update_{$type}_meta hooks are actions, their return value never reached the database*/
+        list($encryption, $val) = awm_meta_save_encryption($k, $val, isset($metaa['ewp_encrypt']) ? array_map('strval', (array) wp_unslash($metaa['ewp_encrypt'])) : array());
+        if ('skip' === $encryption) {
+            continue;
         }
 
         switch ($view) {
