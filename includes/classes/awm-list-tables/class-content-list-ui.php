@@ -42,12 +42,13 @@ class EWP_Content_List_UI
     const MULTI_CASES = array('checkbox_multiple');
 
     /**
-     * Declarable filter types (since 1.12.0) => operators a declaration may pick (the first is the default
-     * set). Input types (date, number, text) are entered in the panel and sent as `between` / `afterInc` /
-     * `beforeInc` / `greaterThanOrEqual` / `lessThanOrEqual` / `contains` conditions.
+     * Declarable filter types (since 1.12.0) => operators a declaration may pick. Input types (date, number,
+     * text) are entered in the panel and sent as `between` / `afterInc` / `beforeInc` /
+     * `greaterThanOrEqual` / `lessThanOrEqual` / `contains` conditions. A `select` picks one value (`is`,
+     * `isNot`), or several with `multiple` (since 1.13.0: `isAny`, `isNone`, i.e. SQL IN / NOT IN).
      */
     const FILTER_TYPES = array(
-        'select'      => array('is', 'isNot'),
+        'select'      => array('is', 'isNot', 'isAny', 'isNone'),
         'multiselect' => array('isAny', 'isNone', 'isAll', 'isNotAll'),
         'date'        => array(),
         'number'      => array(),
@@ -57,6 +58,9 @@ class EWP_Content_List_UI
     /** Default operators of the element filter types. */
     const FILTER_DEFAULT_OPERATORS = array('select' => array('is', 'isNot'), 'multiselect' => array('isAny', 'isNone'));
 
+    /** Operators of a `select` declared `multiple` (since 1.13.0): one chip "is any: A, B" / "is none: A, B". */
+    const MULTIPLE_OPERATORS = array('isAny', 'isNone');
+
     /**
      * Hook the asset registration (must run before `init` priority 1, when the loader collects entries).
      *
@@ -65,6 +69,7 @@ class EWP_Content_List_UI
     public static function init()
     {
         add_filter('ewp_register_dynamic_assets', array(__CLASS__, 'register_assets'));
+        add_filter('ewp_content_view_fields', array(__CLASS__, 'view_field_values'), 20, 2);
     }
 
     /**
@@ -309,6 +314,7 @@ class EWP_Content_List_UI
          *
          * @param array  $filters Field id => { type: select|multiselect|date|number|text, label?: string,
          *                        elements?: array (value => label, or list of {value, label}), operators?: string[],
+         *                        multiple?: bool (select: pick several values, `isAny` / `isNone`; since 1.13.0),
          *                        field?: string (view field the filter applies to, default the id),
          *                        fields?: array (date / number: view fields the user may apply the range to,
          *                        value => label), isPrimary?: bool }.
@@ -354,10 +360,11 @@ class EWP_Content_List_UI
      * @since 1.12.0
      *
      * @param string $id          Field id the filter is declared on.
-     * @param array  $declaration { type, elements?, operators?, field?, fields?, isPrimary? } (see `ewp_content_list_filters`).
+     * @param array  $declaration { type, elements?, operators?, multiple?, field?, fields?, isPrimary? } (see `ewp_content_list_filters`).
      * @param array  $view        Field id => view field (Content_Service::view_fields()); null skips the check
      *                            (for lists with their own REST adapter, e.g. a `restPath` of their own).
-     * @return array|null { type, field, fields: list<{value, label}>, elements?: list<{value, label}>, operators?: string[], isPrimary: bool }, null when invalid.
+     * @return array|null { type, field, fields: list<{value, label}>, elements?: list<{value, label}>, operators?: string[],
+     *                    multiple?: bool (element filters: several values per chip, since 1.13.0), isPrimary: bool }, null when invalid.
      */
     public static function normalize_filter($id, array $declaration, $view = null)
     {
@@ -385,9 +392,86 @@ class EWP_Content_List_UI
         if (!$filter['elements']) {
             return null;
         }
-        $operators           = isset($declaration['operators']) ? array_values(array_intersect((array) $declaration['operators'], self::FILTER_TYPES[$type])) : array();
-        $filter['operators'] = $operators ?: self::FILTER_DEFAULT_OPERATORS[$type];
+        $filter['operators'] = self::filter_operators($type, $declaration);
+        $filter['multiple']  = !array_intersect($filter['operators'], array('is', 'isNot'));
         return $filter;
+    }
+
+    /**
+     * Operators of an element filter declaration. A `select` is single (`is`, `isNot`) unless it is declared
+     * `multiple` or only lists `isAny` / `isNone` (since 1.13.0); DataViews cannot mix the two kinds in one
+     * filter, so a `multiple` select keeps only its list operators.
+     *
+     * @since 1.13.0
+     *
+     * @param string $type        `select` or `multiselect`.
+     * @param array  $declaration Declaration (`operators?`, `multiple?`).
+     * @return string[] Operators, the first being the default.
+     */
+    public static function filter_operators($type, array $declaration)
+    {
+        $declared = isset($declaration['operators']) ? array_values(array_intersect((array) $declaration['operators'], self::FILTER_TYPES[$type])) : array();
+        if ($type !== 'select') {
+            return $declared ?: self::FILTER_DEFAULT_OPERATORS[$type];
+        }
+        $multiple = !empty($declaration['multiple']) || ($declared && !array_intersect($declared, array('is', 'isNot')));
+        $allowed  = $multiple ? self::MULTIPLE_OPERATORS : self::FILTER_DEFAULT_OPERATORS['select'];
+        $picked   = array_values(array_intersect($declared, $allowed));
+        return $picked ?: $allowed;
+    }
+
+    /**
+     * `ewp_content_view_fields` (since 1.13.0): a view field targeted by a declared `select` / `multiselect`
+     * filter only accepts that filter's element values with the element operators (`is`, `isAny`, `isNone`, …),
+     * so the REST `query` route, `wp ewp content query` and `ewp-content/query-items` refuse (400) a value
+     * the panel never offers. View_Query reads the list from the field's `values`.
+     *
+     * @since 1.13.0
+     *
+     * @param array  $fields View fields (Content_Service::view_fields()).
+     * @param string $type   Content type id.
+     * @return array View fields; targeted ones carry `values` (list of strings).
+     */
+    public static function view_field_values($fields, $type)
+    {
+        static $running = false;
+        if (!is_array($fields) || $running || !class_exists('AWM_Add_Content_DB_Setup') || !isset(AWM_Add_Content_DB_Setup::$ewp_data_configuration[$type])) {
+            return $fields;
+        }
+        $running = true;
+        $allowed = self::declared_values((string) $type, array_merge(AWM_Add_Content_DB_Setup::$ewp_data_configuration[$type], array('id' => (string) $type)));
+        $running = false;
+        foreach ($allowed as $field => $values) {
+            if (isset($fields[$field]) && is_array($fields[$field])) {
+                $previous               = isset($fields[$field]['values']) && is_array($fields[$field]['values']) ? $fields[$field]['values'] : array();
+                $fields[$field]['values'] = array_values(array_unique(array_merge($previous, $values)));
+            }
+        }
+        return $fields;
+    }
+
+    /**
+     * Element values of a type's declared `select` / `multiselect` filters, by target view field.
+     *
+     * @since 1.13.0
+     *
+     * @param string $type Content type id.
+     * @param array  $args List arguments (the registration plus `id`).
+     * @return array<string, string[]> View field id => allowed values.
+     */
+    public static function declared_values($type, array $args)
+    {
+        $allowed = array();
+        foreach (self::declared_filters($type, $args) as $id => $declaration) {
+            $kind = is_array($declaration) && isset($declaration['type']) ? (string) $declaration['type'] : '';
+            if (!isset(self::FILTER_DEFAULT_OPERATORS[$kind]) || empty($declaration['elements']) || !is_array($declaration['elements'])) {
+                continue;
+            }
+            $target           = isset($declaration['field']) ? (string) $declaration['field'] : (string) $id;
+            $values           = array_column(self::elements($declaration['elements']), 'value');
+            $allowed[$target] = array_values(array_unique(array_merge(isset($allowed[$target]) ? $allowed[$target] : array(), $values)));
+        }
+        return $allowed;
     }
 
     /**

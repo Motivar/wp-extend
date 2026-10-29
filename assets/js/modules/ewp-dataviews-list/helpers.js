@@ -91,7 +91,8 @@ export function requestFilters( filters, specs ) {
 		}
 		const spec = specs[ filter.field ];
 		if ( ! spec || ! isInputFilter( spec ) ) {
-			out.push( { field: filter.field, operator: filter.operator, value: filter.value } );
+			const fitted = spec ? fitElementFilter( filter, spec ) : filter;
+			out.push( { field: fitted.field, operator: fitted.operator, value: fitted.value } );
 			return;
 		}
 		out.push( ...inputConditions( spec, parseInputValue( filter.value ) ) );
@@ -108,13 +109,21 @@ export const ELEMENT_FILTER_TYPES = [ 'select', 'multiselect' ];
 /** Default operators of the element filter types. */
 export const ELEMENT_OPERATORS = { select: [ 'is', 'isNot' ], multiselect: [ 'isAny', 'isNone' ] };
 
+/** Operators of a `select` declared `multiple` (since 1.13.0): one chip "is any: A, B". */
+export const MULTIPLE_OPERATORS = [ 'isAny', 'isNone' ];
+
+/** Single-value operator => its list counterpart, and back (fitElementFilter()). */
+const TO_LIST = { is: 'isAny', isNot: 'isNone' };
+const TO_SINGLE = { isAny: 'is', isNone: 'isNot' };
+
 /** Element value standing for "no value yet" of an input filter. */
 export const NO_VALUE = '__ewp_no_value';
 
 /**
  * Normalised filter spec of a field from its PHP configuration.
  *
- * A field declares a filter with `filter: { type, elements?, operators?, fields?, field?, isPrimary? }`
+ * A field declares a filter with `filter: { type, elements?, operators?, multiple?, fields?, field?, isPrimary? }`
+ * (`multiple`: a `select` picking several values with `isAny` / `isNone`, since 1.13.0)
  * (EWP_Content_List_UI::normalize_filter()); a field with `elements` and no `filter` keeps the
  * pre-1.12 behaviour (an `isAny` / `isNone` filter, or its `operators`).
  *
@@ -137,7 +146,7 @@ export function filterSpec( field ) {
 	return {
 		type,
 		elements: ELEMENT_FILTER_TYPES.includes( type ) ? elements : [],
-		operators: declared.operators || field.operators || ELEMENT_OPERATORS[ type ] || [ 'is' ],
+		operators: declared.operators || field.operators || ( type === 'select' && declared.multiple ? MULTIPLE_OPERATORS : ELEMENT_OPERATORS[ type ] ) || [ 'is' ],
 		fields: Array.isArray( declared.fields ) ? declared.fields : [],
 		field: declared.field || field.id,
 		isPrimary: !! declared.isPrimary,
@@ -160,6 +169,42 @@ export function filterSpecs( fields ) {
 		}
 	} );
 	return specs;
+}
+
+/**
+ * Fit a stored element filter to its spec's operators (since 1.13.0), so a view saved or linked
+ * before a filter became multi-select (`product is 12`) opens as `product isAny [12]`, and a list
+ * value on a single-value filter keeps its first value. Other filters are returned unchanged.
+ *
+ * @param {Object} filter View filter ({ field, operator, value }).
+ * @param {Object} spec   Filter spec (filterSpec()).
+ * @return {Object} Filter.
+ */
+export function fitElementFilter( filter, spec ) {
+	if ( ! filter || ! spec || isInputFilter( spec ) || spec.operators.includes( filter.operator ) ) {
+		return filter;
+	}
+	const list = TO_LIST[ filter.operator ];
+	if ( list && spec.operators.includes( list ) ) {
+		return { ...filter, operator: list, value: hasValue( filter.value ) ? [].concat( filter.value ).map( String ) : undefined };
+	}
+	const single = TO_SINGLE[ filter.operator ];
+	if ( single && spec.operators.includes( single ) ) {
+		const first = Array.isArray( filter.value ) ? filter.value[ 0 ] : filter.value;
+		return { ...filter, operator: single, value: hasValue( first ) ? String( first ) : undefined };
+	}
+	return filter;
+}
+
+/**
+ * Fit every element filter of a view to its spec (fitElementFilter()).
+ *
+ * @param {Object[]} filters View filters.
+ * @param {Object}   specs   Filter specs by field id.
+ * @return {Object[]} Filters.
+ */
+export function fitViewFilters( filters, specs ) {
+	return ( Array.isArray( filters ) ? filters : [] ).map( ( filter ) => ( filter && specs[ filter.field ] ? fitElementFilter( filter, specs[ filter.field ] ) : filter ) );
 }
 
 /**

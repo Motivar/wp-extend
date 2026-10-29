@@ -26,6 +26,12 @@ if (!defined('ABSPATH')) {
  * with `number` / `date` fields compared as DECIMAL / DATETIME. Only column
  * fields sort. Anything the map or the operator list does not know throws
  * Invalid_Where, so a bad view is a 400, never a silently wider result.
+ *
+ * A field may carry `values` (list of strings, since 1.13.0; set for the targets of
+ * declared select / multiselect filters by EWP_Content_List_UI::view_field_values()):
+ * `is` / `isNot` / `isAny` / `isNone` / `isAll` / `isNotAll` on it then only accept
+ * those values. `isAny` / `isNone` become `IN` / `NOT IN` with one bound
+ * placeholder per value (at most MAX_VALUES).
  */
 final class View_Query
 {
@@ -60,6 +66,12 @@ final class View_Query
         'notContains' => 'contains',
         'isNotAll'    => 'isAll',
     );
+
+    /** Most values of one list condition (`isAny`, `isNone`, `isAll`, `isNotAll`); since 1.13.0. */
+    const MAX_VALUES = 100;
+
+    /** Operators that pick from a field's elements: a field with `values` only accepts those (since 1.13.0). */
+    const ELEMENT_OPERATORS = array('is', 'isAny', 'isAll');
 
     /** Field types compared with a cast on meta values. */
     const CASTS = array('integer' => 'number', 'number' => 'number', 'date' => 'date', 'datetime' => 'date');
@@ -145,6 +157,7 @@ final class View_Query
             throw new Invalid_Where('Unknown filter operator "' . substr($operator, 0, 40) . '".');
         }
         $value = self::value($field, $positive, $value);
+        self::check_allowed($field, $positive, $value);
 
         if ($field['source'] === 'meta') {
             return self::meta_condition($type, $field, $positive, $value, $negated);
@@ -170,6 +183,9 @@ final class View_Query
                 throw new Invalid_Where('Filter values must be scalars.');
             }
         }
+        if ($list && count($vals) > self::MAX_VALUES) {
+            throw new Invalid_Where('A filter takes at most ' . self::MAX_VALUES . ' values.');
+        }
         if ($operator === 'between' && count($vals) !== 2) {
             throw new Invalid_Where('`between` needs two values.');
         }
@@ -184,6 +200,28 @@ final class View_Query
             throw new Invalid_Where('Operator "' . $operator . '" takes one value.');
         }
         return $vals[0];
+    }
+
+    /**
+     * Refuse element values a field does not allow (its `values`, since 1.13.0).
+     *
+     * @param array  $field    Field definition.
+     * @param string $operator Positive operator.
+     * @param mixed  $value    Normalised value (scalar or list).
+     * @return void
+     * @throws Invalid_Where On a value outside the field's `values`.
+     */
+    private static function check_allowed(array $field, $operator, $value)
+    {
+        if (!isset($field['values']) || !is_array($field['values']) || !in_array($operator, self::ELEMENT_OPERATORS, true)) {
+            return;
+        }
+        $allowed = array_map('strval', $field['values']);
+        foreach ((array) $value as $item) {
+            if (!in_array((string) $item, $allowed, true)) {
+                throw new Invalid_Where('Value "' . substr((string) $item, 0, 40) . '" is not allowed for this filter.');
+            }
+        }
     }
 
     /**

@@ -74,6 +74,7 @@ add_filter('awm_register_content_db', function ($types) {
         'price'   => array('type' => 'number'),
         'title'   => array('type' => 'text'),
         'venue'   => array('type' => 'select', 'elements' => array('a' => 'Hall A', 'b' => 'Hall B'), 'operators' => array('is')),
+        'room'    => array('type' => 'select', 'multiple' => true, 'elements' => array('1' => 'Room 1', '2' => 'Room 2')),
     );
     return $types;
 });
@@ -81,10 +82,11 @@ add_filter('awm_register_content_db', function ($types) {
 
 | Key | Meaning |
 |---|---|
-| `type` | `select` (one value; operators `is`, `isNot`), `multiselect` (`isAny`, `isNone`, `isAll`, `isNotAll`; default `isAny` + `isNone`), `date` (a from / to range), `number` (a min / max range), `text` (contains). |
+| `type` | `select` (one value; operators `is`, `isNot`; several values with `multiple`), `multiselect` (`isAny`, `isNone`, `isAll`, `isNotAll`; default `isAny` + `isNone`), `date` (a from / to range), `number` (a min / max range), `text` (contains). |
+| `multiple` | `select` only, since 1.13.0: the user picks several values and the chip reads "Room is any: Room 1, Room 2" (or "is none:"). The operators become `isAny` / `isNone` (sent as SQL `IN` / `NOT IN`); a `select` whose `operators` are only `isAny` / `isNone` is multiple too. DataViews cannot mix one-value and list operators in one filter, so `is` / `isNot` are dropped from a multiple select. |
 | `label` | Label of a filter-only field (a column keeps its own). |
 | `elements` | `select` / `multiselect`: value => label, or a list of `{value, label}`. Required for those types. |
-| `operators` | `select` / `multiselect`: a subset of the type's operators. |
+| `operators` | `select` / `multiselect`: a subset of the type's operators (`select`: `is`, `isNot`, or with `multiple` `isAny`, `isNone`). |
 | `field` | The view field the filter applies to (default: the id). |
 | `fields` | `date` / `number`: view fields the range may apply to, value => label; the panel shows an "Applies to" select and the first is the default (e.g. one "Dates" filter over check-in / check-out / created). |
 | `isPrimary` | Show the chip without "Add filter" first. |
@@ -96,6 +98,25 @@ allowlists fields and operators and binds every value). The field config then ca
 `filter: { type, field, fields, elements?, operators?, isPrimary }`; a list with its own REST adapter
 (its own `restPath`, such as Filox bookings) can put the same `filter` key on its fields.
 
+**Allowed values (since 1.13.0).** The target view field of a declared `select` / `multiselect` filter only
+accepts that filter's element values with the element operators (`is`, `isNot`, `isAny`, `isNone`, `isAll`,
+`isNotAll`): `EWP_Content_List_UI::view_field_values()` puts them on the field as `values`
+(`ewp_content_view_fields`, priority 20) and `View_Query` refuses anything else with a 400, on REST
+`{prefix}/{type}/query`, `wp ewp content query` and `ewp-content/query-items` alike. A list condition takes at
+most `View_Query::MAX_VALUES` (100) values, each bound to its own placeholder (`IN (%s, %s, …)`). Types that
+declare nothing keep accepting any value.
+
+**Saved views and old links.** A view saved in the browser, or `defaultView.filters` from a page, may still
+hold a one-value condition (`{field: "room", operator: "is", value: "1"}`) for a filter that is now multiple;
+the module turns it into `isAny ["1"]` (and `isNot` into `isNone`) when the list opens and before each request
+(`fitElementFilter()` in `helpers.js`). A list value reaching a one-value filter keeps its first value.
+
+**One popover at a time (since 1.13.0).** DataViews 4.15 gives each chip its own uncontrolled dropdown, and a
+popover only closes when focus leaves it for something that is not another dialog, so opening a second filter
+left the first one open underneath. `ewp-dataviews-list/single-popover.js` listens to `pointerdown` (capture) on
+the document: a press outside the open filter popover and its chip closes it (by toggling its chip) before the
+press opens anything else. Opening one filter closes the others, and a click anywhere outside closes it.
+
 **Query format.** The panel stores a range or text as one value; the request translates it into standard
 view conditions on the target field, so `GET {restPath}/query?view=…` receives:
 
@@ -105,7 +126,7 @@ view conditions on the target field, so `GET {restPath}/query?view=…` receives
 | date from / to only | `afterInc` / `beforeInc` with one date (`Y-m-d`) |
 | number min + max | `between` `[200, 450]`; min / max only: `greaterThanOrEqual` / `lessThanOrEqual` |
 | text | `contains` |
-| select / multiselect | the operator and value(s) as picked (`is`, `isAny`, …) |
+| select / multiselect | the operator and value(s) as picked (`is`, `isAny`, …); a multiple select sends `{field, operator: "isAny", value: ["1", "2"]}` |
 
 A date-only upper bound on a `date` / `datetime` field covers that whole day (`View_Query`, since 1.12.0).
 
