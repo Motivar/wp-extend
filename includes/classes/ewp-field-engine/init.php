@@ -38,5 +38,8 @@ require_once __DIR__ . '/types/class-tab-field.php';
 require_once __DIR__ . '/types/class-repeater-field.php';
 require_once __DIR__ . '/types/class-modal-field.php';
 require_once __DIR__ . '/types/class-object-id-filter-field.php';
+require_once __DIR__ . '/encryption/init.php';
+require_once __DIR__ . '/data/init.php';
+require_once __DIR__ . '/save/init.php';
 require_once __DIR__ . '/class-field-registry.php';
 require_once __DIR__ . '/class-field-renderer.php';

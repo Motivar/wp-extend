@@ -34,6 +34,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Backwards compatibility**: no hook was removed that ever had an effect. Flagged meta values are now actually encrypted, so code reading them must decrypt explicitly (`awm_decrypt_field_value()` / `EWP_Encryption::decrypt()`), as the encryption feature always documented.
 
 ### Changed
+- **Field engine, phase 5: saving, data and encryption out of `library.php`** (`2026-10-29`):
+  - **Question/Prompt**: "Yes, start Phase 5" (three Sonnet agents in parallel, then reviewed and verified here).
+  - **What moved**: 26 functions, about 1,300 lines, went into service classes. Each `awm_*` function is now a one-line wrapper with the same name, signature, return value and `function_exists` guard.
+  - **`save/` (`EWP\Fields\Save`)**:
+    - `Meta_Saver`, behind `awm_save_custom_meta()` and `awm_custom_meta_update_vars()`. It covers nested-key resolution, per-view writes and blocked capability keys, still calls `awm_meta_save_encryption()` before writing, and still fires `awm_custom_meta_update_action`.
+    - `Translation_Sync` (WPML), behind `awm_find_tranlsatable_fields()`, `awm_field_hidden_in_current_language()`, `awm_auto_translate()` and `awm_translated_ids()`.
+  - **`data/` (`EWP\Fields\Data`)**:
+    - `Field_Value_Reader`, behind `awm_get_field_value()` and `awm_get_raw_field_value()`.
+    - `Field_Preparer`, behind `awm_prepare_field()`, `awm_resolve_field_options()` and the two option lists for EWP content types and options pages.
+    - `Object_Types`, behind `awm_object_id_filter_config()` and `awm_get_object_type_options()`; its per-request cache is now a static property.
+    - `Object_Search_Query`, behind `awm_object_search_query()`. The post-type, taxonomy and custom-content branches are separate methods, and the custom-content branch keeps its security checks: registered types only, a `sanitize_key` check on the slug, and the `%i` table placeholder.
+    - `Field_Value_Formatter`, behind `awm_display_meta_value()`, with one method per case.
+  - **`encryption/` (`EWP\Fields\Encryption`)**:
+    - `Field_Encryption` (built on `EWP_Encryption`) and `Option_Field_Path`.
+    - The option re-save still detaches and re-attaches `awm_encrypt_option_after_save` around `update_option()`, so it does not recurse.
+    - `awm_encrypt_meta_on_save()` and `awm_decrypt_meta_on_retrieve()` are now `@deprecated 1.11.0`. Neither is hooked any more since the encryption fix; both still work when called directly.
+  - **`library.php`**: down to 862 lines, from 2,698 at the start of the refactor. What is left: the wrappers, plus a few small helpers (`awm_safe_unserialize_array`, `awm_show_explanation`, `awm_get_wp_editor_args`, `awm_create_form`, `awm_callback_library(_options)`, `awm_custom_image_image_uploader_field`, `awm_gallery_meta_box_html`, `ewp_rest_check_user_is_admin`, `awm_repeater_check_quotes`).
+  - **Hooks**: every `apply_filters` / `do_action` keeps its name, arguments and order, and its docblock moved with it. `awm_custom_meta_update_action` gained a docblock. HOOKS.md now shows where 16 moved hooks fire, plus the two radio hooks that moved in phase 2.
+  - **Behaviour differences**, all limited to empty or broken input:
+    - `awm_custom_meta_update_vars()` returns `array()` instead of `null` plus a notice when nothing is saved.
+    - `awm_translated_ids_filter` receives `array()` instead of `null` when WPML lists no languages.
+    - The posted array is no longer altered while nested keys are resolved.
+    - Kept on purpose: `awm_get_field_value()` returns 0 for an unknown view, `awm_display_meta_value()` returns null for an unknown case, and a `strip` message or html field returns before `awm_display_meta_value_filter`.
+  - **Verification**:
+    - Every function in the three groups was confirmed to be a wrapper after the agents' concurrent edits; nothing was lost.
+    - The 385 snapshots are byte-identical to the phase 4 baseline.
+    - PHPUnit: 480 tests, OK, 1 skipped (as before). New tests: `tests/test-save-classes-test.php` (11), `tests/test-data-classes-test.php` (17) and `tests/test-encryption-classes-test.php` (9).
+    - Self-test: 16/16, including the `field-engine` round-trip.
+    - A warning that predates this work (`class-db-creator.php:1397`, a `where` group without `clause`) shows up during the self-test content cases. Nothing in this phase builds such a query, and it is left for a separate fix.
+  - **Files**:
+    - new `includes/classes/ewp-field-engine/{save,data,encryption}/` (classes and `init.php`)
+    - `includes/classes/ewp-field-engine/init.php` and `README.md` (new "Services" section)
+    - `includes/functions/library.php`, `HOOKS.md`, `CLAUDE.md`
+    - the three new test files
+  - **Backwards compatibility**: the public functions and hooks are unchanged. External callers (filox, `sync`, themes, `EWP\Search\Object_Search`) need no change.
 - **Field engine, phase 4: `awm_show_content()` becomes `Field_Renderer`; row wrappers, labels and containers as templates** (`2026-10-29`):
   - **Question/Prompt**: "commit and continue" (after phase 3).
   - **What moved**: the remaining ~300 lines of `awm_show_content()` moved into `EWP\Fields\Field_Renderer` (`includes/classes/ewp-field-engine/class-field-renderer.php`). That covers sorting, language and role visibility, preparation, encrypted-value masking, `attributes.value` and `default`, the id override, wrapper classes, the shared label, `show-when` / `disable-elements`, type dispatch, the save marker, the row wrapper per view, the `html` case and the container. It is split into small methods, each under 100 lines. `awm_show_content()` is now a one-line wrapper with the same signature.

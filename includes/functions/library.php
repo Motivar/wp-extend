@@ -49,49 +49,19 @@ if (!function_exists('awm_show_explanation')) {
 
 if (!function_exists('awm_get_field_value')) {
     /**
-     * get awm value for fields
-     * @param string $view the view to user
-     * @param array $fields all the fields
-     * @paramint|string|array $id the post_id,term_id
-     * @param string $original_meta the meta which used
+     * Read a field's stored value for a view (filtered by `awm_show_content_value_filter`).
+     *
+     * Wrapper around \EWP\Fields\Data\Field_Value_Reader::value().
+     *
+     * @param string           $view          widget|user|term|post|option|restrict_manage_posts.
+     * @param array            $fields        The field definition (`widget-key` for view `widget`).
+     * @param int|string|array $id            Post/term/user id, or the widget instance.
+     * @param string           $original_meta The meta key.
+     * @return mixed The value; 0 for an unknown view.
      */
     function awm_get_field_value($view, $fields, $id, $original_meta)
     {
-        switch ($view) {
-            case 'widget':
-                $val = isset($id[$fields['widget-key']]) ? $id[$fields['widget-key']] : '';
-                break;
-            case 'user':
-                $val = get_user_meta($id, $original_meta, true) ?: '';
-                break;
-            case 'term':
-                $val = get_term_meta($id, $original_meta, true) ?: '';
-                break;
-            case 'post':
-                $val = get_post_meta($id, $original_meta, true) ?: '';
-                break;
-            case 'option':
-                $val = get_option($original_meta) ?: '';
-                break;
-            case 'restrict_manage_posts':
-                $val = isset($_GET[$original_meta]) ? $_GET[$original_meta] : '';
-                break;
-            default:
-                $val = 0;
-                break;
-        }
-        /**
-         * Filter a field value read for display or editing.
-         *
-         * @since 1.0.0
-         *
-         * @param mixed  $val           Stored value.
-         * @param int    $id            Object ID.
-         * @param string $original_meta Meta key.
-         * @param string $view          post|term|user|option|restrict_manage_posts.
-         */
-        $val = apply_filters('awm_show_content_value_filter', $val, $id, $original_meta, $view);
-        return $val;
+        return \EWP\Fields\Data\Field_Value_Reader::value($view, $fields, $id, $original_meta);
     }
 }
 
@@ -100,27 +70,18 @@ if (!function_exists('awm_get_raw_field_value')) {
      * Get raw field value from database without decryption hooks.
      * Used to check if a value is encrypted before masking.
      *
-     * @param string $view the view type (post, user, term, option)
-     * @param int|string|array $id the object ID
-     * @param string $original_meta the meta key
-     * @return mixed Raw value from database
+     * Wrapper around \EWP\Fields\Data\Field_Value_Reader::raw().
+     *
+     * @param string           $view          The view type (post, user, term, option).
+     * @param int|string|array $id            The object ID.
+     * @param string           $original_meta The meta key.
+     * @return mixed Raw value from database.
      *
      * @since 1.0.0
      */
     function awm_get_raw_field_value($view, $id, $original_meta)
     {
-        switch ($view) {
-            case 'user':
-                return get_user_meta($id, $original_meta, true) ?: '';
-            case 'term':
-                return get_term_meta($id, $original_meta, true) ?: '';
-            case 'post':
-                return get_post_meta($id, $original_meta, true) ?: '';
-            case 'option':
-                return get_option($original_meta) ?: '';
-            default:
-                return '';
-        }
+        return \EWP\Fields\Data\Field_Value_Reader::raw($view, $id, $original_meta);
     }
 }
 
@@ -138,21 +99,7 @@ if (!function_exists('awm_should_encrypt_field')) {
      */
     function awm_should_encrypt_field($field_config)
     {
-        // Check if encryption is explicitly enabled
-        if (!isset($field_config['encrypt']) || !$field_config['encrypt']) {
-            return false;
-        }
-
-        // Only support input field types (not repeater, select, textarea, etc.)
-        if (!isset($field_config['case']) || $field_config['case'] !== 'input') {
-            return false;
-        }
-
-        // Validate input type is supported
-        $supported_types = array('text', 'password', 'email', 'url', 'number');
-        $input_type = isset($field_config['type']) ? $field_config['type'] : 'text';
-
-        return in_array($input_type, $supported_types, true);
+        return \EWP\Fields\Encryption\Field_Encryption::instance()->should_encrypt_field($field_config);
     }
 }
 
@@ -171,37 +118,7 @@ if (!function_exists('awm_encrypt_field_value')) {
      */
     function awm_encrypt_field_value($value, $field_config)
     {
-        // Skip empty values
-        if (empty($value)) {
-            return $value;
-        }
-
-        // Skip if already encrypted
-        if (strpos($value, 'ewp_enc:') === 0) {
-            return $value;
-        }
-
-        // Skip if value is a masked placeholder (user didn't change it)
-        if (EWP_Encryption::is_masked($value)) {
-            return $value;
-        }
-
-        // Get algorithm from field config or use default
-        $algorithm = isset($field_config['encrypt_algorithm']) ? $field_config['encrypt_algorithm'] : '';
-
-        // Apply filter before encryption
-        /**
-         * Filter a field value before it is encrypted.
-         *
-         * @since 1.0.0
-         *
-         * @param mixed $value        Plain value.
-         * @param array $field_config Field definition (encrypt settings).
-         */
-        $value = apply_filters('ewp_encrypt_field_value', $value, $field_config);
-
-        // Encrypt the value
-        return EWP_Encryption::encrypt($value, $algorithm);
+        return \EWP\Fields\Encryption\Field_Encryption::instance()->encrypt_value($value, $field_config);
     }
 }
 
@@ -221,38 +138,7 @@ if (!function_exists('awm_decrypt_field_value')) {
      */
     function awm_decrypt_field_value($value, $field_config, $for_display = true)
     {
-        // Skip empty values
-        if (empty($value)) {
-            return $value;
-        }
-
-        // Get algorithm from field config or use default
-        $algorithm = isset($field_config['encrypt_algorithm']) ? $field_config['encrypt_algorithm'] : '';
-
-        // Decrypt the value
-        $decrypted = EWP_Encryption::decrypt($value, $algorithm);
-
-        // For display, show masked value by default
-        if ($for_display) {
-            $show_masked = isset($field_config['show_masked']) ? $field_config['show_masked'] : true;
-
-            if ($show_masked) {
-                return EWP_Encryption::mask($value, $algorithm);
-            }
-        }
-
-        // Apply filter after decryption
-        /**
-         * Filter a field value after it is decrypted.
-         *
-         * @since 1.0.0
-         *
-         * @param mixed $decrypted    Decrypted value.
-         * @param array $field_config Field definition (encrypt settings).
-         */
-        $decrypted = apply_filters('ewp_decrypt_field_value', $decrypted, $field_config);
-
-        return $decrypted;
+        return \EWP\Fields\Encryption\Field_Encryption::instance()->decrypt_value($value, $field_config, $for_display);
     }
 }
 
@@ -274,24 +160,19 @@ if (!function_exists('awm_meta_save_encryption')) {
      */
     function awm_meta_save_encryption($meta_key, $value, array $markers = array())
     {
-        global $awm_field_configs;
-        $config = isset($awm_field_configs[$meta_key]) ? (array) $awm_field_configs[$meta_key] : array();
-        if (!is_string($value) || (!awm_should_encrypt_field($config) && !in_array($meta_key, $markers, true))) {
-            return array('write', $value);
-        }
-        if (EWP_Encryption::is_masked($value)) {
-            return array('skip', $value);
-        }
-        return array('write', awm_encrypt_field_value($value, $config));
+        return \EWP\Fields\Encryption\Field_Encryption::instance()->meta_save_encryption($meta_key, $value, $markers);
     }
 }
 
 if (!function_exists('awm_encrypt_meta_on_save')) {
     /**
      * Encrypt meta values before they're saved to the database.
-     * Hooks into update_post_meta, update_user_meta, update_term_meta.
+     * Formerly hooked into update_post_meta, update_user_meta, update_term_meta
+     * (an action whose return value WordPress ignores, so nothing was encrypted).
      *
-     * @param mixed $meta_id The meta ID (return value, not used for filtering)
+     * @deprecated 1.11.0 Use awm_meta_save_encryption(), called from the save path.
+     *
+     * @param mixed $meta_id The meta ID (only logged)
      * @param int $object_id The object ID (post, user, or term)
      * @param string $meta_key The meta key
      * @param mixed $meta_value The meta value to save
@@ -301,62 +182,17 @@ if (!function_exists('awm_encrypt_meta_on_save')) {
      */
     function awm_encrypt_meta_on_save($meta_id, $object_id, $meta_key, $meta_value)
     {
-        global $awm_field_configs;
-
-        // Get field config if available
-        $field_config = isset($awm_field_configs[$meta_key]) ? $awm_field_configs[$meta_key] : array();
-
-        // Check if field should be encrypted (config OR POST marker)
-        $encrypt_fields = isset($_POST['ewp_encrypt']) ? (array)$_POST['ewp_encrypt'] : [];
-        $should_encrypt = awm_should_encrypt_field($field_config) || in_array($meta_key, $encrypt_fields, true);
-
-        if (!$should_encrypt) {
-            return $meta_value;
-        }
-
-        // Don't encrypt if value is already encrypted
-        if (EWP_Encryption::is_encrypted($meta_value)) {
-            return $meta_value;
-        }
-
-        // Don't encrypt if value is masked (user didn't change it)
-        if (EWP_Encryption::is_masked($meta_value)) {
-            return $meta_value;
-        }
-
-        // Encrypt the value
-        if (!empty($meta_value)) {
-            $encrypted_value = awm_encrypt_field_value($meta_value, $field_config);
-
-            // Log encryption event
-            if (function_exists('ewp_log')) {
-                ewp_log(
-                    'extend-wp',
-                    'field_encrypted',
-                    sprintf('Meta field "%s" encrypted for object ID %d', $meta_key, $object_id),
-                    [
-                        'meta_key' => $meta_key,
-                        'object_id' => $object_id,
-                        'meta_id' => $meta_id,
-                        'value_length' => strlen($meta_value),
-                    ],
-                    'developer',
-                    '',
-                    1
-                );
-            }
-
-            return $encrypted_value;
-        }
-
-        return $meta_value;
+        return \EWP\Fields\Encryption\Field_Encryption::instance()->encrypt_meta_on_save($meta_id, $object_id, $meta_key, $meta_value);
     }
 }
 
 if (!function_exists('awm_decrypt_meta_on_retrieve')) {
     /**
      * Decrypt meta values when they're retrieved from the database.
-     * Hooks into get_post_meta, get_user_meta, get_term_meta.
+     * No longer registered on get_post_meta, get_user_meta, get_term_meta;
+     * decryption is explicit at read time.
+     *
+     * @deprecated 1.11.0 Use awm_decrypt_field_value( $value, $field_config, false ).
      *
      * @param mixed $meta_value The meta value from the database
      * @param int $object_id The object ID (post, user, or term)
@@ -368,22 +204,7 @@ if (!function_exists('awm_decrypt_meta_on_retrieve')) {
      */
     function awm_decrypt_meta_on_retrieve($meta_value, $object_id, $meta_key, $single)
     {
-        global $awm_field_configs;
-
-        // Get field config if available
-        $field_config = isset($awm_field_configs[$meta_key]) ? $awm_field_configs[$meta_key] : array();
-
-        // Check if field should be decrypted
-        if (!awm_should_encrypt_field($field_config)) {
-            return $meta_value;
-        }
-
-        // Decrypt the value (not for display, return plain text)
-        if (!empty($meta_value)) {
-            return awm_decrypt_field_value($meta_value, $field_config, false);
-        }
-
-        return $meta_value;
+        return \EWP\Fields\Encryption\Field_Encryption::instance()->decrypt_meta_on_retrieve($meta_value, $object_id, $meta_key, $single);
     }
 }
 
@@ -399,25 +220,7 @@ if (!function_exists('awm_parse_encryption_field_path')) {
      */
     function awm_parse_encryption_field_path($field_path)
     {
-        if (strpos($field_path, '[') !== false) {
-            // Parse bracket notation: "provider_config[openai_api_key]"
-            preg_match('/^([^\[]+)\[([^\]]+)\]$/', $field_path, $matches);
-
-            if (count($matches) !== 3) {
-                return null; // Invalid format
-            }
-
-            return [
-                'option' => $matches[1],
-                'field'  => $matches[2],
-            ];
-        }
-
-        // Simple field name (no brackets)
-        return [
-            'option' => null,
-            'field'  => $field_path,
-        ];
+        return \EWP\Fields\Encryption\Option_Field_Path::parse($field_path);
     }
 }
 
@@ -433,22 +236,7 @@ if (!function_exists('awm_should_encrypt_field_value')) {
      */
     function awm_should_encrypt_field_value($value)
     {
-        // Skip if already encrypted
-        if (EWP_Encryption::is_encrypted($value)) {
-            return false;
-        }
-
-        // Skip if masked (user didn't change it)
-        if (EWP_Encryption::is_masked($value)) {
-            return false;
-        }
-
-        // Skip empty values
-        if ('' === $value) {
-            return false;
-        }
-
-        return true;
+        return \EWP\Fields\Encryption\Field_Encryption::instance()->should_encrypt_value($value);
     }
 }
 
@@ -466,44 +254,7 @@ if (!function_exists('awm_encrypt_option_field')) {
      */
     function awm_encrypt_option_field($option_value, $field_key, $option_name, $expected_option = null)
     {
-        // Validate option name matches (for bracket notation)
-        if ($expected_option !== null && $expected_option !== $option_name) {
-            return null;
-        }
-
-        // Check if this is an array option with the nested field
-        if (!is_array($option_value) || !isset($option_value[$field_key])) {
-            return null;
-        }
-
-        $raw = $option_value[$field_key];
-
-        // Check if value should be encrypted
-        if (!awm_should_encrypt_field_value($raw)) {
-            return null;
-        }
-
-        // Encrypt the field
-        $option_value[$field_key] = EWP_Encryption::encrypt($raw);
-
-        // Log encryption event
-        if (function_exists('ewp_log')) {
-            ewp_log(
-                'extend-wp',
-                'field_encrypted',
-                sprintf('Option field "%s[%s]" encrypted', $option_name, $field_key),
-                [
-                    'option_name' => $option_name,
-                    'field_key' => $field_key,
-                    'value_length' => strlen($raw),
-                ],
-                'developer',
-                '',
-                1
-            );
-        }
-
-        return $option_value;
+        return \EWP\Fields\Encryption\Field_Encryption::instance()->encrypt_option_field($option_value, $field_key, $option_name, $expected_option);
     }
 }
 
@@ -521,50 +272,7 @@ if (!function_exists('awm_encrypt_option_after_save')) {
      */
     function awm_encrypt_option_after_save($option, $old_value, $value)
     {
-        // Only process if this is an EWP options page save
-        if (!isset($_POST['awm_metabox_case']) || $_POST['awm_metabox_case'] !== 'option') {
-            return;
-        }
-
-        // Get fields marked for encryption
-        $encrypt_fields = isset($_POST['ewp_encrypt']) ? (array)$_POST['ewp_encrypt'] : [];
-
-        if (empty($encrypt_fields)) {
-            return;
-        }
-
-        // Get the current option value
-        $current_value = get_option($option);
-        $updated = false;
-
-        foreach ($encrypt_fields as $field_path) {
-            // Parse field path to extract option name and field key
-            $parsed = awm_parse_encryption_field_path($field_path);
-
-            if ($parsed === null) {
-                continue;
-            }
-
-            // Encrypt the field
-            $result = awm_encrypt_option_field(
-                $current_value,
-                $parsed['field'],
-                $option,
-                $parsed['option']
-            );
-
-            if ($result !== null) {
-                $current_value = $result;
-                $updated = true;
-            }
-        }
-
-        // Update the option with encrypted values (avoid infinite loop by removing action)
-        if ($updated) {
-            remove_action('updated_option', 'awm_encrypt_option_after_save', 10);
-            update_option($option, $current_value);
-            add_action('updated_option', 'awm_encrypt_option_after_save', 10, 3);
-        }
+        \EWP\Fields\Encryption\Field_Encryption::instance()->encrypt_option_after_save($option, $old_value, $value);
     }
 }
 
@@ -647,6 +355,8 @@ if (!function_exists('awm_prepare_field')) {
      * only needs the field's shape (block registration on every request) does
      * not query the options. awm_resolve_field_options() resolves it later.
      *
+     * Wrapper around \EWP\Fields\Data\Field_Preparer::prepare().
+     *
      * @param array  $a               The field's data.
      * @param string $awm_id          The id of the library.
      * @param bool   $resolve_options Optional. Run the field's options callback. Default true.
@@ -656,84 +366,7 @@ if (!function_exists('awm_prepare_field')) {
      */
     function awm_prepare_field($a, $awm_id = '', $resolve_options = true)
     {
-
-        switch ($a['case']) {
-            case 'ewp_content_types':
-                $a['case'] = isset($a['view']) ? $a['view'] : 'select';
-                $a['callback'] = 'awm_ewp_content_type_options';
-                break;
-            case 'ewp_option_pages':
-                /**
-                 * Custom field case that resolves option page choices at render time,
-                 * avoiding recursion during field definition (options_boxes() cycle).
-                 *
-                 * @since 1.1.3
-                 */
-                $a['case'] = isset($a['view']) ? $a['view'] : 'select';
-                $a['callback'] = 'awm_ewp_option_page_options';
-                break;
-            case 'ewp_content':
-                $a['case'] = isset($a['view']) ? $a['view'] : 'select';
-                $args = isset($a['args']) ? $a['args'] : array();
-                $a['callback'] = 'awmEwpContentForInput';
-                $a['callback_variables'] = array($a['content_type'], $args);
-                break;
-            case 'taxonomies':
-                $a['case'] = isset($a['view']) ? $a['view'] : 'select';
-                $args = isset($a['args']) ? $a['args'] : array();
-                $a['callback'] = 'awmTaxObjectsForInput';
-                $a['callback_variables'] = array($args);
-                break;
-            case 'post_types':
-                $a['case'] = isset($a['view']) ? $a['view'] : 'select';
-                $args = isset($a['args']) ? $a['args'] : array();
-                $a['callback'] = 'awmPostObjectsForInput';
-                $a['callback_variables'] = array($args);
-                break;
-            case 'postType':
-                $a['case'] = isset($a['view']) ? $a['view'] : 'select';
-                $number = isset($a['number']) ? $a['number'] : '-1';
-                $args = isset($a['args']) ? $a['args'] : array();
-                $a['callback'] = 'awmPostFieldsForInput';
-                $a['callback_variables'] = array($a['post_type'], $number, $args);
-                break;
-            case 'term':
-                $a['case'] = isset($a['view']) ? $a['view'] : 'select';
-                $number = isset($a['number']) ? $a['number'] : '-1';
-
-                $args = isset($a['args']) ? $a['args'] : array();
-                $option_key = isset($a['option_key']) ? $a['option_key'] : 'term_id';
-                $a['callback'] = 'awmTaxonomyFieldsForInput';
-                $show_all = isset($a['show_all']) ? $a['show_all'] : false;
-                $a['callback_variables'] = array($a['taxonomy'], $number,  $args, $option_key, $awm_id, $show_all);
-                break;
-            case 'user':
-                $roles = isset($a['roles']) ? $a['roles'] : array();
-                $a['case'] = isset($a['view']) ? $a['view'] : 'select';
-                $number = isset($a['number']) ? $a['number'] : '-1';
-                $args = isset($a['args']) ? $a['args'] : array();
-                $a['callback'] = 'awmUserFieldsForInput';
-                $a['callback_variables'] = array($roles, $number, $args);
-                break;
-            case 'user_roles':
-                $a['case'] = isset($a['view']) ? $a['view'] : 'select';
-                $exclude = isset($a['exclude']) ? $a['exclude'] : array();
-                $a['callback'] = 'awmUserRolesFieldsForInput';
-                $a['callback_variables'] = array($exclude);
-                break;
-            case 'date':
-                $a['case'] = 'input';
-                $a['type'] = 'text';
-                $a['class'][] = 'awm_cl_date';
-                if (isset($a['date-params'])) {
-                    $a['attributes']['date-params'] = str_replace('"', '\'', json_encode(apply_filters('awm_cl_date_params', $a['date-params'], $a)));
-                }
-                break;
-            default:
-                break;
-        }
-
-        return $resolve_options ? awm_resolve_field_options($a) : $a;
+        return \EWP\Fields\Data\Field_Preparer::prepare($a, $awm_id, $resolve_options);
     }
 }
 
@@ -745,6 +378,8 @@ if (!function_exists('awm_resolve_field_options')) {
      * set; when that returns nothing (or there are none) it runs again without
      * arguments. A field without a callback is returned unchanged.
      *
+     * Wrapper around \EWP\Fields\Data\Field_Preparer::resolve_options().
+     *
      * @param array $a Field data, as returned by awm_prepare_field().
      * @return array The field with `options` filled.
      *
@@ -752,15 +387,7 @@ if (!function_exists('awm_resolve_field_options')) {
      */
     function awm_resolve_field_options($a)
     {
-        if (!isset($a['callback'])) {
-            return $a;
-        }
-        $callback_options = array();
-        if (!empty($a['callback_variables'])) {
-            $callback_options = call_user_func_array($a['callback'], $a['callback_variables']);
-        }
-        $a['options'] = empty($callback_options) ? call_user_func($a['callback']) : $callback_options;
-        return $a;
+        return \EWP\Fields\Data\Field_Preparer::resolve_options($a);
     }
 }
 
@@ -768,13 +395,15 @@ if (!function_exists('awm_ewp_content_type_options')) {
     /**
      * Options of an `ewp_content_types` field: the registered content types.
      *
+     * Wrapper around \EWP\Fields\Data\Field_Preparer::content_type_options().
+     *
      * @return array Content type id => definition (with `label`).
      *
      * @since 1.5.8 Extracted from awm_prepare_field().
      */
     function awm_ewp_content_type_options()
     {
-        return AWM_Content_DB::get_instance()->get_content_types();
+        return \EWP\Fields\Data\Field_Preparer::content_type_options();
     }
 }
 
@@ -783,20 +412,15 @@ if (!function_exists('awm_ewp_option_page_options')) {
      * Options of an `ewp_option_pages` field: the exportable options pages,
      * labelled with their field count.
      *
+     * Wrapper around \EWP\Fields\Data\Field_Preparer::option_page_options().
+     *
      * @return array Page id => array('label' => "Title (N fields)").
      *
      * @since 1.5.8 Extracted from awm_prepare_field().
      */
     function awm_ewp_option_page_options()
     {
-        $opts = array();
-        foreach (\EWP_Options_Portability::instance()->get_exportable_pages() as $pk => $pd) {
-            $cnt = isset($pd['field_count']) ? $pd['field_count'] : count($pd['fields']);
-            $opts[$pk] = array(
-                'label' => sprintf('%s (%d %s)', $pd['title'], $cnt, _n('field', 'fields', $cnt, 'extend-wp')),
-            );
-        }
-        return $opts;
+        return \EWP\Fields\Data\Field_Preparer::option_page_options();
     }
 }
 
@@ -808,6 +432,8 @@ if (!function_exists('awm_object_id_filter_config')) {
      * Reads the developer-supplied field array and fills in defaults so the
      * rest of the pipeline (render case, server-side preload, JS module) can
      * rely on a consistent shape.
+     *
+     * Wrapper around \EWP\Fields\Data\Object_Types::config().
      *
      * @param array  $a             The field definition.
      * @param string $original_meta The meta key the field is registered under.
@@ -825,16 +451,7 @@ if (!function_exists('awm_object_id_filter_config')) {
      */
     function awm_object_id_filter_config($a, $original_meta)
     {
-        return array(
-            'allowed_types'    => isset($a['allowed_types']) && is_array($a['allowed_types']) ? $a['allowed_types'] : array('post_types', 'taxonomies', 'custom_content'),
-            'post_types'       => isset($a['post_types']) && is_array($a['post_types']) ? $a['post_types'] : array(),
-            'taxonomies'       => isset($a['taxonomies']) && is_array($a['taxonomies']) ? $a['taxonomies'] : array(),
-            'custom_content'   => isset($a['custom_content']) && is_array($a['custom_content']) ? $a['custom_content'] : array(),
-            'id_field_name'    => isset($a['id_field_name']) && !empty($a['id_field_name']) ? $a['id_field_name'] : $original_meta . '_ids',
-            'min_search_chars' => isset($a['min_search_chars']) ? absint($a['min_search_chars']) : 2,
-            'max_results'      => isset($a['max_results']) ? absint($a['max_results']) : 20,
-            'search_meta'      => isset($a['search_meta']) ? (bool) $a['search_meta'] : true,
-        );
+        return \EWP\Fields\Data\Object_Types::config($a, $original_meta);
     }
 }
 
@@ -844,13 +461,15 @@ if (!function_exists('awm_get_object_type_options')) {
      * Build the optgroup option structure for an `object_id_filter` type selector.
      *
      * Returns options keyed by `"{group}:{slug}"` plus an `optgroups` definition,
-     * matching the structure the standard `select` case expects
-     * (see awm_show_content() select rendering).
+     * matching the structure the standard `select` case expects.
      *
      * Honors the field config: `allowed_types` limits the visible groups and the
      * per-group slug arrays (`post_types`, `taxonomies`, `custom_content`) limit
      * which entries appear inside each group. Results are cached per-config for
      * the current request.
+     *
+     * Wrapper around \EWP\Fields\Data\Object_Types::options(); fires
+     * `awm_object_type_options` and `awm_object_type_options_{$field_name}`.
      *
      * @param array  $config     Normalized config (see awm_object_id_filter_config()).
      * @param string $field_name Field name, used for the per-field filter hook.
@@ -859,101 +478,7 @@ if (!function_exists('awm_get_object_type_options')) {
      */
     function awm_get_object_type_options($config, $field_name = '')
     {
-        static $cache = array();
-        $cache_key = md5(serialize($config));
-        if (isset($cache[$cache_key])) {
-            $options = $cache[$cache_key];
-        } else {
-            $options   = array();
-            $optgroups = array();
-
-            $allowed = $config['allowed_types'];
-
-            if (in_array('post_types', $allowed, true)) {
-                $optgroups['post_type'] = array('label' => __('Post Types', 'extend-wp'));
-                $post_types = get_post_types(array('public' => true), 'objects');
-                foreach ($post_types as $slug => $obj) {
-                    if (!empty($config['post_types']) && !in_array($slug, $config['post_types'], true)) {
-                        continue;
-                    }
-                    $options['post_type:' . $slug] = array(
-                        'label'    => sprintf('%s (%s)', $obj->labels->singular_name, $slug),
-                        'optgroup' => 'post_type',
-                    );
-                }
-            }
-
-            if (in_array('taxonomies', $allowed, true)) {
-                $optgroups['taxonomy'] = array('label' => __('Taxonomies', 'extend-wp'));
-                $taxonomies = get_taxonomies(array('public' => true), 'objects');
-                foreach ($taxonomies as $slug => $obj) {
-                    if (!empty($config['taxonomies']) && !in_array($slug, $config['taxonomies'], true)) {
-                        continue;
-                    }
-                    $options['taxonomy:' . $slug] = array(
-                        'label'    => sprintf('%s (%s)', $obj->labels->singular_name, $slug),
-                        'optgroup' => 'taxonomy',
-                    );
-                }
-            }
-
-            if (in_array('custom_content', $allowed, true) && class_exists('AWM_Content_DB')) {
-                $optgroups['custom_content'] = array('label' => __('Custom Content', 'extend-wp'));
-                $content_types = AWM_Content_DB::get_instance()->get_content_types();
-                if (is_array($content_types)) {
-                    foreach ($content_types as $slug => $data) {
-                        if (!empty($config['custom_content']) && !in_array($slug, $config['custom_content'], true)) {
-                            continue;
-                        }
-                        $label = is_array($data) && isset($data['label']) ? $data['label'] : $slug;
-                        $options['custom_content:' . $slug] = array(
-                            'label'    => sprintf('%s (%s)', $label, $slug),
-                            'optgroup' => 'custom_content',
-                        );
-                    }
-                }
-            }
-
-            // Drop empty optgroups so the selector stays tidy.
-            foreach (array_keys($optgroups) as $group_id) {
-                $has_option = false;
-                foreach ($options as $opt) {
-                    if (isset($opt['optgroup']) && $opt['optgroup'] === $group_id) {
-                        $has_option = true;
-                        break;
-                    }
-                }
-                if (!$has_option) {
-                    unset($optgroups[$group_id]);
-                }
-            }
-
-            $options['optgroups'] = $optgroups;
-            $cache[$cache_key]    = $options;
-        }
-
-        /**
-         * Filter the options of an object-type select (posts, terms, users, content rows).
-         *
-         * @since 1.0.0
-         *
-         * @param array  $options    Value => label.
-         * @param array  $config     Field configuration.
-         * @param string $field_name Field name, may be empty.
-         */
-        $options = apply_filters('awm_object_type_options', $options, $config, $field_name);
-        if (!empty($field_name)) {
-            /**
-             * Filter the options of one named object-type select (`awm_object_type_options_{$field_name}`).
-             *
-             * @since 1.0.0
-             *
-             * @param array $options Value => label.
-             * @param array $config  Field configuration.
-             */
-            $options = apply_filters('awm_object_type_options_' . $field_name, $options, $config);
-        }
-        return $options;
+        return \EWP\Fields\Data\Object_Types::options($config, $field_name);
     }
 }
 
@@ -969,6 +494,10 @@ if (!function_exists('awm_object_search_query')) {
      * it fetches exactly those IDs (preload); otherwise it searches by title/name
      * (and meta when `search_meta` is true).
      *
+     * Wrapper around \EWP\Fields\Data\Object_Search_Query::search(); fires
+     * `awm_object_search_query_args`, `awm_object_search_max_limit` and
+     * `awm_object_search_results`.
+     *
      * @param string $group One of post_type|taxonomy|custom_content.
      * @param string $slug  The object slug (e.g. page, category, flx_booking).
      * @param string $search Search term (ignored when `include` is set).
@@ -983,189 +512,7 @@ if (!function_exists('awm_object_search_query')) {
      */
     function awm_object_search_query($group, $slug, $search, $args = array())
     {
-        global $wpdb;
-
-        $defaults = array(
-            'limit'       => 20,
-            'search_meta' => true,
-            'exclude'     => array(),
-            'include'     => array(),
-        );
-        $args = array_merge($defaults, $args);
-
-        /**
-         * Filter the arguments of an object search before it runs.
-         *
-         * @since 1.5.8
-         *
-         * @param array  $args   Query arguments (limit, …).
-         * @param string $group  Object group: post_type|taxonomy|user|custom_content.
-         * @param string $slug   Post type, taxonomy or content type.
-         * @param string $search Search text.
-         */
-        $args        = apply_filters('awm_object_search_query_args', $args, $group, $slug, $search);
-        /**
-         * Filter the largest number of results one object search may return.
-         *
-         * @since 1.10.0
-         *
-         * @param int $max Maximum `limit` (and `include` ids). Default 100.
-         */
-        $max         = max(1, (int) apply_filters('awm_object_search_max_limit', 100));
-        $limit       = min($max, max(1, absint($args['limit'])));
-        $exclude     = array_filter(array_map('absint', (array) $args['exclude']));
-        $include     = array_slice(array_filter(array_map('absint', (array) $args['include'])), 0, $max);
-        /*an empty term would make the meta LIKE '%%' scan the whole meta table*/
-        $search_meta = (bool) $args['search_meta'] && $search !== '';
-        $type        = $group . ':' . $slug;
-        $results     = array();
-
-        switch ($group) {
-            case 'post_type':
-                if (!post_type_exists($slug)) {
-                    break;
-                }
-                $ids = array();
-                if (!empty($include)) {
-                    $ids = $include;
-                } else {
-                    $ids = get_posts(array(
-                        'post_type'        => $slug,
-                        's'                => $search,
-                        'posts_per_page'   => $limit,
-                        'post__not_in'     => $exclude,
-                        'fields'           => 'ids',
-                        'post_status'      => 'any',
-                        'suppress_filters' => false,
-                    ));
-                    if ($search_meta && count($ids) < $limit) {
-                        $like     = '%' . $wpdb->esc_like($search) . '%';
-                        $meta_ids = $wpdb->get_col($wpdb->prepare(
-                            "SELECT DISTINCT pm.post_id FROM {$wpdb->postmeta} pm
-                             INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-                             WHERE p.post_type = %s AND p.post_status NOT IN ('trash','auto-draft')
-                             AND pm.meta_value LIKE %s LIMIT %d",
-                            $slug,
-                            $like,
-                            $limit
-                        ));
-                        $ids = array_merge($ids, array_map('absint', $meta_ids));
-                    }
-                    $ids = array_diff(array_unique($ids), $exclude);
-                    $ids = array_slice($ids, 0, $limit);
-                }
-                /*one query for every title instead of one per id*/
-                _prime_post_caches(array_map('absint', $ids), false, false);
-                foreach ($ids as $pid) {
-                    $title = get_the_title($pid);
-                    $results[] = array(
-                        'id'    => absint($pid),
-                        'label' => $title !== '' ? $title : sprintf(__('#%d (no title)', 'extend-wp'), $pid),
-                        'type'  => $type,
-                    );
-                }
-                break;
-
-            case 'taxonomy':
-                if (!taxonomy_exists($slug)) {
-                    break;
-                }
-                $term_args = array(
-                    'taxonomy'   => $slug,
-                    'hide_empty' => false,
-                    'number'     => $limit,
-                    'exclude'    => $exclude,
-                );
-                if (!empty($include)) {
-                    $term_args['include'] = $include;
-                    unset($term_args['exclude']);
-                } else {
-                    $term_args['search'] = $search;
-                }
-                $terms = get_terms($term_args);
-                if (is_array($terms)) {
-                    foreach ($terms as $term) {
-                        $results[absint($term->term_id)] = array(
-                            'id'    => absint($term->term_id),
-                            'label' => $term->name,
-                            'type'  => $type,
-                        );
-                    }
-                }
-                if (empty($include) && $search_meta && count($results) < $limit) {
-                    $like     = '%' . $wpdb->esc_like($search) . '%';
-                    $meta_ids = $wpdb->get_col($wpdb->prepare(
-                        "SELECT DISTINCT tm.term_id FROM {$wpdb->termmeta} tm
-                         INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_id = tm.term_id
-                         WHERE tt.taxonomy = %s AND tm.meta_value LIKE %s LIMIT %d",
-                        $slug,
-                        $like,
-                        $limit
-                    ));
-                    foreach ($meta_ids as $tid) {
-                        $tid = absint($tid);
-                        if (isset($results[$tid]) || in_array($tid, $exclude, true)) {
-                            continue;
-                        }
-                        $term = get_term($tid, $slug);
-                        if ($term && !is_wp_error($term)) {
-                            $results[$tid] = array('id' => $tid, 'label' => $term->name, 'type' => $type);
-                        }
-                    }
-                }
-                $results = array_slice(array_values($results), 0, $limit);
-                break;
-
-            case 'custom_content':
-                /*the slug becomes a table name below: registered content types only*/
-                if (!function_exists('awm_get_db_content') || $slug !== sanitize_key($slug) || !class_exists('AWM_Add_Content_DB_Setup') || !isset(AWM_Add_Content_DB_Setup::$ewp_data_configuration[$slug])) {
-                    break;
-                }
-                $rows = array();
-                if (!empty($include)) {
-                    $rows = awm_get_db_content($slug, array('include' => $include));
-                } else {
-                    $rows = (array) awm_get_db_content($slug, array('title' => $search, 'limit' => $limit));
-                    if ($search_meta && count($rows) < $limit) {
-                        $like     = '%' . $wpdb->esc_like($search) . '%';
-                        $meta_ids = $wpdb->get_col($wpdb->prepare(
-                            "SELECT DISTINCT content_id FROM %i WHERE meta_value LIKE %s LIMIT %d",
-                            $wpdb->prefix . $slug . '_data',
-                            $like,
-                            $limit
-                        ));
-                        $meta_ids = array_filter(array_map('absint', (array) $meta_ids));
-                        if (!empty($meta_ids)) {
-                            $rows = array_merge($rows, (array) awm_get_db_content($slug, array('include' => $meta_ids)));
-                        }
-                    }
-                }
-                $seen = array();
-                foreach ((array) $rows as $row) {
-                    $cid = isset($row['content_id']) ? absint($row['content_id']) : 0;
-                    if (!$cid || isset($seen[$cid]) || in_array($cid, $exclude, true)) {
-                        continue;
-                    }
-                    $seen[$cid] = true;
-                    $label = isset($row['content_title']) && $row['content_title'] !== '' ? $row['content_title'] : sprintf(__('#%d', 'extend-wp'), $cid);
-                    $results[] = array('id' => $cid, 'label' => $label, 'type' => $type);
-                }
-                $results = array_slice($results, 0, $limit);
-                break;
-        }
-
-        /**
-         * Filter object search results.
-         *
-         * @since 1.5.8
-         *
-         * @param array  $results Results (id, label).
-         * @param string $group   Object group.
-         * @param string $slug    Post type, taxonomy or content type.
-         * @param string $search  Search text.
-         * @param array  $args    Query arguments.
-         */
-        return apply_filters('awm_object_search_results', $results, $group, $slug, $search, $args);
+        return \EWP\Fields\Data\Object_Search_Query::search($group, $slug, $search, $args);
     }
 }
 
@@ -1221,12 +568,7 @@ function awm_repeater_content($i, $original_meta, $a, $original_meta_id, $val)
  */
 function awm_save_custom_meta($data, $dataa, $id, $view = 'post', $postType = '')
 {
-    if (isset($data) && !empty($data)) {
-        awm_custom_meta_update_vars($data, $dataa, $id, $view);
-        /*check for translation */
-        do_action('awm_custom_meta_update_action', $data, $dataa, $id, $view, $postType);
-        awm_auto_translate($data, $dataa, $id, $view);
-    }
+    (new \EWP\Fields\Save\Meta_Saver())->save($data, $dataa, $id, $view, $postType);
 }
 
 if (!function_exists('awm_find_tranlsatable_fields')) {
@@ -1239,31 +581,7 @@ if (!function_exists('awm_find_tranlsatable_fields')) {
      */
     function awm_find_tranlsatable_fields($metabox, $case)
     {
-        $autoTranslate = array();
-
-
-        $metaboxData = awm_get_metabox_info($metabox, $case);
-
-        if (isset($metaboxData['auto_translate']) && $metaboxData['auto_translate']) {
-            $autoTranslate = array_keys($metaboxData['library']);
-        }
-        if (empty($autoTranslate)) {
-            foreach ($metaboxData['library'] as $field => $field_data) {
-                if (isset($field_data['auto_translate'])) {
-                    $autoTranslate[] = $field;
-                }
-            }
-        }
-        /**
-         * Filter the fields WPML should copy to translations.
-         *
-         * @since 1.0.0
-         *
-         * @param array  $autoTranslate Meta keys to translate.
-         * @param string $case          Box type.
-         * @param array  $metabox       Boxes searched.
-         */
-        return apply_filters('awm_auto_translate_fields_filter', $autoTranslate, $case, $metabox);
+        return (new \EWP\Fields\Save\Translation_Sync())->translatable_fields($metabox, $case);
     }
 }
 
@@ -1284,20 +602,7 @@ if (!function_exists('awm_field_hidden_in_current_language')) {
      */
     function awm_field_hidden_in_current_language($field)
     {
-        $hidden = false;
-        if (is_array($field) && isset($field['auto_translate']) && function_exists('icl_object_id') && defined('ICL_LANGUAGE_CODE')) {
-            global $sitepress;
-            if (is_object($sitepress) && method_exists($sitepress, 'get_default_language')) {
-                $hidden = $sitepress->get_default_language() != ICL_LANGUAGE_CODE;
-            }
-        }
-        /**
-         * Filter whether a field is skipped in the current language.
-         *
-         * @param bool  $hidden Whether the field is skipped.
-         * @param array $field  The field definition.
-         */
-        return (bool) apply_filters('awm_field_hidden_in_current_language', $hidden, $field);
+        return (new \EWP\Fields\Save\Translation_Sync())->hidden_in_current_language($field);
     }
 }
 
@@ -1312,53 +617,7 @@ if (!function_exists('awm_field_hidden_in_current_language')) {
  */
 function awm_auto_translate($data, $dataa, $id, $view)
 {
-    /*wpml check*/
-    $autoTranslate = array();
-
-    if (isset($dataa['awm_metabox']) && !empty($dataa['awm_metabox'])) {
-        foreach ($dataa['awm_metabox'] as $metabox) {
-            $autoTranslate = array_unique(array_merge($autoTranslate, awm_find_tranlsatable_fields($metabox, $dataa['awm_metabox_case'])));
-        }
-        if (!empty($autoTranslate)) {
-            if (function_exists('icl_object_id')) {
-                global $sitepress;
-                $ids = awm_translated_ids($id, $dataa['awm_metabox_case']);
-                if (!empty($ids) && isset($ids['original']) && isset($ids['translations'])) {
-                    foreach ($autoTranslate as $key) {
-                        $value = '';
-                        switch ($dataa['awm_metabox_case']) {
-                            case 'post':
-                                $value = ($id == $ids['original'] && isset($dataa[$key])) ? $dataa[$key] : get_post_meta($ids['original'], $key, true);
-                                break;
-                            case 'term':
-                                $value = ($id == $ids['original'] && isset($dataa[$key])) ? $dataa[$key] : get_term_meta($ids['original'], $key, true);
-                                break;
-                        }
-                        foreach ($ids['translations'] as $trans) {
-                            switch ($dataa['awm_metabox_case']) {
-                                case 'post':
-                                    if (empty($value)) {
-                                        delete_post_meta($trans, $key);
-                                        break;
-                                    }
-                                    update_post_meta($trans, $key, $value);
-                                    break;
-                                case 'term':
-                                    if (empty($value)) {
-                                        delete_term_meta($trans, $key);
-                                        break;
-                                    }
-
-                                    update_term_meta($trans, $key, $value);
-                                    break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return;
+    (new \EWP\Fields\Save\Translation_Sync())->auto_translate($data, $dataa, $id, $view);
 }
 
 
@@ -1373,73 +632,7 @@ function awm_auto_translate($data, $dataa, $id, $view)
  */
 function awm_custom_meta_update_vars($meta, $metaa, $id, $view)
 {
-    global $awm_field_configs;
-
-    foreach ($meta as $k) {
-        $chk = '';
-        // Roles and capabilities are never written through a field save, whoever calls this.
-        if (class_exists('EWP_Meta_Save_Guard') && EWP_Meta_Save_Guard::is_blocked_key($k)) {
-            continue;
-        }
-
-        if (strpos($k, '[') !== false) {
-            $keys = explode('[', $k);
-            $ref = &$metaa;
-            $ref2 = &$arr;
-            $count = 0;
-            while ($key = array_shift($keys)) {
-                if ($count == 0) {
-                    $k = $key;
-                }
-                $key = str_replace(']', '', $key);
-                $ref = &$ref[$key];
-                $ref2 = &$ref2[$key];
-                ++$count;
-            }
-            $ref2 = $ref;
-            $val = $arr[$k];
-        } else {
-            if (isset($metaa[$k])) {
-                $chk = $metaa[$k];
-            }
-            $val = isset($chk) ? $chk : '';
-            $arr[$k] = $val;
-        }
-
-        /*encrypt flagged values here: the update_{$type}_meta hooks are actions, their return value never reached the database*/
-        list($encryption, $val) = awm_meta_save_encryption($k, $val, isset($metaa['ewp_encrypt']) ? array_map('strval', (array) wp_unslash($metaa['ewp_encrypt'])) : array());
-        if ('skip' === $encryption) {
-            continue;
-        }
-
-        switch ($view) {
-            case 'user':
-                /*update user meta*/
-                if (!empty($val)) {
-                    update_user_meta($id, $k, $val);
-                } else {
-                    delete_user_meta($id, $k);
-                }
-                break;
-            case 'term':
-                /*update user meta*/
-                if (!empty($val)) {
-                    update_term_meta($id, $k, $val);
-                } else {
-                    delete_term_meta($id, $k);
-                }
-                break;
-            default:
-                /* update post type*/
-                if (!empty($val)) {
-                    update_post_meta($id, $k, $val);
-                } else {
-                    delete_post_meta($id, $k);
-                }
-                break;
-        }
-    }
-    return $arr;
+    return (new \EWP\Fields\Save\Meta_Saver())->update_vars($meta, $metaa, $id, $view);
 }
 
 
@@ -1472,199 +665,26 @@ if (!function_exists('awm_translated_ids')) {
      */
     function awm_translated_ids($post_id, $case)
     {
-        global $sitepress;
-        $default = $sitepress->get_default_language();
-        $languages = array_keys(apply_filters('wpml_active_languages', NULL, 'orderby=id&order=desc'));
-        $type = '';
-        switch ($case) {
-            case 'post':
-                $type = get_post_type($post_id);
-                break;
-            case 'term':
-                $term = get_term($post_id);
-                if ($term && !is_wp_error($term)) {
-                    $type = $term->taxonomy;
-                }
-                break;
-        }
-        foreach ($languages as $language) {
-            $tran_id = (int) apply_filters('wpml_object_id', $post_id, $type, true, $language);
-            if ($language == $default) {
-                $ids['original'] = $tran_id;
-                continue;
-            }
-            $ids['translations'][] = $tran_id;
-        }
-
-        /**
-         * Filter the original and translated IDs of an object.
-         *
-         * @since 1.0.0
-         *
-         * @param array $ids `original` and `translations` IDs.
-         */
-        return apply_filters('awm_translated_ids_filter', $ids);
+        return (new \EWP\Fields\Save\Translation_Sync())->translated_ids($post_id, $case);
     }
 }
 
 /**
  * Display value of a field (list columns, read-only views).
  *
+ * Wrapper around \EWP\Fields\Data\Field_Value_Formatter::display(); fires
+ * `awm_display_meta_value_filter`.
+ *
  * @param string $meta           Meta key.
  * @param array  $data           Field definition.
  * @param int    $postId         Optional. Object ID. Default 0.
  * @param mixed  $external_value Optional. Value to show instead of the stored one. Default false.
- * @param string $case           Optional. post_type|taxonomy|user|… Default post_type.
+ * @param string $case           Optional. post_type|term|user. Default post_type.
  * @return string HTML.
  */
 function awm_display_meta_value($meta, $data, $postId = 0, $external_value = false, $case = 'post_type')
 {
-    global $awm_post_id;
-    $awm_post_id = $postId;
-    $case = $external_value ? 'external' : $case;
-    switch ($case) {
-        case 'post_type':
-            $value = get_post_meta($postId, $meta, true) ?: false;
-            break;
-        case 'term':
-            $value = get_term_meta($postId, $meta, true) ?: false;
-            break;
-        case 'user':
-            $value = get_user_meta($postId, $meta, true) ?: false;
-            break;
-        case 'external':
-            $value = $external_value;
-            break;
-    }
-    $original_value = $value;
-    $case = isset($data['admin_list_view']) ? $data['admin_list_view'] : $data['case'];
-    switch ($case) {
-        case 'ewp_content':
-            $object = awm_get_db_content($data['content_type'], array('include' => $value));
-            if (!$object || empty($object)) {
-                break;
-            }
-            $object = $object[0];
-            $value = $object['content_title'];
-            break;
-        case 'repeater':
-            if (isset($data['include']) && !empty($data['include'])) {
-                $finalShow = array();
-                if (empty($value)) {
-                    break;
-                }
-                foreach ($value as $val) {
-                    $row_val = array();
-                    foreach ($data['include'] as $key => $rep_data) {
-                        if (!isset($rep_data['admin_list']) || !$rep_data['admin_list']) {
-                            continue;
-                        }
-                        $rep_val = isset($val[$key]) ? $val[$key] : '';
-                        if (!empty($rep_val)) {
-                            $rep_val = awm_display_meta_value($key, $rep_data, $awm_post_id, $rep_val);
-                        }
-
-                        $row_val[] = $rep_data['label'] . ': ' . $rep_val;
-                    }
-                    $finalShow[] = implode(' | ', $row_val);
-                }
-                $value = implode('<br>', $finalShow);
-            }
-            break;
-        case 'input':
-            switch ($data['type']) {
-                case 'checkbox':
-                    $value = $value ? __('Yes', 'extend-wp') : __('No', 'extend-wp');
-                    break;
-                case 'url':
-                    $value = $value != '' ? '<a href="' . $value . '" target="_blank">' . $value . '</a>' : '';
-                    break;
-                default:
-                    break;
-            }
-
-            break;
-        case 'term':
-            $term = get_term($value, $data['taxonomy']);
-            if ($term) {
-                $value = $term->name;
-            }
-            break;
-        case 'post_types':
-            $values = !is_array($value) ? array($value) : $value;
-            $msg = array();
-            foreach ($values as $value) {
-                $post_type = get_post_types(array('name' => $value), 'objects');
-                $msg[] = $post_type[$value]->label;
-            }
-            $value = implode(', ', $msg);
-            break;
-        case 'user':
-            $user = get_user_by('id', $value);
-            if ($user && !is_wp_error($user)) {
-                /*get edit link also*/
-                $value = '<a href="' . admin_url('user-edit.php?user_id=' . $value) . '" target="_blank">' . $user->display_name . '</a>';
-            }
-            break;
-        case 'postType':
-            $values = empty($value) ? array() : (!is_array($value) ? array($value) : $value);
-            $msg = array();
-            if (!empty($values)) {
-                foreach ($values as $pvalue) {
-                    $msg[] = $pvalue != '' ? '<a href="' . admin_url('post.php?action=edit&post=' . $pvalue) . '" target="_blank">' . get_the_title($pvalue) . '</a>' : '-';
-                }
-            }
-            $value = implode(",", $msg);
-            break;
-        case 'message':
-        case 'html':
-            $value = isset($data['value']) ? $data['value'] : '';
-            if (isset($data['strip'])) {
-                return $value;
-            }
-            break;
-        case 'function':
-            if (isset($data['callback']) && function_exists($data['callback'])) {
-                $value = call_user_func_array($data['callback'], array($postId));
-            }
-            break;
-        case 'select':
-        case 'checkbox_multiple':
-            $values = is_array($value) ? $value : array($value);
-            $finalShow = array();
-            if (isset($data['callback'])) {
-                $callback_options = array();
-                if (!empty($data['callback_variables'])) {
-                    $callback_options = call_user_func_array($data['callback'], $data['callback_variables']);
-                }
-                $callback_results = empty($callback_options) ? call_user_func($data['callback']) : $callback_options;
-                $data['options'] = $callback_results;
-                if (isset($callback_results['optgroups'])) {
-                    $data['optgroups'] = $callback_results['optgroups'];
-                    $data['options'] = $callback_results['options'];
-                }
-            }
-            foreach ($values as $value) {
-                if (!empty($value) && array_key_exists($value, $data['options'])) {
-                    $finalShow[] = $data['options'][$value]['label'];
-                }
-            }
-            $value = implode('<br>', $finalShow);
-            break;
-    }
-
-    /**
-     * Filter the display value of a field (list columns, read-only views).
-     *
-     * @since 1.0.0
-     *
-     * @param mixed  $value          Display value (usually HTML) built for the field.
-     * @param string $meta           Meta key.
-     * @param mixed  $original_value Raw stored (or external) value before formatting.
-     * @param array  $data           Field definition.
-     * @param int    $postId         Object ID.
-     */
-    return apply_filters('awm_display_meta_value_filter', $value, $meta, $original_value, $data, $postId);
+    return \EWP\Fields\Data\Field_Value_Formatter::display($meta, $data, $postId, $external_value, $case);
 }
 
 

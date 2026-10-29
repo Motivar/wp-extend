@@ -74,6 +74,23 @@ Registering a built-in case name (e.g. `input`) replaces that type. To change on
 2. Add `types/class-{case}-field.php` and its templates, require them in `init.php`, and register them in `Field_Registry::boot()`.
 3. Run `composer test`. Any snapshot drift must be either fixed or intended. Rewrite snapshots with `EWP_UPDATE_SNAPSHOTS=1` and record the change in `CHANGELOG.md`.
 
+## Services (saving, data, encryption)
+
+The non-rendering half of `library.php` lives here too. Each `awm_*` function stays as a one-line wrapper, with the same name, signature and return value, because other plugins call them.
+
+| Folder / class | Behind |
+|---|---|
+| `save/Meta_Saver` | `awm_save_custom_meta()`, `awm_custom_meta_update_vars()`: nested-key resolution (`a[b][c]`), per-view writes (post/term/user meta), blocked capability keys, encryption via `awm_meta_save_encryption()`, `awm_custom_meta_update_action`. |
+| `save/Translation_Sync` | WPML: `awm_find_tranlsatable_fields()`, `awm_field_hidden_in_current_language()`, `awm_auto_translate()`, `awm_translated_ids()`. |
+| `data/Field_Value_Reader` | `awm_get_field_value()`, `awm_get_raw_field_value()` (per view; `awm_show_content_value_filter`). |
+| `data/Field_Preparer` | `awm_prepare_field()`, `awm_resolve_field_options()`, `awm_ewp_content_type_options()`, `awm_ewp_option_page_options()`. |
+| `data/Object_Types` | `awm_object_id_filter_config()`, `awm_get_object_type_options()` (cached per request). |
+| `data/Object_Search_Query` | `awm_object_search_query()`: post types, taxonomies, custom content (registered types only, `%i` table names). `EWP\Search\Object_Search` calls the function. |
+| `data/Field_Value_Formatter` | `awm_display_meta_value()`, one method per case. |
+| `encryption/Field_Encryption`, `Option_Field_Path` | `awm_should_encrypt_field()`, `awm_encrypt_field_value()`, `awm_decrypt_field_value()`, `awm_meta_save_encryption()`, option field encryption (`awm_encrypt_option_after_save()` on `updated_option`). `awm_encrypt_meta_on_save()` and `awm_decrypt_meta_on_retrieve()` are deprecated (1.11.0) and no longer hooked. |
+
+`data/init.php`, `save/init.php` and `encryption/init.php` load each group; the engine's `init.php` requires them.
+
 ## Loading
 
 `init.php` is required by `library.php` itself rather than by `Setup.php`, because Composer may load `library.php` from another bundled copy of Extend WP. The first copy to load the engine wins (`class_exists` guard).
