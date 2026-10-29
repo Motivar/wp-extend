@@ -46,6 +46,9 @@ final class Field_Context
     /** @var mixed Object id (post/term/user id, 0, or the widget instance array). */
     private $object_id;
 
+    /** @var string Pre-rendered explanation markup (`<span class="awm-explanation">…</span>`), '' for none. */
+    private $explanation;
+
     /**
      * @param string $name       Input name (meta key).
      * @param string $id         DOM id.
@@ -56,8 +59,9 @@ final class Field_Context
      * @param bool   $required   Whether the field is required.
      * @param string $view       Render view (see $view property).
      * @param mixed  $object_id  Object id the field renders against.
+     * @param string $explanation Pre-rendered explanation HTML ('' for none).
      */
-    public function __construct($name, $id, $value, array $field, array $attributes, $classes, $required, $view, $object_id)
+    public function __construct($name, $id, $value, array $field, array $attributes, $classes, $required, $view, $object_id, $explanation = '')
     {
         $this->name       = (string) $name;
         $this->id         = (string) $id;
@@ -68,6 +72,7 @@ final class Field_Context
         $this->required   = (bool) $required;
         $this->view       = (string) $view;
         $this->object_id  = $object_id;
+        $this->explanation = (string) $explanation;
     }
 
     /**
@@ -176,5 +181,15 @@ final class Field_Context
     public function object_id()
     {
         return $this->object_id;
+    }
+
+    /**
+     * Pre-rendered explanation markup, '' when the field has none.
+     *
+     * @return string
+     */
+    public function explanation()
+    {
+        return $this->explanation;
     }
 }

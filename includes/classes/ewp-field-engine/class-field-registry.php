@@ -2,7 +2,11 @@
 
 namespace EWP\Fields;
 
+use EWP\Fields\Types\Checkbox_Multiple_Field;
 use EWP\Fields\Types\Input_Field;
+use EWP\Fields\Types\Radio_Field;
+use EWP\Fields\Types\Select_Field;
+use EWP\Fields\Types\Textarea_Field;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -99,6 +103,10 @@ final class Field_Registry
         }
         $this->booted = true;
         $this->register(new Input_Field($this->templates));
+        $this->register(new Textarea_Field($this->templates));
+        $this->register(new Select_Field($this->templates));
+        $this->register(new Radio_Field($this->templates));
+        $this->register(new Checkbox_Multiple_Field($this->templates));
 
         /**
          * Register or replace field types rendered by awm_show_content().

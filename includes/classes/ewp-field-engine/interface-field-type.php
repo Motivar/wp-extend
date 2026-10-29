@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) {
 
 /**
  * One field `case` (input, select, textarea, …): turns a Field_Context into
- * HTML, normally through a template under templates/fields/.
+ * a Field_Output, normally through a template under templates/fields/.
  *
  * Register implementations on the `ewp_register_field_types` action.
  *
@@ -25,18 +25,11 @@ interface Field_Type
     public function case_name();
 
     /**
-     * Render the field's own markup (label and row wrapper are added by awm_show_content()).
+     * Render the field's own markup (label and row wrapper are added by
+     * awm_show_content(), shaped by the returned output's wrapper settings).
      *
      * @param Field_Context $context Resolved field state.
-     * @return string HTML.
+     * @return Field_Output
      */
     public function render(Field_Context $context);
-
-    /**
-     * Whether awm_show_content() wraps the markup in the view's row wrapper.
-     *
-     * @param Field_Context $context Resolved field state.
-     * @return bool False emits the markup bare (e.g. hidden inputs).
-     */
-    public function has_wrapper(Field_Context $context);
 }

@@ -3,6 +3,7 @@
 namespace EWP\Fields\Types;
 
 use EWP\Fields\Field_Context;
+use EWP\Fields\Field_Output;
 use EWP\Fields\Field_Type;
 use EWP\Fields\Template_Loader;
 
@@ -43,36 +44,26 @@ final class Input_Field implements Field_Type
     }
 
     /**
-     * Render the input.
+     * Render the input; hidden inputs render bare, without the row wrapper.
      *
      * @param Field_Context $context Resolved field state.
-     * @return string HTML.
+     * @return Field_Output
      */
     public function render(Field_Context $context)
     {
         $type = self::input_type($context);
         if ('hidden' === $type) {
-            return $this->templates->render('fields/input-hidden', array('context' => $context));
+            $html = $this->templates->render('fields/input-hidden', array('context' => $context));
+            return (new Field_Output($html))->without_wrapper();
         }
 
-        return $this->templates->render('fields/input', array(
+        return new Field_Output($this->templates->render('fields/input', array(
             'context'       => $context->with_value(self::normalise_value($type, $context->value())),
             'type'          => $type,
             'checked'       => 'checkbox' === $type && 1 == $context->value(),
             'after_message' => (string) $context->field('after_message', ''),
             'encrypt'       => awm_should_encrypt_field($context->field()),
-        ));
-    }
-
-    /**
-     * Hidden inputs render bare, without the row wrapper.
-     *
-     * @param Field_Context $context Resolved field state.
-     * @return bool
-     */
-    public function has_wrapper(Field_Context $context)
-    {
-        return 'hidden' !== self::input_type($context);
+        )));
     }
 
     /**

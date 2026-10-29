@@ -61,6 +61,9 @@ class Test_Field_Render_Snapshot extends WP_UnitTestCase
             'snap_select'    => 'b',
             'snap_radio'     => 'a',
             'snap_multi'     => array('a', 'c'),
+            'snap_multi_sel' => array('a', 'c'),
+            'snap_multi_excl' => array('b'),
+            'snap_rich'      => '<b>bold</b> and <i>italic</i> text',
         );
     }
 
@@ -86,6 +89,29 @@ class Test_Field_Render_Snapshot extends WP_UnitTestCase
             'select' => array('snap_select' => array('case' => 'select', 'label' => 'Select', 'options' => $options)),
             'radio' => array('snap_radio' => array('case' => 'radio', 'label' => 'Radio', 'options' => $options)),
             'checkbox-multiple' => array('snap_multi' => array('case' => 'checkbox_multiple', 'label' => 'Multi', 'options' => $options)),
+            'select-multiple' => array('snap_multi_sel' => array('case' => 'select', 'label' => 'Multi select', 'options' => $options, 'attributes' => array('multiple' => true))),
+            'select-optgroups' => array('snap_select' => array('case' => 'select', 'label' => 'Groups', 'options' => array(
+                'a' => array('label' => 'A', 'optgroup' => 'g1'),
+                'b' => array('label' => 'B'),
+                'c' => array('label' => 'C', 'optgroup' => 'g2'),
+                'd' => array('label' => 'D', 'optgroup' => 'g1'),
+                'optgroups' => array('g1' => array('label' => 'Group One'), 'g2' => array('label' => 'Group Two')),
+            ))),
+            'select-remove-empty' => array('snap_select' => array('case' => 'select', 'label' => 'No empty', 'options' => $options, 'removeEmpty' => true)),
+            'select-no-style' => array('snap_select' => array('case' => 'select', 'label' => 'No style', 'options' => $options, 'no_style' => true)),
+            'select-extra' => array('snap_select' => array('case' => 'select', 'label' => 'Extra', 'required' => true, 'options' => array(
+                'a' => array('label' => 'A', 'extra' => array('data-price' => '10', 'title' => 'say hi')),
+                'b' => array('label' => 'B <em>bold</em>'),
+            ))),
+            'select-empty-options' => array('snap_select' => array('case' => 'select', 'label' => 'Empty', 'options' => array())),
+            'textarea-strip-html' => array('snap_rich' => array('case' => 'textarea', 'label' => 'Strip', 'awm_strip_html' => true, 'required' => true, 'attributes' => array('placeholder' => 'Write'))),
+            'textarea-html-value' => array('snap_rich' => array('case' => 'textarea', 'label' => 'Raw')),
+            'radio-required' => array('snap_radio' => array('case' => 'radio', 'label' => 'Radio req', 'options' => $options, 'required' => true)),
+            'radio-disable-wrapper' => array('snap_radio' => array('case' => 'radio', 'label' => 'Radio bare', 'options' => $options, 'disable_wrapper' => true)),
+            'checkbox-multiple-no-apply-all' => array('snap_multi' => array('case' => 'checkbox_multiple', 'label' => 'Multi', 'options' => $options, 'disable_apply_all' => true, 'explanation' => 'Pick')),
+            'checkbox-multiple-exclusive-none' => array('snap_multi_none' => array('case' => 'checkbox_multiple', 'label' => 'Exclusive', 'options' => $options, 'apply_all_mode' => 'exclusive')),
+            'checkbox-multiple-exclusive-selected' => array('snap_multi_excl' => array('case' => 'checkbox_multiple', 'label' => 'Exclusive', 'options' => $options, 'apply_all_mode' => 'exclusive')),
+            'checkbox-multiple-apply-all-label' => array('snap_multi' => array('case' => 'checkbox_multiple', 'label' => 'Multi', 'options' => $options, 'apply_all_label' => 'Everything')),
             'message' => array('snap_msg' => array('case' => 'message', 'label' => 'Msg', 'value' => '<p>Body</p>')),
             'html' => array('snap_html' => array('case' => 'html', 'label' => 'Html', 'value' => '<em>raw</em>', 'show_label' => true)),
             'button' => array('snap_btn' => array('case' => 'button', 'label' => 'Go', 'link' => 'https://example.com/?a=1&b=2')),
@@ -111,6 +137,7 @@ class Test_Field_Render_Snapshot extends WP_UnitTestCase
             'user'     => array('user', self::$user_id),
             'option'   => array('option', 0),
             'none'     => array('none', 0),
+            'restrict' => array('restrict_manage_posts', 0),
         );
     }
 
