@@ -1217,7 +1217,7 @@ if (!function_exists('awm_show_content')) {
 
             /*check if hidden val or not*/
             $required = (isset($a['required']) && $a['required']) ? 'required="true"' : false;
-            $explanation = isset($a['explanation']) ? '<span class="awm-explanation">' . __($a['explanation'], 'extend-wp') . '</span>' : '';
+            $explanation = isset($a['explanation']) ? '<span class="awm-explanation">' . wp_kses_post(__($a['explanation'], 'extend-wp')) . '</span>' : '';
             $original_meta = $n;
             $display_wrapper = true;
             $ins = '';
@@ -1240,9 +1240,10 @@ if (!function_exists('awm_show_content')) {
                             $html_label = '';
                             if (isset($a['value']) && !empty($a['value'])) {
                                 if (isset($a['show_label']) && isset($a['label'])) {
-                                    $html_label = '<label for="' . $original_meta . '" class="awm-input-label">' . $a['label'] . '</label>' . $explanation;
+                                    $html_label = '<label for="' . esc_attr($original_meta) . '" class="awm-input-label">' . wp_kses_post($a['label']) . '</label>' . $explanation;
                                 }
-                                $msg[] = '<div class="awm-meta-html awm-meta-field" id="' . $n . '">' . $html_label . $a['value'] . '</div>';
+                                // The html case prints developer-supplied markup as given.
+                                $msg[] = '<div class="awm-meta-html awm-meta-field" id="' . esc_attr($n) . '">' . $html_label . $a['value'] . '</div>';
                                 $stop = true;
                                 if (isset($a['strip'])) {
                                     $msg = array($a['value']);
@@ -1326,7 +1327,7 @@ if (!function_exists('awm_show_content')) {
                         }
                     }
                     if (isset($a['show-when']) && !empty($a['show-when']) && is_array($a['show-when'])) {
-                        $label_attrs[] = 'show-when="' . str_replace('"', '\'', json_encode($a['show-when'])) . '"';
+                        $label_attrs[] = 'show-when="' . esc_attr(str_replace('"', '\'', json_encode($a['show-when']))) . '"';
                     }
                     if (isset($a['disable-elements']) && !empty($a['disable-elements']) && is_array($a['disable-elements'])) {
                         $a['attributes']['disable-elements'] = str_replace('"', '\'', json_encode($a['disable-elements']));
@@ -1353,7 +1354,8 @@ if (!function_exists('awm_show_content')) {
                     switch ($a['case']) {
                         case 'function':
                             if (isset($a['callback'])  && function_exists($a['callback'])) {
-                                $ins = '<div class="awm-meta-message" id="' . $original_meta_id . '"><div class="awm-meta-message-label">' . $a['label'] . $explanation . '</div><div class="awm-meta-message-inner">'  . call_user_func_array($a['callback'], array($id)) . '</div></div>';
+                                // The callback returns its own (escaped) markup.
+                                $ins = '<div class="awm-meta-message" id="' . esc_attr($original_meta_id) . '"><div class="awm-meta-message-label">' . wp_kses_post($a['label']) . $explanation . '</div><div class="awm-meta-message-inner">'  . call_user_func_array($a['callback'], array($id)) . '</div></div>';
                             }
                             break;
                         case 'awm_gallery':
@@ -1362,11 +1364,12 @@ if (!function_exists('awm_show_content')) {
                                 wp_enqueue_script('jquery-ui-sortable');
                             }
                             $gallery_val = !empty($val) ? (is_array($val) ? $val : array($val)) : array();
-                            $ins = '<div class="awm-meta-message" id="' . $original_meta_id . '"><div class="awm-meta-message-label">' . $a['label'] . $explanation . '</div>' . awm_media_field_html($original_meta, $gallery_val, 0) . '</div>';
+                            $ins = '<div class="awm-meta-message" id="' . esc_attr($original_meta_id) . '"><div class="awm-meta-message-label">' . wp_kses_post($a['label']) . $explanation . '</div>' . awm_media_field_html($original_meta, $gallery_val, 0) . '</div>';
                             break;
                         case 'message':
                             if (isset($a['value']) && !empty($a['value'])) {
-                                $ins = '<div class="awm-meta-message" id="' . $original_meta_id . '"><div class="awm-meta-message-label">' . $a['label'] . $explanation . '</div><div class="awm-meta-message-inner">' . $a['value'] . '</div></div>';
+                                // The message case prints developer-supplied markup as given.
+                                $ins = '<div class="awm-meta-message" id="' . esc_attr($original_meta_id) . '"><div class="awm-meta-message-label">' . wp_kses_post($a['label']) . $explanation . '</div><div class="awm-meta-message-inner">' . $a['value'] . '</div></div>';
                             }
                             break;
                         case 'button':
@@ -1375,7 +1378,7 @@ if (!function_exists('awm_show_content')) {
                             break;
                         case 'input':
                             $input_type = $a['type'];
-                            $after_message = (isset($a['after_message']) && !empty($a['after_message'])) ? '<span class="awm-after-message"><label for="' . $original_meta_id . '">' . $a['after_message'] . '</span></label>' : '';
+                            $after_message = (isset($a['after_message']) && !empty($a['after_message'])) ? '<span class="awm-after-message"><label for="' . esc_attr($original_meta_id) . '">' . wp_kses_post($a['after_message']) . '</span></label>' : '';
 
                             switch ($input_type) {
                                 case 'number':
@@ -1405,7 +1408,7 @@ if (!function_exists('awm_show_content')) {
                                 $ins .= '<div class="input-wrapper">';
                                 $ins .=  $input_html . $after_message;
                                 if ($a['type'] == 'password') {
-                                    $ins .= '<div class="eye" data-toggle="password" data-id="' . $original_meta_id . '"></div>';
+                                    $ins .= '<div class="eye" data-toggle="password" data-id="' . esc_attr($original_meta_id) . '"></div>';
                                 }
                                 $ins .= '</div>';
 
@@ -1417,7 +1420,7 @@ if (!function_exists('awm_show_content')) {
 
                             break;
                         case 'checkbox_multiple':
-                            $ins .= '<label class="awm-checkboxes-title"><span>' . $a['label'] . '</span></label>' . $explanation;
+                            $ins .= '<label class="awm-checkboxes-title"><span>' . wp_kses_post($a['label']) . '</span></label>' . $explanation;
                             $checkboxOptions = array();
                             $ins .= '<div class="awm-options-wrapper">';
                             if (isset($a['options']) && !empty($a['options'])) {
@@ -1457,7 +1460,7 @@ if (!function_exists('awm_show_content')) {
                                     $value_name = !$is_apply_all ? $original_meta . '[]' : '';
                                     $extraLabel = '';
                                     if ($is_apply_all) {
-                                        $extraLabel = $apply_all_mode === 'exclusive' ? 'data-apply-all-mode="exclusive"' : (isset($dlmm['extra_label']) ? 'data-extra="' . $dlmm['extra_label'] . '"' : '');
+                                        $extraLabel = $apply_all_mode === 'exclusive' ? 'data-apply-all-mode="exclusive"' : (isset($dlmm['extra_label']) ? 'data-extra="' . esc_attr($dlmm['extra_label']) . '"' : '');
                                     }
                                     $valueInside = $dlm != 'awm_apply_all' ? $dlm : '';
                                     $input_id = $original_meta_id . '_' . $dlm . '_' . rand(10, 100);
@@ -1495,7 +1498,7 @@ if (!function_exists('awm_show_content')) {
                             if (isset($a['attributes']) && array_key_exists('multiple', $a['attributes']) && $a['attributes']['multiple']) {
                                 $select_name .= '[]';
                             }
-                            $ins .= '<select name="' . $select_name . '" id="' . $original_meta_id . '" class="' . $class . '" ' . $extraa . ' ' . $required . '>';
+                            $ins .= '<select name="' . esc_attr($select_name) . '" id="' . esc_attr($original_meta_id) . '" class="' . esc_attr($class) . '" ' . $extraa . ' ' . $required . '>';
 
                             if (empty($a['options'])) {
 
@@ -1513,7 +1516,7 @@ if (!function_exists('awm_show_content')) {
                             $placeholder_option = '';
                             if (!empty($a['options'])) {
                                 if (!(isset($a['removeEmpty']) && $a['removeEmpty'])) {
-                                    $placeholder_option = '<option value="" data-html="' . str_replace('"', "'", json_encode(htmlspecialchars($a['label']))) . '" data-placeholder="true">' . $a['label'] . '</option>';
+                                    $placeholder_option = '<option value="" data-html="' . esc_attr(str_replace('"', "'", json_encode(htmlspecialchars($a['label'])))) . '" data-placeholder="true">' . wp_kses_post($a['label']) . '</option>';
                                 }
 
                                 foreach ($a['options'] as $vv => $vvv) {
@@ -1525,12 +1528,12 @@ if (!function_exists('awm_show_content')) {
                                     $attrs = array();
                                     if (isset($vvv['extra'])) {
                                         foreach ($vvv['extra'] as $lp => $ld) {
-                                            $attrs[] = $lp . '="' . $ld . '"';
+                                            $attrs[] = esc_attr($lp) . '="' . esc_attr($ld) . '"';
                                         }
                                     }
                                     $option_label = isset($vvv['label']) ? $vvv['label'] : $vv;
-                                    $data_html = !isset($a['no_style']) ? 'data-html="' . str_replace('"', "'", json_encode(htmlspecialchars($option_label))) . '"' : '';
-                                    $select_options[$vv] = '<option value="' . $vv . '" ' . $selected . ' ' . implode(' ', $attrs) . ' ' . $data_html . ' >' . $option_label . '</option>';
+                                    $data_html = !isset($a['no_style']) ? 'data-html="' . esc_attr(str_replace('"', "'", json_encode(htmlspecialchars($option_label)))) . '"' : '';
+                                    $select_options[$vv] = '<option value="' . esc_attr($vv) . '" ' . $selected . ' ' . implode(' ', $attrs) . ' ' . $data_html . ' >' . wp_kses_post($option_label) . '</option>';
                                     if (!empty($optgroups) && isset($vvv['optgroup'])) {
                                         $optgroups[$vvv['optgroup']]['options'][] = $vv;
                                         $optgroups_assigned++;
@@ -1541,7 +1544,7 @@ if (!function_exists('awm_show_content')) {
                                 $optgroup_options = array();
                                 foreach ($optgroups as $opt_id => $opt_option) {
                                     if (isset($opt_option['options']) && !empty($opt_option['options']))
-                                        $optgroup_options['opt_' . $opt_id . '_start'] = '<optgroup id="' . $opt_id . '" label="' . $opt_option['label'] . '" data-html="' . str_replace('"', "'", json_encode(htmlspecialchars($opt_option['label']))) . '" options="' . implode(',', $opt_option['options']) . '">';
+                                        $optgroup_options['opt_' . $opt_id . '_start'] = '<optgroup id="' . esc_attr($opt_id) . '" label="' . esc_attr($opt_option['label']) . '" data-html="' . esc_attr(str_replace('"', "'", json_encode(htmlspecialchars($opt_option['label'])))) . '" options="' . esc_attr(implode(',', $opt_option['options'])) . '">';
                                     foreach ($opt_option['options'] as $opt_option_id) {
                                         $optgroup_options[$opt_option_id] = $select_options[$opt_option_id];
                                         unset($select_options[$opt_option_id]);
@@ -1559,7 +1562,7 @@ if (!function_exists('awm_show_content')) {
                                 wp_enqueue_media();
                                 wp_enqueue_script('jquery-ui-sortable');
                             }
-                            $ins .= '<label for="' . $original_meta_id . '" class="awm-input-label">' . $a['label'] . '</label>' . $explanation;
+                            $ins .= '<label for="' . esc_attr($original_meta_id) . '" class="awm-input-label">' . wp_kses_post($a['label']) . '</label>' . $explanation;
                             $ins .= awm_media_field_html($original_meta, $val, 1);
                             $label_class[] = 'awm-custom-image-meta';
                             break;
@@ -1607,7 +1610,7 @@ if (!function_exists('awm_show_content')) {
                                 if (!isset($a['disable_wrapper'])) {
                                     $radio_div .= '<div class="awm-radio-option">';
                                 }
-                                $radio_div .= '<input type="radio" name="' . $original_meta . '" id="' . $original_meta_id . '_' . $vkey . '" value="' . $vkey . '" ' . $chk . ' ' . $labelRequired . '/><label class="awm-radio-option-label" for="' . $original_meta_id . '_' . $vkey . '"><span class="awm-radio-label">' . apply_filters('awm_radio_value_label_filter', $valll['label'], $vkey, $original_meta_id) . '</span></label>';
+                                $radio_div .= '<input type="radio" name="' . esc_attr($original_meta) . '" id="' . esc_attr($original_meta_id . '_' . $vkey) . '" value="' . esc_attr($vkey) . '" ' . $chk . ' ' . $labelRequired . '/><label class="awm-radio-option-label" for="' . esc_attr($original_meta_id . '_' . $vkey) . '"><span class="awm-radio-label">' . wp_kses_post(apply_filters('awm_radio_value_label_filter', $valll['label'], $vkey, $original_meta_id)) . '</span></label>';
 
                                 if (!isset($a['disable_wrapper'])) {
                                     $radio_div .= '</div>';
@@ -1623,7 +1626,7 @@ if (!function_exists('awm_show_content')) {
                             $label_class[] = 'awm-section-field';
                             $ins .= '<div class="awm-inner-section">';
                             if (isset($a['label'])) {
-                                $ins .= '<div class="section-header">' . $a['label'] . $explanation . '</div>';
+                                $ins .= '<div class="section-header">' . wp_kses_post($a['label']) . $explanation . '</div>';
                             }
                             $ins .= '<div class="awm-inner-section-content">';
                             $val = !empty($val) ? awm_safe_unserialize_array($val) : array();
@@ -1652,15 +1655,15 @@ if (!function_exists('awm_show_content')) {
                                 $tabs = '';
                                 $tab_contents = '';
                                 $ins .= '<div class="awm-tab-wrapper">';
-                                $ins .= '<div class="awm-tab-wrapper-title">' . $a['label'] . '</div>';
+                                $ins .= '<div class="awm-tab-wrapper-title">' . wp_kses_post($a['label']) . '</div>';
                                 $first_visit = 0;
                                 $val = !empty($val) ? $val : array();
                                 foreach ($a['awm_tabs'] as $tab_id => $tab_intro) {
                                     ++$first_visit;
                                     $show = $first_visit == 1 ? 'awm-tab-show active' : '';
                                     $style = $first_visit == 1 ? 'style="display: block;"' : '';
-                                    $tabs .= '<div id="' . $tab_id . '_tab" class="awm_tablinks ' . $show . '" onclick="awm_open_tab(event,\'' . $tab_id . '\')">' . $tab_intro['label'] . '</div>';
-                                    $tab_contents .= '<div id="' . $tab_id . '_content_tab" class="awm_tabcontent" ' . $style . '>';
+                                    $tabs .= '<div id="' . esc_attr($tab_id) . '_tab" class="awm_tablinks ' . $show . '" onclick="awm_open_tab(event,\'' . esc_attr($tab_id) . '\')">' . wp_kses_post($tab_intro['label']) . '</div>';
+                                    $tab_contents .= '<div id="' . esc_attr($tab_id) . '_content_tab" class="awm_tabcontent" ' . $style . '>';
                                     $tab_meta = array();
                                     if (isset($tab_intro['callback'])) {
                                         $callback_options = array();
@@ -1694,18 +1697,18 @@ if (!function_exists('awm_show_content')) {
                             $lat = (isset($val['lat']) && !empty($val['lat'])) ? esc_attr($val['lat']) : '';
                             $lng = (isset($val['lng']) && !empty($val['lng'])) ? esc_attr($val['lng']) : '';
                             $address = (isset($val['address']) && !empty($val['address'])) ? esc_attr($val['address']) : '';
-                            $ins .= '<input id="awm_map' . $original_meta_id . '_search_box" class="controls" type="text" placeholder="' . __('Type to search', 'awm') . '" value="' . $address . '" ' . $required . ' onkeypress="return noenter()"><div class="awm_map" id="awm_map' . $original_meta_id . '"></div>';
-                            $ins .= '<input type="hidden" name="' . $original_meta . '[lat]" id="awm_map' . $original_meta_id . '_lat" value="' . $lat . '" />';
-                            $ins .= '<input type="hidden" name="' . $original_meta . '[lng]" id="awm_map' . $original_meta_id . '_lng" value="' . $lng . '" />';
-                            $ins .= '<input type="hidden" name="' . $original_meta . '[address]" id="awm_map' . $original_meta_id . '_address" value="' . $address . '" />';
+                            $ins .= '<input id="awm_map' . esc_attr($original_meta_id) . '_search_box" class="controls" type="text" placeholder="' . esc_attr__('Type to search', 'awm') . '" value="' . $address . '" ' . $required . ' onkeypress="return noenter()"><div class="awm_map" id="awm_map' . esc_attr($original_meta_id) . '"></div>';
+                            $ins .= '<input type="hidden" name="' . esc_attr($original_meta) . '[lat]" id="awm_map' . esc_attr($original_meta_id) . '_lat" value="' . $lat . '" />';
+                            $ins .= '<input type="hidden" name="' . esc_attr($original_meta) . '[lng]" id="awm_map' . esc_attr($original_meta_id) . '_lng" value="' . $lng . '" />';
+                            $ins .= '<input type="hidden" name="' . esc_attr($original_meta) . '[address]" id="awm_map' . esc_attr($original_meta_id) . '_address" value="' . $address . '" />';
                             break;
                         case 'repeater':
                             if (!empty($a['include'])) {
                                 $minrows = isset($a['minrows']) ? absint($a['minrows']) : 0;
                                 $maxrows = isset($a['maxrows']) ? absint($a['maxrows']) : '';
-                                $ins .= '<div class="awm-repeater" data-count="' . count($a['include']) . '" data-id="' . $original_meta_id . '" maxrows="' . $maxrows . '">';
+                                $ins .= '<div class="awm-repeater" data-count="' . count($a['include']) . '" data-id="' . esc_attr($original_meta_id) . '" maxrows="' . esc_attr($maxrows) . '">';
                                 $r_label = isset($a['label']) ? $a['label'] : '';
-                                $ins .= '<div class="awm-repeater-title">' . $r_label . $explanation . '</div>';
+                                $ins .= '<div class="awm-repeater-title">' . wp_kses_post($r_label) . $explanation . '</div>';
                                 $ins .= '<div class="awm-repeater-contents">';
                                 $val = !empty($val) ? array_values(awm_safe_unserialize_array($val)) : array();
                                 if ((empty($val)) && isset($a['prePopulated'])) {
@@ -1763,7 +1766,7 @@ if (!function_exists('awm_show_content')) {
                                  */
                                 $a = apply_filters('awm_modal_field_args', $a, $original_meta, $view, $id);
 
-                                $ins .= '<div class="awm-modal-field-wrap" id="awm-modal-wrap-' . $original_meta_id . '">';
+                                $ins .= '<div class="awm-modal-field-wrap" id="awm-modal-wrap-' . esc_attr($original_meta_id) . '">';
                                 $ins .= '<button type="button" class="awm-modal-trigger ' . esc_attr($button_class) . '"';
                                 $ins .= ' data-modal-id="' . esc_attr($original_meta_id) . '"';
                                 $ins .= ' data-meta-key="' . esc_attr($original_meta) . '"';
@@ -1808,13 +1811,13 @@ if (!function_exists('awm_show_content')) {
                                 'idFieldName'    => $id_field,
                             );
 
-                            $ins .= '<div class="awm-object-id-filter-wrap" data-config="' . str_replace('"', '\'', json_encode($js_config)) . '">';
+                            $ins .= '<div class="awm-object-id-filter-wrap" data-config="' . esc_attr(str_replace('"', '\'', json_encode($js_config))) . '">';
 
                             // --- Type selector (reuses the standard optgroup select markup) ---
                             $ins .= '<div class="awm-object-type-field">';
                             $ins .= '<label for="' . esc_attr($original_meta_id) . '" class="awm-input-label"><span>' . wp_kses_post($label) . '</span></label>' . $explanation;
-                            $ins .= '<select name="' . $original_meta . '" id="' . $original_meta_id . '" class="awm-object-type-select" awm-skip-selectr="1">';
-                            $ins .= '<option value="" data-placeholder="true">' . __('— Select type —', 'extend-wp') . '</option>';
+                            $ins .= '<select name="' . esc_attr($original_meta) . '" id="' . esc_attr($original_meta_id) . '" class="awm-object-type-select" awm-skip-selectr="1">';
+                            $ins .= '<option value="" data-placeholder="true">' . esc_html__('— Select type —', 'extend-wp') . '</option>';
                             foreach ($type_optgroups as $group_id => $group_data) {
                                 $ins .= '<optgroup label="' . esc_attr($group_data['label']) . '">';
                                 foreach ($type_options as $opt_key => $opt_data) {
@@ -1832,13 +1835,13 @@ if (!function_exists('awm_show_content')) {
                             // --- Object IDs multi-select (initialized by the JS module) ---
                             $disabled = empty($saved_type) ? ' disabled' : '';
                             $ins .= '<div class="awm-object-id-field">';
-                            $ins .= '<label for="' . esc_attr($id_field) . '" class="awm-input-label"><span>' . __('Select objects', 'extend-wp') . '</span></label>';
-                            $ins .= '<span class="awm-explanation">' . sprintf(
+                            $ins .= '<label for="' . esc_attr($id_field) . '" class="awm-input-label"><span>' . esc_html__('Select objects', 'extend-wp') . '</span></label>';
+                            $ins .= '<span class="awm-explanation">' . esc_html(sprintf(
                                 /* translators: %d: minimum number of characters before search triggers */
                                 _n('Type at least %d character to search.', 'Type at least %d characters to search.', $oif_config['min_search_chars'], 'extend-wp'),
                                 $oif_config['min_search_chars']
-                            ) . '</span>';
-                            $ins .= '<select name="' . esc_attr($id_field) . '[]" id="' . esc_attr($id_field) . '" multiple class="awm-object-id-search" awm-skip-selectr="1"' . $disabled . ' data-object-type-target="' . $original_meta_id . '" data-min-chars="' . $oif_config['min_search_chars'] . '">';
+                            )) . '</span>';
+                            $ins .= '<select name="' . esc_attr($id_field) . '[]" id="' . esc_attr($id_field) . '" multiple class="awm-object-id-search" awm-skip-selectr="1"' . $disabled . ' data-object-type-target="' . esc_attr($original_meta_id) . '" data-min-chars="' . esc_attr($oif_config['min_search_chars']) . '">';
                             $saved_ids = array_values($saved_ids);
 
                             if (!empty($saved_type) && !empty($saved_ids)) {
@@ -1874,7 +1877,7 @@ if (!function_exists('awm_show_content')) {
                     // Exclude awm_modal from awm_custom_meta[] — modal saves directly via REST API
                     $is_modal_field = ($a['case'] === 'awm_modal');
                     if ($label && !(isset($a['attributes']['exclude_meta'])) && $view != 'none' && !isset($a['attributes']['disabled']) && !isset($a['exclude_meta']) && !$is_modal_field) {
-                        $ins .= '<input type="hidden" name="awm_custom_meta[]" value="' . $original_meta . '"/>';
+                        $ins .= '<input type="hidden" name="awm_custom_meta[]" value="' . esc_attr($original_meta) . '"/>';
                     }
 
 
@@ -1895,24 +1898,24 @@ if (!function_exists('awm_show_content')) {
                             case 'term':
                                 switch ($id) {
                                     case 0:
-                                        $msg[] = '<div class="form-field term-group awm-term-meta-row awm-meta-term-field ' . $labelClass . '" ' . $labelAttrs . '>' . $ins . '</div>';
+                                        $msg[] = '<div class="form-field term-group awm-term-meta-row awm-meta-term-field ' . esc_attr($labelClass) . '" ' . $labelAttrs . '>' . $ins . '</div>';
                                         break;
                                     default:
-                                        $msg[] = '<tr class="form-field term-group-wrap awm-meta-term-field" data-input="' . $original_meta_id . '"><th scope="row" class="' . implode(' ', $label_class) . '" data-input="' . $original_meta_id . '" data-type="' . $a['case'] . '"><label for="' . $original_meta_id . '" class="awm-input-label">' . $a['label'] . '</label>' . $explanation . '</th><td class="awm-term-input">' . $ins . '</td></tr>';
+                                        $msg[] = '<tr class="form-field term-group-wrap awm-meta-term-field" data-input="' . esc_attr($original_meta_id) . '"><th scope="row" class="' . esc_attr(implode(' ', $label_class)) . '" data-input="' . esc_attr($original_meta_id) . '" data-type="' . esc_attr($a['case']) . '"><label for="' . esc_attr($original_meta_id) . '" class="awm-input-label">' . wp_kses_post($a['label']) . '</label>' . $explanation . '</th><td class="awm-term-input">' . $ins . '</td></tr>';
                                         break;
                                 }
 
                                 break;
                             case 'user':
                                 /*user view*/
-                                $msg[] = '<tr data-input="' . $original_meta_id . '" ' . $labelAttrs . ' class="' . implode(' ', $label_class) . '" data-input="' . $original_meta_id . '" data-type="' . $a['case'] . '"><th><label for="' . $original_meta_id . '" class="awm-input-label"><span>' . $a['label'] . '</span></label>' . $explanation . '</th>';
+                                $msg[] = '<tr data-input="' . esc_attr($original_meta_id) . '" ' . $labelAttrs . ' class="' . esc_attr(implode(' ', $label_class)) . '" data-input="' . esc_attr($original_meta_id) . '" data-type="' . esc_attr($a['case']) . '"><th><label for="' . esc_attr($original_meta_id) . '" class="awm-input-label"><span>' . wp_kses_post($a['label']) . '</span></label>' . $explanation . '</th>';
                                 $msg[] = '<td class="awm-user-input">' . $ins . '</td></tr>';
                                 break;
                             default:
-                                $msg[] = '<div class="' . implode(' ', $label_class) . '" data-input="' . $original_meta_id . '" data-type="' . $a['case'] . '" ' . $labelAttrs . ' id="awm-element-' . $original_meta_id . '">';
+                                $msg[] = '<div class="' . esc_attr(implode(' ', $label_class)) . '" data-input="' . esc_attr($original_meta_id) . '" data-type="' . esc_attr($a['case']) . '" ' . $labelAttrs . ' id="awm-element-' . esc_attr($original_meta_id) . '">';
                                 $msg[] = $ins;
                                 if (is_admin() && isset($a['information']) && !empty($a['information'])) {
-                                    $msg[] = '<div class="flx-tippy-admin-message"><span class="flx_icon flx-icon-gps" data-message="' . $a['information'] . '"></span></div>';
+                                    $msg[] = '<div class="flx-tippy-admin-message"><span class="flx_icon flx-icon-gps" data-message="' . esc_attr($a['information']) . '"></span></div>';
                                 }
                                 $msg[] = '</div>';
                                 break;
@@ -1947,7 +1950,7 @@ if (!function_exists('awm_show_content')) {
 
 
         if (!empty($msg)) {
-            $msg = '<div id="' . $awm_id . '" class="awm-show-content" count="' .  $meta_counter . '">' . implode('', $msg) . '</div>';
+            $msg = '<div id="' . esc_attr($awm_id) . '" class="awm-show-content" count="' .  absint($meta_counter) . '">' . implode('', $msg) . '</div>';
         }
 
 
@@ -1972,7 +1975,7 @@ function awm_repeater_content($i, $original_meta, $a, $original_meta_id, $val)
     if (!is_int($i) && $i == 'template') {
         $class = 'temp-source';
     }
-    $html = '<div id="awm-' . str_replace('[', '_', str_replace(']', '', str_replace('][', '_', $original_meta))) . '-' . $i . '" class="awm-repeater-content ' . $class . '" data-counter="' . $i . '" data-id="' . $original_meta_id . '"><div class="awm-repeater-inputs">';
+    $html = '<div id="awm-' . esc_attr(str_replace('[', '_', str_replace(']', '', str_replace('][', '_', $original_meta))) . '-' . $i) . '" class="awm-repeater-content ' . esc_attr($class) . '" data-counter="' . esc_attr($i) . '" data-id="' . esc_attr($original_meta_id) . '"><div class="awm-repeater-inputs">';
     $new_metas = array();
     $action = '';
     foreach ($a['include'] as $key => $data) {
@@ -1996,15 +1999,15 @@ function awm_repeater_content($i, $original_meta, $a, $original_meta_id, $val)
     }
     if (isset($a['row_title']) && is_int($i)) {
         $normal = $i + 1;
-        $html .= '<div class="row-title">' . sprintf($a['row_title'], $normal) . '</div>';
+        $html .= '<div class="row-title">' . wp_kses_post(sprintf($a['row_title'], $normal)) . '</div>';
     }
     $html .= awm_show_content($new_metas);
     $item = isset($a['item_name']) ? $a['item_name'] : __('Row', 'extend-wp');
     $html .= '</div>';
     if (!isset($a['hide_buttons'])) {
-        $action = '<div class="awm-repeater-clone" onclick="ewp_repeater_clone_row(this)"><span class="awm_action ">' . __('Clone', 'extend-wp') . '</span></div><div class="awm-repeater-move-up" onclick="awm_repeater_order(this,true)"><span class="awm_action ">' . __('Move up', 'extend-wp') . '</span></div><div class="awm-repeater-move-down" onclick="awm_repeater_order(this,false)"><span class="awm_action ">' . __('Move down', 'extend-wp') . '</span></div><div class="awm-repeater-remove"><span class="awm_action awm-remove" onclick="repeater(this)">' . __('Remove', 'extend-wp') . ' ' . $item . '</span></div>';
+        $action = '<div class="awm-repeater-clone" onclick="ewp_repeater_clone_row(this)"><span class="awm_action ">' . esc_html__('Clone', 'extend-wp') . '</span></div><div class="awm-repeater-move-up" onclick="awm_repeater_order(this,true)"><span class="awm_action ">' . esc_html__('Move up', 'extend-wp') . '</span></div><div class="awm-repeater-move-down" onclick="awm_repeater_order(this,false)"><span class="awm_action ">' . esc_html__('Move down', 'extend-wp') . '</span></div><div class="awm-repeater-remove"><span class="awm_action awm-remove" onclick="repeater(this)">' . esc_html__('Remove', 'extend-wp') . ' ' . esc_html($item) . '</span></div>';
         if (!is_int($i) && $i == 'template') {
-            $action .= '<div class="awm-repeater-add" data-id="' . $original_meta_id . '"><span class="awm_action awm-add" onclick="repeater(this)">' . __('Add', 'extend-wp') . ' ' . $item . '</span></div>';
+            $action .= '<div class="awm-repeater-add" data-id="' . esc_attr($original_meta_id) . '"><span class="awm_action awm-add" onclick="repeater(this)">' . esc_html__('Add', 'extend-wp') . ' ' . esc_html($item) . '</span></div>';
         }
         $html .= '<div class="awm-actions">' . apply_filters(
             'awm_show_actions_html',
