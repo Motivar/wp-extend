@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **No inline styles in `awm_show_featured_image()` and `ewp_debug()`** (`2026-10-30`):
+  - **Question/Prompt**: "Commit, start step 2" (step 2 of the HTML-in-PHP cleanup, `.ai/context/html-in-php-plan.md`).
+  - **`awm_show_featured_image()`** (gallery admin list column, `ewp-gallery/class-ewp-gallery.php`):
+    - Before, it built `<img src="…" style="max-width:50px;height:auto;">` with an unescaped `src`.
+    - It now returns `wp_get_attachment_image($id, array(50, 50), false, array('class' => 'ewp-list-thumb'))`. WordPress sizes and escapes it with width/height attributes and a srcset, so no stylesheet is needed.
+    - It has a docblock now.
+  - **`ewp_debug()`** (also called by other plugins, front end included):
+    - Prints `<pre class="ewp-debug">` and enqueues the new `ewp-debug` stylesheet (`assets/css/global/ewp-debug.scss` → `.min.css`, colours as `:root` custom properties). Enqueued after the head, WordPress prints it in the footer.
+    - Same look as before, plus `overflow: auto` for long lines.
+  - **Build**:
+    - `npm run build:css` now compiles both `ewp-admin-ui` and `ewp-debug`; `ewp-admin-ui.min.css` is unchanged.
+    - The legacy `awm-admin-style.scss` and `awm-global-style.scss` no longer reproduce their committed `.min.css`, so they were not touched and are not rebuilt. Fixing that drift is a separate job.
+  - **Tests**: new `tests/test-inline-style-helpers-test.php` (featured image sized, classed, with no `style`; debug output escaped, classed and enqueued). PHPUnit and self-test are green.
+  - **Files**: `includes/functions/main.php`, new `assets/css/global/ewp-debug.scss` / `ewp-debug.min.css`, `package.json`, the test file.
+
 ### Security
 - **List-column display values are escaped (`awm_display_meta_value()` / `Field_Value_Formatter`)** (`2026-10-30`):
   - **Question/Prompt**: "fix escaping plan but for each step" (step 1 of the HTML-in-PHP cleanup).

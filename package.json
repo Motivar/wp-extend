@@ -9,7 +9,7 @@
   "scripts": {
     "build": "wp-scripts build",
     "start": "wp-scripts start",
-    "build:css": "sass --style=compressed --no-source-map assets/css/admin/ewp-admin-ui.scss assets/css/admin/ewp-admin-ui.min.css",
+    "build:css": "sass --style=compressed --no-source-map assets/css/admin/ewp-admin-ui.scss:assets/css/admin/ewp-admin-ui.min.css assets/css/global/ewp-debug.scss:assets/css/global/ewp-debug.min.css",
     "test:js": "wp-scripts test-unit-js assets/js"
   },
   "keywords": [],
