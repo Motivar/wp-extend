@@ -51,6 +51,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Backwards compatibility**: types without the new keys behave as before. Changes visible to callers: API rows of types with extra `_main` columns carry those columns; the legacy list's delete of ids that no longer exist reports an error notice instead of "Items deleted"; the full export lists rows by ascending id (it was newest first; the payload is keyed by id); users who had the page nonce but not the type's capability can no longer save or delete from the legacy screens.
 
 ### Fixed
+- **Fixed: `content-crud` self-test failed under real WP-CLI** (`2026-10-30`, `wporg` branch):
+  - **Question/Prompt**: "the problems found but left alone (Extend WP's duplicate name attribute, dead code, the icon-font CORS issue, the two failing tests) — Let's fix them on wporg and update the report. We will make no push to master for both branches till Nikos approves".
+  - The check "generic_write false: wp ewp content create is refused" required `ok: false`, but under real WP-CLI `WP_CLI::error()` writes to stderr without throwing, so `Case_Base::cli()` keeps `ok: true` with the error text (the in-process shim throws, so the dashboard / PHPUnit passed). The command was refused correctly. The check now judges by the error (`does not allow`).
+  - **Verified**: `wp mmwp self-test run --plugin=extend-wp` 14 passed, 1 skipped (was 13 / 1 failed).
+  - **Affected files**: `includes/classes/ewp-self-test/cases/class-content-crud-case.php`. No runtime change.
 - **Fixed: content search matched multi-value fields by accident** (`2026-10-30`, `wporg` branch):
   - **Question/Prompt**: "the problems found but left alone (Extend WP's duplicate name attribute, dead code, the icon-font CORS issue, the two failing tests) — Let's fix them on wporg and update the report. We will make no push to master for both branches till Nikos approves".
   - **Root cause** of `Test_Content_View_Query::test_search` failing: `Content_Service::view_fields()` marked a `checkbox_multiple` field (`tags`) searchable; its value is stored serialized (`s:30:"a:2:{i:0;s:1:"a";i:1;…`), so searching a number (`3`, Cherry's id) LIKE-matched Banana's `s:30`. Which row leaks depends on the ids, so the test failed on some databases only — and real lists had the same false hits.
