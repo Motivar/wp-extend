@@ -1,7 +1,7 @@
 # WordPress.org preparation — review report (`wporg` branch)
 
 For: Nikos and his review agent. Kept up to date with every push to `wporg`.
-Last update: 2026-10-30, after commit `4e31f06e`.
+Last update: 2026-10-30, after commit `58fa9768`.
 
 **Nothing on this branch is pushed to `main` until Nikos approves.**
 
@@ -34,6 +34,8 @@ too and will use it. Filox's `wporg` branch bundles this branch
 | 00af2c72 | **Fix:** multi-value fields (`checkbox_multiple`, `map`, `awm_gallery`, `select` with `multiple`) are no longer free-text searchable. Their values are stored serialized (`s:30:"a:2:{i:0;…`), so searching a number LIKE-matched the serialization (root cause of `ViewQueryTest::test_search`, which failed or passed depending on the ids) | A search no longer matches inside serialized multi-value meta; title, text meta and the numeric id still do | PHPUnit 408 / 408 |
 | d798ea35 | **Fix (self-test):** `content-crud` judged the CLI refusal by `ok: false`; under real WP-CLI `WP_CLI::error()` goes to stderr without throwing, so `ok` stays true. The command was refused correctly; the check now reads the error | Test only | Self-test 14 passed, 1 skipped |
 | 4e31f06e | **Fix:** `input` / `select` / `textarea` / `checkbox_multiple` no longer print a second `name` from `attributes['name']` (they print their own first; browsers and kses use the first, the second was invalid HTML) | None for browsers: submitted names, `element.name` and `getAttribute('name')` unchanged | Rates calendar HTML differs only by the dropped second `name`; 54 pages otherwise identical |
+| 41f93239 | Correction of the duplicate-`name` claim (kses keeps the first attribute, like browsers) | — | Tested with `wp_kses()` directly |
+| 58fa9768 | **Escaping in Extend WP's own code: late escaping 99 → 0** (`tools/` excluded). Real fix: the custom list screen echoed `$_REQUEST['page']` raw (reflected XSS on an admin page). `awm_show_explanation()` / `awm_show_featured_image()` escape inside; `awm_show_content()` / template output marked; query-class exception messages marked (they are REST / CLI error text) | Same markup on every page checked | Booking flow, admin pages, 54 pages back to back; self-test 14 + 1 skipped; PHPUnit 408 / 408 |
 
 ## `awm_show_content()` escaping (please review)
 
@@ -88,7 +90,7 @@ baselines compare 0 first): **0 differences**. Filox Settings page 110 → 113 m
 | Licence header | missing | done |
 | Remote scripts (Swagger UI from unpkg) | 2 | 0 (`examples/` still has CDN samples: leave `examples/` out of the WordPress.org package) |
 | `date()` | 9 | 0 |
-| Late escaping (core: `includes`, `templates`, main file) | 105 | lower (re-count pending); `awm_show_content()` callers marked |
+| Late escaping (core: `includes`, `templates`, main file) | 105 (99 on re-count) | **0** |
 | i18n (translators comments, non-literal strings, text domain) | ~220 | open |
 | File-system calls (`fopen`, `fwrite`, `unlink`, …) | ~40 | open |
 | `lib/mammothwp/wp-self-test` | 122 errors | candidate to leave out of the WordPress.org package (off on production) |
@@ -102,4 +104,5 @@ baselines compare 0 first): **0 differences**. Filox Settings page 110 → 113 m
 - [ ] Dropping the second `name` (4e31f06e): any code of yours that relied on `attributes['name']` taking effect? (It never did in browsers.)
 - [ ] Multi-value fields out of free-text search (00af2c72)
 - [ ] Swagger UI version pin (5.34.0) and package size
+- [ ] Exception messages of `View_Query` / `Where` / `SQL` left unescaped (marked): they are API error text
 - [ ] `content-crud` check reading the error instead of `ok` (d798ea35)
