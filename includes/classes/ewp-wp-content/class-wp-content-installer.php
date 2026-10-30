@@ -239,7 +239,7 @@ class EWP_WP_Content_Installer
     }
     if (!empty($this->taxonomies)) {
       foreach ($this->taxonomies as $tax => $tax_data) {
-        $slugs[$tax] = isset($tax_data['label']) ? __($tax_data['label'], 'extend-wp') : $tax;
+        $slugs[$tax] = isset($tax_data['label']) ? __($tax_data['label'], 'extend-wp') : $tax; // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
       }
     }
 
@@ -256,7 +256,7 @@ class EWP_WP_Content_Installer
       /*register the setting*/
       add_settings_field(
         $slug . '_slug',
-        __($title . ' Slug', 'extend-wp'),
+        __($title . ' Slug', 'extend-wp'), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
         function ($views) use ($slug) {
           $value = get_option($slug . '_slug');
           echo '<input type="text" value="' . esc_attr($value) . '" name="' . esc_attr($slug . '_slug') . '" id="' . esc_attr($slug . '_slug') . '" class="regular-text" placeholder="' . esc_attr($slug) . '"/>';
@@ -287,7 +287,7 @@ class EWP_WP_Content_Installer
             1,
             array(
               'id' => $post_type['post'] . '-archive-widget',
-              'name' => sprintf(__('Sidebar for %s', 'extend-wp'), $post_type['pl']),
+              'name' => sprintf(/* translators: %s: name */ __('Sidebar for %s', 'extend-wp'), $post_type['pl']),
               'before_widget' => '<div id="%1$s" class="widget %2$s ' . $post_type['post'] . '-widget">',
               'after_widget' => '</div>',
               'before_title' => '<h2 class="widgettitle ' . $post_type['post'] . '-widget-title">',
@@ -420,23 +420,23 @@ class EWP_WP_Content_Installer
       /**this is in case the term has not been registered */
       if (isset($term_data['name'])) {
         $labels = $args = array();
-        $name = __($term_data['name'], 'extend-wp');
-        $label = __($term_data['label'], 'extend-wp');
+        $name = __($term_data['name'], 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
+        $label = __($term_data['label'], 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
         $labels = array(
           'name' => $name,
           'label' => $label,
           'menu_name' => $label,
-          'all_items' => sprintf(__('All %s', 'extend-wp'), $name),
-          'edit_item' => sprintf(__('Edit %s', 'extend-wp'), $label),
-          'update_item' => sprintf(__('Update %s', 'extend-wp'), $label),
-          'add_new_item' => sprintf(__('New %s', 'extend-wp'), $label),
-          'new_item_name' => sprintf(__('New %s', 'extend-wp'), $label),
-          'parent_item' =>   sprintf(__('Parent %s', 'extend-wp'), $label),
-          'parent_item_colon' => sprintf(__('Parent: %s', 'extend-wp'), $label),
-          'search_items' => sprintf(__('Search %s', 'extend-wp'), $name),
-          'popular_items' => sprintf(__('Popular %s', 'extend-wp'), $name),
-          'add_or_remove_items' => sprintf(__('Update/remove %s', 'extend-wp'), $label),
-          'choose_from_most_used' => sprintf(__('Select %s', 'extend-wp'), $name),
+          'all_items' => sprintf(/* translators: %s: item / content type name */ __('All %s', 'extend-wp'), $name),
+          'edit_item' => sprintf(/* translators: %s: item / content type name */ __('Edit %s', 'extend-wp'), $label),
+          'update_item' => sprintf(/* translators: %s: item / content type name */ __('Update %s', 'extend-wp'), $label),
+          'add_new_item' => sprintf(/* translators: %s: item / content type name */ __('New %s', 'extend-wp'), $label),
+          'new_item_name' => sprintf(/* translators: %s: item / content type name */ __('New %s', 'extend-wp'), $label),
+          'parent_item' =>   sprintf(/* translators: %s: item / content type name */ __('Parent %s', 'extend-wp'), $label),
+          'parent_item_colon' => sprintf(/* translators: %s: item / content type name */ __('Parent: %s', 'extend-wp'), $label),
+          'search_items' => sprintf(/* translators: %s: item / content type name */ __('Search %s', 'extend-wp'), $name),
+          'popular_items' => sprintf(/* translators: %s: item / content type name */ __('Popular %s', 'extend-wp'), $name),
+          'add_or_remove_items' => sprintf(/* translators: %s: item / content type name */ __('Update/remove %s', 'extend-wp'), $label),
+          'choose_from_most_used' => sprintf(/* translators: %s: item / content type name */ __('Select %s', 'extend-wp'), $name),
         );
         $args = array(
           'labels' => $labels,
@@ -547,7 +547,7 @@ class EWP_WP_Content_Installer
             ? $type['custom_status'][$post_status]['label']
             : ucfirst(str_replace('_', ' ', $post_status));
 
-          $states[] = __($label, 'extend-wp');
+          $states[] = __($label, 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
         }
         break;
       }
@@ -784,22 +784,22 @@ class EWP_WP_Content_Installer
         $general_slug = isset($type['slug']) ? $type['slug'] : Slug_Manager::get_slug($type['post'], $type['post']);
         $chk = (isset($type['flx_custom_template']) && $type['flx_custom_template']) ? true : false;
         $labels = $args = array();
-        $type['sn'] = __(ucwords(($type['sn'])), 'extend-wp');
-        $type['pl'] = __(ucwords(($type['pl'])), 'extend-wp');
+        $type['sn'] = __(ucwords(($type['sn'])), 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
+        $type['pl'] = __(ucwords(($type['pl'])), 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
         $labels = array(
           'name' => $type['pl'],
           'singular_name' => $type['sn'],
           'menu_name' => $type['pl'],
-          'add_new' => sprintf(__('New %s', 'extend-wp'), $type['sn']),
-          'add_new_item' => sprintf(__('New %s', 'extend-wp'), $type['sn']),
+          'add_new' => sprintf(/* translators: %s: item / content type name */ __('New %s', 'extend-wp'), $type['sn']),
+          'add_new_item' => sprintf(/* translators: %s: item / content type name */ __('New %s', 'extend-wp'), $type['sn']),
           'edit' => __('Edit', 'extend-wp'),
-          'edit_item' => sprintf(__('Edit %s', 'extend-wp'), $type['sn']),
-          'new_item' => sprintf(__('New %s', 'extend-wp'), $type['sn']),
-          'view' => sprintf(__('View %s', 'extend-wp'), $type['sn']),
-          'view_item' => sprintf(__('View %s', 'extend-wp'), $type['sn']),
-          'search_items' => sprintf(__('Search %s', 'extend-wp'), $type['pl']),
-          'not_found' => sprintf(__('No %s found', 'extend-wp'), $type['pl']),
-          'not_found_in_trash' => sprintf(__('No %s in trash', 'extend-wp'), $type['pl']),
+          'edit_item' => sprintf(/* translators: %s: item / content type name */ __('Edit %s', 'extend-wp'), $type['sn']),
+          'new_item' => sprintf(/* translators: %s: item / content type name */ __('New %s', 'extend-wp'), $type['sn']),
+          'view' => sprintf(/* translators: %s: item / content type name */ __('View %s', 'extend-wp'), $type['sn']),
+          'view_item' => sprintf(/* translators: %s: item / content type name */ __('View %s', 'extend-wp'), $type['sn']),
+          'search_items' => sprintf(/* translators: %s: item / content type name */ __('Search %s', 'extend-wp'), $type['pl']),
+          'not_found' => sprintf(/* translators: %s: item / content type name */ __('No %s found', 'extend-wp'), $type['pl']),
+          'not_found_in_trash' => sprintf(/* translators: %s: item / content type name */ __('No %s in trash', 'extend-wp'), $type['pl']),
         );
         $args = array(
           'labels' => $labels,
@@ -842,7 +842,7 @@ class EWP_WP_Content_Installer
           foreach ($type['custom_status'] as $k => $v) {
             // Build status args with defaults that can be overridden
             $status_args = array(
-              'label' => isset($v['label']) ? __($v['label'], 'extend-wp') : __($k, 'extend-wp'),
+              'label' => isset($v['label']) ? __($v['label'], 'extend-wp') : __($k, 'extend-wp'), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
               'public' => isset($v['public']) ? $v['public'] : true,
               'exclude_from_search' => isset($v['exclude_from_search']) ? $v['exclude_from_search'] : false,
               'show_in_admin_all_list' => isset($v['show_in_admin_all_list']) ? $v['show_in_admin_all_list'] : true,
@@ -855,8 +855,8 @@ class EWP_WP_Content_Installer
             // Add label_count if label is provided
             if (isset($v['label'])) {
               $status_args['label_count'] = _n_noop(
-                $v['label'] . ' <span class="count">(%s)</span>',
-                $v['label'] . ' <span class="count">(%s)</span>',
+                $v['label'] . ' <span class="count">(%s)</span>', // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralSingular -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
+                $v['label'] . ' <span class="count">(%s)</span>', // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralPlural -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
                 'extend-wp'
               );
             }

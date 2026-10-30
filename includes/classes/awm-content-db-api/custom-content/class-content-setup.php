@@ -516,7 +516,7 @@ class AWM_Add_Content_DB_Setup
    */
   public function get_statuses()
   {
-    $statuses = isset($this->data_content['statuses']) ? $this->data_content['statuses'] : array('public' => array('label' => __('Public', 'awm')), 'private' => array('label' => __('Private', 'awm')));
+    $statuses = isset($this->data_content['statuses']) ? $this->data_content['statuses'] : array('public' => array('label' => __('Public', 'extend-wp')), 'private' => array('label' => __('Private', 'extend-wp')));
     return $statuses;
   }
 

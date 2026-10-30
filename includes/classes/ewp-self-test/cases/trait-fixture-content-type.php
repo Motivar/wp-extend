@@ -80,14 +80,14 @@ trait Fixture_Content_Type
                 return (int) $row['content_id'];
             }, $rows);
             awm_custom_content_delete($type, $ids);
-            $messages[] = sprintf(__('Deleted %d leftover row(s) from %s.', 'extend-wp'), count($ids), $type);
+            $messages[] = sprintf(/* translators: %1$d: number of rows, %2$s: table name */ __('Deleted %1$d leftover row(s) from %2$s.', 'extend-wp'), count($ids), $type);
         }
 
         foreach (['_data', '_main'] as $suffix) {
             $table = $type . $suffix;
             // Also deletes the version option and invalidates cached reads of the table (since 1.6.2).
             \AWM_DB_Creator::drop_table($table);
-            $messages[]= sprintf(__('Dropped table %s.', 'extend-wp'), $wpdb->prefix . $table);
+            $messages[]= sprintf(/* translators: %s: table name */ __('Dropped table %s.', 'extend-wp'), $wpdb->prefix . $table);
         }
 
         if (class_exists('AWM_Add_Content_DB_Setup') && isset(\AWM_Add_Content_DB_Setup::$ewp_data_configuration[$type])) {

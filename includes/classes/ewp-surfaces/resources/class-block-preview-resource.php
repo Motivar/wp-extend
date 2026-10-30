@@ -52,7 +52,7 @@ final class Block_Preview_Resource extends Resource
     /** {@inheritDoc} */
     public function label()
     {
-        return sprintf(__('Block preview: %s', 'extend-wp'), $this->block['namespace'] . '/' . $this->block['name']);
+        return sprintf(/* translators: %s: block name */ __('Block preview: %s', 'extend-wp'), $this->block['namespace'] . '/' . $this->block['name']);
     }
 
     /** {@inheritDoc} */

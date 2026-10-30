@@ -65,13 +65,13 @@ class Extend_WP_Import_Export
    // Ensure path exists
    $path = WP_CONTENT_DIR . trailingslashit($options['path']);
    if (!file_exists($path)) {
-    throw new Exception(sprintf(__('The path %s does not exist.', 'extend-wp'), $path));
+    throw new Exception(sprintf(/* translators: %s: folder path */ __('The path %s does not exist.', 'extend-wp'), $path));
    }
 
    // Check if the configuration file exists
    $file = $path . 'ewp_configuration.json';
    if (!file_exists($file)) {
-    throw new Exception(sprintf(__('The file %s does not exist.', 'extend-wp'), $file));
+    throw new Exception(sprintf(/* translators: %s: file path */ __('The file %s does not exist.', 'extend-wp'), $file));
    }
 
    // Check file signature to prevent duplicate imports
@@ -100,7 +100,7 @@ class Extend_WP_Import_Export
     if (is_wp_error($import) || !$import) {
 
      // throw an error with the related messsage
-     throw new Exception(sprintf(__('Failed to import content of type %s.', 'extend-wp'), $content_type));
+     throw new Exception(sprintf(/* translators: %s: error message */ __('Failed to import content of type %s.', 'extend-wp'), $content_type));
     }
     $all_hashes[$content_type] = $import;
    }
@@ -136,12 +136,12 @@ class Extend_WP_Import_Export
    return true;
   } catch (Exception $e) {
    // Handle exceptions and log the error
-   error_log(sprintf(__('Import error: %s', 'extend-wp'), $e->getMessage()));
+   error_log(sprintf(/* translators: %s: error message */ __('Import error: %s', 'extend-wp'), $e->getMessage()));
 
    // Add a dismissible admin notice for the error
    add_action('admin_notices', function () use ($e) {
     echo '<div class="notice notice-error">';
-    echo '<p>' . esc_html(sprintf(__('Import failed: %s. Please check your php error_logs.', 'extend-wp'), $e->getMessage())) . '</p>';
+    echo '<p>' . esc_html(sprintf(/* translators: %s: error message */ __('Import failed: %s. Please check your php error_logs.', 'extend-wp'), $e->getMessage())) . '</p>';
     echo '</div>';
    });
    /*no cache flush here: nothing was imported, and a broken file would flush on every admin request*/
@@ -181,18 +181,18 @@ class Extend_WP_Import_Export
    // Ensure path exists
    $path = WP_CONTENT_DIR . trailingslashit($options['path']);
    if (!file_exists($path)) {
-    throw new Exception(sprintf(__('The path %s does not exist.', 'extend-wp'), $path));
+    throw new Exception(sprintf(/* translators: %s: folder path */ __('The path %s does not exist.', 'extend-wp'), $path));
    }
 
    // Ensure path is writable
    if (!is_writable($path)) {
-    throw new Exception(sprintf(__('The path %s is not writable.', 'extend-wp'), $path));
+    throw new Exception(sprintf(/* translators: %s: folder path */ __('The path %s is not writable.', 'extend-wp'), $path));
    }
 
    // Directly call the export_content function
    $data = $this->export_content($options['types']);
    if (is_wp_error($data)) {
-    throw new Exception(sprintf(__('Failed to export content: %s', 'extend-wp'), $data->get_error_message()));
+    throw new Exception(sprintf(/* translators: %s: error message */ __('Failed to export content: %s', 'extend-wp'), $data->get_error_message()));
    }
 
    // Convert data to JSON
@@ -206,14 +206,14 @@ class Extend_WP_Import_Export
    $result = file_put_contents($file_path, $json_data);
 
    if ($result === false) {
-    throw new Exception(sprintf(__('Failed to save exported content to %s.', 'extend-wp'), $file_path));
+    throw new Exception(sprintf(/* translators: %s: error message */ __('Failed to save exported content to %s.', 'extend-wp'), $file_path));
    }
 
    // Log success
-   error_log(sprintf(__('Exported content saved to %s.', 'extend-wp'), $file_path));
+   error_log(sprintf(/* translators: %s: file path */ __('Exported content saved to %s.', 'extend-wp'), $file_path));
   } catch (Exception $e) {
    // Handle exceptions and log the error
-   error_log(sprintf(__('Export error: %s', 'extend-wp'), $e->getMessage()));
+   error_log(sprintf(/* translators: %s: error message */ __('Export error: %s', 'extend-wp'), $e->getMessage()));
 
    // Optionally stop execution and show an error to the user
    wp_die(esc_html($e->getMessage()), esc_html__('Export Error', 'extend-wp'), array('response' => 500));

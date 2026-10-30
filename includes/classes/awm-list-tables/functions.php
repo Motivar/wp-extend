@@ -103,7 +103,7 @@ function flx_table_list_page_handler($args)
             $count = count(explode(',', $ids));
         }
 
-        $message = '<div class="updated below-h2" id="message"><p>' . sprintf(__('Items deleted: %d', 'custom_table_example'), $count) . '</p></div>';
+        $message = '<div class="updated below-h2" id="message"><p>' . sprintf(/* translators: %d: number */ __('Items deleted: %d', 'extend-wp'), $count) . '</p></div>';
     }
 ?>
     <div class="wrap filox-custom-list">
@@ -112,10 +112,10 @@ function flx_table_list_page_handler($args)
         <!-- capitalize the first lettet for better UI. a tag leads to the respective form page AKA add new / edit page -->
 
         <h2><?php
-            echo esc_html(__(ucwords($args['list_name']), 'awm')) ?>
+            echo esc_html(__(ucwords($args['list_name']), 'extend-wp')) // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended). ?>
             <?php
             if (!$args['disable_new']) { ?>
-                <a class="add-new-h2" href="<?php echo esc_url(awm_edit_screen_link($args)); ?>"><?php echo esc_html(sprintf(__('New %s', 'awm'), $args['list_name_singular'])); ?></a>
+                <a class="add-new-h2" href="<?php echo esc_url(awm_edit_screen_link($args)); ?>"><?php echo esc_html(sprintf(/* translators: %s: item / content type name */ __('New %s', 'extend-wp'), $args['list_name_singular'])); ?></a>
             <?php } ?>
         </h2>
 

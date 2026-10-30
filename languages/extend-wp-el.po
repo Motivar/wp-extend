@@ -26,12 +26,10 @@ msgid "No options detected"
 msgstr "Δεν βρέθηκαν επιλογές"
 
 #: includes/awm-content-db-api/class-content-setup.php:160
-#, fuzzy
 msgid "Public"
 msgstr "Δημόσιο"
 
 #: includes/awm-content-db-api/class-content-setup.php:160
-#, fuzzy
 msgid "Private"
 msgstr "Ιδιωτικό"
 
@@ -100,7 +98,7 @@ msgstr "Το περιεχόμενο ενημερώθηκε"
 #: includes/ewp-wp-content/class-wp-content-installer.php:349
 #: includes/ewp-wp-content/class-wp-content-installer.php:352
 #: templates/admin-view/edit-post.php:27
-#, fuzzy, php-format
+#, php-format
 msgid "New %s"
 msgstr "Νέο %s"
 
@@ -144,7 +142,7 @@ msgstr "Διαγραφή"
 #: includes/awm-list-tables/functions.php:91
 #, php-format
 msgid "Items deleted: %d"
-msgstr "Στοιχεία διαγράφησαν: %d"
+msgstr "Διαγράφηκαν στοιχεία: %d"
 
 #: includes/ewp-fields/class-field.php:39
 #: includes/ewp-wp-content/class-wp-content.php:113
@@ -217,7 +215,7 @@ msgstr "Χαρακτηριστικά"
 
 #: includes/ewp-fields/ewp_field_functions.php:263
 msgid "like min=0 / onchange=action etc"
-msgstr ""
+msgstr "π.χ. min=0 / onchange=action κ.λπ."
 
 #: includes/ewp-fields/ewp_field_functions.php:266
 #: includes/ewp-fields/ewp_field_functions.php:362
@@ -323,6 +321,9 @@ msgid ""
 "functions like get_post_meta, get_term_meta, get_user_meta, get_option with "
 "the <b>Meta Key</b> specified."
 msgstr ""
+"Ανάλογα με τη θέση των πεδίων σας, μπορείτε να χρησιμοποιήσετε τις συνήθεις "
+"συναρτήσεις του WordPress, όπως get_post_meta, get_term_meta, get_user_meta, "
+"get_option, με το <b>Meta Key</b> που ορίσατε."
 
 #: includes/ewp-fields/ewp_field_functions.php:409
 msgid ""
@@ -338,9 +339,13 @@ msgstr ""
 msgid ""
 "You can use the filter 'awm_create_library_filter', with variables:$metas, "
 "$awm_field_id where:<br><strong>$metas</strong>=then array with the field "
-"structure<br><strong>$awm_field_id</strong> =the post id of this screen</"
-"div></div>"
+"structure<br><strong>$awm_field_id</strong> =the post id of this "
+"screen</div></div>"
 msgstr ""
+"Μπορείτε να χρησιμοποιήσετε το φίλτρο 'awm_create_library_filter', με "
+"μεταβλητές: $metas, $awm_field_id, όπου:<br><strong>$metas</strong>= ο "
+"πίνακας με τη δομή των πεδίων<br><strong>$awm_field_id</strong> = το post id "
+"αυτής της οθόνης</div></div>"
 
 #: includes/ewp-fields/ewp_field_functions.php:430
 msgid "Show php code"
@@ -459,11 +464,11 @@ msgstr ""
 
 #: includes/ewp-fields/ewp_field_functions.php:657
 msgid "Existing meta fields"
-msgstr ""
+msgstr "Υπάρχοντα πεδία meta"
 
 #: includes/ewp-fields/ewp_field_functions.php:659
 msgid "Select meta libraries"
-msgstr ""
+msgstr "Επιλέξτε βιβλιοθήκες meta"
 
 #: includes/ewp-fields/ewp_field_functions.php:685
 msgid "Post type metabox"
@@ -880,9 +885,8 @@ msgid "Deselect All"
 msgstr "Από-επιλογή όλων"
 
 #: includes/library.php:606
-#, fuzzy
 msgid "Type to search"
-msgstr "Πληκτρολογήστε για αναζήτησή"
+msgstr "Πληκτρολογήστε για αναζήτηση"
 
 #: includes/library.php:747
 #, fuzzy
@@ -920,7 +924,6 @@ msgid "Remove media"
 msgstr "Κατάργηση πολυμέσων"
 
 #: includes/library.php:1061
-#, fuzzy
 msgid "Register"
 msgstr "Εγγραφή"
 
@@ -930,9 +933,8 @@ msgid "See all"
 msgstr "Προβολή όλων"
 
 #: templates/settings.php:66
-#, fuzzy
 msgid "Show results"
-msgstr "Εμφάνιση αποτελεσμάτων για:"
+msgstr "Εμφάνιση αποτελεσμάτων"
 
 #. Plugin URI of the plugin/theme
 #. Author URI of the plugin/theme
@@ -946,3 +948,60 @@ msgstr ""
 #. Author of the plugin/theme
 msgid "Giannopoulos Nikolaos"
 msgstr ""
+
+msgid "Showing %1$s of %2$s"
+msgstr "Εμφάνιση %1$s από %2$s"
+
+msgid "Deleted %1$d leftover row(s) from %2$s."
+msgstr "Διαγράφηκαν %1$d εναπομείναντες γραμμές από τον πίνακα %2$s."
+
+msgid "Deleted %1$d log entr(y/ies) owned by %2$s."
+msgstr "Διαγράφηκαν %1$d εγγραφές καταγραφής του %2$s."
+
+msgid "%1$s %2$s"
+msgstr "%1$s %2$s"
+
+msgid ""
+"Use the shortcode <strong>[ewp_search id=\"%1$s\"]</strong> or "
+"<strong>[ewp_search hash=\"%2$s\"]</strong>, and place it where you wish. If "
+"the dom element which you have set to show the results does not exists, then "
+"no action will be triggered as you interact with the form."
+msgstr ""
+"Χρησιμοποιήστε το shortcode <strong>[ewp_search id=\"%1$s\"]</strong> ή "
+"<strong>[ewp_search hash=\"%2$s\"]</strong> και τοποθετήστε το όπου θέλετε. "
+"Αν το στοιχείο της σελίδας που ορίσατε για την εμφάνιση των αποτελεσμάτων δεν"
+" υπάρχει, η φόρμα δεν θα κάνει καμία ενέργεια."
+
+msgid "Table \"%1$s\" not updated! The error is: <strong>%2$s</strong>."
+msgstr ""
+"Ο πίνακας \"%1$s\" δεν ενημερώθηκε! Το σφάλμα είναι: <strong>%2$s</strong>."
+
+msgid "Table \"%1$s\" just updated! Current version is %2$s."
+msgstr "Ο πίνακας \"%1$s\" μόλις ενημερώθηκε! Τρέχουσα έκδοση: %2$s."
+
+msgid "Error in table \"%1$s\": %2$s"
+msgstr "Σφάλμα στον πίνακα \"%1$s\": %2$s"
+
+msgid ""
+"Plugin version mismatch: export was created with v%1$s, current is v%2$s."
+msgstr ""
+"Διαφορετική έκδοση πρόσθετου: η εξαγωγή έγινε με την v%1$s, η τρέχουσα είναι "
+"v%2$s."
+
+msgid ""
+"The export was created on %1$s. URLs will be replaced with %2$s. Continue?"
+msgstr ""
+"Η εξαγωγή έγινε στο %1$s. Οι διευθύνσεις URL θα αντικατασταθούν με %2$s. "
+"Συνέχεια;"
+
+msgid "Warning: Plugin version mismatch (export: %1$s, current: %2$s)."
+msgstr "Προσοχή: διαφορετική έκδοση πρόσθετου (εξαγωγή: %1$s, τρέχουσα: %2$s)."
+
+msgid "Ewp Dynamic block %s"
+msgstr "Δυναμικό block EWP %s"
+
+msgid "The id of the search filter"
+msgstr "Το αναγνωριστικό του φίλτρου αναζήτησης"
+
+msgid "Invalid table or data for table: %s."
+msgstr "Μη έγκυρος πίνακας ή δεδομένα για τον πίνακα: %s."

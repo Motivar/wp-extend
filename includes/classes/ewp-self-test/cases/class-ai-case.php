@@ -39,7 +39,7 @@ class Ai_Case extends Case_Base
     {
         return [
             __('Confirm the Abilities API is supported and Extend WP abilities are enabled.', 'extend-wp'),
-            sprintf(__('Confirm each expected category is registered with core: %s.', 'extend-wp'), implode(', ', $this->expected_categories())),
+            sprintf(/* translators: %s: category list */ __('Confirm each expected category is registered with core: %s.', 'extend-wp'), implode(', ', $this->expected_categories())),
             __('Count every registered ewp-* ability.', 'extend-wp'),
             __('Check wp_supports_ai() and whether an AI provider has credentials configured (EWP_Logger_Diagnose::is_available()).', 'extend-wp'),
             __('If a provider is configured: confirm the POST /extend-wp/v1/logs/diagnose route is registered. No AI request is sent (it would cost tokens).', 'extend-wp'),
@@ -89,7 +89,7 @@ class Ai_Case extends Case_Base
         }
 
         $count = count($o['abilities']);
-        $checks[] = $this->check('ability', 'ewp-* abilities are registered', $count > 0, sprintf(__('%d abilities', 'extend-wp'), $count));
+        $checks[] = $this->check('ability', 'ewp-* abilities are registered', $count > 0, sprintf(/* translators: %d: number */ __('%d abilities', 'extend-wp'), $count));
 
         if (empty($o['wp_supports_ai'])) {
             $checks[] = $this->skip('ai', 'AI provider configured', __('wp_supports_ai() is false — the WordPress AI client is not available on this site.', 'extend-wp'));

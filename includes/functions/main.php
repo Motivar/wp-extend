@@ -235,7 +235,7 @@ if (!function_exists('awmUserRolesFieldsForInput')) {
         $editable_roles = get_editable_roles();
         foreach ($editable_roles as $role => $details) {
             if (!in_array($role, $exclude)) {
-                $options[$role] = array('label' => __($details['name'], 'extend-wp'));
+                $options[$role] = array('label' => __($details['name'], 'extend-wp')); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
             }
         }
         return apply_filters('awmUserRolesFieldsForInput', $options);

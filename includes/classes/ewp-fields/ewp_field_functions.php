@@ -70,7 +70,7 @@ if (!function_exists('awm_basic_meta_structure')) {
     foreach ($fields as $field) {
       $meta_key = awm_clean_string($field['key']);
       $metas[$meta_key] = $field;
-      $metas[$meta_key]['label'] = __($field['label'], 'extend-wp');
+      $metas[$meta_key]['label'] = __($field['label'], 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
 
       $metas[$meta_key]['class'] = !empty($field['class']) ? explode(',', $field['class']) : array();
       $attributes = array();
@@ -88,7 +88,7 @@ if (!function_exists('awm_basic_meta_structure')) {
           $metas[$meta_key]['options'] = array();
           if (!empty($field['options'])) {
             foreach ($field['options'] as $option) {
-              $metas[$meta_key]['options'][$option['option']] = array('label' => __($option['label'], 'extend-wp'));
+              $metas[$meta_key]['options'][$option['option']] = array('label' => __($option['label'], 'extend-wp')); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
             }
           }
           break;
@@ -128,7 +128,7 @@ if (!function_exists('awm_create_library')) {
         if ($repeater_data['key']) {
 
           $meta_key = awm_clean_string($repeater_data['key']);
-          $metas[$meta_key]['label'] = __($repeater_data['label'], 'extend-wp');
+          $metas[$meta_key]['label'] = __($repeater_data['label'], 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
           $metas[$meta_key] = $repeater_data;
           $metas[$meta_key]['include'] = $include;
           $metas[$meta_key]['case'] = $awm_field['type'];
@@ -266,7 +266,7 @@ if (!function_exists('awm_fields_configuration')) {
           ),
           'attributes' => array(
             'label' => __('Attributes', 'extend-wp'),
-            'explanation' => __('like min=0 / onchange=action etc'),
+            'explanation' => __('like min=0 / onchange=action etc', 'extend-wp'),
             'minrows' => 0,
             'case' => 'repeater',
             'item_name' => __('Attribute', 'extend-wp'),
@@ -475,13 +475,13 @@ if (!function_exists('awm_dev_notes')) {
         'case' => 'html',
         'label' => __('How to get variables', 'extend-wp'),
         'show_label' => true,
-        'value' => '<div class="awm-dev-info"><div>' . __('Depending on your fields position choice, you can use the ordinary WordPress functions like get_post_meta, get_term_meta, get_user_meta, get_option with the <b>Meta Key</b> specified.') . '</div><div class="">' . __('If you want to get all the variables at once you can use the function <b>awm_get_library_values($awm_field_id,$case,$post_id)', 'extend-wp') . '</b>, where:<br></brr><strong>$awm_field_id</strong>=the post id of this screen<br><strong>$case</strong> = either post/term/user/option (depending on your fields position)<br><b>$post_id</b>= the id of the post/user/term you want to get the values for. </div></div>'
+        'value' => '<div class="awm-dev-info"><div>' . __('Depending on your fields position choice, you can use the ordinary WordPress functions like get_post_meta, get_term_meta, get_user_meta, get_option with the <b>Meta Key</b> specified.', 'extend-wp') . '</div><div class="">' . __('If you want to get all the variables at once you can use the function <b>awm_get_library_values($awm_field_id,$case,$post_id)', 'extend-wp') . '</b>, where:<br></brr><strong>$awm_field_id</strong>=the post id of this screen<br><strong>$case</strong> = either post/term/user/option (depending on your fields position)<br><b>$post_id</b>= the id of the post/user/term you want to get the values for. </div></div>'
       ),
       'html2' => array(
         'case' => 'html',
         'label' => __('How to apply_filters in admin view', 'extend-wp'),
         'show_label' => true,
-        'value' => '<div class="awm-dev-info"><div>' . __('You can use the filter \'awm_create_library_filter\', with variables:$metas, $awm_field_id where:<br><strong>$metas</strong>=then array with the field structure<br><strong>$awm_field_id</strong> =the post id of this screen</div></div>')
+        'value' => '<div class="awm-dev-info"><div>' . __('You can use the filter \'awm_create_library_filter\', with variables:$metas, $awm_field_id where:<br><strong>$metas</strong>=then array with the field structure<br><strong>$awm_field_id</strong> =the post id of this screen</div></div>', 'extend-wp')
       )
     );
   }
@@ -553,7 +553,7 @@ if (!function_exists('awm_create_boxes')) {
       switch ($case) {
         case 'ewp_block':
           $version = strtotime($awm_field['modified']);
-          $title = (isset($awm_field['content_title']) && !empty($awm_field['content_title'])) ? $awm_field['content_title'] : sprintf(__('Ewp Dynamic block %s', 'wp-extend'), $awm_field['content_id']);
+          $title = (isset($awm_field['content_title']) && !empty($awm_field['content_title'])) ? $awm_field['content_title'] : sprintf(/* translators: %s: block name */ __('Ewp Dynamic block %s', 'extend-wp'), $awm_field['content_id']);
           $namespace = (isset($awm_field['position']['namespace']) && !empty($awm_field['position']['namespace'])) ? awm_clean_string($awm_field['position']['namespace']) : 'ewp-block';
           $name = (isset($awm_field['position']['name']) && !empty($awm_field['position']['name'])) ? awm_clean_string($awm_field['position']['name']) : awm_clean_string($title);
           $dependencies = (isset($awm_field['position']['dependencies']) && !empty($awm_field['position']['dependencies'])) ? explode(',', $awm_field['position']['dependencies']) : array();
@@ -581,7 +581,7 @@ if (!function_exists('awm_create_boxes')) {
         case 'customizer':
           $section = array(
             $id => array(
-              'title' => __($awm_field['position']['title'], 'extend-wp'),
+              'title' => __($awm_field['position']['title'], 'extend-wp'), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
               'priority'   => $awm_field['position']['priority'] ?: 100,
               'capability' => $awm_field['position']['cap'] ?: 'edit_theme_options',
               'library' => awm_create_library($awm_field),
@@ -594,7 +594,7 @@ if (!function_exists('awm_create_boxes')) {
             break;
           }
           $boxes[$id] = array(
-            'title' => __($awm_field['position']['panel_name'], 'extend-wp'),
+            'title' => __($awm_field['position']['panel_name'], 'extend-wp'), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
             'priority' => 100,
             'sections' => $section
           );
@@ -602,7 +602,7 @@ if (!function_exists('awm_create_boxes')) {
 
         case 'content_types':
           $boxes[$id] = array(
-            'title' => __($awm_field['content_title'], 'extend-wp'),
+            'title' => __($awm_field['content_title'], 'extend-wp'), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
             'library' => awm_create_library($awm_field),
             'context' =>  isset($awm_field['position']['context']) ? $awm_field['position']['context'] : 'normal',
             'priority' =>  isset($awm_field['position']['priority'])  ? $awm_field['position']['priority'] : 'high',
@@ -612,7 +612,7 @@ if (!function_exists('awm_create_boxes')) {
           break;  
         case 'post_type':
           $boxes[$id] = array(
-            'title' => __($awm_field['content_title'], 'extend-wp'),
+            'title' => __($awm_field['content_title'], 'extend-wp'), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
             'postTypes' => isset($awm_field['position']['post_types'])  ? $awm_field['position']['post_types'] : array(),
             'context' =>  isset($awm_field['position']['context']) ? $awm_field['position']['context'] : 'normal',
             'priority' =>  isset($awm_field['position']['priority'])  ? $awm_field['position']['priority'] : 100,
@@ -622,7 +622,7 @@ if (!function_exists('awm_create_boxes')) {
           break;
         case 'taxonomy':
           $boxes[$id] = array(
-            'title' => __($awm_field['content_title'], 'extend-wp'),
+            'title' => __($awm_field['content_title'], 'extend-wp'), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
             'taxonomies' => $awm_field['position']['taxonomies'],
             'library' => awm_create_library($awm_field),
             'explanation' => isset($awm_field['explanation']) ? $awm_field['explanation'] : '',
@@ -630,7 +630,7 @@ if (!function_exists('awm_create_boxes')) {
           break;
         case 'options':
           $boxes['awm_option_' . $id] = array(
-            'title' => isset($awm_field['position']['title']) ? __($awm_field['position']['title'], 'extend-wp') : $id,
+            'title' => isset($awm_field['position']['title']) ? __($awm_field['position']['title'], 'extend-wp') : $id, // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
             'library' => awm_create_library($awm_field),
             'parent' => isset($awm_field['position']['parent']) ? $awm_field['position']['parent'] : '',
             'hide_submit' => isset($awm_field['position']['hide_submit']) ? $awm_field['position']['hide_submit'] : false,
@@ -642,7 +642,7 @@ if (!function_exists('awm_create_boxes')) {
           break;
         case 'user':
           $boxes[$id] = array(
-            'title' => __($awm_field['content_title'], 'extend-wp'),
+            'title' => __($awm_field['content_title'], 'extend-wp'), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
             'library' => awm_create_library($awm_field),
             'explanation' => isset($awm_field['explanation']) ? $awm_field['explanation'] : '',
           );
@@ -796,9 +796,9 @@ if (!function_exists('awm_position_options')) {
         ),
 
       )),
-      'existing_awm_fields' => array('label' => __('Existing meta fields', 'filox'), 'field-choices' => array(
+      'existing_awm_fields' => array('label' => __('Existing meta fields', 'extend-wp'), 'field-choices' => array(
         'page_ids' => array(
-          'label' => __('Select meta libraries', 'filox'),
+          'label' => __('Select meta libraries', 'extend-wp'),
           'case' => 'select',
           'attibutes' => array('multiple' => 1),
           'callback' => 'all_awm_meta_libraries',

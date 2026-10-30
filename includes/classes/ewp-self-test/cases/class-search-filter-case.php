@@ -72,7 +72,7 @@ class Search_Filter_Case extends Case_Base
 
         if ($this->abilities_available()) {
             $list = $o['ability_list'];
-            $checks[] = $this->check('ability', 'ewp-search/list-filters executes', !empty($list['ok']), $list['error'] ?: sprintf(__('%d filter(s)', 'extend-wp'), isset($list['data']['count']) ? (int) $list['data']['count'] : 0));
+            $checks[] = $this->check('ability', 'ewp-search/list-filters executes', !empty($list['ok']), $list['error'] ?: sprintf(/* translators: %d: number */ __('%d filter(s)', 'extend-wp'), isset($list['data']['count']) ? (int) $list['data']['count'] : 0));
         } else {
             $checks[] = $this->skip('ability', 'ewp-search/list-filters executes', __('Abilities API not available on this site.', 'extend-wp'));
         }

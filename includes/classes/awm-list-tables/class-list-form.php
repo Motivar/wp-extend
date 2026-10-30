@@ -178,7 +178,7 @@ class AWM_Add_Custom_List
        * When show_new is false, use empty string as parent to hide from menu but still register the page
        * Empty string prevents PHP 8.1+ strpos() deprecation warning (instead of null)
        */
-      $menu_title = isset($args['list_name_singular']) ? sprintf(__('New %s', 'extend-wp'), $args['list_name_singular']) : __('New Item', 'extend-wp');
+      $menu_title = isset($args['list_name_singular']) ? sprintf(/* translators: %s: item / content type name */ __('New %s', 'extend-wp'), $args['list_name_singular']) : __('New Item', 'extend-wp');
       $page_title = $menu_title;
       $parent_menu = (isset($args['show_new']) && $args['show_new'] === false) ? '' : $parent;
 

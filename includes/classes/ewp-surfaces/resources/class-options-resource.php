@@ -246,7 +246,7 @@ final class Options_Resource extends Resource
     private function read_export_file($path)
     {
         if (!file_exists($path)) {
-            return new \WP_Error('ewp_options_file_not_found', sprintf(__('File not found: %s', 'extend-wp'), $path), ['status' => 400]);
+            return new \WP_Error('ewp_options_file_not_found', sprintf(/* translators: %s: file path */ __('File not found: %s', 'extend-wp'), $path), ['status' => 400]);
         }
 
         $data = json_decode((string) file_get_contents($path), true);
@@ -312,7 +312,7 @@ final class Options_Resource extends Resource
 
         $written = file_put_contents($file, $json);
         if ($written === false) {
-            \WP_CLI::error(sprintf(__('Failed to write to %s.', 'extend-wp'), $file));
+            \WP_CLI::error(sprintf(/* translators: %s: error message */ __('Failed to write to %s.', 'extend-wp'), $file));
             return;
         }
 

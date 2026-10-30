@@ -91,8 +91,8 @@ final class Content_Type_Rest_Resource extends Resource
 
         $ops = [
             'list' => Operation::read('list_items')
-                ->label(sprintf(__('List %s items', 'extend-wp'), $type))
-                ->description(sprintf(__('List rows of %s, newest first, with their meta. Filter by status, title text or ids.', 'extend-wp'), $type))
+                ->label(sprintf(/* translators: %s: item / content type name */ __('List %s items', 'extend-wp'), $type))
+                ->description(sprintf(/* translators: %s: item / content type name */ __('List rows of %s, newest first, with their meta. Filter by status, title text or ids.', 'extend-wp'), $type))
                 ->input(Content_Schema::list_fields(true))
                 ->args(function (array $input) use ($type) {
                     return [$type, $input];
@@ -104,8 +104,8 @@ final class Content_Type_Rest_Resource extends Resource
                 ->rest('GET', ''),
 
             'query' => Operation::read('query_items')
-                ->label(sprintf(__('Query %s items', 'extend-wp'), $type))
-                ->description(sprintf(__('One page of %s rows for a DataViews view (search, filters on columns and meta, sort, page, perPage), with total and total_pages.', 'extend-wp'), $type))
+                ->label(sprintf(/* translators: %s: item / content type name */ __('Query %s items', 'extend-wp'), $type))
+                ->description(sprintf(/* translators: %s: page title */ __('One page of %s rows for a DataViews view (search, filters on columns and meta, sort, page, perPage), with total and total_pages.', 'extend-wp'), $type))
                 ->input(array_merge(Content_Schema::view_fields(), [
                     Field::bool('render')->describe(__('Also return each row\'s admin list cells and row actions as HTML (rendered.cells, rendered.actions), as the legacy list shows them. Used by the DataViews admin list.', 'extend-wp')),
                 ]))
@@ -123,8 +123,8 @@ final class Content_Type_Rest_Resource extends Resource
                 ->rest('GET', 'query'),
 
             'get' => Operation::read('get_item')
-                ->label(sprintf(__('Get one %s item', 'extend-wp'), $type))
-                ->description(sprintf(__('Return one row of %s by id with every stored meta value; 404 when it does not exist.', 'extend-wp'), $type))
+                ->label(sprintf(/* translators: %s: item / content type name */ __('Get one %s item', 'extend-wp'), $type))
+                ->description(sprintf(/* translators: %s: item / content type name */ __('Return one row of %s by id with every stored meta value; 404 when it does not exist.', 'extend-wp'), $type))
                 ->input([Field::int('id')->required()->min(1)->describe(__('The item id.', 'extend-wp'))])
                 ->args(function (array $input) use ($type) {
                     return [$type, (int) $input['id']];
@@ -139,8 +139,8 @@ final class Content_Type_Rest_Resource extends Resource
         }
 
         $ops['create'] = Operation::write('create_item')
-            ->label(sprintf(__('Create a %s item', 'extend-wp'), $type))
-            ->description(sprintf(__('Create a row of %s. Meta keys must match its field library and every required field must be present.', 'extend-wp'), $type))
+            ->label(sprintf(/* translators: %s: item / content type name */ __('Create a %s item', 'extend-wp'), $type))
+            ->description(sprintf(/* translators: %s: item / content type name */ __('Create a row of %s. Meta keys must match its field library and every required field must be present.', 'extend-wp'), $type))
             ->input(Content_Schema::writable_fields(true, $statuses))
             ->args(function (array $input) use ($type) {
                 return [$type, isset($input['title']) ? (string) $input['title'] : '', isset($input['status']) ? (string) $input['status'] : '', isset($input['meta']) ? (array) $input['meta'] : []];
@@ -149,8 +149,8 @@ final class Content_Type_Rest_Resource extends Resource
 
         $ops['update'] = Operation::write('update_item')
             ->annotations(['idempotent' => true])
-            ->label(sprintf(__('Update a %s item', 'extend-wp'), $type))
-            ->description(sprintf(__('Patch a row of %s: only the title, status and meta keys sent are changed.', 'extend-wp'), $type))
+            ->label(sprintf(/* translators: %s: item / content type name */ __('Update a %s item', 'extend-wp'), $type))
+            ->description(sprintf(/* translators: %s: item / content type name */ __('Patch a row of %s: only the title, status and meta keys sent are changed.', 'extend-wp'), $type))
             ->input(array_merge([Field::int('id')->required()->min(1)->describe(__('The item id.', 'extend-wp'))], Content_Schema::writable_fields(false, $statuses)))
             ->args(function (array $input) use ($type) {
                 $patch = ['meta' => isset($input['meta']) ? (array) $input['meta'] : []];
@@ -167,8 +167,8 @@ final class Content_Type_Rest_Resource extends Resource
 
         $ops['set-status'] = Operation::write('set_status')
             ->annotations(['idempotent' => true])
-            ->label(sprintf(__('Set the status of %s items', 'extend-wp'), $type))
-            ->description(sprintf(__('Change the status of up to 200 rows of %s through the normal save.', 'extend-wp'), $type))
+            ->label(sprintf(/* translators: %s: item / content type name */ __('Set the status of %s items', 'extend-wp'), $type))
+            ->description(sprintf(/* translators: %s: item / content type name */ __('Change the status of up to 200 rows of %s through the normal save.', 'extend-wp'), $type))
             ->input(Content_Schema::status_fields($statuses))
             ->args(function (array $input) use ($type) {
                 return [$type, (array) $input['ids'], (string) $input['status']];
@@ -176,8 +176,8 @@ final class Content_Type_Rest_Resource extends Resource
             ->rest('POST', 'status');
 
         $ops['delete'] = Operation::destructive('delete_items')
-            ->label(sprintf(__('Delete %s items', 'extend-wp'), $type))
-            ->description(sprintf(__('Permanently delete rows of %s together with their meta.', 'extend-wp'), $type))
+            ->label(sprintf(/* translators: %s: item / content type name */ __('Delete %s items', 'extend-wp'), $type))
+            ->description(sprintf(/* translators: %s: item / content type name */ __('Permanently delete rows of %s together with their meta.', 'extend-wp'), $type))
             ->input([Field::int_list('ids')->required()->describe(__('Ids of the items to delete, comma separated.', 'extend-wp'))])
             ->args(function (array $input) use ($type) {
                 return [$type, (array) $input['ids']];

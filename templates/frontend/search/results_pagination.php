@@ -27,7 +27,7 @@ $total_pages = $ewp_search_query->max_num_pages ?: $ewp_search_query->get('max_n
       break;
     case 'button':
       if ($current_page < $total_pages) {
-        echo '<button class="ewp-load-more" data-page="' . esc_attr($current_page) . '" data-max-pages="' . esc_attr($ewp_search_query->get('max_num_pages')) . '">' . esc_html(__($ewp_config['pagination_styles']['load_type_button'], 'extend-wp')) . '</button>';
+        echo '<button class="ewp-load-more" data-page="' . esc_attr($current_page) . '" data-max-pages="' . esc_attr($ewp_search_query->get('max_num_pages')) . '">' . esc_html(__($ewp_config['pagination_styles']['load_type_button'], 'extend-wp')) . '</button>'; // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
       }
       break;
     default:

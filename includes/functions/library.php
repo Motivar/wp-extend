@@ -38,7 +38,7 @@ if (!function_exists('awm_show_explanation')) {
     function awm_show_explanation($data)
     {
         if (isset($data['explanation']) && !empty($data['explanation'])) {
-            return '<div class="awm-box-explanation">' . wp_kses_post(__($data['explanation'], 'extend-wp')) . '</div>';
+            return '<div class="awm-box-explanation">' . wp_kses_post(__($data['explanation'], 'extend-wp')) . '</div>'; // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
         }
         return '';
     }
@@ -1027,7 +1027,7 @@ if (!function_exists('awm_object_search_query')) {
                     $title = get_the_title($pid);
                     $results[] = array(
                         'id'    => absint($pid),
-                        'label' => $title !== '' ? $title : sprintf(__('#%d (no title)', 'extend-wp'), $pid),
+                        'label' => $title !== '' ? $title : sprintf(/* translators: %d: ID */ __('#%d (no title)', 'extend-wp'), $pid),
                         'type'  => $type,
                     );
                 }
@@ -1114,7 +1114,7 @@ if (!function_exists('awm_object_search_query')) {
                         continue;
                     }
                     $seen[$cid] = true;
-                    $label = isset($row['content_title']) && $row['content_title'] !== '' ? $row['content_title'] : sprintf(__('#%d', 'extend-wp'), $cid);
+                    $label = isset($row['content_title']) && $row['content_title'] !== '' ? $row['content_title'] : sprintf(/* translators: %d: ID */ __('#%d', 'extend-wp'), $cid);
                     $results[] = array('id' => $cid, 'label' => $label, 'type' => $type);
                 }
                 $results = array_slice($results, 0, $limit);
@@ -1217,7 +1217,7 @@ if (!function_exists('awm_show_content')) {
 
             /*check if hidden val or not*/
             $required = (isset($a['required']) && $a['required']) ? 'required="true"' : false;
-            $explanation = isset($a['explanation']) ? '<span class="awm-explanation">' . wp_kses_post(__($a['explanation'], 'extend-wp')) . '</span>' : '';
+            $explanation = isset($a['explanation']) ? '<span class="awm-explanation">' . wp_kses_post(__($a['explanation'], 'extend-wp')) . '</span>' : ''; // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
             $original_meta = $n;
             $display_wrapper = true;
             $ins = '';
@@ -1346,7 +1346,7 @@ if (!function_exists('awm_show_content')) {
                                 $v = implode(',', $v);
                             }
                             if ($k == 'placeholder') {
-                                $v = __($v, 'extend-wp');
+                                $v = __($v, 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
                             }
                             $extra_fields2[] = esc_attr($k) . '="' . esc_attr($v) . '"';
                             if ($k == 'min' && $val == 0) {
@@ -1704,7 +1704,7 @@ if (!function_exists('awm_show_content')) {
                             $lat = (isset($val['lat']) && !empty($val['lat'])) ? esc_attr($val['lat']) : '';
                             $lng = (isset($val['lng']) && !empty($val['lng'])) ? esc_attr($val['lng']) : '';
                             $address = (isset($val['address']) && !empty($val['address'])) ? esc_attr($val['address']) : '';
-                            $ins .= '<input id="awm_map' . esc_attr($original_meta_id) . '_search_box" class="controls" type="text" placeholder="' . esc_attr__('Type to search', 'awm') . '" value="' . $address . '" ' . $required . ' onkeypress="return noenter()"><div class="awm_map" id="awm_map' . esc_attr($original_meta_id) . '"></div>';
+                            $ins .= '<input id="awm_map' . esc_attr($original_meta_id) . '_search_box" class="controls" type="text" placeholder="' . esc_attr__('Type to search', 'extend-wp') . '" value="' . $address . '" ' . $required . ' onkeypress="return noenter()"><div class="awm_map" id="awm_map' . esc_attr($original_meta_id) . '"></div>';
                             $ins .= '<input type="hidden" name="' . esc_attr($original_meta) . '[lat]" id="awm_map' . esc_attr($original_meta_id) . '_lat" value="' . $lat . '" />';
                             $ins .= '<input type="hidden" name="' . esc_attr($original_meta) . '[lng]" id="awm_map' . esc_attr($original_meta_id) . '_lng" value="' . $lng . '" />';
                             $ins .= '<input type="hidden" name="' . esc_attr($original_meta) . '[address]" id="awm_map' . esc_attr($original_meta_id) . '_address" value="' . $address . '" />';
@@ -1861,7 +1861,7 @@ if (!function_exists('awm_show_content')) {
                                         $by_id[$row['id']] = $row['label'];
                                     }
                                     foreach ($saved_ids as $sid) {
-                                        $opt_label = isset($by_id[$sid]) ? $by_id[$sid] : sprintf(__('#%d', 'extend-wp'), $sid);
+                                        $opt_label = isset($by_id[$sid]) ? $by_id[$sid] : sprintf(/* translators: %d: ID */ __('#%d', 'extend-wp'), $sid);
                                         $ins .= '<option value="' . absint($sid) . '" selected>' . esc_html($opt_label) . '</option>';
                                     }
                                 }
@@ -2489,7 +2489,7 @@ function awm_create_form($options)
         'method' => 'post',
         'action' => '',
         'submit' => true,
-        'submit_label' => __('Register', 'awm'),
+        'submit_label' => __('Register', 'extend-wp'),
         'nonce' => true
     );
 

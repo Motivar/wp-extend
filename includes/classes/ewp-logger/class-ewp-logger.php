@@ -911,7 +911,7 @@ class EWP_Logger
 
         foreach ($types as $owner_types) {
             if (isset($owner_types[$type_key]['label'])) {
-                $label = __($owner_types[$type_key]['label'], 'extend-wp');
+                $label = __($owner_types[$type_key]['label'], 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
                 break;
             }
         }

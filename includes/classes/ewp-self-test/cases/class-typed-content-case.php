@@ -114,7 +114,7 @@ class Typed_Content_Case extends Case_Base
             }
             if ($ids !== []) {
                 $service->delete_items($type, $ids);
-                $messages[] = sprintf(__('Deleted %1$d leftover row(s) from %2$s.', 'extend-wp'), count($ids), $type);
+                $messages[] = sprintf(/* translators: %1$d: number of rows, %2$s: table name */ __('Deleted %1$d leftover row(s) from %2$s.', 'extend-wp'), count($ids), $type);
             }
         }
 

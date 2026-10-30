@@ -198,9 +198,10 @@ class EWPOptionsPortability {
 		let skipUrlReplace = false;
 
 		if (exportHome && currentHome && exportHome !== currentHome) {
-			const confirmMsg = (strings.urlDiffConfirm || 'The export was created on %s. URLs will be replaced with %s. Continue?')
-				.replace('%s', exportHome)
-				.replace('%s', currentHome);
+			/* %1$s / %2$s (translations may reorder them); a plain %s from an older translation also works */
+			const confirmMsg = (strings.urlDiffConfirm || 'The export was created on %1$s. URLs will be replaced with %2$s. Continue?')
+				.replace(/%1\$s|%s/, exportHome)
+				.replace(/%2\$s|%s/, currentHome);
 
 			if (!confirm(confirmMsg)) {
 				return;
@@ -214,9 +215,9 @@ class EWPOptionsPortability {
 			const currentMajor = parseInt(currentVersion.split('.')[0], 10);
 
 			if (exportMajor !== currentMajor) {
-				const versionMsg = (strings.versionMismatch || 'Warning: Plugin version mismatch (export: %s, current: %s).')
-					.replace('%s', jsonData.plugin_version)
-					.replace('%s', currentVersion);
+				const versionMsg = (strings.versionMismatch || 'Warning: Plugin version mismatch (export: %1$s, current: %2$s).')
+					.replace(/%1\$s|%s/, jsonData.plugin_version)
+					.replace(/%2\$s|%s/, currentVersion);
 
 				if (!confirm(versionMsg + ' Continue?')) {
 					return;

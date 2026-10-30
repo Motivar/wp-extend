@@ -34,8 +34,8 @@ class Extend_WP_WP_Content
     $prefix = !empty($metas['prefix']) ? $metas['prefix'] : 'ewp';
     $taxonomy_name = $prefix . '_' . awm_clean_string(strtolower($metas['taxonomy_name']));
     $taxes[$taxonomy_name] = array(
-     'name' => __($metas['name'], 'extend-wp'),
-     'label' => __($metas['label'], 'extend-wp'),
+     'name' => __($metas['name'], 'extend-wp'), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
+     'label' => __($metas['label'], 'extend-wp'), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
      'custom-slug' => true,
      'post_types' => isset($metas['post_types']) ? $metas['post_types'] : array(),
      'template' => isset($metas['template']) ? $metas['template'] : '',
@@ -71,8 +71,8 @@ class Extend_WP_WP_Content
      $all_metas[$post_name] = $metas;
      $types[$post_name] = array(
       'post' => $post_name,
-      'sn' => __($metas['singular'], 'filox'),
-      'pl' => __($metas['plural'], 'filox'),
+      'sn' => __($metas['singular'], 'filox'), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText, WordPress.WP.I18n.TextDomainMismatch -- content-type labels registered by Filox, translated with Filox's text domain (intended until registering plugins pass their own domain; see docs/wporg-review.md).
+      'pl' => __($metas['plural'], 'filox'), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText, WordPress.WP.I18n.TextDomainMismatch -- content-type labels registered by Filox, translated with Filox's text domain (intended until registering plugins pass their own domain; see docs/wporg-review.md).
       'custom_gallery' => isset($metas['gallery']) ? $metas['gallery'] : false,
       'args' => isset($metas['args']) ? $metas['args'] : false,
       'flx_enable' => true,

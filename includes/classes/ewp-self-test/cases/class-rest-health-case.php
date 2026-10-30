@@ -99,7 +99,7 @@ class Rest_Health_Case extends Case_Base
         $active = (array) get_option('active_plugins', []);
         update_option('active_plugins', array_values(array_diff($active, [$context['basename']])));
 
-        return [sprintf(__('Removed %s from active_plugins again.', 'extend-wp'), $context['basename'])];
+        return [sprintf(/* translators: %s: plugin file */ __('Removed %s from active_plugins again.', 'extend-wp'), $context['basename'])];
     }
 
     /**

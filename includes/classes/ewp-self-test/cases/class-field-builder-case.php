@@ -85,6 +85,6 @@ class Field_Builder_Case extends Case_Base
     {
         delete_option(self::OPTION);
 
-        return [sprintf(__('Deleted option %s.', 'extend-wp'), self::OPTION)];
+        return [sprintf(/* translators: %s: option name */ __('Deleted option %s.', 'extend-wp'), self::OPTION)];
     }
 }

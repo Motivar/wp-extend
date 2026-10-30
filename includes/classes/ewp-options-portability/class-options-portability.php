@@ -376,7 +376,7 @@ class EWP_Options_Portability
 		foreach ($pages as $page_key => $page_data) {
 			if (!isset($all_pages[$page_key])) {
 				$skipped_pages[$page_key] = __('Option page not registered', 'extend-wp');
-				$warnings[] = sprintf(__('Page "%s" skipped: not registered on this site.', 'extend-wp'), $page_key);
+				$warnings[] = sprintf(/* translators: %s: page title */ __('Page "%s" skipped: not registered on this site.', 'extend-wp'), $page_key);
 				continue;
 			}
 
@@ -471,7 +471,7 @@ class EWP_Options_Portability
 
 				return new \WP_Error(
 					'import_failed',
-					sprintf(__('Import failed and was rolled back: %s', 'extend-wp'), $e->getMessage()),
+					sprintf(/* translators: %s: error message */ __('Import failed and was rolled back: %s', 'extend-wp'), $e->getMessage()),
 					array('status' => 500)
 				);
 			}
@@ -572,7 +572,7 @@ class EWP_Options_Portability
 	{
 		if (!$this->check_major_version_match($data)) {
 			$warnings[] = sprintf(
-				__('Plugin version mismatch: export was created with v%s, current is v%s.', 'extend-wp'),
+				/* translators: %1$s: version in the export, %2$s: installed version */ __('Plugin version mismatch: export was created with v%1$s, current is v%2$s.', 'extend-wp'),
 				isset($data['plugin_version']) ? $data['plugin_version'] : 'unknown',
 				$this->get_plugin_version()
 			);
@@ -872,13 +872,13 @@ class EWP_Options_Portability
 						'noFile'            => __('Please upload a JSON file.', 'extend-wp'),
 						'invalidFile'       => __('Invalid JSON file.', 'extend-wp'),
 						'invalidFormat'     => __('This file is not an EWP Options export.', 'extend-wp'),
-						'urlDiffConfirm'    => __('The export was created on %s. URLs will be replaced with %s. Continue?', 'extend-wp'),
-						'versionMismatch'   => __('Warning: Plugin version mismatch (export: %s, current: %s).', 'extend-wp'),
+						'urlDiffConfirm'    => /* translators: %1$s: site URL of the export, %2$s: this site's URL */ __('The export was created on %1$s. URLs will be replaced with %2$s. Continue?', 'extend-wp'),
+						'versionMismatch'   => /* translators: %1$s: version in the export, %2$s: installed version */ __('Warning: Plugin version mismatch (export: %1$s, current: %2$s).', 'extend-wp'),
 						'rollbackApplied'   => __('Import failed — all changes have been rolled back.', 'extend-wp'),
-						'pagesImported'     => __('Pages imported: %d', 'extend-wp'),
-						'pagesSkipped'      => __('Pages skipped: %d', 'extend-wp'),
-						'fieldsImported'    => __('Fields imported: %d', 'extend-wp'),
-						'urlsReplaced'      => __('URL replacements applied: %d pairs', 'extend-wp'),
+						'pagesImported'     => /* translators: %d: number of pages */ __('Pages imported: %d', 'extend-wp'),
+						'pagesSkipped'      => /* translators: %d: number of pages */ __('Pages skipped: %d', 'extend-wp'),
+						'fieldsImported'    => /* translators: %d: number */ __('Fields imported: %d', 'extend-wp'),
+						'urlsReplaced'      => /* translators: %d: number */ __('URL replacements applied: %d pairs', 'extend-wp'),
 					),
 				),
 			),

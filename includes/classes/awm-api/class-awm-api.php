@@ -495,7 +495,7 @@ class AWM_API
     if (!is_array($fields) || empty($fields)) {
       return new WP_Error(
         'ewp_modal_not_found',
-        sprintf(__('Field definition not found for meta_key: %s', 'extend-wp'), $meta_key),
+        sprintf(/* translators: %s: meta key */ __('Field definition not found for meta_key: %s', 'extend-wp'), $meta_key),
         array('status' => 404)
       );
     }

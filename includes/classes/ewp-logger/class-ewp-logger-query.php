@@ -355,8 +355,8 @@ class EWP_Logger_Query
                 $action_types[] = [
                     'key'         => (string) $type_key,
                     'owner'       => (string) $owner,
-                    'label'       => (string) __($type_data['label'], 'extend-wp'),
-                    'description' => (string) __(isset($type_data['description']) ? $type_data['description'] : '', 'extend-wp'),
+                    'label'       => (string) __($type_data['label'], 'extend-wp'), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
+                    'description' => (string) __(isset($type_data['description']) ? $type_data['description'] : '', 'extend-wp'), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
                 ];
             }
         }
