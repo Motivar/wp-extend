@@ -138,6 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Options page capability**: a user without an options page's `cap` can no longer save it through `options.php`. This matches who can open the page.
 
 ### Changed
+- **`docs/wporg-review.md` updated** (`2026-10-30`): the three fixes (search over serialized fields, `content-crud` CLI check, second `name` attribute), tests now all green, checklist; nothing goes to `main` before Nikos approves.
 - **`docs/wporg-review.md`: review report of the `wporg` branch** (`2026-10-30`): **Question/Prompt**: "update report on both branches for Nikos' agent to review". Commits, risks, verification method, test results, open items and a reviewer checklist; updated with every push to `wporg`. **Affected files**: `docs/wporg-review.md` (new).
 - **`awm_show_content()` escapes what it prints** (`2026-10-30`, `wporg` branch):
   - **Question/Prompt**: escaping for WordPress.org; Filox could not escape Extend WP form output from outside (kses dropped `count` / `options` / `awm-skip-selectr` and, because the rates calendar inputs carry `name` twice, kept the wrong one) → "A) do that on both wporg branches and update report on both branches for Nikos' agent to review".

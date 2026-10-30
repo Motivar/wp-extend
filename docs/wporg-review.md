@@ -1,7 +1,9 @@
 # WordPress.org preparation — review report (`wporg` branch)
 
 For: Nikos and his review agent. Kept up to date with every push to `wporg`.
-Last update: 2026-10-30, after commit `e4a11b2c`.
+Last update: 2026-10-30, after commit `4e31f06e`.
+
+**Nothing on this branch is pushed to `main` until Nikos approves.**
 
 ## What this branch is
 
@@ -28,6 +30,10 @@ too and will use it. Filox's `wporg` branch bundles this branch
 | bfca7992 | `date()` → `awm_date()` (9 calls; `includes/functions/library.php`): `DateTime` in PHP's default timezone = `date()`. Not `gmdate()`: the calls are paired with `strtotime()` | None | 2,090 comparisons in 5 timezones: 0 differences |
 | e6893b48 | **`awm_show_content()`, `awm_repeater_content()`, `templates/frontend/inputs/checkbox_multiple.php` escape the values they put into the markup** | Same markup on 54 pages. A label carrying `<script>` / `on*=` now loses it | 54 pages before vs after: 0 differences (below) |
 | e4a11b2c | `phpcs:ignore … -- escaped inside awm_show_content().` on the 5 `echo awm_show_content()` sites in Extend WP | None (comments) | — |
+| c12bdb1d | This report | — | — |
+| 00af2c72 | **Fix:** multi-value fields (`checkbox_multiple`, `map`, `awm_gallery`, `select` with `multiple`) are no longer free-text searchable. Their values are stored serialized (`s:30:"a:2:{i:0;…`), so searching a number LIKE-matched the serialization (root cause of `ViewQueryTest::test_search`, which failed or passed depending on the ids) | A search no longer matches inside serialized multi-value meta; title, text meta and the numeric id still do | PHPUnit 408 / 408 |
+| d798ea35 | **Fix (self-test):** `content-crud` judged the CLI refusal by `ok: false`; under real WP-CLI `WP_CLI::error()` goes to stderr without throwing, so `ok` stays true. The command was refused correctly; the check now reads the error | Test only | Self-test 14 passed, 1 skipped |
+| 4e31f06e | **Fix:** `input` / `select` / `textarea` / `checkbox_multiple` no longer print a second `name` from `attributes['name']` (they print their own first; browsers used the first, the second was invalid HTML) | None for browsers: submitted names, `element.name` and `getAttribute('name')` unchanged | Rates calendar HTML differs only by the dropped second `name`; 54 pages otherwise identical |
 
 ## `awm_show_content()` escaping (please review)
 
@@ -64,12 +70,11 @@ baselines compare 0 first): **0 differences**. Filox Settings page 110 → 113 m
 
 ## Tests on this branch
 
-- Self-test (`wp mmwp self-test run --plugin=extend-wp`): 13 passed, 1 skipped,
-  **1 failed: `content-crud`** — "generic_write false: wp ewp content create is
-  refused" (`WP_CLI::error` lands in stderr). Fails the same way on unchanged `main`.
+- Self-test (`wp mmwp self-test run --plugin=extend-wp`): **14 passed, 1 skipped**
+  (before d798ea35: `content-crud` failed, also on unchanged `main`).
 - PHPUnit (`tests/`, run on filox-test with a temporary copy + `wp_extend_tests`
-  database): 408 tests, **1 failure: `Test_Content_View_Query::test_search`** — the
-  search by numeric id also returns "Apple". Fails the same way on unchanged `main`.
+  database): **408 / 408** (before 00af2c72: `Test_Content_View_Query::test_search`
+  failed depending on the ids, also on unchanged `main`).
 - The pre-push hook (`composer test`) needs a DDEV site around the checkout; on this
   machine the checkout is outside one, so both suites were run by hand as above.
 
@@ -91,6 +96,7 @@ baselines compare 0 first): **0 differences**. Filox Settings page 110 → 113 m
 - [ ] `wp_kses_post()` on labels: any label in your sites that needs `<script>`,
       `on*=` or form tags inside the label itself?
 - [ ] `html` / `message` / `function` cases left as developer markup — agree?
-- [ ] Duplicate `name` attribute when a field passes `attributes['name']` (bug?)
+- [ ] Dropping the second `name` (4e31f06e): any code of yours that relied on `attributes['name']` taking effect? (It never did in browsers.)
+- [ ] Multi-value fields out of free-text search (00af2c72)
 - [ ] Swagger UI version pin (5.34.0) and package size
-- [ ] The two failing tests above (pre-existing)
+- [ ] `content-crud` check reading the error instead of `ok` (d798ea35)
