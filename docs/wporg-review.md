@@ -1,7 +1,7 @@
 # WordPress.org preparation — review report (`wporg` branch)
 
 For: Nikos and his review agent. Kept up to date with every push to `wporg`.
-Last update: 2026-10-30, after commit `58fa9768`.
+Last update: 2026-10-30, after commit `ddfff20c`.
 
 **Nothing on this branch is pushed to `main` until Nikos approves.**
 
@@ -36,6 +36,7 @@ too and will use it. Filox's `wporg` branch bundles this branch
 | 4e31f06e | **Fix:** `input` / `select` / `textarea` / `checkbox_multiple` no longer print a second `name` from `attributes['name']` (they print their own first; browsers and kses use the first, the second was invalid HTML) | None for browsers: submitted names, `element.name` and `getAttribute('name')` unchanged | Rates calendar HTML differs only by the dropped second `name`; 54 pages otherwise identical |
 | 41f93239 | Correction of the duplicate-`name` claim (kses keeps the first attribute, like browsers) | — | Tested with `wp_kses()` directly |
 | 58fa9768 | **Escaping in Extend WP's own code: late escaping 99 → 0** (`tools/` excluded). Real fix: the custom list screen echoed `$_REQUEST['page']` raw (reflected XSS on an admin page). `awm_show_explanation()` / `awm_show_featured_image()` escape inside; `awm_show_content()` / template output marked; query-class exception messages marked (they are REST / CLI error text) | Same markup on every page checked | Booking flow, admin pages, 54 pages back to back; self-test 14 + 1 skipped; PHPUnit 408 / 408 |
+| ddfff20c | **i18n errors → 0**: 96 translator comments, 11 numbered placeholders (+ the import JS that fills two of them), `extend-wp` domain for `awm` / `ewp` / `wp-extend` / `custom_table_example` / literal `filox` strings, 39 dynamic labels marked; 26 approved Greek strings | Greek admin strings now translated; English unchanged | Pages identical; self-test 14 + 1; PHPUnit 408 / 408 |
 
 ## `awm_show_content()` escaping (please review)
 
@@ -91,7 +92,7 @@ baselines compare 0 first): **0 differences**. Filox Settings page 110 → 113 m
 | Remote scripts (Swagger UI from unpkg) | 2 | 0 (`examples/` still has CDN samples: leave `examples/` out of the WordPress.org package) |
 | `date()` | 9 | 0 |
 | Late escaping (core: `includes`, `templates`, main file) | 105 (99 on re-count) | **0** |
-| i18n (translators comments, non-literal strings, text domain) | ~220 | open |
+| i18n (translators comments, non-literal strings, text domain) | 171 | **0** (dynamic labels marked) |
 | File-system calls (`fopen`, `fwrite`, `unlink`, …) | ~40 | open |
 | `lib/mammothwp/wp-self-test` | 122 errors | candidate to leave out of the WordPress.org package (off on production) |
 | `readme.txt` | missing | open |
@@ -105,4 +106,5 @@ baselines compare 0 first): **0 differences**. Filox Settings page 110 → 113 m
 - [ ] Multi-value fields out of free-text search (00af2c72)
 - [ ] Swagger UI version pin (5.34.0) and package size
 - [ ] Exception messages of `View_Query` / `Where` / `SQL` left unescaped (marked): they are API error text
+- [ ] `class-wp-content.php` translates content-type labels with Filox's domain (`__($metas['singular'], 'filox')`, marked): let the registering plugin pass its own text domain?
 - [ ] `content-crud` check reading the error instead of `ok` (d798ea35)
