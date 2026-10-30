@@ -33,15 +33,18 @@ too and will use it. Filox's `wporg` branch bundles this branch
 | c12bdb1d | This report | — | — |
 | 00af2c72 | **Fix:** multi-value fields (`checkbox_multiple`, `map`, `awm_gallery`, `select` with `multiple`) are no longer free-text searchable. Their values are stored serialized (`s:30:"a:2:{i:0;…`), so searching a number LIKE-matched the serialization (root cause of `ViewQueryTest::test_search`, which failed or passed depending on the ids) | A search no longer matches inside serialized multi-value meta; title, text meta and the numeric id still do | PHPUnit 408 / 408 |
 | d798ea35 | **Fix (self-test):** `content-crud` judged the CLI refusal by `ok: false`; under real WP-CLI `WP_CLI::error()` goes to stderr without throwing, so `ok` stays true. The command was refused correctly; the check now reads the error | Test only | Self-test 14 passed, 1 skipped |
-| 4e31f06e | **Fix:** `input` / `select` / `textarea` / `checkbox_multiple` no longer print a second `name` from `attributes['name']` (they print their own first; browsers used the first, the second was invalid HTML) | None for browsers: submitted names, `element.name` and `getAttribute('name')` unchanged | Rates calendar HTML differs only by the dropped second `name`; 54 pages otherwise identical |
+| 4e31f06e | **Fix:** `input` / `select` / `textarea` / `checkbox_multiple` no longer print a second `name` from `attributes['name']` (they print their own first; browsers and kses use the first, the second was invalid HTML) | None for browsers: submitted names, `element.name` and `getAttribute('name')` unchanged | Rates calendar HTML differs only by the dropped second `name`; 54 pages otherwise identical |
 
 ## `awm_show_content()` escaping (please review)
 
 Why here: Filox could not escape the result from outside. `wp_kses()` over it dropped
-`count` / `options` / `awm-skip-selectr` (read by Extend WP's JS) and, on fields that
-pass `attributes['name']` (Filox's rates calendar), the markup carries `name` twice
-(`name="available"` from the field key, then `name="41_available_<ts>"` from
-`$extraa`) and kses kept the other one than browsers do.
+attributes Extend WP's JS reads (`count`, `options`, `awm-skip-selectr`, `exclude_meta`,
+`telsettings`, …): field definitions can print any attribute, so no allow-list is safe.
+*Correction:* earlier versions of this report, the e6893b48 / 4e31f06e CHANGELOG entries
+and commit messages said kses also kept "the wrong" one of the duplicate `name`
+attributes on Filox's rates calendar inputs. Tested since: kses keeps the **first**
+duplicate, as browsers do; names were never affected. 4e31f06e (dropping the duplicate)
+stands as an HTML-validity fix.
 
 What changed, where each value is concatenated:
 
