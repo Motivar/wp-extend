@@ -355,11 +355,13 @@ class AWM_Meta
     }
 
     /**
-     * Register the custom content edit form's postbox module for the Dynamic
-     * Asset Loader: loaded only when #ewp-content-form is on the page.
+     * Register custom content screen assets for the Dynamic Asset Loader: the
+     * edit form's postbox module (#ewp-content-form) and the legacy list
+     * table's filter-bar style (.ewp-list-filters), each loaded only where
+     * its element is on the page.
      *
      * @param array $assets Registered assets.
-     * @return array Assets with the postbox module added.
+     * @return array Assets with the content screen entries added.
      * @since 1.14.0
      */
     public function register_content_form_assets($assets)
@@ -373,6 +375,15 @@ class AWM_Meta
             'context'      => 'admin',
             'dependencies' => array('postbox'),
             'in_footer'    => true,
+        );
+        // Legacy list table: the restrict filters inline with the Filter button.
+        $assets[] = array(
+            'handle'   => 'ewp-list-table',
+            'selector' => '.ewp-list-filters',
+            'type'     => 'style',
+            'src'      => awm_url . 'assets/css/admin/ewp-list-table.min.css',
+            'version'  => defined('AWM_ASSET_VERSION') ? AWM_ASSET_VERSION : '1.0.0',
+            'context'  => 'admin',
         );
         return $assets;
     }

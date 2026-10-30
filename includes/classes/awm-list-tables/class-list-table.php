@@ -110,17 +110,16 @@ class AWM_List_Table extends WP_List_Table
      */
     public function extra_tablenav($which)
     {
-        if (!empty($this->list_filters) && $which == 'top') { ?>
-<div class="alignleft actions">
- <div style="display: inline-block;">
-  <?php echo awm_show_content($this->list_filters, 0, 'restrict_manage_posts'); ?>
- </div>
- <input type="hidden" name="awm_restict_custom_list" id="awm_restict_custom_list" value="<?php echo $this->page_id; ?>"
-  class="">
- <?php submit_button(__('Filter', 'extend-wp'), 'secondary', 'action', false); ?>
-</div>
-<?php
+        if (empty($this->list_filters) || 'top' !== $which) {
+            return;
         }
+        echo awm_parse_template(awm_path . 'templates/admin-view/list-table/filters.php', array( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
+            'filters_html' => (string) awm_show_content($this->list_filters, 0, 'restrict_manage_posts'),
+            'page_id'      => (string) $this->page_id,
+            'submit_html'  => self::capture(function () {
+                submit_button(__('Filter', 'extend-wp'), 'secondary', 'action', false);
+            }),
+        ));
     }
 
     /**
@@ -131,38 +130,44 @@ class AWM_List_Table extends WP_List_Table
      */
     protected function display_tablenav($which)
     {
-
         $items = self::$content_totals;
         if ($items['items'] === 0) {
             return;
         }
         if ('top' === $which) {
-        ?><div class="ewp-top-actions">
- <?php
-                $this->views();
-                $this->search_box(sprintf(__('Search %s', 'extend-wp'), $this->_args['plural']), $this->_args['ewp_custom_args']['id'] . '-search-box');
-                wp_nonce_field('bulk-' . $this->_args['plural']);
-                ?>
-</div>
-<?php
-        } ?>
-<div class="tablenav <?php echo esc_attr($which); ?>">
+            echo awm_parse_template(awm_path . 'templates/admin-view/list-table/top-actions.php', array( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
+                'views_html'  => self::capture(array($this, 'views')),
+                'search_html' => self::capture(function () {
+                    $this->search_box(sprintf(__('Search %s', 'extend-wp'), $this->_args['plural']), $this->_args['ewp_custom_args']['id'] . '-search-box');
+                }),
+                'nonce_html'  => wp_nonce_field('bulk-' . $this->_args['plural'], '_wpnonce', true, false),
+            ));
+        }
+        echo awm_parse_template(awm_path . 'templates/admin-view/list-table/tablenav.php', array( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
+            'which'           => (string) $which,
+            'bulk_html'       => $this->has_items() ? self::capture(function () use ($which) {
+                $this->bulk_actions($which);
+            }) : '',
+            'extra_html'      => self::capture(function () use ($which) {
+                $this->extra_tablenav($which);
+            }),
+            'pagination_html' => self::capture(function () use ($which) {
+                $this->pagination($which);
+            }),
+        ));
+    }
 
- <?php if ($this->has_items()) : ?>
- <div class="alignleft actions bulkactions">
-  <?php $this->bulk_actions($which); ?>
- </div>
- <?php
-            endif;
-
-            $this->extra_tablenav($which);
-            $this->pagination($which);
-
-            ?>
-
- <br class="clear" />
-</div>
-<?php
+    /**
+     * Output of a callback that echoes (core list-table pieces), as a string.
+     *
+     * @param callable $callback Callback that prints markup.
+     * @return string
+     */
+    private static function capture(callable $callback)
+    {
+        ob_start();
+        call_user_func($callback);
+        return (string) ob_get_clean();
     }
 
     /**
@@ -174,33 +179,15 @@ class AWM_List_Table extends WP_List_Table
      */
     public function search_box($text, $input_id)
     {
-        /*
-
-        if (!empty($_REQUEST['orderby'])) {
-            echo '<input type="hidden" name="orderby" value="' . esc_attr($_REQUEST['orderby']) . '" />';
-        }
-        if (!empty($_REQUEST['order'])) {
-            echo '<input type="hidden" name="order" value="' . esc_attr($_REQUEST['order']) . '" />';
-        }
-        if (!empty($_REQUEST['post_mime_type'])) {
-            echo '<input type="hidden" name="post_mime_type" value="' . esc_attr($_REQUEST['post_mime_type']) . '" />';
-        }
-        if (!empty($_REQUEST['detached'])) {
-            echo '<input type="hidden" name="detached" value="' . esc_attr($_REQUEST['detached']) . '" />';
-        }*/
-
-    ?>
-<div class="ewp-search-box-admin">
- <div class="search-box">
-  <label class="screen-reader-text" for="<?php echo esc_attr($input_id); ?>"><?php echo $text; ?></label>
-  <input type="search" id="<?php echo esc_attr($input_id); ?>" name="s" value="<?php _admin_search_query(); ?>" />
-  <?php submit_button($text, '', '', false, array('id' => 'search-submit')); ?>
- </div>
-</div>
-<?php
+        echo awm_parse_template(awm_path . 'templates/admin-view/list-table/search-box.php', array( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
+            'text'        => (string) $text,
+            'input_id'    => (string) $input_id,
+            'value'       => isset($_REQUEST['s']) ? sanitize_text_field(wp_unslash($_REQUEST['s'])) : '',
+            'submit_html' => self::capture(function () use ($text) {
+                submit_button($text, '', '', false, array('id' => 'search-submit'));
+            }),
+        ));
     }
-
-
 
     /**
      * Render the status links above the list.
@@ -212,18 +199,46 @@ class AWM_List_Table extends WP_List_Table
         if (empty($this->_args['ewp_custom_args']['status'])) {
             return '';
         }
-        $labels = array();
-        $items = $this->get_total_items();
-
-        $labels[] = '<li "all"><a href="' . $this->page_link . '" class="' . (!isset($_REQUEST['ewp_status']) ? 'current' : '') . '">' . __('All', 'extend-wp') . ' (' . $items['items'] . ')</a></li>';
-        foreach ($this->_args['ewp_custom_args']['status'] as $key => $label) {
-            if (isset($items[$key])) {
-                $labels[$key] = '<li class="' . $key . '"><a href="' . $this->page_link . '&ewp_status=' . $key . '" class="' . ((isset($_REQUEST['ewp_status']) && $_REQUEST['ewp_status'] == $key) ? 'current' : '') . '">' . $label['label'] . ' (' . $items[$key] . ')</a></li>';
-            }
-        }
-        echo '<div id="ewp-statuses"><ul class="subsubsub" id="extend-wp-custom-views">' . implode(' | ', $labels) . '</ul></div>';
+        echo awm_parse_template(awm_path . 'templates/admin-view/list-table/views.php', array('views' => self::status_views( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
+            $this->_args['ewp_custom_args']['status'],
+            $this->get_total_items(),
+            admin_url($this->page_link),
+            isset($_REQUEST['ewp_status']) ? sanitize_key(wp_unslash($_REQUEST['ewp_status'])) : null
+        )));
     }
 
+    /**
+     * Status view links: All, then each status that has rows.
+     *
+     * @param array       $statuses Status key => config (`label`).
+     * @param array       $totals   Row counts: `items` (all) and one per status key.
+     * @param string      $base_url List page URL.
+     * @param string|null $current  Selected status, null for All.
+     * @return array Each `key`, `url`, `label`, `count`, `current`.
+     */
+    public static function status_views(array $statuses, array $totals, $base_url, $current)
+    {
+        $views = array(array(
+            'key'     => 'all',
+            'url'     => $base_url,
+            'label'   => __('All', 'extend-wp'),
+            'count'   => isset($totals['items']) ? (int) $totals['items'] : 0,
+            'current' => null === $current,
+        ));
+        foreach ($statuses as $key => $status) {
+            if (!isset($totals[$key])) {
+                continue;
+            }
+            $views[] = array(
+                'key'     => (string) $key,
+                'url'     => add_query_arg('ewp_status', $key, $base_url),
+                'label'   => isset($status['label']) ? (string) $status['label'] : (string) $key,
+                'count'   => (int) $totals[$key],
+                'current' => $current === (string) $key,
+            );
+        }
+        return $views;
+    }
 
     /**
      * Collect the list columns from the type's `columns` and metabox fields flagged for the list.

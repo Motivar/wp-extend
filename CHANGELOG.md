@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Legacy content list (`AWM_List_Table`) chrome from templates; status links fixed and escaped** (`2026-10-30`):
+  - **Question/Prompt**: "Commit, start step 7" (step 7 of the HTML-in-PHP cleanup).
+  - **Before**: the WP_List_Table view (`ewp_content_list_ui` → `legacy`, or `?ewp_list_ui=legacy`) mixed markup into its methods:
+    - The status links were built as strings: the first one was the invalid `<li "all">`, and their URLs and labels were unescaped.
+    - The filter bar had `style="display: inline-block;"` and an unescaped page id.
+    - The search box printed its label raw and kept a commented-out block of dead code.
+    - The top actions and tablenav were inline `?>` blocks.
+  - **Now**:
+    - Templates in `templates/admin-view/list-table/`: `top-actions.php`, `views.php`, `search-box.php`, `filters.php` and `tablenav.php`. Core pieces (bulk actions, pagination, `submit_button()`, the nonce) are captured and passed in.
+    - The new `AWM_List_Table::status_views()` builds the link data: All first, then each status with rows, URLs through `add_query_arg()`. In the template, URLs are `esc_url`'d, labels `wp_kses_post`'d and counts `absint`'d.
+    - `<li class="all">`, and `aria-current` marks the current view.
+    - The filter bar's `inline-block` moved to the new `assets/css/admin/ewp-list-table.scss` (`.ewp-list-filters`). It is compiled by `build:css` and lazy-loaded by the Dynamic Asset Loader.
+  - **Left as is**: the four `notice notice-*` bulk-action messages (standard WordPress admin notices).
+  - **Tests**: new `tests/test-list-table-templates-test.php` (status views, views/search/filters escaping, style registration).
+  - **Verified in the logged-in admin (Chrome, 2026-10-30)**: `admin.php?page=ewp_fields&ewp_list_ui=legacy` renders the table, "All (3)" (current) and "Enabled (3)" views, search, bulk-action nonce, top and bottom tablenav with bulk actions and pagination, no inline styles and no PHP warnings. No content type on this site has list filters, so the filter bar is covered by the template test only.
+  - **Files**: `includes/classes/awm-list-tables/class-list-table.php`, `includes/classes/class-extend-wp.php` (style registration), the new templates, `assets/css/admin/ewp-list-table.scss` / `.min.css`, `package.json`, the test.
+
+### Changed
 - **Extend WP field boxes (post, content form, term add/edit, user) rendered from one template** (`2026-10-30`):
   - **Question/Prompt**: "Commit, start step 6" (step 6 of the HTML-in-PHP cleanup).
   - **Before**: five places echoed box markup as PHP strings: the term add form, the term edit table, the user profile, post meta boxes (`AWM_Meta`) and custom content form boxes (`AWM_Add_Custom_List`). Each repeated its own copy of the `awm_metabox[]` / `awm_metabox_case` hidden inputs. Box ids and titles were printed raw.
