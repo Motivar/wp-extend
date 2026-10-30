@@ -546,13 +546,15 @@ class Content_Service
                 continue;
             }
             $type         = self::field_type($field);
+            // Multi-value fields are stored serialized; a LIKE over the serialized string only matches by accident.
+            $multi_value  = in_array($case, ['checkbox_multiple', 'map', 'awm_gallery'], true) || ($case === 'select' && !empty($field['attributes']['multiple']));
             $fields[$key] = [
                 'source'     => 'meta',
                 'key'        => (string) $key,
                 'type'       => $type,
                 'label'      => isset($field['label']) ? (string) $field['label'] : (string) $key,
                 'sortable'   => false,
-                'searchable' => $type === 'text' && !in_array($case, ['repeater', 'section', 'image', 'gallery'], true),
+                'searchable' => $type === 'text' && !$multi_value && !in_array($case, ['repeater', 'section', 'image', 'gallery'], true),
             ];
         }
 
