@@ -101,7 +101,7 @@ class Content_Portability_Case extends Case_Base
     public function cleanup(array $context)
     {
         if (!empty($context['file']) && file_exists($context['file'])) {
-            @unlink($context['file']);
+            wp_delete_file($context['file']);
         }
 
         return $this->cleanup_fixture_type(isset($context['content_type']) ? (string) $context['content_type'] : '');

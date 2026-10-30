@@ -209,7 +209,7 @@ final class Rest_Health_Probes
     {
         $path = \EWP_REST_Health::get_payloads_path();
         if (file_exists($path)) {
-            @unlink($path);
+            wp_delete_file($path);
         }
         update_option('ewp_rh_monitor_count', 0, false);
 

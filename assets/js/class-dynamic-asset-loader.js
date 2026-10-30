@@ -210,7 +210,11 @@ class EWPDynamicAssetLoader {
                 this.log('Script localized:', asset.localize);
             }
 
+            // Until it has run, assets that depend on it keep waiting (see isDependencyLoaded()).
+            script.setAttribute('data-ewp-loading', '');
+
             script.onload = () => {
+                script.removeAttribute('data-ewp-loading');
                 this.log(`Script loaded: ${asset.handle}`);
                 this.markPerformance(asset.handle, 'loaded');
                 this.dispatchAssetLoadedEvent(asset, true);
@@ -218,6 +222,7 @@ class EWPDynamicAssetLoader {
             };
 
             script.onerror = () => {
+                script.removeAttribute('data-ewp-loading');
                 this.log(`Script load failed: ${asset.handle}`, { src: asset.src });
                 this.loadedAssets.delete(this.getAssetKey(asset));
                 this.dispatchAssetLoadedEvent(asset, false);
@@ -259,13 +264,17 @@ class EWPDynamicAssetLoader {
                 link.setAttribute('data-critical', 'true');
             }
 
+            link.setAttribute('data-ewp-loading', '');
+
             link.onload = () => {
+                link.removeAttribute('data-ewp-loading');
                 this.log(`Style loaded: ${asset.handle}`);
                 this.markPerformance(asset.handle, 'loaded');
                 this.dispatchAssetLoadedEvent(asset, true);
             };
 
             link.onerror = () => {
+                link.removeAttribute('data-ewp-loading');
                 this.log(`Style load failed: ${asset.handle}`, { src: asset.src });
                 this.loadedAssets.delete(this.getAssetKey(asset));
                 this.dispatchAssetLoadedEvent(asset, false);
@@ -358,10 +367,11 @@ class EWPDynamicAssetLoader {
      * @return {boolean} True if loaded
      */
     isDependencyLoaded(handle) {
-        // Check if script element exists with exact handle
+        // Check if script element exists with exact handle. One this loader injected counts once it has
+        // loaded: injected scripts run in no set order, so a dependency still downloading would run late.
         const script = document.getElementById(handle);
         if (script) {
-            return true;
+            return !script.hasAttribute('data-ewp-loading');
         }
 
         // Check for WordPress script tag (adds -js suffix)

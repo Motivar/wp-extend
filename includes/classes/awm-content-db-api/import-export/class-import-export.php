@@ -185,7 +185,7 @@ class Extend_WP_Import_Export
    }
 
    // Ensure path is writable
-   if (!is_writable($path)) {
+   if (!wp_is_writable($path)) {
     throw new Exception(sprintf(/* translators: %s: folder path */ __('The path %s is not writable.', 'extend-wp'), $path));
    }
 
@@ -203,6 +203,7 @@ class Extend_WP_Import_Export
 
    // Save JSON data to file
    $file_path = $path . 'ewp_configuration.json';
+   // phpcs:ignore PluginCheck.CodeAnalysis.WriteFile.PluginDirectoryWrite, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- the administrator's chosen folder under wp-content (configuration kept with a theme, for example); WP_Filesystem may ask for FTP credentials in a background save.
    $result = file_put_contents($file_path, $json_data);
 
    if ($result === false) {

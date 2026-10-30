@@ -111,6 +111,7 @@ final class Content_Portability
      */
     public function export_file(array $content_types, $file)
     {
+        // phpcs:disable WordPress.WP.AlternativeFunctions.file_system_operations_fopen, WordPress.WP.AlternativeFunctions.file_system_operations_fwrite, WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- streams one batch at a time; WP_Filesystem can only write a whole string.
         $handle = @fopen($file, 'wb'); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- reported below.
         if ($handle === false) {
             /* translators: %s: file path. */
@@ -135,9 +136,10 @@ final class Content_Portability
         $modified = awm_date('Y-m-d H:i:s');
         fwrite($handle, "\n\"modified\": " . wp_json_encode($modified) . "\n}\n");
         fclose($handle);
+        // phpcs:enable
 
         if ($counts === []) {
-            @unlink($file); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- best effort.
+            wp_delete_file($file);
             return new \WP_Error('no_data', __('No data to export', 'extend-wp'), ['status' => 400]);
         }
 

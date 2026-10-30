@@ -1470,7 +1470,7 @@ if (!function_exists('awm_show_content')) {
                                         $extraLabel = $apply_all_mode === 'exclusive' ? 'data-apply-all-mode="exclusive"' : (isset($dlmm['extra_label']) ? 'data-extra="' . esc_attr($dlmm['extra_label']) . '"' : '');
                                     }
                                     $valueInside = $dlm != 'awm_apply_all' ? $dlm : '';
-                                    $input_id = $original_meta_id . '_' . $dlm . '_' . rand(10, 100);
+                                    $input_id = $original_meta_id . '_' . $dlm . '_' . wp_rand(10, 100);
                                     global $ewp_input_vars;
                                     $ewp_input_vars = array(
                                         'field' => $a,
@@ -1596,7 +1596,7 @@ if (!function_exists('awm_show_content')) {
                                 $label_class[] = 'awm-wp-editor';
                             } else {
                                 if (isset($a['awm_strip_html'])) {
-                                    $val = strip_tags($val);
+                                    $val = wp_strip_all_tags($val);
                                 }
                                 $ins .= '<textarea rows="5" name="' . esc_attr($original_meta) . '" id="' . esc_attr($original_meta_id) . '" class="' . esc_attr($class) . '" ' . $required . ' ' . $extraa . '>' . esc_textarea($val) . '</textarea>';
                             }
