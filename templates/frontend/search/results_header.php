@@ -23,7 +23,7 @@ $current_page = max(1, isset($ewp_search_query->query_vars['paged']) ? $ewp_sear
   <div class="ewp-search-header__sorting">
    <?php
    $box = ewp_search_sorting_filter($ewp_config['sorting'], $ewp_params);
-   echo awm_show_content($box);
+   echo awm_show_content($box); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside awm_show_content().
    ?>
   </div>
  <?php } ?>

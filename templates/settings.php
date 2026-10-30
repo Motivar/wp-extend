@@ -76,7 +76,7 @@ if (!empty($page)) {
 
                     // Render the settings content.
                     // Pass the option page ID as context for modal fields
-                    echo awm_show_content($settings, 0, 'option', 'edit', true, '', ', ', $awm_settings['id']);
+                    echo awm_show_content($settings, 0, 'option', 'edit', true, '', ', ', $awm_settings['id']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside awm_show_content().
 
                     // Add hidden input fields to store metadata for the form.
                     echo '<input type="hidden" name="awm_metabox[]" value="' . $awm_settings['id'] . '"/>';

@@ -540,7 +540,7 @@ class AWM_Meta
                     $library['awm-id'] = $optionKey;
                     $library['awm_restict_post_list[]'] = array('case' => 'input', 'type' => 'hidden', 'exclude_meta' => true, 'attributes' => array('value' => $optionKey));
 
-                    echo awm_show_content($library, 0, 'restrict_manage_posts');
+                    echo awm_show_content($library, 0, 'restrict_manage_posts'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside awm_show_content().
                 }
             }
         }

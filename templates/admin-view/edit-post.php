@@ -43,7 +43,7 @@ $display_id = isset($_REQUEST['id']) && absint($_REQUEST['id']) ? absint($_REQUE
     <div id="postbox-container-2" class="postbox-container">
      <div id="titlediv">
       <div id="titlewrap">
-       <?php echo awm_show_content(array('title' => array(
+       <?php echo awm_show_content(array('title' => array( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside awm_show_content().
         'case' => 'input',
         'type' => 'text',
         'label' => __('Title', 'extend-wp'),

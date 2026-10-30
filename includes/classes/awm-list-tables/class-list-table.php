@@ -113,7 +113,7 @@ class AWM_List_Table extends WP_List_Table
         if (!empty($this->list_filters) && $which == 'top') { ?>
 <div class="alignleft actions">
  <div style="display: inline-block;">
-  <?php echo awm_show_content($this->list_filters, 0, 'restrict_manage_posts'); ?>
+  <?php echo awm_show_content($this->list_filters, 0, 'restrict_manage_posts'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside awm_show_content(). ?>
  </div>
  <input type="hidden" name="awm_restict_custom_list" id="awm_restict_custom_list" value="<?php echo $this->page_id; ?>"
   class="">
