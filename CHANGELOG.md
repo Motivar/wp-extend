@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Custom post statuses: no inline scripts; Status column label no longer injected as HTML; permalink slug input as a template** (`2026-10-30`):
+  - **Question/Prompt**: "Commit, start step 5" (step 5 of the HTML-in-PHP cleanup).
+  - **Before**, `EWP_WP_Content_Installer` printed two inline `<script>` blocks for post types with custom statuses:
+    - On `enqueue_block_editor_assets`: a script that added the statuses to the block editor's `core` store. The `EWPCustomPostStatus` class in `awm-admin-script.js` already ran on that screen, but its `addToGutenberg()` was an empty stub.
+    - On `admin_footer-edit.php`: a jQuery script that put the labels in the Status column with `$this.html('<strong>' + label + '</strong>')`, so a label containing HTML was injected as markup.
+  - **Now**:
+    - `EWPCustomPostStatus::addToGutenberg()` does the block-editor merge (once the editor has a post of this type; it gives up after 10 seconds).
+    - A new `fixStatusColumn()` handles the list column on list screens. It builds the `<strong>` with `textContent`.
+    - Both use the `ewpCustomPostStatus` data that `enqueue_custom_status_scripts()` already localized.
+    - The pure parts (`statusLabel`, `mergeStatusRecords`, `columnLabelFor`) are in the new `assets/js/admin/custom-post-status-helpers.js`, imported by the admin script. Classic editor and Quick Edit use `statusLabel` too.
+    - `fix_custom_status_column_display()` is no longer hooked; it stays as a deprecated no-op.
+  - **Permalink slug input** (Settings › Permalinks): it was echoed with an unescaped `name`, `id` and `placeholder`. It is now `templates/admin-view/slug-field.php`, with everything escaped.
+  - **Build**: `build/admin/awm-admin-script.js` is rebuilt (the helpers are bundled into it).
+  - **Tests**:
+    - Jest `assets/js/admin/test/custom-post-status-helpers.test.js` (5).
+    - PHPUnit `tests/test-custom-status-scripts-test.php`: no inline scripts on either hook, the deprecated method prints nothing, and the slug template is escaped.
+  - **Not verified in a browser** (the admin needs a login). Check a post type with custom statuses in the block editor's status selector, the list's Status column and Quick Edit.
+  - **Files**: `includes/classes/ewp-wp-content/class-wp-content-installer.php`, `assets/js/admin/awm-admin-script.js`, new `assets/js/admin/custom-post-status-helpers.js`, new `templates/admin-view/slug-field.php`, the build, and the tests.
+
+### Changed
 - **Fields edit form: "Show php code" button without an inline `onclick`** (`2026-10-30`):
   - **Question/Prompt**: "Commit, start step 4" (step 4 of the HTML-in-PHP cleanup).
   - **Before**: `awm_php_views()` built `<input type="button" onclick="ewp_get_php_code({id})">` and its wrapper as a PHP string, with the row id unescaped.

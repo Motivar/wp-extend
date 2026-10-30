@@ -3,6 +3,9 @@
  * Extends the core awm_init_inputs() with admin-only features
  */
 
+import { statusLabel, mergeStatusRecords, columnLabelFor } from './custom-post-status-helpers';
+
+
 /**
  * Custom Post Status Handler
  * Manages custom post statuses for specific post types in Classic Editor, Gutenberg, and Quick Edit
@@ -49,8 +52,9 @@ class EWPCustomPostStatus {
         // Gutenberg support
         this.addToGutenberg();
 
-        // Quick Edit support (only on list screens)
+        // List screens: custom status labels in the Status column, then Quick Edit
         if (this.isEditScreen) {
+            this.fixStatusColumn();
             this.addToQuickEdit();
         }
     }
@@ -71,7 +75,7 @@ class EWPCustomPostStatus {
         // Add custom statuses to dropdown
         Object.keys(this.customStatuses).forEach(statusKey => {
             const statusData = this.customStatuses[statusKey];
-            const label = statusData.label || statusKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const label = statusLabel(statusKey, statusData);
 
             // Check if option already exists
             const existingOption = postStatusSelect.querySelector(`option[value="${statusKey}"]`);
@@ -108,54 +112,52 @@ class EWPCustomPostStatus {
     }
 
     /**
-     * Add custom statuses to Gutenberg Editor
+     * Add custom statuses to the block editor's `core` status store, once the
+     * editor has loaded a post of this post type (gives up after 10 seconds).
+     * Replaces the inline script the post-type installer printed before 1.14.0.
      */
     addToGutenberg() {
-        // Check if Gutenberg is available
-        if (typeof wp === 'undefined' || !wp.data) {
+        if (typeof wp === 'undefined' || !wp.data || !wp.data.subscribe) {
             return;
         }
-
         const { select, dispatch, subscribe } = wp.data;
-        let isInitialized = false;
-
-        // Wait for editor to be ready
+        let done = false;
         const unsubscribe = subscribe(() => {
             const editor = select('core/editor');
-            if (!editor || isInitialized) {
+            const currentPost = editor ? editor.getCurrentPost() : null;
+            if (done || !currentPost || currentPost.type !== this.currentPostType) {
                 return;
             }
-
-            const currentPost = editor.getCurrentPost();
-            if (!currentPost || !currentPost.type) {
-                return;
-            }
-
-            // Only initialize for the correct post type
-            if (currentPost.type !== this.currentPostType) {
-                return;
-            }
-
-            isInitialized = true;
-
-            // Register custom statuses with Gutenberg
-            Object.keys(this.customStatuses).forEach(statusKey => {
-                const statusData = this.customStatuses[statusKey];
-
-                // Try to register the status if not already registered
-                try {
-                    const existingStatuses = select('core').getPostStatuses();
-                    if (existingStatuses && !existingStatuses[statusKey]) {
-                        // Note: Gutenberg doesn't have a direct API to register statuses
-                        // They need to be registered server-side, which we do in PHP
-                        // This code ensures the UI updates correctly
-                    }
-                } catch (error) {
-                    // Silent fail - status registration happens in PHP
-                }
-            });
-
+            done = true;
             unsubscribe();
+            dispatch('core').receiveEntityRecords(
+                'root',
+                'status',
+                mergeStatusRecords(select('core').getPostStatuses() || {}, this.customStatuses)
+            );
+        });
+        setTimeout(() => {
+            if (!done) {
+                unsubscribe();
+            }
+        }, 10000);
+    }
+
+    /**
+     * List screens: show custom status labels in the Status column instead of
+     * the raw keys. Builds the <strong> with textContent, so labels are never
+     * parsed as HTML. Replaces the inline footer script the post-type
+     * installer printed before 1.14.0.
+     */
+    fixStatusColumn() {
+        document.querySelectorAll('.column-status').forEach((cell) => {
+            const label = columnLabelFor(cell.textContent, this.customStatuses);
+            if (label === null) {
+                return;
+            }
+            const strong = document.createElement('strong');
+            strong.textContent = label;
+            cell.replaceChildren(strong);
         });
     }
 
@@ -190,7 +192,7 @@ class EWPCustomPostStatus {
                         // Add custom statuses
                         Object.keys(self.customStatuses).forEach(statusKey => {
                             const statusData = self.customStatuses[statusKey];
-                            const label = statusData.label || statusKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            const label = statusLabel(statusKey, statusData);
 
                             // Check if option already exists
                             if (statusSelect.find(`option[value="${statusKey}"]`).length === 0) {
