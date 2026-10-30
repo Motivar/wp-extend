@@ -10,7 +10,7 @@ if (!function_exists('awm_options_callback')) {
      */
     function awm_options_callback()
     {
-        echo awm_parse_template(awm_path . 'templates/settings.php');
+        echo awm_parse_template(awm_path . 'templates/settings.php'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Extend WP template output; the templates escape their own values.
     }
 }
 
@@ -316,7 +316,7 @@ if (!function_exists('awm_show_featured_image')) {
         $post_thumbnail_id = get_post_thumbnail_id($post_ID);
         if ($post_thumbnail_id) {
             $post_thumbnail_img = wp_get_attachment_image_src($post_thumbnail_id, 'thumbnail');
-            return '<img src="' . $post_thumbnail_img[0] . '" style="max-width:50px;height:auto;"/>';
+            return '<img src="' . esc_url($post_thumbnail_img[0]) . '" style="max-width:50px;height:auto;"/>';
         }
         return '';
     }
@@ -348,7 +348,7 @@ if (!function_exists('ewp_debug')) {
     function ewp_debug($data, $exit = false)
     {
         echo '<pre style="background: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 5px; color: #333;">';
-        echo htmlspecialchars(print_r($data, true), ENT_QUOTES, 'UTF-8');
+        echo esc_html(print_r($data, true));
         echo '</pre>';
         if ($exit) {
             die('end-of-debug');

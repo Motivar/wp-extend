@@ -27,7 +27,7 @@ $total_pages = $ewp_search_query->max_num_pages ?: $ewp_search_query->get('max_n
       break;
     case 'button':
       if ($current_page < $total_pages) {
-        echo '<button class="ewp-load-more" data-page="' . $current_page . '" data-max-pages="' . $ewp_search_query->get('max_num_pages') . '">' . __($ewp_config['pagination_styles']['load_type_button'], 'extend-wp') . '</button>';
+        echo '<button class="ewp-load-more" data-page="' . esc_attr($current_page) . '" data-max-pages="' . esc_attr($ewp_search_query->get('max_num_pages')) . '">' . esc_html(__($ewp_config['pagination_styles']['load_type_button'], 'extend-wp')) . '</button>';
       }
       break;
     default:
@@ -43,7 +43,7 @@ $total_pages = $ewp_search_query->max_num_pages ?: $ewp_search_query->get('max_n
         'show_all'  => false,
         'type'      => 'plain',
       ));
-      echo paginate_links($pagination_links_args);
+      echo wp_kses_post((string) paginate_links($pagination_links_args));
       break;
   }
   ?></div>

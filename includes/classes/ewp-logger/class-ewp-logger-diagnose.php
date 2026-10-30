@@ -750,7 +750,7 @@ class EWP_Logger_Diagnose
 
         ob_start();
 ?>
-        <div class="ewp-log-diagnose" data-rest-url="<?php echo $rest_url; ?>" data-nonce="<?php echo $nonce; ?>">
+        <div class="ewp-log-diagnose" data-rest-url="<?php echo esc_url($rest_url); ?>" data-nonce="<?php echo esc_attr($nonce); ?>">
             <label class="ewp-log-diagnose-label" for="ewp-log-diagnose-issue">
                 <?php esc_html_e('Describe the issue', 'extend-wp'); ?>
             </label>

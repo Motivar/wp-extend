@@ -139,7 +139,7 @@ class EWP_Gallery_Meta_Box
         }
 
         /* Use the unified media field function */
-        echo awm_media_field_html($this->meta_key(), $ids, 0);
+        echo awm_media_field_html($this->meta_key(), $ids, 0); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- awm_media_field_html() escapes every value it prints.
     }
 
     /* ----------------------------------------------------------
@@ -247,7 +247,7 @@ class EWP_Gallery_Meta_Box
             }
             global $post;
             if (function_exists('awm_show_featured_image')) {
-                echo awm_show_featured_image($post->ID);
+                echo wp_kses_post(awm_show_featured_image($post->ID));
             }
         }, 10, 1);
     }

@@ -40,16 +40,16 @@ if (!empty($page)) {
     // Check if the current admin page matches the criteria to display the settings form.
     if ($pagenow == 'admin.php' || $pagenow == 'options-general.php' || $custom_link == $awm_settings['parent']) { ?>
         <!-- Start of the settings form wrapper -->
-        <div class="wrap awm-settings-form" id="<?php echo $awm_settings['id']; ?>"
+        <div class="wrap awm-settings-form" id="<?php echo esc_attr($awm_settings['id']); ?>"
             data-page="<?php echo esc_attr($awm_settings['id']); ?>">
-            <h2><?php echo $awm_settings['title']; ?></h2> <!-- Display the page title -->
-            <?php echo awm_show_explanation($awm_settings); ?>
+            <h2><?php echo wp_kses_post($awm_settings['title']); ?></h2> <!-- Display the page title -->
+            <?php echo awm_show_explanation($awm_settings); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- awm_show_explanation() escapes the explanation (wp_kses_post). ?>
             <!-- Display an explanation or description -->
             <?php settings_errors(); ?>
             <!-- Show any settings errors -->
 
             <!-- Start of the settings form -->
-            <form method="post" action="options.php" id="<?php echo $form_id; ?>" class="awm-form">
+            <form method="post" action="options.php" id="<?php echo esc_attr($form_id); ?>" class="awm-form">
                 <?php
                 // Check if there is a library associated with the current settings page.
                 if (isset($awm_settings['library']) && !empty($awm_settings['library'])) {
@@ -79,8 +79,8 @@ if (!empty($page)) {
                     echo awm_show_content($settings, 0, 'option', 'edit', true, '', ', ', $awm_settings['id']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside awm_show_content().
 
                     // Add hidden input fields to store metadata for the form.
-                    echo '<input type="hidden" name="awm_metabox[]" value="' . $awm_settings['id'] . '"/>';
-                    echo '<input type="hidden" name="awm_user_id" value="' . get_current_user_id() . '">';
+                    echo '<input type="hidden" name="awm_metabox[]" value="' . esc_attr($awm_settings['id']) . '"/>';
+                    echo '<input type="hidden" name="awm_user_id" value="' . (int) get_current_user_id() . '">';
                     echo '<input type="hidden" name="awm_metabox_case" value="option"/>';
                     do_action('amw_options_page_hidden_values', $awm_settings); // Hook for additional hidden values.
                 ?>
@@ -111,7 +111,7 @@ if (!empty($page)) {
             <div class="awm-rest-actions-wrap wrap">
                 <!-- Button to trigger the REST API call -->
                 <div><button
-                        onclick="awm_options_rest_call('<?php echo $form_id; ?>','<?php echo $namespace . $awm_settings['rest']['endpoint']; ?>','<?php echo $callback; ?>','<?php echo $method; ?>')"><?php echo $button; ?></button>
+                        onclick="awm_options_rest_call('<?php echo esc_attr($form_id); ?>','<?php echo esc_attr($namespace . $awm_settings['rest']['endpoint']); ?>','<?php echo esc_attr($callback); ?>','<?php echo esc_attr($method); ?>')"><?php echo esc_html($button); ?></button>
                 </div>
                 <!-- Placeholder for REST API results -->
                 <div id="awm-rest-options-results"></div>

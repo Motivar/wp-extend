@@ -613,7 +613,7 @@ class Dynamic_Asset_Loader
             $as = $asset['type'] === 'script' ? 'script' : 'style';
             $crossorigin = $this->is_external_url($asset['src']) ? ' crossorigin' : '';
 
-            echo '<link rel="preload" href="' . esc_url($asset['src']) . '" as="' . esc_attr($as) . '"' . $crossorigin . '>' . "\n";
+            echo '<link rel="preload" href="' . esc_url($asset['src']) . '" as="' . esc_attr($as) . '"' . ($crossorigin ? ' crossorigin' : '') . '>' . "\n";
         }
     }
 
@@ -703,7 +703,7 @@ class Dynamic_Asset_Loader
         echo '<style id="ewp-critical-css" data-assets="' . esc_attr(implode(',', array_keys($critical_css))) . '">' . "\n";
         foreach ($critical_css as $handle => $css) {
             echo '/* ' . esc_attr($handle) . ' */' . "\n";
-            echo $css . "\n";
+            echo $css . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- critical CSS read from the plugin's own built stylesheet files (inside a <style> block).
         }
         echo '</style>' . "\n";
 

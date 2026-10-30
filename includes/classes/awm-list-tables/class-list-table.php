@@ -115,7 +115,7 @@ class AWM_List_Table extends WP_List_Table
  <div style="display: inline-block;">
   <?php echo awm_show_content($this->list_filters, 0, 'restrict_manage_posts'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside awm_show_content(). ?>
  </div>
- <input type="hidden" name="awm_restict_custom_list" id="awm_restict_custom_list" value="<?php echo $this->page_id; ?>"
+ <input type="hidden" name="awm_restict_custom_list" id="awm_restict_custom_list" value="<?php echo esc_attr($this->page_id); ?>"
   class="">
  <?php submit_button(__('Filter', 'extend-wp'), 'secondary', 'action', false); ?>
 </div>
@@ -192,7 +192,7 @@ class AWM_List_Table extends WP_List_Table
     ?>
 <div class="ewp-search-box-admin">
  <div class="search-box">
-  <label class="screen-reader-text" for="<?php echo esc_attr($input_id); ?>"><?php echo $text; ?></label>
+  <label class="screen-reader-text" for="<?php echo esc_attr($input_id); ?>"><?php echo esc_html($text); ?></label>
   <input type="search" id="<?php echo esc_attr($input_id); ?>" name="s" value="<?php _admin_search_query(); ?>" />
   <?php submit_button($text, '', '', false, array('id' => 'search-submit')); ?>
  </div>
@@ -215,13 +215,13 @@ class AWM_List_Table extends WP_List_Table
         $labels = array();
         $items = $this->get_total_items();
 
-        $labels[] = '<li "all"><a href="' . $this->page_link . '" class="' . (!isset($_REQUEST['ewp_status']) ? 'current' : '') . '">' . __('All', 'extend-wp') . ' (' . $items['items'] . ')</a></li>';
+        $labels[] = '<li "all"><a href="' . esc_url($this->page_link) . '" class="' . (!isset($_REQUEST['ewp_status']) ? 'current' : '') . '">' . esc_html__('All', 'extend-wp') . ' (' . (int) $items['items'] . ')</a></li>';
         foreach ($this->_args['ewp_custom_args']['status'] as $key => $label) {
             if (isset($items[$key])) {
-                $labels[$key] = '<li class="' . $key . '"><a href="' . $this->page_link . '&ewp_status=' . $key . '" class="' . ((isset($_REQUEST['ewp_status']) && $_REQUEST['ewp_status'] == $key) ? 'current' : '') . '">' . $label['label'] . ' (' . $items[$key] . ')</a></li>';
+                $labels[$key] = '<li class="' . esc_attr($key) . '"><a href="' . esc_url($this->page_link . '&ewp_status=' . $key) . '" class="' . ((isset($_REQUEST['ewp_status']) && $_REQUEST['ewp_status'] == $key) ? 'current' : '') . '">' . esc_html($label['label']) . ' (' . (int) $items[$key] . ')</a></li>';
             }
         }
-        echo '<div id="ewp-statuses"><ul class="subsubsub" id="extend-wp-custom-views">' . implode(' | ', $labels) . '</ul></div>';
+        echo '<div id="ewp-statuses"><ul class="subsubsub" id="extend-wp-custom-views">' . implode(' | ', $labels) . '</ul></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- status links built from escaped parts above.
     }
 
 
@@ -571,7 +571,7 @@ class AWM_List_Table extends WP_List_Table
             case 'delete':
                 // Verify nonce for delete action using our centralized method with correct type
                 if (!$this->verify_nonce('delete', $nonce_type)) {
-                    wp_die(__('Invalid delete request.', 'extend-wp'));
+                    wp_die(esc_html__('Invalid delete request.', 'extend-wp'));
                 }
 
                 // Ensure IDs are provided and sanitize
@@ -602,17 +602,17 @@ class AWM_List_Table extends WP_List_Table
                             $this->notice('error', $result->get_error_code() === 'ewp_content_surface_disabled' ? $result->get_error_message() : __('Failed to delete items.', 'extend-wp'));
                         }
                     } else {
-                        wp_die(__('Invalid item IDs for deletion.', 'extend-wp'));
+                        wp_die(esc_html__('Invalid item IDs for deletion.', 'extend-wp'));
                     }
                 } else {
-                    wp_die(__('No items selected for deletion.', 'extend-wp'));
+                    wp_die(esc_html__('No items selected for deletion.', 'extend-wp'));
                 }
                 break;
 
             case 'duplicate':
                 // Verify nonce for duplicate action using our centralized method with correct type
                 if (!$this->verify_nonce('duplicate', $nonce_type)) {
-                    wp_die(__('Invalid duplicate request.', 'extend-wp'));
+                    wp_die(esc_html__('Invalid duplicate request.', 'extend-wp'));
                 }
 
                 // Ensure ID is provided and sanitize
@@ -644,10 +644,10 @@ class AWM_List_Table extends WP_List_Table
                             $this->notice('error', $copy->get_error_code() === 'ewp_content_surface_disabled' ? $copy->get_error_message() : __('Failed to duplicate item.', 'extend-wp'));
                         }
                     } else {
-                        wp_die(__('Invalid item ID for duplication.', 'extend-wp'));
+                        wp_die(esc_html__('Invalid item ID for duplication.', 'extend-wp'));
                     }
                 } else {
-                    wp_die(__('No item selected for duplication.', 'extend-wp'));
+                    wp_die(esc_html__('No item selected for duplication.', 'extend-wp'));
                 }
                 break;
         }

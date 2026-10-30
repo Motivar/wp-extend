@@ -111,7 +111,7 @@ class AWM_Add_Custom_List
   {
     if (isset($_REQUEST['ewp_updated'])) { ?>
 <div class="notice notice-success">
- <p><?php _e('Content updated!', 'extend-wp'); ?></p>
+ <p><?php esc_html_e('Content updated!', 'extend-wp'); ?></p>
 </div>
 <?php
       unset($_REQUEST['ewp_updated']);
@@ -258,7 +258,7 @@ class AWM_Add_Custom_List
       $this->require_capability();
       $id = awm_custom_content_save($this->custom_id, $_POST);
       if (is_wp_error($id)) {
-        echo $id->get_error_message();
+        echo esc_html($id->get_error_message());
         exit;
       }
       wp_redirect($this->page_link . '_form&id=' . $id . '&ewp_updated=1');
@@ -310,7 +310,7 @@ jQuery(document).ready(function($) {
  // close postboxes that should be closed
  $('.if-js-closed').removeClass('if-js-closed').addClass('closed');
  // postboxes setup
- postboxes.add_postbox_toggles('<?php echo $this->page_hook; ?>');
+ postboxes.add_postbox_toggles('<?php echo esc_js($this->page_hook); ?>');
 });
 //]]>
 </script>
@@ -372,8 +372,8 @@ jQuery(document).ready(function($) {
                 $metaBoxData['library']['awm-id'] = $metaBoxData['id'];
                 $content = apply_filters('awm_add_meta_boxes_filter_content', awm_show_content($metaBoxData['library'], $metaBoxData['post'], $view), $metaBoxData['id']);
                 if (!empty($content)) {
-                  echo $content;
-                echo '<input type="hidden" name="awm_metabox[]" value="' . $metaBoxData['id'] . '"/>';
+                  echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- awm_show_content() output (awm_add_meta_boxes_filter_content), escaped inside it.
+                echo '<input type="hidden" name="awm_metabox[]" value="' . esc_attr($metaBoxData['id']) . '"/>';
                 echo '<input type="hidden" name="awm_metabox_case" value="post"/>';
                 }
               },
@@ -389,7 +389,7 @@ jQuery(document).ready(function($) {
       'flx_list_custom_submit_' . $this->page_hook,
       __('Update actions', 'extend-wp'), // $title
       function () use ($update_metas) {
-        echo $this->update_box($update_metas);
+        echo $this->update_box($update_metas); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- awm_show_content() output, escaped inside it.
       },
       array($this->page_hook), // $page
       'side', // $context
@@ -458,6 +458,6 @@ jQuery(document).ready(function($) {
     global $ewp_args;
     $args['page_hook'] = $this->page_hook;
     $ewp_args = $args + $this->get_current_view_data();
-    echo awm_parse_template(awm_path . 'templates/admin-view/edit-post.php');
+    echo awm_parse_template(awm_path . 'templates/admin-view/edit-post.php'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Extend WP template output; the templates escape their own values.
   }
 }

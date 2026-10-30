@@ -29,6 +29,6 @@ class Extend_WP_Notices
 
     public function render()
     {
-        printf('<div class="filox-admin-message %s"><p>%s</p></div>', $this->class, $this->message);
+        printf('<div class="filox-admin-message %s"><p>%s</p></div>', esc_attr($this->class), wp_kses_post($this->message));
     }
 }

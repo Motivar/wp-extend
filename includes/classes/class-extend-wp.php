@@ -125,7 +125,7 @@ class AWM_Meta
                                             add_action('manage_' . $postType . '_posts_custom_column', function ($column) use ($data) {
                                                 global $post;
                                                 if ($data['key'] == $column) {
-                                                    echo awm_display_meta_value($data['key'], $data, $post->ID, '', 'post_type');
+                                                    echo wp_kses_post(awm_display_meta_value($data['key'], $data, $post->ID, '', 'post_type'));
                                                 }
                                             }, 10, 1);
                                             /*add the sortables*/
@@ -739,11 +739,11 @@ class AWM_Meta
                                 add_action($taxonomy . '_add_form_fields', function ($term) use ($metaBoxData) {
                                     $metas = awm_show_content($metaBoxData['library'], 0, 'term');
                                     if (!empty($metas)) {
-                                        echo '<div class="awm-term-meta-boxes" id="awm-table-' . $metaBoxData['id'] . '">';
-                                        echo '<h2>' . $metaBoxData['title'] . '</h2>';
-                                        echo awm_show_explanation($metaBoxData);
-                                        echo $metas;
-                                        echo '<input type="hidden" name="awm_metabox[]" value="' . $metaBoxData['id'] . '"/>';
+                                        echo '<div class="awm-term-meta-boxes" id="awm-table-' . esc_attr($metaBoxData['id']) . '">';
+                                        echo '<h2>' . wp_kses_post($metaBoxData['title']) . '</h2>';
+                                        echo awm_show_explanation($metaBoxData); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- awm_show_explanation() escapes the explanation (wp_kses_post).
+                                        echo $metas; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- awm_show_content() output, escaped inside it.
+                                        echo '<input type="hidden" name="awm_metabox[]" value="' . esc_attr($metaBoxData['id']) . '"/>';
                                         echo '<input type="hidden" name="awm_metabox_case" value="term"/>';
                                         echo '</div>';
                                     }
@@ -751,9 +751,9 @@ class AWM_Meta
                                 add_action($taxonomy . '_edit_form_fields', function ($term) use ($metaBoxData) {
                                     $metas = awm_show_content($metaBoxData['library'], $term->term_id, 'term');
                                     if (!empty($metas)) {
-                                        echo '<tr><td colspan="2"><h2>' . $metaBoxData['title'] . '</h2>' . awm_show_explanation($metaBoxData) . '</td></tr>';
-                                        echo $metas;
-                                        echo '<input type="hidden" name="awm_metabox[]" value="' . $metaBoxData['id'] . '"/>';
+                                        echo '<tr><td colspan="2"><h2>' . wp_kses_post($metaBoxData['title']) . '</h2>' . wp_kses_post(awm_show_explanation($metaBoxData)) . '</td></tr>';
+                                        echo $metas; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- awm_show_content() output, escaped inside it.
+                                        echo '<input type="hidden" name="awm_metabox[]" value="' . esc_attr($metaBoxData['id']) . '"/>';
                                         echo '<input type="hidden" name="awm_metabox_case" value="term"/>';
                                     }
                                 });
@@ -852,11 +852,11 @@ class AWM_Meta
                             $metaBoxData['library']['awm-id'] = $metaBoxData['id'];
                             $metas = awm_show_content($metaBoxData['library'], $user_id, 'user');
                             if (!empty($metas)) {
-                                echo '<div class="awm-user-fields" id="awm-table-' . $metaBoxData['id'] . '">';
-                                echo '<h2>' . $metaBoxData['title'] . '</h2>';
-                                echo awm_show_explanation($metaBoxData);
-                                echo '<table class="form-table" >' . $metas . '</table>';
-                                echo '<input type="hidden" name="awm_metabox[]" value="' . $metaBoxData['id'] . '"/>';
+                                echo '<div class="awm-user-fields" id="awm-table-' . esc_attr($metaBoxData['id']) . '">';
+                                echo '<h2>' . wp_kses_post($metaBoxData['title']) . '</h2>';
+                                echo awm_show_explanation($metaBoxData); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- awm_show_explanation() escapes the explanation (wp_kses_post).
+                                echo '<table class="form-table" >' . $metas . '</table>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- awm_show_content() output, escaped inside it.
+                                echo '<input type="hidden" name="awm_metabox[]" value="' . esc_attr($metaBoxData['id']) . '"/>';
                             echo '<input type="hidden" name="awm_metabox_case" value="user"/>';
                             echo '</div>';
                             }
@@ -899,9 +899,9 @@ class AWM_Meta
                                 $metaBoxData['title'], // $title
                                 function () use ($metaBoxData) {
 
-                                    echo awm_show_explanation($metaBoxData);
-                                    echo $metaBoxData['metas'];
-                                    echo '<input type="hidden" name="awm_metabox[]" value="' . $metaBoxData['id'] . '"/>';
+                                    echo awm_show_explanation($metaBoxData); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- awm_show_explanation() escapes the explanation (wp_kses_post).
+                                    echo $metaBoxData['metas']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- awm_show_content() output, escaped inside it.
+                                    echo '<input type="hidden" name="awm_metabox[]" value="' . esc_attr($metaBoxData['id']) . '"/>';
                                     echo '<input type="hidden" name="awm_metabox_case" value="post"/>';
                                 },
                                 $metaBoxData['postTypes'], // $page

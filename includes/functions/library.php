@@ -38,7 +38,7 @@ if (!function_exists('awm_show_explanation')) {
     function awm_show_explanation($data)
     {
         if (isset($data['explanation']) && !empty($data['explanation'])) {
-            return '<div class="awm-box-explanation">' . __($data['explanation'], 'extend-wp') . '</div>';
+            return '<div class="awm-box-explanation">' . wp_kses_post(__($data['explanation'], 'extend-wp')) . '</div>';
         }
         return '';
     }
@@ -2504,10 +2504,10 @@ function awm_create_form($options)
             wp_nonce_field($settings['id'], 'awm_form_nonce_field');
         }
         ?>
- <?php $form_fields = awm_show_content($library); echo is_string($form_fields) ? $form_fields : ''; ?>
+ <?php $form_fields = awm_show_content($library); echo is_string($form_fields) ? $form_fields : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- awm_show_content() output, escaped inside it. ?>
  <?php if ($settings['submit']) {
         ?>
- <input type="submit" id="awm-submit-<?php echo $settings['id'] ?>" value="<?php echo $settings['submit_label']; ?>" />
+ <input type="submit" id="awm-submit-<?php echo esc_attr($settings['id']) ?>" value="<?php echo esc_attr($settings['submit_label']); ?>" />
  <?php
         }
         ?>

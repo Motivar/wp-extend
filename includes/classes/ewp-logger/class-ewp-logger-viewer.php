@@ -301,7 +301,7 @@ class EWP_Logger_Viewer
 
         ob_start();
 ?>
-        <div class="ewp-log-viewer-wrap" data-rest-url="<?php echo $rest_url; ?>" data-nonce="<?php echo $nonce; ?>">
+        <div class="ewp-log-viewer-wrap" data-rest-url="<?php echo esc_url($rest_url); ?>" data-nonce="<?php echo esc_attr($nonce); ?>">
 
             <!-- Filter Actions -->
             <div class="ewp-log-filter-actions">

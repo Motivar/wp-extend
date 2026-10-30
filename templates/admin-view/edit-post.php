@@ -20,7 +20,7 @@ $display_id = isset($_REQUEST['id']) && absint($_REQUEST['id']) ? absint($_REQUE
 ?>
 <div class="wrap <?php echo esc_attr($ewp_args['id']); ?>" id="ewp-content-form">
  <div class=" icon32 icon32-posts-post" id="icon-edit"><br></div>
- <h2><?php echo esc_html__(ucwords($list_name), 'extend-wp'); ?> <a class="add-new-h2" href="<?php echo esc_url(get_admin_url(get_current_blog_id(), 'admin.php?page=' . $ewp_args['id'])); ?>"><?php _e('See all', 'extend-wp') ?></a>
+ <h2><?php echo esc_html(__(ucwords($list_name), 'extend-wp')); ?> <a class="add-new-h2" href="<?php echo esc_url(get_admin_url(get_current_blog_id(), 'admin.php?page=' . $ewp_args['id'])); ?>"><?php esc_html_e('See all', 'extend-wp') ?></a>
   <?php if (!$ewp_args['disable_new']) { ?>
    <a class="add-new-h2" href="<?php echo esc_url(awm_edit_screen_link($ewp_args)); ?>"><?php echo esc_html(sprintf(__('New %s', 'awm'), $ewp_args['list_name_singular'])); ?></a>
   <?php } ?>

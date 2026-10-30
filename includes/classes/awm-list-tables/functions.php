@@ -112,20 +112,20 @@ function flx_table_list_page_handler($args)
         <!-- capitalize the first lettet for better UI. a tag leads to the respective form page AKA add new / edit page -->
 
         <h2><?php
-            _e(ucwords($args['list_name']), 'awm') ?>
+            echo esc_html(__(ucwords($args['list_name']), 'awm')) ?>
             <?php
             if (!$args['disable_new']) { ?>
-                <a class="add-new-h2" href="<?php echo  awm_edit_screen_link($args); ?>"><?php echo sprintf(__('New %s', 'awm'), $args['list_name_singular']); ?></a>
+                <a class="add-new-h2" href="<?php echo esc_url(awm_edit_screen_link($args)); ?>"><?php echo esc_html(sprintf(__('New %s', 'awm'), $args['list_name_singular'])); ?></a>
             <?php } ?>
         </h2>
 
-        <?php echo $message; ?>
+        <?php echo wp_kses_post($message); ?>
 
-        <form id="<?php echo $args['id']; ?>-table" method="GET">
-            <input type="hidden" name="page" value="<?php echo $_REQUEST['page'] ?>" />
+        <form id="<?php echo esc_attr($args['id']); ?>-table" method="GET">
+            <input type="hidden" name="page" value="<?php echo esc_attr(sanitize_text_field(wp_unslash($_REQUEST['page']))) ?>" />
             <?php if (isset($args['parent']) && !empty($args['parent']) && strpos($args['parent'], 'post_type') !== false) {
                 $post_type = explode('post_type=', $args['parent'])[1]; ?>
-                <input type="hidden" name="post_type" value="<?php echo $post_type; ?>" />
+                <input type="hidden" name="post_type" value="<?php echo esc_attr($post_type); ?>" />
             <?php } ?>
             <?php $table->display() ?>
         </form>

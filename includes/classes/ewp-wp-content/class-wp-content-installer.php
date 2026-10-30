@@ -259,7 +259,7 @@ class EWP_WP_Content_Installer
         __($title . ' Slug', 'extend-wp'),
         function ($views) use ($slug) {
           $value = get_option($slug . '_slug');
-          echo '<input type="text" value="' . esc_attr($value) . '" name="' . $slug . '_slug' . '" id="' . $slug . '_slug' . '" class="regular-text" placeholder="' . $slug . '"/>';
+          echo '<input type="text" value="' . esc_attr($value) . '" name="' . esc_attr($slug . '_slug') . '" id="' . esc_attr($slug . '_slug') . '" class="regular-text" placeholder="' . esc_attr($slug) . '"/>';
         },
         'permalink',
         'optional'

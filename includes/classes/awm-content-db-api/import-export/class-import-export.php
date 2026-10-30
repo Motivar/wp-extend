@@ -129,7 +129,7 @@ class Extend_WP_Import_Export
    // Add a dismissible admin notice
    add_action('admin_notices', function () {
     echo '<div class="notice notice-success is-dismissible">';
-    echo '<p>' . __('EWP Content has been successfully imported.', 'extend-wp') . '</p>';
+    echo '<p>' . esc_html__('EWP Content has been successfully imported.', 'extend-wp') . '</p>';
     echo '</div>';
    });
    ewp_flush_cache();
@@ -216,7 +216,7 @@ class Extend_WP_Import_Export
    error_log(sprintf(__('Export error: %s', 'extend-wp'), $e->getMessage()));
 
    // Optionally stop execution and show an error to the user
-   wp_die($e->getMessage(), __('Export Error', 'extend-wp'), array('response' => 500));
+   wp_die(esc_html($e->getMessage()), esc_html__('Export Error', 'extend-wp'), array('response' => 500));
   }
  }
 

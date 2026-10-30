@@ -191,7 +191,7 @@ do_action('awm_modal_before_wrapper', $modal_id, $args);
              * @param array  $args        Field arguments
              * @since 1.2.0
              */
-            echo apply_filters('awm_modal_body_content', $fields_html, $modal_id, $args);
+            echo apply_filters('awm_modal_body_content', $fields_html, $modal_id, $args); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the modal's fields: awm_show_content() output, escaped inside it.
             ?>
         </div>
 
@@ -250,7 +250,7 @@ do_action('awm_modal_before_wrapper', $modal_id, $args);
             include awm_path . 'templates/admin-view/modal-footer-buttons.php';
             $default_buttons = ob_get_clean();
 
-            echo apply_filters(
+            echo apply_filters( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- footer buttons from templates/admin-view/modal-footer-buttons.php.
                 'awm_modal_footer_buttons_html',
                 $default_buttons,
                 $save_button_classes,

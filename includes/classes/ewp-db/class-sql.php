@@ -102,7 +102,7 @@ final class Sql
         foreach ($data as $column => $value) {
             $stored = Table_Columns::resolve($column, $columns);
             if ($stored === null) {
-                throw new Invalid_Where('Unknown column ' . $column . ' in UPDATE.');
+                throw new Invalid_Where('Unknown column ' . $column . ' in UPDATE.'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- message for REST / CLI errors (JSON / text), escaped where it is printed.
             }
             $values[] = $stored;
             $set[]    = '%i = ' . self::bind_stored($value, $values);
