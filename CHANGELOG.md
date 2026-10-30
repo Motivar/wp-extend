@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Fields edit form: "Show php code" button without an inline `onclick`** (`2026-10-30`):
+  - **Question/Prompt**: "Commit, start step 4" (step 4 of the HTML-in-PHP cleanup).
+  - **Before**: `awm_php_views()` built `<input type="button" onclick="ewp_get_php_code({id})">` and its wrapper as a PHP string, with the row id unescaped.
+  - **Now**:
+    - The box is the new template `templates/admin-view/php-code-box.php`: a `<button class="button" data-ewp-php-code="{absint id}">` and `#awm-php-code`.
+    - `assets/js/admin/awm-admin-script.js` has a delegated click listener, `ewp_php_code_click()`, that calls `ewp_get_php_code()` for any `[data-ewp-php-code]` button. That includes boxes rendered after load.
+    - `window.ewp_get_php_code` and `window.awm_show_php_code` stay global for other callers.
+    - `build/admin/awm-admin-script.js` is rebuilt; nothing else in `build/` changed.
+  - **Tests**: new `tests/test-php-code-box-test.php` (data attribute escaped, no `onclick`, no box for an unsaved group). PHPUnit and self-test are green.
+  - **Not verified in a browser** (the admin needs a login). Click "Show php code" on Extend WP › Fields › edit.
+
+### Changed
 - **Content edit form postboxes: ES module instead of an inline footer script** (`2026-10-30`):
   - **Question/Prompt**: "Commit, start step 3" (step 3 of the HTML-in-PHP cleanup).
   - **Before**: `AWM_Add_Custom_List::on_page_footer()` printed an inline jQuery `<script>` on `admin_footer-{page}`. It turned `.if-js-closed` boxes into `.closed` and called `postboxes.add_postbox_toggles('{page hook}')`.

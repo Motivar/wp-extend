@@ -490,13 +490,16 @@ if (!function_exists('awm_dev_notes')) {
 
 if (!function_exists('awm_php_views')) {
   /**
-   * with this function we configure the position of the inputs for the awm field
+   * The "Php code" box of the Fields edit form: a button that loads the PHP
+   * for the current field group (templates/admin-view/php-code-box.php).
+   *
+   * @return array Field library with the box, empty for a new (unsaved) group.
    */
   function awm_php_views()
   {
     global $ewp_content_id;
     if ($ewp_content_id) {
-      $html = '<div id="awm-php-wrapper"><div><input type="button" value="' . __('Show php code', 'extend-wp') . '" onclick="ewp_get_php_code(' . $ewp_content_id . ')"/></div><div id="awm-php-code"></div></div>';
+      $html = awm_parse_template(awm_path . 'templates/admin-view/php-code-box.php', array('content_id' => absint($ewp_content_id)));
 
       return array(
         'position_content' => array(

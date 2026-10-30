@@ -384,6 +384,25 @@ function awm_show_php_code(data) {
     }
 }
 
+/**
+ * Load the PHP code when a "Show php code" button (templates/admin-view/php-code-box.php,
+ * `data-ewp-php-code="{row id}"`) is clicked. Delegated, so it works for boxes
+ * rendered after load too.
+ *
+ * @param {MouseEvent} event Click anywhere in the document.
+ * @return {void}
+ */
+function ewp_php_code_click(event) {
+    var button = event.target.closest('[data-ewp-php-code]');
+    if (!button) {
+        return;
+    }
+    event.preventDefault();
+    ewp_get_php_code(button.getAttribute('data-ewp-php-code'));
+}
+
+document.addEventListener('click', ewp_php_code_click);
+
 
 
 
