@@ -18,12 +18,17 @@ final class Field_Value_Formatter
     /**
      * Display value of a field.
      *
+     * Every branch escapes what it builds (since 1.14.0): stored text with
+     * esc_html(), links with esc_url()/esc_html(), option labels with
+     * wp_kses_post(). `message` / `html` values and `function` callback
+     * output are developer markup and stay raw.
+     *
      * @param string $meta           Meta key.
      * @param array  $data           Field definition.
      * @param int    $postId         Object ID.
      * @param mixed  $external_value Value to show instead of the stored one (false: read it).
      * @param string $case           post_type|term|user (ignored with an external value).
-     * @return string HTML.
+     * @return string HTML, safe to echo.
      */
     public static function display($meta, $data, $postId = 0, $external_value = false, $case = 'post_type')
     {
@@ -113,8 +118,23 @@ final class Field_Value_Formatter
             case 'checkbox_multiple':
                 return self::options($value, $data);
             default:
-                return $value;
+                return self::text($value);
         }
+    }
+
+    /**
+     * Escape a stored value for display as text: scalars as they are, lists
+     * joined with commas, anything else (objects) as ''.
+     *
+     * @param mixed $value Stored value.
+     * @return string Escaped text.
+     */
+    private static function text($value)
+    {
+        if (is_array($value)) {
+            $value = implode(', ', array_filter($value, 'is_scalar'));
+        }
+        return (is_scalar($value) || null === $value) ? esc_html((string) $value) : '';
     }
 
     /**
@@ -128,9 +148,9 @@ final class Field_Value_Formatter
     {
         $object = awm_get_db_content($data['content_type'], array('include' => $value));
         if (!$object || empty($object)) {
-            return $value;
+            return self::text($value);
         }
-        return $object[0]['content_title'];
+        return esc_html($object[0]['content_title']);
     }
 
     /**
@@ -143,8 +163,8 @@ final class Field_Value_Formatter
     private static function repeater($value, $data)
     {
         global $awm_post_id;
-        if (!isset($data['include']) || empty($data['include']) || empty($value)) {
-            return $value;
+        if (!isset($data['include']) || empty($data['include']) || empty($value) || !is_array($value)) {
+            return self::text($value);
         }
         $final = array();
         foreach ($value as $val) {
@@ -157,7 +177,8 @@ final class Field_Value_Formatter
                 if (!empty($rep_val)) {
                     $rep_val = awm_display_meta_value($key, $rep_data, $awm_post_id, $rep_val);
                 }
-                $row_val[] = $rep_data['label'] . ': ' . $rep_val;
+                /*$rep_val is already escaped by the nested awm_display_meta_value()*/
+                $row_val[] = esc_html(isset($rep_data['label']) ? $rep_data['label'] : $key) . ': ' . $rep_val;
             }
             $final[] = implode(' | ', $row_val);
         }
@@ -177,9 +198,9 @@ final class Field_Value_Formatter
             case 'checkbox':
                 return $value ? __('Yes', 'extend-wp') : __('No', 'extend-wp');
             case 'url':
-                return $value != '' ? '<a href="' . $value . '" target="_blank">' . $value . '</a>' : '';
+                return $value != '' ? '<a href="' . esc_url($value) . '" target="_blank" rel="noopener">' . esc_html($value) . '</a>' : '';
             default:
-                return $value;
+                return self::text($value);
         }
     }
 
@@ -193,7 +214,7 @@ final class Field_Value_Formatter
     private static function term($value, $data)
     {
         $term = get_term($value, $data['taxonomy']);
-        return $term ? $term->name : $value;
+        return ($term && !is_wp_error($term)) ? esc_html($term->name) : self::text($value);
     }
 
     /**
@@ -208,7 +229,7 @@ final class Field_Value_Formatter
         $msg = array();
         foreach ($values as $slug) {
             $post_type = get_post_types(array('name' => $slug), 'objects');
-            $msg[] = $post_type[$slug]->label;
+            $msg[] = isset($post_type[$slug]) ? esc_html($post_type[$slug]->label) : self::text($slug);
         }
         return implode(', ', $msg);
     }
@@ -223,10 +244,9 @@ final class Field_Value_Formatter
     {
         $user = get_user_by('id', $value);
         if (!$user || is_wp_error($user)) {
-            return $value;
+            return self::text($value);
         }
-        /*get edit link also*/
-        return '<a href="' . admin_url('user-edit.php?user_id=' . $value) . '" target="_blank">' . $user->display_name . '</a>';
+        return '<a href="' . esc_url(admin_url('user-edit.php?user_id=' . $user->ID)) . '" target="_blank">' . esc_html($user->display_name) . '</a>';
     }
 
     /**
@@ -240,7 +260,7 @@ final class Field_Value_Formatter
         $values = empty($value) ? array() : (!is_array($value) ? array($value) : $value);
         $msg = array();
         foreach ($values as $pvalue) {
-            $msg[] = $pvalue != '' ? '<a href="' . admin_url('post.php?action=edit&post=' . $pvalue) . '" target="_blank">' . get_the_title($pvalue) . '</a>' : '-';
+            $msg[] = $pvalue != '' ? '<a href="' . esc_url(admin_url('post.php?action=edit&post=' . absint($pvalue))) . '" target="_blank">' . esc_html(get_the_title(absint($pvalue))) . '</a>' : '-';
         }
         return implode(",", $msg);
     }
@@ -277,7 +297,8 @@ final class Field_Value_Formatter
         $final = array();
         foreach ($values as $selected) {
             if (!empty($selected) && array_key_exists($selected, $data['options'])) {
-                $final[] = $data['options'][$selected]['label'];
+                /*option labels come from the field definition and may carry markup (icons)*/
+                $final[] = wp_kses_post($data['options'][$selected]['label']);
             }
         }
         return implode('<br>', $final);

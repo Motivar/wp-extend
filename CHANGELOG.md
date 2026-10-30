@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **List-column display values are escaped (`awm_display_meta_value()` / `Field_Value_Formatter`)** (`2026-10-30`):
+  - **Question/Prompt**: "fix escaping plan but for each step" (step 1 of the HTML-in-PHP cleanup).
+  - **The bug** (present since 1.0.0, moved unchanged in phase 5): the display formatter behind the post, term, user and custom-content list columns built HTML from stored values without escaping. All five callers echo its result as is.
+    - A `url` input put the raw value into `href` and the link text.
+    - Post titles, user display names, term names, post-type labels, repeater labels, custom-content titles and plain text values were printed raw.
+    - Anyone able to save a field value (the save guard's kses lets a plain string with `"` through) could inject attributes or markup into wp-admin list screens.
+  - **The fix**: every branch escapes what it builds.
+    - Text goes through a new `text()` helper (`esc_html`; lists are joined with `, `).
+    - Links use `esc_url` on the href and `esc_html` on the text, ids are `absint`'d, and url links get `rel="noopener"`.
+    - Option labels go through `wp_kses_post`, so markup such as icons survives.
+    - `message` / `html` values and `function` callback output stay raw, because they are developer markup, as in the field engine.
+  - **Visible changes**:
+    - An unknown user or term id is shown as escaped text: `'999999'` instead of the int `999999`.
+    - An array without a dedicated case shows `a, b` instead of `Array`.
+    - A `javascript:` url gets an empty `href`.
+    - `awm_display_meta_value_filter` now receives the escaped value.
+  - **Tests**: new `tests/test-display-value-escaping-test.php` (5 tests); `tests/test-data-classes-test.php` updated for the escaped values. PHPUnit: 489 tests, OK, 1 skipped (as before). Self-test: 16/16.
+  - **Files**: `includes/classes/ewp-field-engine/data/class-field-value-formatter.php`, the two test files.
+
 ### Added
 - **`ewp_content_row_details` filter: developers can add entries to "Row details"** (`2026-10-30`):
   - **Question/Prompt**: "make row details filterable by devs so they can add things if needed".

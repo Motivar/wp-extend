@@ -370,7 +370,7 @@ class Test_Data_Classes extends WP_UnitTestCase
 
         $this->assertSame('Yes', Field_Value_Formatter::display('flag', array('case' => 'input', 'type' => 'checkbox'), $post));
         $this->assertSame('No', Field_Value_Formatter::display('none', array('case' => 'input', 'type' => 'checkbox'), $post));
-        $this->assertSame('<a href="https://example.com" target="_blank">https://example.com</a>', Field_Value_Formatter::display('link', array('case' => 'input', 'type' => 'url'), $post));
+        $this->assertSame('<a href="https://example.com" target="_blank" rel="noopener">https://example.com</a>', Field_Value_Formatter::display('link', array('case' => 'input', 'type' => 'url'), $post));
         $this->assertSame('', Field_Value_Formatter::display('none', array('case' => 'input', 'type' => 'url'), $post));
         $this->assertSame('1', Field_Value_Formatter::display('flag', array('case' => 'input', 'type' => 'text'), $post));
         $this->assertSame('x', awm_display_meta_value('k', array('case' => 'input', 'type' => 'text'), 0, 'x'));
@@ -401,7 +401,7 @@ class Test_Data_Classes extends WP_UnitTestCase
         $html = Field_Value_Formatter::display('u', array('case' => 'user'), 0, $user);
         $this->assertStringContainsString('user-edit.php?user_id=' . $user, $html);
         $this->assertStringContainsString('>Dee</a>', $html);
-        $this->assertSame(999999, Field_Value_Formatter::display('u', array('case' => 'user'), 0, 999999));
+        $this->assertSame('999999', Field_Value_Formatter::display('u', array('case' => 'user'), 0, 999999));
 
         $post = self::factory()->post->create(array('post_title' => 'Pt'));
         $html = Field_Value_Formatter::display('p', array('case' => 'postType'), 0, array($post, ''));
