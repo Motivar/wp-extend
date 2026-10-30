@@ -1,7 +1,7 @@
 # WordPress.org preparation — review report (`wporg` branch)
 
 For: Nikos and his review agent. Kept up to date with every push to `wporg`.
-Last update: 2026-10-30, after commit `950e8500`.
+Last update: 2026-10-30, after the build script commit.
 
 **Nothing on this branch is pushed to `main` until Nikos approves.**
 
@@ -38,6 +38,7 @@ too and will use it. Filox's `wporg` branch bundles this branch
 | 58fa9768 | **Escaping in Extend WP's own code: late escaping 99 → 0** (`tools/` excluded). Real fix: the custom list screen echoed `$_REQUEST['page']` raw (reflected XSS on an admin page). `awm_show_explanation()` / `awm_show_featured_image()` escape inside; `awm_show_content()` / template output marked; query-class exception messages marked (they are REST / CLI error text) | Same markup on every page checked | Booking flow, admin pages, 54 pages back to back; self-test 14 + 1 skipped; PHPUnit 408 / 408 |
 | ddfff20c | **i18n errors → 0**: 96 translator comments, 11 numbered placeholders (+ the import JS that fills two of them), `extend-wp` domain for `awm` / `ewp` / `wp-extend` / `custom_table_example` / literal `filox` strings, 39 dynamic labels marked; 26 approved Greek strings | Greek admin strings now translated; English unchanged | Pages identical; self-test 14 + 1; PHPUnit 408 / 408 |
 | 950e8500 | `readme.txt` (Contributors brut3forc3, gnnpls; external services: Google Maps only with an API key); `Requires at least` 6.2 → 6.8 (DataViews lists need 6.8) | Header only checked on activation | Plugin Check readme / header / compatibility: 0 |
+| (this commit) | `tools/build-wporg.sh`: WordPress.org package from `HEAD` without tests, tools, docs, examples, `lib/bin`, notes (`HOOKS.md` stays), configs; 1.4 MB | None (not loaded by WordPress) | Package installed as `extend-wp` on filox-test with the Filox WordPress.org package: front / admin pages without errors or notices, Filox self-tests 13 passed |
 
 ## `awm_show_content()` escaping (please review)
 
@@ -97,6 +98,7 @@ baselines compare 0 first): **0 differences**. Filox Settings page 110 → 113 m
 | File-system calls (`fopen`, `fwrite`, `unlink`, …) | ~40 | open |
 | `lib/mammothwp/wp-self-test` | 122 errors | candidate to leave out of the WordPress.org package (off on production) |
 | `readme.txt` | missing | done |
+| Package build | none | `tools/build-wporg.sh` (Plugin Check on the package: 173 errors, nearly all `lib/mammothwp` and file-system calls) |
 
 ## Reviewer checklist
 
@@ -109,3 +111,5 @@ baselines compare 0 first): **0 differences**. Filox Settings page 110 → 113 m
 - [ ] Exception messages of `View_Query` / `Where` / `SQL` left unescaped (marked): they are API error text
 - [ ] `class-wp-content.php` translates content-type labels with Filox's domain (`__($metas['singular'], 'filox')`, marked): let the registering plugin pass its own text domain?
 - [ ] `content-crud` check reading the error instead of `ok` (d798ea35)
+- [ ] Package contents (`tools/build-wporg.sh`): leave `lib/mammothwp/wp-self-test` and `wp-kit` out (development-only dependency) so Plugin Check passes?
+- [ ] File-system calls → `WP_Filesystem` (about 30 Plugin Check errors left)
