@@ -122,6 +122,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Options page capability**: a user without an options page's `cap` can no longer save it through `options.php`. This matches who can open the page.
 
 ### Changed
+- **Plugin header: licence** (`2026-10-30`, `wporg` branch):
+  - **Question/Prompt**: preparing Extend WP for WordPress.org as its own free plugin (slug `extend-wp`), on the `wporg` branch only: "Extend WP's safe fixes on wporg" (after a Plugin Check run of the branch: 486 errors, 860 warnings). Not merged to `main` until Nikos reviews it.
+  - `License: GPLv2 or later` and `License URI` in `extend-wp.php` (Plugin Check `plugin_header_no_license`; `composer.json` already says GPL). No `Update URI`: sites get Extend WP inside Filox / via Composer, not from the plugins screen.
+  - **Affected files**: `extend-wp.php`. **Backwards compatibility**: header text only.
 - **Performance: cache flush on content save, auto-import, object search (1.10.0)** (`2026-10-23`):
   - **Question/Prompt**: same as above.
   - **Content save, delete and duplicate**:

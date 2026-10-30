@@ -7,6 +7,8 @@ Version: 1.13.0
 Requires at least: 6.2
 Author: Giannopoulos Nikolaos
 Text Domain:       extend-wp
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 */
 
 if (!defined('WPINC')) {
