@@ -1335,6 +1335,13 @@ if (!function_exists('awm_show_content')) {
                     if (!empty($a['attributes']) && is_array($a['attributes'])) {
 
                         foreach ($a['attributes'] as $k => $v) {
+                            /*
+                             * These cases print their own name="" first; a second one from the
+                             * attributes was invalid HTML and ignored by browsers (they use the first).
+                             */
+                            if ($k === 'name' && in_array($a['case'], array('input', 'select', 'textarea', 'checkbox_multiple'), true)) {
+                                continue;
+                            }
                             if (is_array($v)) {
                                 $v = implode(',', $v);
                             }
