@@ -7,11 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`ewp_content_row_details` filter: developers can add entries to "Row details"** (`2026-10-30`):
+  - **Question/Prompt**: "make row details filterable by devs so they can add things if needed".
+  - **What**:
+    - The "Row details" disclosure in the Update actions box of a custom content edit form is built by the new `AWM_Add_Custom_List::row_details($item, $content_type)`. By default it holds `content_id` and `hash` for a saved row, and nothing for a new one.
+    - The new filter `ewp_content_row_details` receives `($details, $item, $content_type)` and can add, change or remove entries.
+    - Entries are keyed by slug: `{ label, value, code?: bool, html?: bool }`. `code` renders monospace and click-to-select. `html` passes the value through `wp_kses_post()`; without it the value is escaped as text. Malformed entries are dropped.
+    - Returning an empty array hides the disclosure.
+    - Each `<dd>` carries `data-detail="{slug}"` for styling or scripts.
+  - **Files**: `includes/classes/awm-list-tables/class-list-form.php` (`row_details()`, `normalize_row_details()`, `update_box()`), `templates/admin-view/update-box.php` (loops over the entries), `assets/css/admin/ewp-admin-ui.scss` / `.min.css` (plain-text values), `HOOKS.md`, `docs/custom-tables.md` (example), new `tests/test-content-row-details-test.php` (4 tests: defaults, add/remove/normalise, hide, escaping).
+  - **Backwards compatibility**: what is shown by default is unchanged. The template takes `details` instead of `content_id` / `hash`; it was introduced in the previous, unreleased entry.
+
 ### Changed
 - **Content edit forms: tidier "Update actions" box; id and hash under a collapsed "Row details"** (`2026-10-30`):
   - **Question/Prompt**: "can you also tidy up this?" (screenshot of the Update actions box), then "please make sure id and hash are viewable. maybe should be expandable and not seen by default".
   - **Markup**:
-    - `AWM_List_Form::update_box()` built the box as one PHP string. It included an inline `style` with a broken `word-` property, a trailing space in "Delete ", and unescaped values.
+    - `AWM_Add_Custom_List::update_box()` built the box as one PHP string. It included an inline `style` with a broken `word-` property, a trailing space in "Delete ", and unescaped values.
     - It now renders the new `templates/admin-view/update-box.php` with explicit variables: status HTML, delete URL, button label, content id and hash.
   - **Layout**:
     - The status field sits on top.
@@ -609,7 +621,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **No `strip_tags()` deprecation on hidden edit pages (Fields, Post Types, Taxonomies, Search Filters, content UI)** (`2026-10-16`):
   - **Question/Prompt**: "Also there is a message warning in wp-extend fields registration page. Can we fix it ? Deprecated: strip_tags(): Passing null to parameter #1 ($string) of type string is deprecated in /var/www/html/web/wp-admin/admin-header.php on line 41"
-  - **Cause**: with `show_new => false`, `AWM_List_Form` registers the `{id}_form` edit page with an empty parent so it stays out of the menu. `get_admin_page_title()` looks the title up in the menus, finds nothing and leaves the global `$title` null, which `admin-header.php` passes to `strip_tags()`. The browser tab title was empty too.
+  - **Cause**: with `show_new => false`, `AWM_Add_Custom_List` registers the `{id}_form` edit page with an empty parent so it stays out of the menu. `get_admin_page_title()` looks the title up in the menus, finds nothing and leaves the global `$title` null, which `admin-header.php` passes to `strip_tags()`. The browser tab title was empty too.
   - **Fix** (`includes/classes/awm-list-tables/class-list-form.php`): for hidden pages, a `load-{pagehook}` callback sets `$title` to the page title ("New Field", "New Post type"…) when WordPress found none.
   - **Tests**: logged-in requests to `ewp_fields_form` and `ewp_post_types_form` on filox-test: no deprecation notice, `<title>` "New Field" / "New Post type".
   - **Affected Files**: `includes/classes/awm-list-tables/class-list-form.php`, `CHANGELOG.md`.

@@ -198,10 +198,36 @@ request.
 `WordPress.DB.PreparedSQL*` sniffs over `ewp-db/`, `awm-db/` and `content-functions.php`. Each
 remaining `phpcs:ignore` carries its reason (schema definitions from code, generated `%s` lists).
 
+## Edit form: "Row details" (since 1.14.0)
+
+The "Update actions" box of a custom content edit form ends in a collapsed
+"Row details" disclosure showing the row's id and hash. Add, change or remove
+entries with `ewp_content_row_details`:
+
+```php
+add_filter('ewp_content_row_details', function (array $details, array $item, $content_type) {
+    if ('flx_booking' !== $content_type || empty($item['content_id'])) {
+        return $details;
+    }
+    $details['created'] = array('label' => __('Created', 'my-plugin'), 'value' => $item['created']);
+    $details['ref']     = array('label' => __('Reference', 'my-plugin'), 'value' => 'BK-' . $item['content_id'], 'code' => true);
+    $details['link']    = array('label' => __('Front end', 'my-plugin'), 'value' => '<a href="' . esc_url(home_url('/booking/' . $item['content_id'])) . '">' . esc_html__('View', 'my-plugin') . '</a>', 'html' => true);
+    return $details;
+}, 10, 3);
+```
+
+Each entry is keyed by a slug and needs `label` and a non-empty scalar
+`value`. Optional flags:
+- `code`: monospace, click to select the whole value, like the id and hash.
+- `html`: `value` is markup, passed through `wp_kses_post()`. Without it, the value is escaped as text.
+
+Entries that are malformed are dropped. Return an empty array to hide the
+disclosure. New rows start with no entries.
+
 ## Hooks
 
-`ewp_database_updated`, `ewp_database_dropped`, `ewp_database_columns_dropped`, `ewp_database_truncated` —
-see `HOOKS.md`.
+`ewp_database_updated`, `ewp_database_dropped`, `ewp_database_columns_dropped`, `ewp_database_truncated`,
+`ewp_content_row_details` — see `HOOKS.md`.
 
 ## Not exposed over REST, WP-CLI or abilities
 

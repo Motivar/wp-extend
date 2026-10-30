@@ -1018,6 +1018,8 @@ body.ewp-admin-ui-fields #poststuff .postbox .ewp-status-box {
     dd {
       min-width: 0;
       margin: 0;
+      color: var(--ewp-ui-ink);
+      overflow-wrap: anywhere;
     }
 
     // The full value, wrapped; a click selects all of it for copying.

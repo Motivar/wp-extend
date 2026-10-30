@@ -425,15 +425,78 @@ jQuery(document).ready(function($) {
       );
       $select_box = awm_show_content($select);
     }
-    $id = isset($item_data['item']['content_id']) ? absint($item_data['item']['content_id']) : 0;
+    $item = isset($item_data['item']) && is_array($item_data['item']) ? $item_data['item'] : array();
+    $id   = isset($item['content_id']) ? absint($item['content_id']) : 0;
 
     return awm_parse_template(awm_path . 'templates/admin-view/update-box.php', array(
       'status_html' => (string) $select_box,
       'delete_url'  => ($id && $this->show_delete) ? wp_nonce_url(admin_url($this->page_link . '&id=' . $id . '&action=delete'), $this->page_id . '_delete') : '',
       'save_text'   => $id ? __('Update', 'extend-wp') : __('Save', 'extend-wp'),
-      'content_id'  => $id,
-      'hash'        => ($id && isset($item_data['item']['hash'])) ? (string) $item_data['item']['hash'] : '',
+      'details'     => self::row_details($item, (string) $this->page_id),
     ));
+  }
+
+  /**
+   * Entries of the "Row details" disclosure in the update box: the row's id
+   * and hash by default, extended by the `ewp_content_row_details` filter.
+   *
+   * @param array  $item         Row being edited (`content_id`, `hash`, `status`, …); empty for a new row.
+   * @param string $content_type Content type id (the form's page id).
+   * @return array<string, array{label: string, value: string, code: bool, html: bool}> Entries keyed by slug;
+   *               entries without a label or value are dropped.
+   */
+  public static function row_details(array $item, $content_type)
+  {
+    $details = array();
+    if (!empty($item['content_id'])) {
+      $details['content_id'] = array('label' => __('ID', 'extend-wp'), 'value' => (string) absint($item['content_id']), 'code' => true);
+      if (!empty($item['hash'])) {
+        $details['hash'] = array('label' => __('Hash', 'extend-wp'), 'value' => (string) $item['hash'], 'code' => true);
+      }
+    }
+
+    /**
+     * Filter the entries of the "Row details" disclosure in the update box of
+     * a custom content edit form (collapsed by default, under Save/Update).
+     *
+     * Each entry is keyed by a slug and holds `label` and `value` (strings),
+     * plus optional `code` (bool, monospace and click-to-select, like the id
+     * and hash) and `html` (bool: `value` is markup, passed through
+     * wp_kses_post(); otherwise it is escaped as text). Return an empty array
+     * to hide the disclosure.
+     *
+     * @since 1.14.0
+     *
+     * @param array  $details      Entries keyed by slug (`content_id`, `hash` for a saved row; none for a new one).
+     * @param array  $item         Row being edited (`content_id`, `hash`, `status`, `created`, `modified`, …); empty for a new row.
+     * @param string $content_type Content type id.
+     */
+    $details = apply_filters('ewp_content_row_details', $details, $item, $content_type);
+
+    return self::normalize_row_details(is_array($details) ? $details : array());
+  }
+
+  /**
+   * Keep well-formed row-detail entries and fill in the optional flags.
+   *
+   * @param array $details Filtered entries.
+   * @return array<string, array{label: string, value: string, code: bool, html: bool}>
+   */
+  private static function normalize_row_details(array $details)
+  {
+    $normalized = array();
+    foreach ($details as $key => $entry) {
+      if (!is_array($entry) || !isset($entry['label'], $entry['value']) || !is_scalar($entry['value']) || '' === (string) $entry['value']) {
+        continue;
+      }
+      $normalized[$key] = array(
+        'label' => (string) $entry['label'],
+        'value' => (string) $entry['value'],
+        'code'  => !empty($entry['code']),
+        'html'  => !empty($entry['html']),
+      );
+    }
+    return $normalized;
   }
 
 
