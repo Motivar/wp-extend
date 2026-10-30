@@ -812,6 +812,29 @@ class AWM_Meta
 
 
     /**
+     * Render an Extend WP field box in a screen's layout, with its save
+     * markers (templates/admin-view/meta-box.php).
+     *
+     * @param string $layout post|content|term-add|term-edit|user.
+     * @param array  $box    Box definition (`id`, `title`, optional `explanation`).
+     * @param string $fields Rendered fields (awm_show_content() output).
+     * @param string $case   post|term|user, posted as `awm_metabox_case`.
+     * @return string HTML.
+     * @since 1.14.0
+     */
+    public static function meta_box_html($layout, array $box, $fields, $case)
+    {
+        return awm_parse_template(awm_path . 'templates/admin-view/meta-box.php', array(
+            'layout'      => (string) $layout,
+            'box_id'      => isset($box['id']) ? (string) $box['id'] : '',
+            'title'       => isset($box['title']) ? (string) $box['title'] : '',
+            'explanation' => awm_show_explanation($box),
+            'fields'      => (string) $fields,
+            'case'        => (string) $case,
+        ));
+    }
+
+    /**
      * add term meta boxes to taxonomies
      */
     public function awm_add_term_meta_boxes()
@@ -837,22 +860,13 @@ class AWM_Meta
                                 add_action($taxonomy . '_add_form_fields', function ($term) use ($metaBoxData) {
                                     $metas = awm_show_content($metaBoxData['library'], 0, 'term');
                                     if (!empty($metas)) {
-                                        echo '<div class="awm-term-meta-boxes" id="awm-table-' . $metaBoxData['id'] . '">';
-                                        echo '<h2>' . $metaBoxData['title'] . '</h2>';
-                                        echo awm_show_explanation($metaBoxData);
-                                        echo $metas;
-                                        echo '<input type="hidden" name="awm_metabox[]" value="' . $metaBoxData['id'] . '"/>';
-                                        echo '<input type="hidden" name="awm_metabox_case" value="term"/>';
-                                        echo '</div>';
+                                        echo self::meta_box_html('term-add', $metaBoxData, $metas, 'term'); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
                                     }
                                 });
                                 add_action($taxonomy . '_edit_form_fields', function ($term) use ($metaBoxData) {
                                     $metas = awm_show_content($metaBoxData['library'], $term->term_id, 'term');
                                     if (!empty($metas)) {
-                                        echo '<tr><td colspan="2"><h2>' . $metaBoxData['title'] . '</h2>' . awm_show_explanation($metaBoxData) . '</td></tr>';
-                                        echo $metas;
-                                        echo '<input type="hidden" name="awm_metabox[]" value="' . $metaBoxData['id'] . '"/>';
-                                        echo '<input type="hidden" name="awm_metabox_case" value="term"/>';
+                                        echo self::meta_box_html('term-edit', $metaBoxData, $metas, 'term'); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
                                     }
                                 });
                             }
@@ -965,13 +979,7 @@ class AWM_Meta
                             $metaBoxData['library']['awm-id'] = $metaBoxData['id'];
                             $metas = awm_show_content($metaBoxData['library'], $user_id, 'user');
                             if (!empty($metas)) {
-                                echo '<div class="awm-user-fields" id="awm-table-' . $metaBoxData['id'] . '">';
-                                echo '<h2>' . $metaBoxData['title'] . '</h2>';
-                                echo awm_show_explanation($metaBoxData);
-                                echo '<table class="form-table" >' . $metas . '</table>';
-                                echo '<input type="hidden" name="awm_metabox[]" value="' . $metaBoxData['id'] . '"/>';
-                            echo '<input type="hidden" name="awm_metabox_case" value="user"/>';
-                            echo '</div>';
+                                echo self::meta_box_html('user', $metaBoxData, $metas, 'user'); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
                             }
                         };
                         add_action('show_user_profile', $fields);
@@ -1019,11 +1027,7 @@ class AWM_Meta
                                 $metaBoxKey,
                                 $metaBoxData['title'], // $title
                                 function () use ($metaBoxData) {
-
-                                    echo awm_show_explanation($metaBoxData);
-                                    echo $metaBoxData['metas'];
-                                    echo '<input type="hidden" name="awm_metabox[]" value="' . $metaBoxData['id'] . '"/>';
-                                    echo '<input type="hidden" name="awm_metabox_case" value="post"/>';
+                                    echo self::meta_box_html('post', $metaBoxData, $metaBoxData['metas'], 'post'); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
                                 },
                                 $metaBoxData['postTypes'], // $page
                                 isset($metaBoxData['context']) ? $metaBoxData['context'] : 'normal', // $context

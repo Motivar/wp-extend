@@ -365,9 +365,7 @@ class AWM_Add_Custom_List
                  */
                 $content = apply_filters('awm_add_meta_boxes_filter_content', awm_show_content($metaBoxData['library'], $metaBoxData['post'], $view), $metaBoxData['id']);
                 if (!empty($content)) {
-                  echo $content;
-                echo '<input type="hidden" name="awm_metabox[]" value="' . $metaBoxData['id'] . '"/>';
-                echo '<input type="hidden" name="awm_metabox_case" value="post"/>';
+                  echo AWM_Meta::meta_box_html('content', $metaBoxData, $content, 'post'); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
                 }
               },
               $this->page_hook, // $page

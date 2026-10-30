@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Extend WP field boxes (post, content form, term add/edit, user) rendered from one template** (`2026-10-30`):
+  - **Question/Prompt**: "Commit, start step 6" (step 6 of the HTML-in-PHP cleanup).
+  - **Before**: five places echoed box markup as PHP strings: the term add form, the term edit table, the user profile, post meta boxes (`AWM_Meta`) and custom content form boxes (`AWM_Add_Custom_List`). Each repeated its own copy of the `awm_metabox[]` / `awm_metabox_case` hidden inputs. Box ids and titles were printed raw.
+  - **Now**:
+    - New `AWM_Meta::meta_box_html($layout, $box, $fields, $case)` renders `templates/admin-view/meta-box.php`. Its layouts are `post`, `content`, `term-add`, `term-edit` and `user`, each with the same structure and classes as before.
+    - The hidden inputs are a single partial, `templates/admin-view/metabox-markers.php`.
+    - Ids are `esc_attr`'d and titles `wp_kses_post`'d.
+  - **Left as is**: the `awm_spinner_html` default (a filterable string localized to JS, `awmGlobals.spinnerHtml`).
+  - **Tests**: new `tests/test-meta-box-template-test.php` (markers in every layout, escaping, term-edit row structure, content layout without explanation). PHPUnit and self-test are green.
+  - **Verified in the logged-in admin (Chrome, 2026-10-30)**: the category add form (titled box inside `#addtag`) and the edit table (heading row, then the field rows), the profile box (titled div with a form table), and the five post-layout boxes on a content form all render with their `term` / `user` / `post` markers, with no PHP warnings and no console errors. Saving was not exercised.
+  - **Files**: `includes/classes/class-extend-wp.php`, `includes/classes/awm-list-tables/class-list-form.php`, new `templates/admin-view/meta-box.php` and `metabox-markers.php`, the test.
+
+### Changed
 - **Custom post statuses: no inline scripts; Status column label no longer injected as HTML; permalink slug input as a template** (`2026-10-30`):
   - **Question/Prompt**: "Commit, start step 5" (step 5 of the HTML-in-PHP cleanup).
   - **Before**, `EWP_WP_Content_Installer` printed two inline `<script>` blocks for post types with custom statuses:
@@ -24,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Tests**:
     - Jest `assets/js/admin/test/custom-post-status-helpers.test.js` (5).
     - PHPUnit `tests/test-custom-status-scripts-test.php`: no inline scripts on either hook, the deprecated method prints nothing, and the slug template is escaped.
-  - **Not verified in a browser** (the admin needs a login). Check a post type with custom statuses in the block editor's status selector, the list's Status column and Quick Edit.
+  - **Not verified in a browser**: no post type on this site has custom statuses. The Extend WP post-type table is empty, and the filox bookable types that get `book_only` aren't registered here. Check it on a site that uses them: the block editor's status selector, the list's Status column and Quick Edit.
   - **Files**: `includes/classes/ewp-wp-content/class-wp-content-installer.php`, `assets/js/admin/awm-admin-script.js`, new `assets/js/admin/custom-post-status-helpers.js`, new `templates/admin-view/slug-field.php`, the build, and the tests.
 
 ### Changed
@@ -37,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `window.ewp_get_php_code` and `window.awm_show_php_code` stay global for other callers.
     - `build/admin/awm-admin-script.js` is rebuilt; nothing else in `build/` changed.
   - **Tests**: new `tests/test-php-code-box-test.php` (data attribute escaped, no `onclick`, no box for an unsaved group). PHPUnit and self-test are green.
-  - **Not verified in a browser** (the admin needs a login). Click "Show php code" on Extend WP › Fields › edit.
+  - **Verified in the logged-in admin (Chrome, 2026-10-30)**: on Fields › edit (#39) the button renders as `<button data-ewp-php-code="39">`, and clicking it loads the generated PHP (8 KB) into `#awm-php-code`.
 
 ### Changed
 - **Content edit form postboxes: ES module instead of an inline footer script** (`2026-10-30`):
@@ -52,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Tests**:
     - Jest `assets/js/modules/test/ewp-content-form-postboxes.test.js` (3).
     - PHPUnit `tests/test-content-form-postboxes-test.php`: asset registration, and the footer method printing nothing.
-  - **Not verified in a browser** (the admin needs a login). Check collapse/expand on a content edit form.
+  - **Verified in the logged-in admin (Chrome, 2026-10-30)**: on Fields › edit (#39) the module loads, no inline postbox script is printed, `pagenow` is `admin_page_ewp_fields_form`, and a meta box collapses and reopens. No console errors.
   - **Files**: new module, test files and `build/modules/ewp-content-form-postboxes.{js,asset.php}`; `includes/classes/class-extend-wp.php`, `includes/classes/awm-list-tables/class-list-form.php`, `HOOKS.md`.
 
 ### Changed
@@ -116,7 +129,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Styles**: in `assets/css/admin/ewp-admin-ui.scss` (`.ewp-status-box`, scoped to `body.ewp-admin-ui-fields`, the skin the content edit forms already use), compiled with `npm run build:css`. `awm-admin-style.scss` was left alone, because it no longer compiles to the committed `awm-admin-style.min.css`.
   - **Kept for scripts**: `#publish` (form validation in `awm-forms-module.js`), `.awm-delete-content-id` (delete confirmation), and `#delete-action`, `#publishing-action` and `.spinner`.
   - **Docs**: `class-list-form.php` gained docblocks for 8 methods and for the `awm_add_meta_boxes_filter_content` filter. HOOKS.md gained rows for `awm_add_meta_boxes_filter_content` and `awm_content_db_metaboxes_filter`.
-  - **Verification**: no access to the logged-in admin from here, so I checked a static preview instead: the real template, the site's WordPress admin CSS and the compiled plugin CSS. It showed the collapsed, expanded and new-row states. PHPUnit: 480 tests, OK, 1 skipped (as before). Self-test: 16/16.
+  - **Verification**: a static preview, then the logged-in admin (Chrome, 2026-10-30). On Fields › edit (#39) the box renders as in the preview, "Row details" starts collapsed and opens to show the id and hash, with no console errors. Earlier check: a static preview: the real template, the site's WordPress admin CSS and the compiled plugin CSS. It showed the collapsed, expanded and new-row states. PHPUnit: 480 tests, OK, 1 skipped (as before). Self-test: 16/16.
   - **Files**: new `templates/admin-view/update-box.php`; `includes/classes/awm-list-tables/class-list-form.php`, `assets/css/admin/ewp-admin-ui.scss`, `assets/css/admin/ewp-admin-ui.min.css`, `HOOKS.md`.
 
 ### Security
