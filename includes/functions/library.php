@@ -2697,3 +2697,28 @@ function awm_repeater_check_quotes($value)
     }
     return str_replace('"', '&quot;', $value);
 }
+
+if (!function_exists('awm_date')) {
+    /**
+     * Format a timestamp like PHP's date(): same format characters, same
+     * timezone (PHP's default, which WordPress sets to UTC).
+     *
+     * Callers pair it with strtotime(), which reads the same default
+     * timezone, so the pairs stay in step on every site; gmdate() would not
+     * when another plugin changes the default timezone.
+     *
+     * @param string          $format    date() format string.
+     * @param int|string|null $timestamp Unix timestamp; null = now.
+     * @return string The formatted date.
+     */
+    function awm_date($format, $timestamp = null)
+    {
+        static $zones = array();
+        $zone_name = date_default_timezone_get();
+        if (!isset($zones[$zone_name])) {
+            $zones[$zone_name] = new DateTimeZone($zone_name);
+        }
+        $date = new DateTime('@' . ($timestamp === null ? time() : (int) $timestamp));
+        return $date->setTimezone($zones[$zone_name])->format($format);
+    }
+}

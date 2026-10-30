@@ -104,7 +104,7 @@ class EWP_Logger_Cleanup
         $months = max(1, $months);
 
         $deleted     = $this->storage->delete_older_than($months);
-        $cutoff_date = date('Y-m-d H:i:s', strtotime("-{$months} months"));
+        $cutoff_date = awm_date('Y-m-d H:i:s', strtotime("-{$months} months"));
 
         $result = [
             'deleted'          => $deleted,
