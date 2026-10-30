@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Content edit form postboxes: ES module instead of an inline footer script** (`2026-10-30`):
+  - **Question/Prompt**: "Commit, start step 3" (step 3 of the HTML-in-PHP cleanup).
+  - **Before**: `AWM_Add_Custom_List::on_page_footer()` printed an inline jQuery `<script>` on `admin_footer-{page}`. It turned `.if-js-closed` boxes into `.closed` and called `postboxes.add_postbox_toggles('{page hook}')`.
+  - **Now**:
+    - New ES module `assets/js/modules/ewp-content-form-postboxes.js` (built to `build/modules/`), written in plain JS with no jQuery.
+    - It is registered with the Dynamic Asset Loader (`Extend_WP::register_content_form_assets()`, handle `ewp-content-form-postboxes`, selector `#ewp-content-form`, admin context, after WordPress's `postbox` script), so it loads only on content edit forms.
+    - It passes WordPress's `pagenow` (the screen id) to `add_postbox_toggles()`. That is also the key core uses to remember collapsed boxes per user.
+    - `on_page_footer()` is no longer hooked. It stays as a deprecated no-op (`@deprecated 1.14.0`) for code that calls it.
+  - **Docs**: `class-extend-wp.php` gained docblocks for 4 methods and 10 hook calls. HOOKS.md gained `awm_add_options_boxes_filter`, `awm_custom_lists_view_filter`, `awm_form_action`, `awm_jquery_load_filter`, `awm_spinner_html` and `awm_restrict_post_boxes_filter`.
+  - **Tests**:
+    - Jest `assets/js/modules/test/ewp-content-form-postboxes.test.js` (3).
+    - PHPUnit `tests/test-content-form-postboxes-test.php`: asset registration, and the footer method printing nothing.
+  - **Not verified in a browser** (the admin needs a login). Check collapse/expand on a content edit form.
+  - **Files**: new module, test files and `build/modules/ewp-content-form-postboxes.{js,asset.php}`; `includes/classes/class-extend-wp.php`, `includes/classes/awm-list-tables/class-list-form.php`, `HOOKS.md`.
+
+### Changed
 - **No inline styles in `awm_show_featured_image()` and `ewp_debug()`** (`2026-10-30`):
   - **Question/Prompt**: "Commit, start step 2" (step 2 of the HTML-in-PHP cleanup, `.ai/context/html-in-php-plan.md`).
   - **`awm_show_featured_image()`** (gallery admin list column, `ewp-gallery/class-ewp-gallery.php`):

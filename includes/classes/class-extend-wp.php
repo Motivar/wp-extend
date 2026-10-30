@@ -11,12 +11,25 @@ class AWM_Meta
     public static $ewp_user_boxes = false;
     public static $ewp_options = false;
 
+    /**
+     * Boot the plugin: define the jQuery-load flag and register early hooks and assets.
+     *
+     * @return void
+     */
     public function init()
     {
+        /**
+         * Filters whether the jQuery UI datepicker script and style are enqueued (`AWM_JQUERY_LOAD`).
+         *
+         * @since 1.0.0
+         *
+         * @param bool $load Whether to enqueue the jQuery UI datepicker assets. Default true.
+         */
         define('AWM_JQUERY_LOAD', apply_filters('awm_jquery_load_filter', true));
 
         // Register modal field assets early (before Dynamic Asset Loader collects at init priority 1)
         add_filter('ewp_register_dynamic_assets', array($this, 'register_modal_field_assets'));
+        add_filter('ewp_register_dynamic_assets', array($this, 'register_content_form_assets'));
 
         add_action('init', array($this, 'awm_init'), 10);
         add_action('wp_enqueue_scripts', array($this, 'enqueue_styles_script'), 10);
@@ -100,6 +113,13 @@ class AWM_Meta
     }
 
 
+    /**
+     * Register admin list columns, and sortable columns, for post-type meta fields flagged `admin_list`.
+     *
+     * Runs only on edit.php for the post type in the request; a no-op elsewhere.
+     *
+     * @return void
+     */
     public function awm_admin_post_columns()
     {
         global $pagenow;
@@ -216,6 +236,13 @@ class AWM_Meta
         }
 
         // Get all registered custom lists
+        /**
+         * Filters the registered custom list views (custom content list table pages).
+         *
+         * @since 1.0.0
+         *
+         * @param array $custom_lists Custom list definitions keyed by page slug. Default empty array.
+         */
         $custom_lists = apply_filters('awm_custom_lists_view_filter', array());
         
         if (empty($custom_lists)) {
@@ -252,6 +279,11 @@ class AWM_Meta
     private function add_nonce_action()
     {
         if (isset($_REQUEST['awm_form_nonce_field'])) {
+            /**
+             * Fires when a request carries the Extend WP form nonce field (`awm_form_nonce_field`).
+             *
+             * @since 1.0.0
+             */
             do_action('awm_form_action');
         }
     }
@@ -271,6 +303,13 @@ class AWM_Meta
         $wp_editor_args = awm_get_wp_editor_args('', '', '');
 
         // Spinner HTML template - filterable for customization
+        /**
+         * Filters the AJAX spinner HTML localized to `awmGlobals.spinnerHtml`.
+         *
+         * @since 1.0.0
+         *
+         * @param string $spinner_html Spinner markup.
+         */
         $spinner_html = apply_filters(
             'awm_spinner_html',
             '<div class="awm-ajax-spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>'
@@ -313,6 +352,29 @@ class AWM_Meta
             $version,
             true // Load in footer
         );
+    }
+
+    /**
+     * Register the custom content edit form's postbox module for the Dynamic
+     * Asset Loader: loaded only when #ewp-content-form is on the page.
+     *
+     * @param array $assets Registered assets.
+     * @return array Assets with the postbox module added.
+     * @since 1.14.0
+     */
+    public function register_content_form_assets($assets)
+    {
+        $assets[] = array(
+            'handle'       => 'ewp-content-form-postboxes',
+            'selector'     => '#ewp-content-form',
+            'type'         => 'script',
+            'src'          => awm_url . 'build/modules/ewp-content-form-postboxes.js',
+            'version'      => defined('AWM_ASSET_VERSION') ? AWM_ASSET_VERSION : '1.0.0',
+            'context'      => 'admin',
+            'dependencies' => array('postbox'),
+            'in_footer'    => true,
+        );
+        return $assets;
     }
 
     /**
@@ -435,6 +497,13 @@ class AWM_Meta
         if (self::$ewp_options !== false) {
             return self::$ewp_options;
         }
+        /**
+         * Filters the options pages (settings screens) and their field libraries.
+         *
+         * @since 1.0.0
+         *
+         * @param array $optionsPages Options page definitions keyed by page slug. Default empty array.
+         */
         $optionsPages = apply_filters('awm_add_options_boxes_filter', array());
         /**
          * sort settings by order
@@ -466,6 +535,14 @@ class AWM_Meta
         if (self::$ewp_post_boxes !== false) {
             return self::$ewp_post_boxes;
         }
+        /**
+         * Filters the post meta box definitions and their field libraries.
+         *
+         * @since 1.0.0
+         *
+         * @param array $metaBoxes Meta box definitions keyed by box ID. Default empty array.
+         * @param int   $context   Internal context flag. Always 1.
+         */
         $metaBoxes = apply_filters('awm_add_meta_boxes_filter', array(), 1);
         /**
          * sort settings by order
@@ -490,6 +567,13 @@ class AWM_Meta
         if (self::$ewp_term_boxes !== false) {
             return self::$ewp_term_boxes;
         }
+        /**
+         * Filters the term (taxonomy) meta box definitions and their field libraries.
+         *
+         * @since 1.0.0
+         *
+         * @param array $boxes Term meta box definitions keyed by box ID. Default empty array.
+         */
         $boxes = apply_filters('awm_add_term_meta_boxes_filter', array());
         uasort($boxes, function ($a, $b) {
             $first = isset($a['order']) ? $a['order'] : 100;
@@ -505,6 +589,13 @@ class AWM_Meta
      */
     protected function restrict_post_forms()
     {
+        /**
+         * Filters the admin list restrict (filter) forms shown above post list tables.
+         *
+         * @since 1.0.0
+         *
+         * @param array $restrict_forms Restrict form definitions keyed by form ID. Default empty array.
+         */
         $restrict_forms = apply_filters('awm_restrict_post_boxes_filter', array());
         /**
          * sort settings by order
@@ -663,6 +754,13 @@ class AWM_Meta
 
 
 
+    /**
+     * Register admin list columns for term meta fields flagged `admin_list`.
+     *
+     * Runs only on edit-tags.php for the taxonomy in the request; a no-op elsewhere.
+     *
+     * @return void
+     */
     public function awm_admin_terms_columns()
     {
         global $pagenow;
@@ -765,6 +863,13 @@ class AWM_Meta
         }
     }
 
+    /**
+     * Register users.php list columns for user meta fields flagged `admin_list`.
+     *
+     * Runs only on users.php; a no-op elsewhere.
+     *
+     * @return void
+     */
     public function awm_admin_user_columns()
     {
         global $pagenow;
@@ -822,6 +927,14 @@ class AWM_Meta
         if (self::$ewp_user_boxes !== false) {
             return self::$ewp_user_boxes;
         }
+        /**
+         * Filters the user profile meta box definitions and their field libraries.
+         *
+         * @since 1.0.0
+         *
+         * @param array $user_boxes User box definitions keyed by box ID. Default empty array.
+         * @param int   $context    Internal context flag. Always 1.
+         */
         $user_boxes = apply_filters('awm_add_user_boxes_filter', array(), 1);
         /**
          * sort settings by order
@@ -891,6 +1004,14 @@ class AWM_Meta
                         $metaBoxData['id'] = $metaBoxKey;
                         $metaBoxData['library']['awm-id'] = $metaBoxData['id'];
                         $view = isset($metaBoxData['view']) ? $metaBoxData['view'] : 'post';
+                        /**
+                         * Filters the rendered fields HTML of a post meta box.
+                         *
+                         * @since 1.0.0
+                         *
+                         * @param string $metas  Rendered meta box fields HTML.
+                         * @param string $box_id Meta box key.
+                         */
                         $metas = apply_filters('awm_add_meta_boxes_filter_content', awm_show_content($metaBoxData['library'], $metaBoxData['post']->ID, $view), $metaBoxData['id']);
                         $metaBoxData['metas'] = $metas;
                         if (!empty($metas)) {

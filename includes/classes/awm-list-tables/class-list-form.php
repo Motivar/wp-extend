@@ -101,7 +101,6 @@ class AWM_Add_Custom_List
       self::$form_hooks[] = $this->pagehook;
     }
     add_action('load-' . $this->pagehook, array($this, 'on_load_page'));
-    add_action('admin_footer-' . $this->pagehook, array($this, 'on_page_footer'), 100);
     add_action('admin_init', array($this, 'save_page'), 10);
     add_action('admin_notices', [$this, 'show_message'], 100);
   }
@@ -282,24 +281,15 @@ class AWM_Add_Custom_List
   }
 
   /**
-   * Prints the footer script that closes collapsed postboxes and enables postbox toggling for this page.
+   * Formerly printed the inline postbox setup script in the page footer.
    *
+   * @deprecated 1.14.0 The setup moved to the ES module
+   *             assets/js/modules/ewp-content-form-postboxes.js, loaded by the
+   *             Dynamic Asset Loader when #ewp-content-form is on the page.
    * @return void
    */
   public function on_page_footer()
   {
-    ?>
-<script type="text/javascript">
-//<![CDATA[
-jQuery(document).ready(function($) {
- // close postboxes that should be closed
- $('.if-js-closed').removeClass('if-js-closed').addClass('closed');
- // postboxes setup
- postboxes.add_postbox_toggles('<?php echo $this->page_hook; ?>');
-});
-//]]>
-</script>
-<?php
   }
 
   /**
