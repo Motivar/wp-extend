@@ -4,7 +4,7 @@ Plugin Name: Extend WP
 Plugin URI: https://motivar.io
 Description: extend WP in various ways with simple UI
 Version: 1.13.0
-Requires at least: 6.2
+Requires at least: 6.8
 Author: Giannopoulos Nikolaos
 Text Domain:       extend-wp
 License: GPLv2 or later

@@ -138,6 +138,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Options page capability**: a user without an options page's `cap` can no longer save it through `options.php`. This matches who can open the page.
 
 ### Changed
+- **`readme.txt` for WordPress.org; header `Requires at least: 6.8`** (`2026-10-30`, `wporg` branch):
+  - **Question/Prompt**: "ok" (readme drafts) → "1. Mine is brut3forc3, i think nikos is gnnpls 2. Raise it to 6.8 3. ok 4. ok".
+  - New `readme.txt`: description (fields and screens, custom content tables with REST / WP-CLI / Abilities, tools), **External services** (Google Maps only with an API key; Swagger UI is local), installation, FAQ, changelog. Contributors `brut3forc3, gnnpls` (both profiles checked on WordPress.org). `Requires at least` 6.2 → 6.8 in the readme and the plugin header: the DataViews lists use the components of WordPress 6.8+. Plugin Check `plugin_readme`, `plugin_header_fields`, `wp_functions_compatibility`: 0.
+  - **Affected files**: `readme.txt` (new), `extend-wp.php`. **Backwards compatibility**: WordPress only checks the header on activation; sites already running Extend WP are not deactivated. Inside Filox the bundled copy is not a plugin, so the header has no effect there.
 - **i18n for WordPress.org: Plugin Check `i18n_usage` errors → 0; Greek batch 1** (`2026-10-30`, `wporg` branch):
   - **Question/Prompt**: "ok proceed" (Extend WP i18n) → "approved" (review https://claude.ai/artifact/7nFh2hw6LeUxFD8DX3Q15t).
   - **Translator comments** on the 96 strings with placeholders (comments only).
