@@ -374,28 +374,28 @@ class EWP_REST_Health
     // -------------------------------------------------------------------------
 
     /**
-     * Register Swagger UI (CDN) + custom shell JS/CSS.
+     * Register Swagger UI (served from the plugin, assets/third-party/swagger-ui) + custom shell JS/CSS.
      * Assets load only when .ewp-rest-health-wrap is in the DOM.
      */
     public function register_assets(array $assets): array
     {
         $selector = '.ewp-rest-health-wrap';
 
-        // Swagger UI from CDN — same pattern as Chart.js CDN example
+        // Swagger UI 5.34.0, served from the plugin (WordPress.org does not allow CDN scripts).
         $assets[] = [
             'handle'   => 'swagger-ui-bundle',
             'selector' => $selector,
             'type'     => 'script',
-            'src'      => 'https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js',
-            'version'  => '5',
+            'src'      => awm_url . 'assets/third-party/swagger-ui/swagger-ui-bundle.js',
+            'version'  => '5.34.0',
             'context'  => 'admin',
         ];
         $assets[] = [
             'handle'   => 'swagger-ui-css',
             'selector' => $selector,
             'type'     => 'style',
-            'src'      => 'https://unpkg.com/swagger-ui-dist@5/swagger-ui.css',
-            'version'  => '5',
+            'src'      => awm_url . 'assets/third-party/swagger-ui/swagger-ui.css',
+            'version'  => '5.34.0',
             'context'  => 'admin',
         ];
 

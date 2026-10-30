@@ -122,6 +122,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Options page capability**: a user without an options page's `cap` can no longer save it through `options.php`. This matches who can open the page.
 
 ### Changed
+- **REST API Health: Swagger UI served from the plugin** (`2026-10-30`, `wporg` branch):
+  - **Question/Prompt**: preparing Extend WP for WordPress.org as its own free plugin (slug `extend-wp`), on the `wporg` branch only: "Extend WP's safe fixes on wporg" (after a Plugin Check run of the branch: 486 errors, 860 warnings). Not merged to `main` until Nikos reviews it.
+  - Was `https://unpkg.com/swagger-ui-dist@5/…` (a floating major, and WordPress.org does not allow loading scripts from CDNs). Now `assets/third-party/swagger-ui/` holds swagger-ui-dist **5.34.0** (what `@5` resolved to on 2026-10-30): `swagger-ui-bundle.js`, `swagger-ui.css` (source-map comment removed), `LICENSE` / `NOTICE` (Apache-2.0), `README.txt`. Same handles (`swagger-ui-bundle`, `swagger-ui-css`), version `5.34.0`, same selector / admin context. The folder is not `assets/vendor/` because `.gitignore` ignores every `vendor/`.
+  - **Verified** on filox-test (bundled in Filox, REST API logs switched on for the test only): both files 200 from the plugin, no unpkg request, `SwaggerUIBundle` drawn for Filox with 115 operations, no JS errors.
+  - **Affected files**: `includes/classes/ewp-rest-health/class-ewp-rest-health.php`, `assets/third-party/swagger-ui/*` (new), `assets/third-party/index.php` (new). **Backwards compatibility**: same page; +1.9 MB in the package (≈450 KB gzipped).
 - **Plugin header: licence** (`2026-10-30`, `wporg` branch):
   - **Question/Prompt**: preparing Extend WP for WordPress.org as its own free plugin (slug `extend-wp`), on the `wporg` branch only: "Extend WP's safe fixes on wporg" (after a Plugin Check run of the branch: 486 errors, 860 warnings). Not merged to `main` until Nikos reviews it.
   - `License: GPLv2 or later` and `License URI` in `extend-wp.php` (Plugin Check `plugin_header_no_license`; `composer.json` already says GPL). No `Update URI`: sites get Extend WP inside Filox / via Composer, not from the plugins screen.
