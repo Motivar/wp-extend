@@ -893,6 +893,147 @@ body.ewp-admin-ui-fields :is(#edittag, #addtag, #your-profile) {
   }
 }
 
+/* ---- Content edit forms: the "Update actions" box ------------------------ */
+
+// templates/admin-view/update-box.php: status, then an action bar (Delete
+// left, Save/Update right) running to the box's edges like WordPress's
+// publish box, then the row's id and hash as a small definition list.
+body.ewp-admin-ui-fields #poststuff .postbox .ewp-status-box {
+  .ewp-status-box__status .awm-show-content {
+    display: block;
+  }
+
+  .ewp-status-box__status .awm-meta-field {
+    padding: 4px 0 0;
+  }
+
+  .ewp-status-box__actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 14px -12px 0;
+    padding: 12px;
+    border-top: 1px solid var(--ewp-ui-line);
+    border-bottom: 1px solid var(--ewp-ui-line);
+    background: var(--ewp-ui-soft);
+
+    // A new row has no id/hash under the bar: run it to the box's bottom edge.
+    &:last-child {
+      margin-bottom: -12px;
+      border-bottom: 0;
+    }
+
+    #delete-action,
+    #publishing-action {
+      float: none;
+      margin: 0;
+      line-height: inherit;
+    }
+
+    #publishing-action {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+    }
+
+    .spinner {
+      float: none;
+      margin: 0;
+    }
+
+    .submitdelete {
+      color: var(--ewp-ui-error);
+      text-decoration: none;
+
+      &:hover,
+      &:focus {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  // "Row details": id and hash, collapsed by default.
+  .ewp-status-box__meta {
+    margin: 12px 0 0;
+    font-size: 12px;
+    color: var(--ewp-ui-muted);
+
+    summary {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+      font-weight: 600;
+      color: var(--ewp-ui-text);
+      cursor: pointer;
+      list-style: none;
+
+      &::-webkit-details-marker {
+        display: none;
+      }
+
+      // Chevron, pointing down when open.
+      &::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-right: 1.5px solid currentColor;
+        border-bottom: 1.5px solid currentColor;
+        transform: rotate(-45deg);
+        transition: transform 0.15s ease;
+      }
+
+      &:hover {
+        color: var(--ewp-ui-accent);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--ewp-ui-accent-ring);
+        outline-offset: 2px;
+        border-radius: 4px;
+      }
+    }
+
+    &[open] summary::before {
+      transform: rotate(45deg);
+    }
+
+    dl {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 6px 12px;
+      margin: 10px 0 0;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--ewp-ui-soft);
+    }
+
+    dt {
+      font-weight: 600;
+      color: var(--ewp-ui-text);
+    }
+
+    dd {
+      min-width: 0;
+      margin: 0;
+    }
+
+    // The full value, wrapped; a click selects all of it for copying.
+    code {
+      display: block;
+      padding: 0;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--ewp-ui-ink);
+      word-break: break-all;
+      background: none;
+      user-select: all;
+    }
+  }
+}
+
 /* ---- Tablets and phones -------------------------------------------------- */
 
 // 782px is where WordPress switches the admin to its mobile layout.

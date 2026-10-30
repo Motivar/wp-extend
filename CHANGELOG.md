@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Content edit forms: tidier "Update actions" box; id and hash under a collapsed "Row details"** (`2026-10-30`):
+  - **Question/Prompt**: "can you also tidy up this?" (screenshot of the Update actions box), then "please make sure id and hash are viewable. maybe should be expandable and not seen by default".
+  - **Markup**:
+    - `AWM_List_Form::update_box()` built the box as one PHP string. It included an inline `style` with a broken `word-` property, a trailing space in "Delete ", and unescaped values.
+    - It now renders the new `templates/admin-view/update-box.php` with explicit variables: status HTML, delete URL, button label, content id and hash.
+  - **Layout**:
+    - The status field sits on top.
+    - An action bar runs to the box's edges with Delete on the left and Save/Update on the right, like WordPress's publish box.
+    - The row's id and hash sit in a native `<details>` "Row details" disclosure, collapsed by default. Expanded, it shows the full values in a soft panel: the hash wraps instead of being cut off, and one click selects it for copying. A new row (no id yet) shows no details, and its action bar runs to the bottom of the box.
+  - **Styles**: in `assets/css/admin/ewp-admin-ui.scss` (`.ewp-status-box`, scoped to `body.ewp-admin-ui-fields`, the skin the content edit forms already use), compiled with `npm run build:css`. `awm-admin-style.scss` was left alone, because it no longer compiles to the committed `awm-admin-style.min.css`.
+  - **Kept for scripts**: `#publish` (form validation in `awm-forms-module.js`), `.awm-delete-content-id` (delete confirmation), and `#delete-action`, `#publishing-action` and `.spinner`.
+  - **Docs**: `class-list-form.php` gained docblocks for 8 methods and for the `awm_add_meta_boxes_filter_content` filter. HOOKS.md gained rows for `awm_add_meta_boxes_filter_content` and `awm_content_db_metaboxes_filter`.
+  - **Verification**: no access to the logged-in admin from here, so I checked a static preview instead: the real template, the site's WordPress admin CSS and the compiled plugin CSS. It showed the collapsed, expanded and new-row states. PHPUnit: 480 tests, OK, 1 skipped (as before). Self-test: 16/16.
+  - **Files**: new `templates/admin-view/update-box.php`; `includes/classes/awm-list-tables/class-list-form.php`, `assets/css/admin/ewp-admin-ui.scss`, `assets/css/admin/ewp-admin-ui.min.css`, `HOOKS.md`.
+
 ### Security
 - **Encrypted post/term/user meta was stored in plain text; new end-to-end `field-engine` self-test** (`2026-10-29`):
   - **Question/Prompt**: "can you do it via wp-self-test?" (replace the manual browser check of the field-engine refactor), then "Fix it now, then Phase 5".

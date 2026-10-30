@@ -86,6 +86,12 @@ class AWM_Add_Custom_List
    */
   public static $form_hooks = array();
 
+  /**
+   * Registers the custom list form page and hooks its load, footer, save and notice callbacks.
+   *
+   * @param array $args Registration args: `custom_id` (string) content type id and `custom_list` (array) list/form page definition.
+   * @return void
+   */
   public function __construct($args)
   {
     $this->custom_id = $args['custom_id'];
@@ -100,6 +106,11 @@ class AWM_Add_Custom_List
     add_action('admin_notices', [$this, 'show_message'], 100);
   }
 
+  /**
+   * Prints the 'Content updated!' admin notice when the `ewp_updated` request flag is set.
+   *
+   * @return void
+   */
   public function show_message()
   {
     if (isset($_REQUEST['ewp_updated'])) { ?>
@@ -198,6 +209,14 @@ class AWM_Add_Custom_List
         });
       }
 
+      /**
+       * Filters the meta boxes of a custom content form page.
+       *
+       * @since 1.0.0
+       *
+       * @param array  $metaboxes Meta box definitions registered for the page.
+       * @param string $id        Page id of the custom list.
+       */
       $this->meta_boxes = apply_filters('awm_content_db_metaboxes_filter', isset($args['metaboxes']) ? $args['metaboxes'] : array(), $id);
 
       $this->page_hook = $this->pagehook;
@@ -213,6 +232,12 @@ class AWM_Add_Custom_List
     }
   }
 
+  /**
+   * Returns the parent menu path only when it points to an `edit.php` screen, otherwise an empty string.
+   *
+   * @param array $args Page args; the optional `parent` key holds the parent menu slug/path.
+   * @return string Validated parent path, or an empty string.
+   */
   private function validateParentPath($args)
   {
     // Default to empty string
@@ -232,6 +257,11 @@ class AWM_Add_Custom_List
   }
 
 
+  /**
+   * Handles the form save and the delete action on admin_init, then redirects.
+   *
+   * @return void
+   */
   public function save_page()
   {
     /*save function*/
@@ -251,6 +281,11 @@ class AWM_Add_Custom_List
     }
   }
 
+  /**
+   * Prints the footer script that closes collapsed postboxes and enables postbox toggling for this page.
+   *
+   * @return void
+   */
   public function on_page_footer()
   {
     ?>
@@ -267,6 +302,11 @@ jQuery(document).ready(function($) {
 <?php
   }
 
+  /**
+   * Loads (once per request) the content row and its meta for the `id` request parameter.
+   *
+   * @return array Array with `item` (main table row) and `meta` (meta values); both empty when no id is requested.
+   */
   public function get_current_view_data()
   {
     if (!empty(self::$item_data)) {
@@ -281,6 +321,11 @@ jQuery(document).ready(function($) {
     return self::$item_data;
   }
 
+  /**
+   * Enqueues postbox scripts and registers the meta boxes and the update actions box for the page.
+   *
+   * @return void
+   */
   public function on_load_page()
   {
     global $ewp_content_id;
@@ -320,6 +365,14 @@ jQuery(document).ready(function($) {
 
                 $view = isset($metaBoxData['view']) ? $metaBoxData['view'] : 'post';
                 $metaBoxData['library']['awm-id'] = $metaBoxData['id'];
+                /**
+                 * Filters the rendered HTML of a meta box on a custom content form page.
+                 *
+                 * @since 1.0.0
+                 *
+                 * @param string $content Rendered meta box fields HTML.
+                 * @param string $box_id  Meta box key.
+                 */
                 $content = apply_filters('awm_add_meta_boxes_filter_content', awm_show_content($metaBoxData['library'], $metaBoxData['post'], $view), $metaBoxData['id']);
                 if (!empty($content)) {
                   echo $content;
@@ -347,6 +400,12 @@ jQuery(document).ready(function($) {
     ); // $priority
   }
 
+  /**
+   * Renders the update actions box (status field, delete link, save button, row id and hash) from templates/admin-view/update-box.php.
+   *
+   * @param array $data Update metas registered for the page; currently unused by this method.
+   * @return string Rendered HTML of the box.
+   */
   public function update_box($data)
   {
     global $ewp_args;
@@ -366,34 +425,15 @@ jQuery(document).ready(function($) {
       );
       $select_box = awm_show_content($select);
     }
-    $id = isset($item_data['item']['content_id']) ? absint($item_data['item']['content_id']) : '';
+    $id = isset($item_data['item']['content_id']) ? absint($item_data['item']['content_id']) : 0;
 
-    $save_text = $id != ''  ? __('Update', 'extend-wp') : __('Save', 'extend-wp');
-    $dev_notes = '';
-    if ($id) {
-      $dev_notes = array(
-        'content_id: ' . $id,
-        'hash: ' . $item_data['item']['hash']
-      );
-      $dev_notes = '<div class="ewp-dev-notes" style="font-size:90%;opacity:0.8;word-">' . implode('<br>', $dev_notes) . '</div>';
-    }
-    $delete_button = '';
-    if ($this->show_delete) {
-      $delete_button = $id != '' ? '<a class="submitdelete deletion awm-delete-content-id" href="' . wp_nonce_url(admin_url($this->page_link . '&id=' . $id . '&action=delete'), $this->page_id . '_delete') . '">' . __('Delete ', 'extend-wp') . '</a>' : '';
-    }
-    return '<div class="submitbox ewp-status-box"><div id="major-publishing-actions">' . $select_box . '
-    <div>
-        <div id="delete-action">' . $delete_button . '</div>
-        <div id="publishing-action">
-        <span class="spinner"></span>
-                <input name="save" type="submit" class="button button-primary button-large" id="publish" value="' . $save_text . '">
-        </div>
-        </div>
-        <div class="clear"></div>
-        ' . $dev_notes . '
-         <div class="clear"></div>
-        </div>
-        </div>';
+    return awm_parse_template(awm_path . 'templates/admin-view/update-box.php', array(
+      'status_html' => (string) $select_box,
+      'delete_url'  => ($id && $this->show_delete) ? wp_nonce_url(admin_url($this->page_link . '&id=' . $id . '&action=delete'), $this->page_id . '_delete') : '',
+      'save_text'   => $id ? __('Update', 'extend-wp') : __('Save', 'extend-wp'),
+      'content_id'  => $id,
+      'hash'        => ($id && isset($item_data['item']['hash'])) ? (string) $item_data['item']['hash'] : '',
+    ));
   }
 
 
