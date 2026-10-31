@@ -1,7 +1,7 @@
 # WordPress.org preparation — review report (`wporg` branch)
 
 For: Nikos and his review agent. Kept up to date with every push to `wporg`.
-Last update: 2026-10-30, after commit `0da91881`.
+Last update: 2026-10-31, after commit `643ddf5a`.
 
 **Nothing on this branch is pushed to `main` until Nikos approves.**
 
@@ -40,6 +40,7 @@ too and will use it. Filox's `wporg` branch bundles this branch
 | 950e8500 | `readme.txt` (Contributors brut3forc3, gnnpls; external services: Google Maps only with an API key); `Requires at least` 6.2 → 6.8 (DataViews lists need 6.8) | Header only checked on activation | Plugin Check readme / header / compatibility: 0 |
 | d45ea5a1 | `tools/build-wporg.sh`: WordPress.org package from `HEAD` without tests, tools, docs, examples, `lib/bin`, notes (`HOOKS.md` stays), configs; 1.4 MB | None (not loaded by WordPress) | Package installed as `extend-wp` on filox-test with the Filox WordPress.org package: front / admin pages without errors or notices, Filox self-tests 13 passed |
 | 0da91881 | Plugin Check on the package → 0 in Extend WP's own code: `wp_delete_file()`, `wp_is_writable()`, `wp_rand()`, `wp_strip_all_tags()`; streaming / locked file writes marked; dynamic loader waits until an injected dependency has loaded (`data-ewp-loading`) | Textareas with `awm_strip_html` also trimmed; dependent dynamic assets wait for their dependency to load | PHPUnit 408 / 408; Filox date picker with WordPress's moment.js through the loader, also with moment delayed 2 s; package smoke test |
+| 643ddf5a | **`tools/build-wporg.sh`: package without `mammothwp/wp-self-test`; Composer's autoloader patched for Plugin Check.** The autoloader is regenerated offline without wp-self-test (`dump-autoload --no-dev --optimize`, entries removed from `installed.json` / `installed.php`, no `platform_check.php`); then direct-access guards, no PHP < 5.6 message, `esc_html()` in `InstalledVersions`' exceptions (same step as Filox). `wp-kit` stays: REST, WP-CLI and abilities are built on it. **Plugin Check on the package 18 → 1** (now counted with `wp-kit`) | None (composer installs untouched); WordPress.org sites have no self-tests | Packages installed in place of Filox on filox-test: activate, no PHP errors, 67 Extend WP routes, product page identical apart from Extend WP's asset URLs |
 
 ## `awm_show_content()` escaping (please review)
 
@@ -97,9 +98,9 @@ baselines compare 0 first): **0 differences**. Filox Settings page 110 → 113 m
 | Late escaping (core: `includes`, `templates`, main file) | 105 (99 on re-count) | **0** |
 | i18n (translators comments, non-literal strings, text domain) | 171 | **0** (dynamic labels marked) |
 | File-system calls (`fopen`, `fwrite`, `unlink`, …) | ~40 | **0** (`wp_delete_file()` / `wp_is_writable()`; appends, streams and locked rewrites marked with the reason) |
-| `lib/mammothwp/wp-self-test` | 122 errors | candidate to leave out of the WordPress.org package (off on production) |
+| `lib/mammothwp/wp-self-test` | 122 errors | left out of the WordPress.org package (643ddf5a) |
 | `readme.txt` | missing | done |
-| Package build | none | `tools/build-wporg.sh`. Plugin Check on the package without `lib/mammothwp`: **18 errors, all Composer's generated autoloader** (`lib/autoload.php`, `lib/composer/*`: direct access, its PHP-version message, `InstalledVersions` exceptions) |
+| Package build | none | `tools/build-wporg.sh`. Plugin Check on the package (with `wp-kit`): **1 error**, in `lib/mammothwp/wp-kit/src/Adapters/Ability_Adapter.php:73`: `wp_register_ability_category()` is WordPress 6.9, Requires at least is 6.8. Fix upstream in wp-kit: `if (!function_exists('wp_register_ability_category')) { return; }` (the call already runs only on 6.9's hook) |
 
 ## Reviewer checklist
 
@@ -110,9 +111,10 @@ baselines compare 0 first): **0 differences**. Filox Settings page 110 → 113 m
 - [ ] Multi-value fields out of free-text search (00af2c72)
 - [ ] Swagger UI version pin (5.34.0) and package size
 - [ ] Exception messages of `View_Query` / `Where` / `SQL` left unescaped (marked): they are API error text
-- [ ] `class-wp-content.php` translates content-type labels with Filox's domain (`__($metas['singular'], 'filox')`, marked): let the registering plugin pass its own text domain?
+- [ ] `class-wp-content.php` translates content-type labels with Filox's domain (`__($metas['singular'], 'filox')`, marked). These are labels admins type on the Content Types screen, translated through Filox's `.po`; switching the domain would drop those translations on live sites, so it stays (FYI).
 - [ ] `content-crud` check reading the error instead of `ok` (d798ea35)
-- [ ] Package contents (`tools/build-wporg.sh`): leave `lib/mammothwp/wp-self-test` and `wp-kit` out (development-only dependency) so Plugin Check passes?
-- [ ] File-system calls kept on PHP file handles (logger appends / locks, streamed export, auto-save to a folder under `wp-content`): reasons acceptable for review?
+- [ ] Package leaves out `lib/mammothwp/wp-self-test` (643ddf5a); `wp-kit` must stay (runtime). Making wp-self-test a `require-dev` in `composer.json` would also remove self-tests from composer installs: your call.
+- [ ] wp-kit `Ability_Adapter.php:73`: add the `function_exists('wp_register_ability_category')` guard upstream (last Plugin Check error)
+- [ ] File-system calls kept on PHP file handles (logger appends / locks, streamed export, auto-save to a folder under `wp-content`; WP_Filesystem has no append, lock or stream): FYI, reasons in the code
 - [ ] Dynamic loader `data-ewp-loading` wait (scripts and styles the loader injects)
-- [ ] Composer's generated autoloader files (18 Plugin Check errors): accept, or post-process them in the build?
+- [ ] Composer's generated autoloader patched by the build (643ddf5a): agree with patching generated files in the package?
