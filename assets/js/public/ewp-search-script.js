@@ -23,6 +23,48 @@
 })();
 
 /**
+ * Run the search action carried by an element's data attributes
+ * (`data-ewp-action` = search-apply | search-reset | search-remove-filter,
+ * `data-ewp-search-id`, `data-ewp-filter-key`) through the global handlers.
+ * Elements without a known action are ignored.
+ * @param {Element|null} element the element that holds the data attributes
+ * @return {boolean} true when an action ran
+ */
+function ewp_search_run_action(element) {
+    if (!element || !element.dataset) {
+        return false;
+    }
+    var searchId = parseInt(element.dataset.ewpSearchId, 10);
+    switch (element.dataset.ewpAction) {
+        case 'search-apply':
+            window.ewp_apply_search_form(searchId);
+            return true;
+        case 'search-reset':
+            window.ewp_reset_search_form(searchId);
+            return true;
+        case 'search-remove-filter':
+            window.ewp_search_remove_filter(element.dataset.ewpFilterKey, searchId);
+            return true;
+    }
+    return false;
+}
+
+/**
+ * Delegated click listener: finds the closest `[data-ewp-action]` element.
+ * @param {MouseEvent} event the click event
+ * @return {void}
+ */
+function ewp_search_action_click(event) {
+    var target = event.target && event.target.closest ? event.target.closest('[data-ewp-action]') : null;
+    ewp_search_run_action(target);
+}
+
+if (!window.ewpSearchActionsBound) {
+    window.ewpSearchActionsBound = true;
+    document.addEventListener('click', ewp_search_action_click);
+}
+
+/**
  * 
  * @param {string} id the name of the input to change
  * @param {int} form_id the form box id
@@ -309,3 +351,7 @@ function ewp_sorting(element) {
 
 
 }
+
+window.ewp_search_remove_filter = ewp_search_remove_filter;
+window.ewp_apply_search_form = ewp_apply_search_form;
+window.ewp_reset_search_form = ewp_reset_search_form;

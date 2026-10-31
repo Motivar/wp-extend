@@ -17,7 +17,7 @@ if (empty($ewp_search_query_terms)) {
  ?>
   <div class="ewp-search-term-wrapper" form-id="<?php echo esc_attr($term_key); ?>">
    <div class="label"><?php echo esc_html(is_array($term_data) ? implode(', ', $term_data) : $term_data); ?></div>
-   <div class="action" onclick="ewp_search_remove_filter('<?php echo esc_js($term_key); ?>',<?php echo absint($ewp_search_id); ?>)"><span aria-hidden=" true">&times;</span></div>
+   <div class="action" data-ewp-action="search-remove-filter" data-ewp-filter-key="<?php echo esc_attr($term_key); ?>" data-ewp-search-id="<?php echo absint($ewp_search_id); ?>"><span aria-hidden=" true">&times;</span></div>
   </div>
  <?php
  }

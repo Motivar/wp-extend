@@ -787,6 +787,78 @@ function awm_repeater_clone(cloned, new_counter, repeater) {
 }
 
 /**
+ * Maps a `data-ewp-action` value to the global function it calls and the extra argument.
+ */
+const REPEATER_ACTIONS = {
+    'repeater-clone': { fn: 'ewp_repeater_clone_row', args: [] },
+    'repeater-up': { fn: 'awm_repeater_order', args: [true] },
+    'repeater-down': { fn: 'awm_repeater_order', args: [false] },
+    'repeater-remove': { fn: 'repeater', args: [] },
+    'repeater-add': { fn: 'repeater', args: [] }
+};
+
+/**
+ * Resolves a click target to a repeater action.
+ *
+ * @param {EventTarget|null} target Click target.
+ * @return {{fn: string, element: HTMLElement, args: Array}|null} Function name, the element carrying the attribute
+ *         (the former `this`) and the extra arguments; null when the click is not on a repeater action.
+ */
+function resolveRepeaterAction(target) {
+    if (!target || typeof target.closest !== 'function') {
+        return null;
+    }
+    const element = target.closest('[data-ewp-action^="repeater-"]');
+    if (!element) {
+        return null;
+    }
+    const action = REPEATER_ACTIONS[element.getAttribute('data-ewp-action')];
+    if (!action) {
+        return null;
+    }
+    return { fn: action.fn, element, args: action.args };
+}
+
+/**
+ * Delegated click handler for repeater actions. Calls the global function (so overrides apply)
+ * and falls back to the module's own.
+ *
+ * @param {Event} event Click event.
+ * @param {Object} fns Fallback functions keyed by global name.
+ * @param {Object} scope Object holding the globals (the window).
+ * @return {boolean} True when an action ran.
+ */
+function handleRepeaterClick(event, fns, scope) {
+    const action = resolveRepeaterAction(event.target);
+    if (!action) {
+        return false;
+    }
+    const callable = typeof scope[action.fn] === 'function' ? scope[action.fn] : fns[action.fn];
+    callable(action.element, ...action.args);
+    return true;
+}
+
+/**
+ * Registers the delegated repeater click listener once.
+ *
+ * @param {Document} doc Document to listen on.
+ * @param {Object} scope Object holding the globals (the window).
+ * @return {boolean} True when registered now, false when it already was.
+ */
+function registerRepeaterActions(doc, scope) {
+    if (doc.__ewpRepeaterActions) {
+        return false;
+    }
+    doc.__ewpRepeaterActions = true;
+    doc.addEventListener('click', (event) => handleRepeaterClick(event, { repeater, ewp_repeater_clone_row, awm_repeater_order }, scope));
+    return true;
+}
+
+if (typeof document !== 'undefined' && typeof window !== 'undefined') {
+    registerRepeaterActions(document, window);
+}
+
+/**
  * Initialize repeater functionality
  */
 function initRepeaters() {
@@ -795,4 +867,4 @@ function initRepeaters() {
 }
 
 // Export functions
-export { repeater, ewp_repeater_clone_row, awm_repeater_order, initRepeaters };
+export { repeater, ewp_repeater_clone_row, awm_repeater_order, initRepeaters, resolveRepeaterAction, handleRepeaterClick, registerRepeaterActions };

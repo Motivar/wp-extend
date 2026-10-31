@@ -4,6 +4,7 @@
  */
 
 import { statusLabel, mergeStatusRecords, columnLabelFor } from './custom-post-status-helpers';
+import { optionsRestArgs } from './options-rest-helpers';
 
 
 /**
@@ -415,10 +416,14 @@ document.addEventListener('click', ewp_php_code_click);
  * @param endpoint the endpoint to send results
  * @param callback the callback to manipulate the data
  * @param method the method to send the data
+ * @param {Event} [event] the click event (falls back to window.event for old inline callers)
  */
-function awm_options_rest_call(form, endpoint, callback, method) {
-    window.event.preventDefault();
-    window.event.stopPropagation();
+function awm_options_rest_call(form, endpoint, callback, method, event) {
+    var clickEvent = event || window.event;
+    if (clickEvent) {
+        clickEvent.preventDefault();
+        clickEvent.stopPropagation();
+    }
     if (!document.getElementById(form)) {
         console.log('no such form');
     }
@@ -434,6 +439,20 @@ function awm_options_rest_call(form, endpoint, callback, method) {
     }
     awm_ajax_call(defaults);
 }
+/**
+ * Delegated click listener for `[data-ewp-action="options-rest"]` buttons.
+ * @param {MouseEvent} event the click event
+ * @return {void}
+ */
+function ewp_options_rest_click(event) {
+    var args = optionsRestArgs(event.target && event.target.closest ? event.target.closest('[data-ewp-action]') : null);
+    if (args) {
+        awm_options_rest_call(args.form, args.endpoint, args.callback, args.method, event);
+    }
+}
+
+document.addEventListener('click', ewp_options_rest_click);
+
 /**
  * with this function we show the rest data of the call
  * @param data json_aray with the return of the rest

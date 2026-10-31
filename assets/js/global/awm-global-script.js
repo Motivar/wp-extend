@@ -4,6 +4,8 @@
  * Optimized for performance with lazy-loading of non-essential features
  */
 
+import { openTab, handleTabClick } from './ewp-tab-actions.js';
+
 /**
  * Set webpack public path dynamically based on the script's location
  * This ensures chunks are loaded from the correct path regardless of where the plugin is installed
@@ -496,23 +498,18 @@ function awm_ajax_call(options) {
 }
 
 /**
- * Open tab functionality
+ * Open tab functionality. Scoped to the tab set of the clicked link.
+ *
+ * @param {{currentTarget: HTMLElement}} evt Event-like object carrying the clicked link.
+ * @param {string} div Tab id.
+ * @return {void}
  */
 function awm_open_tab(evt, div) {
-    var i, awm_tabcontent, awm_tablinks;
-    div = div.trim();
-    awm_tabcontent = document.getElementsByClassName("awm_tabcontent");
-    for (i = 0; i < awm_tabcontent.length; i++) {
-        awm_tabcontent[i].style.display = "none";
-    }
-    awm_tablinks = document.getElementsByClassName("awm_tablinks");
-
-    for (i = 0; i < awm_tablinks.length; i++) {
-        awm_tablinks[i].className = awm_tablinks[i].className.replace(" active", "");
-    }
-    document.getElementById(div + '_content_tab').style.display = "block";
-    evt.currentTarget.className += " active";
+    openTab(evt, div);
 }
+
+// Delegated listener for [data-ewp-action="open-tab"] (templates/fields/tabs.php).
+document.addEventListener('click', (event) => handleTabClick(event, (evt, id) => window.awm_open_tab(evt, id)));
 
 /**
  * Legacy AJAX GET call - redirects to awm_ajax_call

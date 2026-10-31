@@ -8,6 +8,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **No inline event handlers: search form, filter chips, options REST button, tabs, repeater actions, map search** (`2026-10-31`):
+  - **Question/Prompt**: "Yes, 2 agents" (step 8 of the HTML-in-PHP cleanup; plan in `.ai/context/html-in-php-plan.md`). Two Sonnet agents worked in parallel; their work was reviewed, built and verified here.
+  - **Approach**:
+    - Every element that had an `onclick` / `onkeypress` now carries `data-ewp-action` (plus escaped data attributes for its arguments), and one delegated listener calls the same global function with the same element and arguments.
+    - The `window.*` functions stay, because theme template overrides and other plugins call them. Listeners act only on `[data-ewp-action]`, so an old override that still has an `onclick` keeps working and is not fired twice.
+    - No `on*=` attribute is left in `templates/` or `includes/`.
+  - **Front-end search** (`assets/js/public/ewp-search-script.js`, still a classic unbuilt script):
+    - The form string in `class-wp-search.php` is now `templates/frontend/search/form.php`, with the same ids, classes and attributes and the search id `absint`'d. A missing button label no longer raises a notice.
+    - Apply and reset (`search-apply` / `search-reset`) and the filter chips in `results-terms.php` (`search-remove-filter`) go through `ewp_search_run_action()`, guarded against double binding.
+  - **Options page REST button** (`templates/settings.php`):
+    - Its arguments were echoed unescaped into the `onclick`. They are now `esc_attr`'d `data-ewp-form/endpoint/callback/method` attributes, the button has `type="button"` and its label goes through `wp_kses_post`.
+    - `awm_options_rest_call()` gained an optional 5th `event` parameter. It falls back to the deprecated `window.event` for old callers.
+    - The pure part is in `assets/js/admin/options-rest-helpers.js`.
+  - **Field templates** (`fields/tabs.php`, `repeater-actions.php`, `map.php`):
+    - Tabs use `open-tab` + `data-ewp-tab`. The logic is in the new `assets/js/global/ewp-tab-actions.js`.
+    - **Behaviour fix:** switching a tab now touches only its own `.awm-tab-wrapper`. Before, two tab sets on one page reset each other. Without a wrapper it still falls back to the whole document. A missing panel no longer throws.
+    - Repeater actions: `repeater-add|remove|clone|up|down`. One guarded listener is registered when the repeater module loads, and it prefers the `window.*` overrides.
+    - The map search input gets `data-ewp-noenter` and a `keydown` Enter guard. `noenter()` is kept.
+    - The `sync` plugin's extra repeater button (`awm_show_actions_html`) has no `data-ewp-action` and is left alone.
+  - **Snapshots**: 35 files regenerated. With the handler and data attributes stripped from the diff, every changed line pairs up, so nothing else changed.
+  - **Build**:
+    - `build/` rebuilt: admin, global, maps and repeater bundles.
+    - The lazy repeater and maps chunks have new content hashes, and the bundles reference the new files.
+  - **Tests**:
+    - Jest: `assets/js/public/test/ewp-search-script.test.js`, `assets/js/admin/test/options-rest-helpers.test.js`, `assets/js/global/test/ewp-tab-actions.test.js` (including two tab sets) and `assets/js/modules/test/ewp-field-actions.test.js` (all five repeater actions, the Enter guard, the sync button ignored). Jest 41/41.
+    - PHPUnit: new `tests/test-search-templates-test.php`; `tests/test-field-leaf-types-test.php` updated for the map input. PHPUnit 508, OK, 1 skipped (as before). Self-test 16/16.
+  - **Verified in the logged-in admin (Chrome, 2026-10-31)**: on Fields › edit (#39) all five repeaters carry only data actions with no `onclick`. On `awm_positions`:
+    - add (2→3 rows), clone (→4) and remove (back to 2) work;
+    - move up/down moves a marked row from position 1 to 0 and back;
+    - no console errors, and nothing was saved.
+    - No admin page here has a tab field and no search filter is configured, so tabs and front-end search rely on their Jest/PHPUnit tests.
+  - **Files**:
+    - `includes/classes/ewp-search-filter/class-wp-search.php`
+    - `templates/frontend/search/{form.php (new),results-terms.php}`, `templates/settings.php`, `templates/fields/{tabs,repeater-actions,map}.php`
+    - `assets/js/public/ewp-search-script.js`, `assets/js/admin/{awm-admin-script.js,options-rest-helpers.js (new)}`, `assets/js/global/{awm-global-script.js,ewp-tab-actions.js (new)}`, `assets/js/modules/{awm-repeater-module.js,awm-maps-module.js}`
+    - `build/`, tests and fixtures.
+
+### Changed
 - **Legacy content list (`AWM_List_Table`) chrome from templates; status links fixed and escaped** (`2026-10-30`):
   - **Question/Prompt**: "Commit, start step 7" (step 7 of the HTML-in-PHP cleanup).
   - **Before**: the WP_List_Table view (`ewp_content_list_ui` → `legacy`, or `?ewp_list_ui=legacy`) mixed markup into its methods:

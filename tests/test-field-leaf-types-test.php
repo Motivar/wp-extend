@@ -175,7 +175,8 @@ class Test_Field_Leaf_Types extends WP_UnitTestCase
     {
         $out = (new Map_Field(new Template_Loader()))->render($this->context('map', array(), array('lat' => '1.5', 'lng' => '2.5', 'address' => 'Athens "GR"'), 'c', array(), true));
         $this->assertSame(array('awm-cls-100'), $out->wrapper_classes());
-        $this->assertStringContainsString('required="true" onkeypress="return noenter()"', $out->html());
+        $this->assertStringContainsString('required="true" data-ewp-noenter', $out->html());
+        $this->assertStringNotContainsString('onkeypress', $out->html());
         $this->assertStringContainsString('name="_meta[lat]" id="awm_mapmeta-id_lat" value="1.5"', $out->html());
         $this->assertStringContainsString('value="Athens &quot;GR&quot;"', $out->html());
         $this->assertStringContainsString('placeholder="Type to search"', $out->html());
