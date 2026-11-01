@@ -153,6 +153,19 @@ All need `manage_options`. Errors while exporting on save (missing or read-only 
 
 ---
 
+### Activity log (EWP Logger)
+
+When the EWP Logger is enabled (Extend WP > Logger), every export and import leaves one entry, owner `extend-wp`, level `developer`, object type `custom_content`:
+
+| Action type | When | Data |
+|-------------|------|------|
+| `config_auto_export` | Auto export on a save (`trigger: save`, with `object_id`) or delete (`trigger: delete`); `sync export` (`trigger: manual`); migration (`trigger: migrate`) | `content_type` or `types`, `layout`, `path`; files `written` / `removed` and `rows` for a full export; `error` when it failed (behaviour 0) |
+| `config_auto_import` | Auto import on an admin page load (`trigger: admin_init`) or `sync import` (`trigger: manual`). An unchanged source is not logged | `path`, `format` (`v2` / `legacy`), `rows` per type, `deleted`; behaviour 2 (warning) when rows were deleted, 0 with `error` when it failed |
+| `content_export` | Manual export: Import/Export screen, `GET ewp/v1/export`, `wp ewp content export`, `ewp-content/export` | `types`, `form` (`json`, `per_object`, `php`, `file`), `counts` per type, `skipped` (php), `files` (per_object), page options |
+| `content_import` | Manual import of one content type: Import/Export screen, `POST ewp/v1/import`, `wp ewp content import`, `ewp-content/import` | `content_type`, `rows` received, `imported`; `error` when it failed |
+
+The sync's own reads and writes go through the same portability service with logging off, so one sync run is one entry.
+
 ## Use Cases
 
 ### Plugin Use Case

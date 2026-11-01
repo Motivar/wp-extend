@@ -52,6 +52,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `awm_print_php()` stays for external callers, now escaped, and no longer emits the `@@@@` line markers.
     - `method=json` is unchanged.
 
+- **Activity log entries for config auto export/import and manual export/import** (`2026-11-01`):
+  - **Question/Prompt**: "please also add ewp_logger events when auto import/export or when export in order to have this in log".
+  - **New log action types** (owner `extend-wp`, level `developer`, object type `custom_content`), registered on `ewp_logger_initialized` from `Extend_WP_Import_Export`:
+    - `config_auto_export` (`Config_Sync::LOG_EXPORT`): every auto export on save (`trigger: save`, `object_id`) or delete (`trigger: delete`), plus `Config_Sync::export()` (`trigger: manual`, or `migrate` from `migrate()`). Failures are logged with behaviour 0 and the error.
+    - `config_auto_import` (`Config_Sync::LOG_IMPORT`): every `Config_Sync::import()` that ran (`trigger: admin_init` from the auto import, `manual` from `sync import`). It logs rows per type and `deleted` (behaviour 2 when rows were deleted) or the error. An unchanged source is not logged, so ordinary admin page loads stay quiet.
+    - `content_export` / `content_import` (`Content_Portability::LOG_EXPORT|LOG_IMPORT`): manual exports and imports on every surface (Import/Export screen, REST, WP-CLI, abilities). They log the requested types, the form (`json`, `per_object`, `php`, `file`), counts and skipped types.
+  - **No double entries**:
+    - `Content_Portability::export()` gained a `log` option and `import()` an optional third `$options` argument (`log`). The sync passes `log => false` for its nested calls, so one sync run is one entry.
+    - The export and import logic moved unchanged into private `run_export()` / `run_import()` (portability) and `run_full_export()` / `run_import()` (sync).
+  - **Docs**: "Activity log (EWP Logger)" table in `includes/classes/awm-content-db-api/import-export/Readme.md`.
+  - **Tests**: `Test_Config_Sync::test_sync_and_manual_export_import_are_logged`. It switches the logger on through reflection and captures entries on `ewp_logger_before_log`. It checks each path logs exactly one entry of its type and trigger, that an unchanged import is silent, and that a failed auto export has behaviour 0.
+  - **Backwards compatibility**: additive. `import()`'s new parameter is optional. Nothing is logged while the logger is disabled.
+
 - **JSON export on the Import/Export screen downloads the per-object files as a zip** (`2026-11-01`):
   - **Question/Prompt**: "json does not have the new way" → "zip file, but when auto export is enabled it should run the same technique".
   - **One builder**: new `Config_Sync::object_file()` returns a row's path and bytes.

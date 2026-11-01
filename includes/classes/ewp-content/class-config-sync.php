@@ -64,6 +64,46 @@ final class Config_Sync
     /** Transient holding notices raised outside an admin page (a save, a REST call). */
     const TRANSIENT_NOTICES = 'ewp_config_sync_notices';
 
+    /** Logger action type of a configuration export (auto on save/delete, sync export, migrate). */
+    const LOG_EXPORT = 'config_auto_export';
+
+    /** Logger action type of a configuration import (auto on admin_init, sync import). */
+    const LOG_IMPORT = 'config_auto_import';
+
+    /**
+     * Register the configuration sync action types with the EWP Logger.
+     *
+     * @return void
+     *
+     * @hook ewp_logger_initialized
+     * @since 1.15.0
+     */
+    public static function register_log_types()
+    {
+        if (!function_exists('ewp_register_log_type')) {
+            return;
+        }
+        ewp_register_log_type('extend-wp', self::LOG_EXPORT, 'Config Auto Export', 'The EWP configuration files were written (auto export on save or delete, sync export, migration).');
+        ewp_register_log_type('extend-wp', self::LOG_IMPORT, 'Config Auto Import', 'The EWP configuration files were imported (auto import on an admin page load, or sync import).');
+    }
+
+    /**
+     * Write a configuration sync entry to the EWP Logger when it is available.
+     *
+     * @param string $type      LOG_EXPORT or LOG_IMPORT.
+     * @param string $message   Summary.
+     * @param array  $data      Details (trigger, types, path, counts or error).
+     * @param int    $behaviour 1 success, 0 error, 2 warning.
+     *
+     * @return void
+     */
+    private static function log($type, $message, array $data, $behaviour = 1)
+    {
+        if (function_exists('ewp_log')) {
+            ewp_log('extend-wp', $type, $message, $data, 'developer', 'custom_content', $behaviour);
+        }
+    }
+
     /** @var Content_Portability */
     private $portability;
 
@@ -241,7 +281,7 @@ final class Config_Sync
      */
     public function handle_saved($content_type, $object_id)
     {
-        return $this->run_export_hook($content_type, function (array $options, $dir) use ($content_type, $object_id) {
+        return $this->run_export_hook($content_type, ['trigger' => 'save', 'object_id' => (int) $object_id], function (array $options, $dir) use ($content_type, $object_id) {
             if ($options['layout'] === self::LAYOUT_PER_OBJECT) {
                 return $this->write_object($dir, (string) $content_type, (int) $object_id);
             }
@@ -261,7 +301,7 @@ final class Config_Sync
      */
     public function handle_deleted($content_type)
     {
-        return $this->run_export_hook($content_type, function (array $options, $dir) use ($content_type) {
+        return $this->run_export_hook($content_type, ['trigger' => 'delete'], function (array $options, $dir) use ($content_type) {
             if ($options['layout'] === self::LAYOUT_PER_OBJECT) {
                 $removed = $this->reconcile_type($dir, (string) $content_type);
 
@@ -275,12 +315,15 @@ final class Config_Sync
     /**
      * Shared guard of the export hooks: settings, type coverage, path; then run $action.
      *
+     * Every run that writes (or fails) is logged as `config_auto_export`.
+     *
      * @param string   $content_type Content type id.
+     * @param array    $context      Log details: `trigger` (save|delete), optional `object_id`.
      * @param callable $action       fn(array $options, string $dir): true|\WP_Error.
      *
      * @return true|null|\WP_Error
      */
-    private function run_export_hook($content_type, callable $action)
+    private function run_export_hook($content_type, array $context, callable $action)
     {
         $options = $this->export_settings();
         if (empty($options['store'])) {
@@ -295,7 +338,15 @@ final class Config_Sync
             $result = $action($options, $result);
         }
 
-        return is_wp_error($result) ? $this->report_error($result) : $result;
+        $data = array_merge($context, ['content_type' => (string) $content_type, 'layout' => $options['layout'], 'path' => (string) $options['path']]);
+        if (is_wp_error($result)) {
+            self::log(self::LOG_EXPORT, sprintf('Config auto export (%s of %s) failed: %s', $context['trigger'], $content_type, $result->get_error_message()), $data + ['error' => $result->get_error_message()], 0);
+
+            return $this->report_error($result);
+        }
+        self::log(self::LOG_EXPORT, sprintf('Config auto export (%s of %s) wrote the %s layout', $context['trigger'], $content_type, $options['layout']), $data);
+
+        return $result;
     }
 
     /**
@@ -370,7 +421,7 @@ final class Config_Sync
      */
     private function write_single($dir, array $types)
     {
-        $data = $this->portability->export(array_values($types));
+        $data = $this->portability->export(array_values($types), ['log' => false]);
         if (is_wp_error($data) && $data->get_error_code() === 'no_data') {
             /* Every row was deleted: keep the file, empty, so importing sites drop what they imported. */
             $data = ['modified' => date('Y-m-d H:i:s')];
@@ -534,7 +585,9 @@ final class Config_Sync
     /**
      * Re-export every configured row in the given layout.
      *
-     * @param array|null $options {types: string[], path: string, layout?: string}; null for the effective settings.
+     * Logged as `config_auto_export` with the `trigger` (default `manual`).
+     *
+     * @param array|null $options {types: string[], path: string, layout?: string, trigger?: string}; null for the effective settings.
      *
      * @return array|\WP_Error {layout, path, types: type => rows, written: files changed, removed: files deleted}.
      *
@@ -543,6 +596,32 @@ final class Config_Sync
     public function export(?array $options = null)
     {
         $options = $options ?: $this->export_settings(true);
+        $result  = $this->run_full_export($options);
+        $data    = [
+            'trigger' => isset($options['trigger']) ? (string) $options['trigger'] : 'manual',
+            'types'   => array_values(array_map('strval', (array) (isset($options['types']) ? $options['types'] : []))),
+            'layout'  => self::normalize_layout(isset($options['layout']) ? $options['layout'] : ''),
+            'path'    => isset($options['path']) ? (string) $options['path'] : '',
+        ];
+        if (is_wp_error($result)) {
+            self::log(self::LOG_EXPORT, sprintf('Config export (%s) failed: %s', $data['trigger'], $result->get_error_message()), $data + ['error' => $result->get_error_message()], 0);
+
+            return $result;
+        }
+        self::log(self::LOG_EXPORT, sprintf('Config export (%s): %d file(s) written, %d removed', $data['trigger'], (int) $result['written'], (int) $result['removed']), $data + ['rows' => $result['types'], 'written' => $result['written'], 'removed' => $result['removed']]);
+
+        return $result;
+    }
+
+    /**
+     * The export itself (see export()), without logging.
+     *
+     * @param array $options Export settings.
+     *
+     * @return array|\WP_Error As export().
+     */
+    private function run_full_export(array $options)
+    {
         $dir     = $this->prepared_dir($options);
         if (is_wp_error($dir)) {
             return $dir;
@@ -804,7 +883,7 @@ final class Config_Sync
             return null;
         }
 
-        $result = $this->import($options);
+        $result = $this->import($options + ['trigger' => 'admin_init']);
         if (is_wp_error($result)) {
             /* translators: %s: error message. */
             $message = sprintf(__('Import failed: %s. Please check your php error_logs.', 'extend-wp'), $result->get_error_message());
@@ -832,14 +911,40 @@ final class Config_Sync
      *
      * @param array $options {
      *     @type string $path  Folder relative to wp-content (required).
-     *     @type bool   $force Import even if the source did not change since the last import.
+     *     @type bool   $force   Import even if the source did not change since the last import.
+     *     @type string $trigger Log detail: `admin_init` (auto import) or `manual` (default).
      * }
+     *
+     * Every import that ran (or failed) is logged as `config_auto_import`; an unchanged source is not logged.
      *
      * @return array|\WP_Error {status: 'imported'|'unchanged', format: 'v2'|'legacy', types: type => rows, deleted: int}
      *
      * @since 1.15.0
      */
     public function import(array $options)
+    {
+        $result = $this->run_import($options);
+        $data   = ['trigger' => isset($options['trigger']) ? (string) $options['trigger'] : 'manual', 'path' => isset($options['path']) ? (string) $options['path'] : ''];
+        if (is_wp_error($result)) {
+            self::log(self::LOG_IMPORT, sprintf('Config import (%s) failed: %s', $data['trigger'], $result->get_error_message()), $data + ['error' => $result->get_error_message()], 0);
+
+            return $result;
+        }
+        if ($result['status'] === 'imported') {
+            self::log(self::LOG_IMPORT, sprintf('Config import (%s, %s layout): %d row(s) imported, %d deleted', $data['trigger'], $result['format'], array_sum((array) $result['types']), (int) $result['deleted']), $data + ['format' => $result['format'], 'rows' => $result['types'], 'deleted' => $result['deleted']], $result['deleted'] > 0 ? 2 : 1);
+        }
+
+        return $result;
+    }
+
+    /**
+     * The import itself (see import()), without logging.
+     *
+     * @param array $options As import().
+     *
+     * @return array|\WP_Error As import().
+     */
+    private function run_import(array $options)
     {
         $dir = $this->resolve_dir(isset($options['path']) ? $options['path'] : '');
         if (is_wp_error($dir)) {
@@ -1033,7 +1138,7 @@ final class Config_Sync
     {
         $hashes = [];
         foreach ($sources as $content_type => $rows) {
-            $result = $this->portability->import((string) $content_type, array_values($rows));
+            $result = $this->portability->import((string) $content_type, array_values($rows), ['log' => false]);
             if (is_wp_error($result) || empty($result['hashes'])) {
                 /* translators: %s: content type id. */
                 return new \WP_Error('ewp_config_sync_import', sprintf(__('Failed to import content of type %s.', 'extend-wp'), $content_type), ['status' => 400]);
@@ -1129,7 +1234,8 @@ final class Config_Sync
     public function migrate()
     {
         $options = $this->export_settings(true);
-        $options['layout'] = self::LAYOUT_PER_OBJECT;
+        $options['layout']  = self::LAYOUT_PER_OBJECT;
+        $options['trigger'] = 'migrate';
 
         $summary = $this->export($options);
         if (is_wp_error($summary)) {

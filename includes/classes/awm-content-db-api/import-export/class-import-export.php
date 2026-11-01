@@ -39,6 +39,8 @@ class Extend_WP_Import_Export
   add_action('ewp_custom_content_delete_action', [$this, 'auto_export_content_deleted'], 100, 2);
   add_action('admin_init', [$this, 'auto_import_content'], 100);
   add_action('admin_notices', ['\EWP\Content\Config_Sync', 'render_notices']);
+  add_action('ewp_logger_initialized', ['\EWP\Content\Config_Sync', 'register_log_types']);
+  add_action('ewp_logger_initialized', ['\EWP\Content\Content_Portability', 'register_log_types']);
  }
 
  /**
