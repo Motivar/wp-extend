@@ -1,7 +1,6 @@
 <?php
 /**
- * Content export/import, object search and the REST-health inventory on
- * their new surfaces, with the historical REST bodies preserved.
+ * Content export/import and object search on their new surfaces, with the historical REST bodies preserved.
  */
 class Test_New_Scope_Surfaces extends WP_UnitTestCase
 {
@@ -90,34 +89,26 @@ class Test_New_Scope_Surfaces extends WP_UnitTestCase
         $this->assertSame('awm_invalid_object_type', $bad->get_error_code());
     }
 
-    public function test_rest_health_inventory_lists_this_plugin_on_every_surface()
+    /**
+     * The plugin's own REST namespaces are reported to MammothWP REST Health
+     * through its `mmwp_rh_runtime_namespaces` filter; REST Health itself is
+     * no longer part of this plugin.
+     *
+     * @return void
+     */
+    public function test_rest_namespaces_are_reported_to_mammoth_rest_health()
     {
-        grant_super_admin(get_current_user_id());
-        // The test bootstrap requires the plugin directly; the inventory reads the active_plugins option.
-        update_option('active_plugins', ['wp-extend/extend-wp.php']);
+        $map   = apply_filters('mmwp_rh_runtime_namespaces', []);
+        $owner = plugin_basename(awm_path . 'extend-wp.php');
 
-        $plugins = $this->rest('GET', '/extend-wp/v1/rest-health/plugins', ['refresh' => true]);
-        $this->assertSame(200, $plugins->get_status());
-        $paths = array_column($plugins->get_data(), 'path');
-        $mine  = array_values(array_filter($paths, function ($path) {
-            return strpos($path, 'extend-wp.php') !== false;
-        }));
-        $this->assertNotEmpty($mine, 'wp-extend must appear in its own inventory');
-
-        $endpoints = $this->rest('POST', '/extend-wp/v1/rest-health/endpoints', ['plugins' => [$mine[0]]]);
-        $this->assertSame(200, $endpoints->get_status());
-        $this->assertNotEmpty($endpoints->get_data());
-
-        $ability = wp_get_ability('ewp-rest-health/list-endpoints')->execute(['plugins' => [$mine[0]]]);
-        $this->assertNotWPError($ability);
-        $this->assertNotEmpty($ability);
-
-        $this->assertSame(400, $this->rest('POST', '/extend-wp/v1/rest-health/endpoints', ['plugins' => []])->get_status());
+        $this->assertSame($owner, $map['extend-wp/v1'] ?? null);
+        $this->assertArrayNotHasKey('extend-wp/v1/rest-health/plugins', rest_get_server()->get_routes());
+        $this->assertFalse(class_exists('EWP_REST_Health', false), 'REST Health moved to mammoth-rest-health');
     }
 
     public function test_new_commands_and_abilities_are_registered()
     {
-        foreach (['ewp-content/export', 'ewp-content/import', 'ewp-system/search-objects', 'ewp-rest-health/list-plugins', 'ewp-rest-health/list-endpoints'] as $name) {
+        foreach (['ewp-content/export', 'ewp-content/import', 'ewp-system/search-objects'] as $name) {
             $this->assertTrue(wp_has_ability($name), "{$name} must be registered");
         }
     }

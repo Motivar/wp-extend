@@ -38,13 +38,11 @@ class EWP_Logger
 {
     /**
      * Load the read side of the logger: query, formatter, filter params,
-     * AI diagnose, the wp-admin viewer, the WP-CLI wrapper and the REST-health
-     * module that builds on them.
+     * AI diagnose, the wp-admin viewer and the WP-CLI wrapper.
      *
      * Skipped on plain front-end requests (nothing there reads logs) and
-     * called again on demand by EWP_Surfaces::boot() — the logger and
-     * REST-health resources need these classes on whichever surface asks
-     * for them — and by EWP_Self_Test::load_cli() for the CLI shim.
+     * called again on demand by EWP_Surfaces::boot() — the logger
+     * resource needs these classes on whichever surface asks for them — and by EWP_Self_Test::load_cli() for the CLI shim.
      * Idempotent.
      *
      * @return void
@@ -58,10 +56,6 @@ class EWP_Logger
         require_once __DIR__ . '/class-ewp-logger-api.php';
         require_once __DIR__ . '/class-ewp-logger-diagnose.php';
         require_once __DIR__ . '/class-ewp-logger-viewer.php';
-        require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health-discovery.php';
-        require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health-runner.php';
-        require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health-openapi.php';
-        require_once __DIR__ . '/../ewp-rest-health/class-ewp-rest-health.php';
 
         if (class_exists('WP_CLI')) {
             require_once __DIR__ . '/class-ewp-logger-cli.php';

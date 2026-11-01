@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **REST Health moved out to the standalone MammothWP REST Health plugin** (`2026-11-01`):
+  - **Question/Prompt**: step 9B of the extend-wp cleanup — "strip out all ewp related code" for REST Health; the module now lives in `mammoth-rest-health` (GitLab `mammothwp/rest-health`).
+  - **Removed**:
+    - `includes/classes/ewp-rest-health/` (`EWP_REST_Health`, `_Discovery`, `_Runner`, `_OpenAPI`) and its loading from `EWP_Logger::load_read_side()`.
+    - `assets/js/admin/ewp-rest-health.js`, `assets/css/admin/ewp-rest-health.css` and their Dynamic Asset Loader registrations (they were never webpack entries, so `build/` is unchanged).
+    - Kit resources `rest-health` (`Rest_Health_Resource` over `EWP\Surfaces\Rest_Health_Inventory`) and the REST-only `rest-health-probes` (`Rest_Health_Probes_Resource` over `EWP\Surfaces\Rest_Health_Probes`), i.e. every `extend-wp/v1/rest-health/*` route, `wp ewp rest-health plugins|endpoints` and the `ewp-rest-health/list-plugins` / `list-endpoints` abilities.
+    - The REST Health admin page (`ewp-rest-health`), its `ewp-rest-health` log owner and log types.
+    - The logger setting "Enable REST Health Monitoring" (`rest_api_enabled`): it only gated REST Health. A value already stored in `ewp_logger_settings` is ignored.
+    - Filters `ewp_rest_health_namespace_plugin_map`, `ewp_rest_health_monitor_exclude_routes`, `ewp_rh_page_fields` and `ewp_rest_health_runtime_namespaces` (their `mmwp_rh_*` equivalents are in the new plugin).
+    - Self-test cases `rest-health` and `rest-health-probes` (`manifest.json`; 16 → 14 cases).
+  - **Hook rename (attribution kept)**: `EWP_Surfaces::report_rest_namespaces()` now adds this plugin's REST namespaces to `mmwp_rh_runtime_namespaces` (same signature, fired by MammothWP REST Health) instead of `ewp_rest_health_runtime_namespaces`. It is inert when that plugin is not active. Listed in `HOOKS.md` under "Hooks of other plugins that Extend WP listens to".
+  - **Data left in place**: nothing is deleted and there is no cleanup routine. The new plugin migrates the `ewp_rh_preferences` user meta and the `uploads/ewp-rest-health/` history/payload files on its first boot, so they must stay. Leftover `ewp_rh_monitor_*` options and `ewp_rh_ns_map_*` transients are now orphaned and harmless; old log entries with owner `ewp-rest-health` stay in the log files (the owner is no longer registered, so it shows unlabelled).
+  - **Tests**:
+    - `tests/test-new-scope-test.php`: the inventory test is replaced by `test_rest_namespaces_are_reported_to_mammoth_rest_health` (the `mmwp_rh_runtime_namespaces` filter maps `extend-wp/v1` to this plugin; no `rest-health` route or class is left); the two `ewp-rest-health/*` abilities are dropped from the registration check.
+    - `tests/test-security-hardening-test.php`: the REST-health payload case moved with the module.
+    - `tests/bench/probe.php`: `rh_plugins` / `rh_endpoints` probes removed.
+    - Snapshots unchanged (`tests/fixtures/typed-ability-schemas.json` and the field snapshots never contained REST Health).
+    - phpcs clean; PHPUnit 507 tests, OK; self-test 14 passed, 0 failed, 0 skipped (115 checks); Jest 41/41.
+  - **Docs**: `CLAUDE.md`, `HOOKS.md`, `docs/surfaces.md`, `docs/abilities.md`, `docs/self-test.md`, `docs/logger-storage.md`, `tests/bench/README.md` point to the new plugin.
+  - **Merge order**: after the `mammothwp/rest-health` MR, so sites never go without REST Health.
+
 ### Changed
 - **No inline event handlers: search form, filter chips, options REST button, tabs, repeater actions, map search** (`2026-10-31`):
   - **Question/Prompt**: "Yes, 2 agents" (step 8 of the HTML-in-PHP cleanup; plan in `.ai/context/html-in-php-plan.md`). Two Sonnet agents worked in parallel; their work was reviewed, built and verified here.

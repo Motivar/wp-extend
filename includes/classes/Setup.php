@@ -38,7 +38,7 @@ class Setup
    $logger->init();
   }, 0);
   require_once 'class-request-context.php';
-  /*guarded, unguessable files under uploads (logger, REST-health); before the logger*/
+  /*guarded, unguessable files under uploads (logger); before the logger*/
   require_once 'class-private-files.php';
   /*object-free unserialize for stored meta, logs and imports*/
   require_once 'class-serialization.php';

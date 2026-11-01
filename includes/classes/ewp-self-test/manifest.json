@@ -288,33 +288,6 @@
             }
         },
         {
-            "id": "rest-health",
-            "label": "REST route inventory",
-            "category": "system",
-            "layers": [
-                "rest",
-                "cli",
-                "ability"
-            ],
-            "class": "EWP\\SelfTest\\Cases\\Rest_Health_Case",
-            "requires": [],
-            "args": {},
-            "covers": {
-                "rest": [
-                    "extend-wp/v1/rest-health/plugins",
-                    "extend-wp/v1/rest-health/endpoints"
-                ],
-                "cli": [
-                    "ewp rest-health plugins",
-                    "ewp rest-health endpoints"
-                ],
-                "ability": [
-                    "ewp-rest-health/list-plugins",
-                    "ewp-rest-health/list-endpoints"
-                ]
-            }
-        },
-        {
             "id": "typed-content",
             "label": "Typed content abilities (field groups, post types, taxonomies)",
             "category": "content",
@@ -347,30 +320,6 @@
                     "ewp-wp-content/update-taxonomy",
                     "ewp-wp-content/delete-taxonomy"
                 ]
-            }
-        },
-        {
-            "id": "rest-health-probes",
-            "label": "REST-health page probes",
-            "category": "system",
-            "layers": [
-                "rest"
-            ],
-            "class": "EWP\\SelfTest\\Cases\\Rest_Health_Probes_Case",
-            "requires": [],
-            "args": {},
-            "covers": {
-                "rest": [
-                    "extend-wp/v1/rest-health/openapi",
-                    "extend-wp/v1/rest-health/test",
-                    "extend-wp/v1/rest-health/batch",
-                    "extend-wp/v1/rest-health/history",
-                    "extend-wp/v1/rest-health/monitor",
-                    "extend-wp/v1/rest-health/monitor/payloads",
-                    "extend-wp/v1/rest-health/preferences"
-                ],
-                "cli": [],
-                "ability": []
             }
         },
         {
