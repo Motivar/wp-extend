@@ -3,6 +3,10 @@
  * Extends the core awm_init_inputs() with admin-only features
  */
 
+import { statusLabel, mergeStatusRecords, columnLabelFor } from './custom-post-status-helpers';
+import { optionsRestArgs } from './options-rest-helpers';
+
+
 /**
  * Custom Post Status Handler
  * Manages custom post statuses for specific post types in Classic Editor, Gutenberg, and Quick Edit
@@ -49,8 +53,9 @@ class EWPCustomPostStatus {
         // Gutenberg support
         this.addToGutenberg();
 
-        // Quick Edit support (only on list screens)
+        // List screens: custom status labels in the Status column, then Quick Edit
         if (this.isEditScreen) {
+            this.fixStatusColumn();
             this.addToQuickEdit();
         }
     }
@@ -71,7 +76,7 @@ class EWPCustomPostStatus {
         // Add custom statuses to dropdown
         Object.keys(this.customStatuses).forEach(statusKey => {
             const statusData = this.customStatuses[statusKey];
-            const label = statusData.label || statusKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const label = statusLabel(statusKey, statusData);
 
             // Check if option already exists
             const existingOption = postStatusSelect.querySelector(`option[value="${statusKey}"]`);
@@ -108,54 +113,52 @@ class EWPCustomPostStatus {
     }
 
     /**
-     * Add custom statuses to Gutenberg Editor
+     * Add custom statuses to the block editor's `core` status store, once the
+     * editor has loaded a post of this post type (gives up after 10 seconds).
+     * Replaces the inline script the post-type installer printed before 1.14.0.
      */
     addToGutenberg() {
-        // Check if Gutenberg is available
-        if (typeof wp === 'undefined' || !wp.data) {
+        if (typeof wp === 'undefined' || !wp.data || !wp.data.subscribe) {
             return;
         }
-
         const { select, dispatch, subscribe } = wp.data;
-        let isInitialized = false;
-
-        // Wait for editor to be ready
+        let done = false;
         const unsubscribe = subscribe(() => {
             const editor = select('core/editor');
-            if (!editor || isInitialized) {
+            const currentPost = editor ? editor.getCurrentPost() : null;
+            if (done || !currentPost || currentPost.type !== this.currentPostType) {
                 return;
             }
-
-            const currentPost = editor.getCurrentPost();
-            if (!currentPost || !currentPost.type) {
-                return;
-            }
-
-            // Only initialize for the correct post type
-            if (currentPost.type !== this.currentPostType) {
-                return;
-            }
-
-            isInitialized = true;
-
-            // Register custom statuses with Gutenberg
-            Object.keys(this.customStatuses).forEach(statusKey => {
-                const statusData = this.customStatuses[statusKey];
-
-                // Try to register the status if not already registered
-                try {
-                    const existingStatuses = select('core').getPostStatuses();
-                    if (existingStatuses && !existingStatuses[statusKey]) {
-                        // Note: Gutenberg doesn't have a direct API to register statuses
-                        // They need to be registered server-side, which we do in PHP
-                        // This code ensures the UI updates correctly
-                    }
-                } catch (error) {
-                    // Silent fail - status registration happens in PHP
-                }
-            });
-
+            done = true;
             unsubscribe();
+            dispatch('core').receiveEntityRecords(
+                'root',
+                'status',
+                mergeStatusRecords(select('core').getPostStatuses() || {}, this.customStatuses)
+            );
+        });
+        setTimeout(() => {
+            if (!done) {
+                unsubscribe();
+            }
+        }, 10000);
+    }
+
+    /**
+     * List screens: show custom status labels in the Status column instead of
+     * the raw keys. Builds the <strong> with textContent, so labels are never
+     * parsed as HTML. Replaces the inline footer script the post-type
+     * installer printed before 1.14.0.
+     */
+    fixStatusColumn() {
+        document.querySelectorAll('.column-status').forEach((cell) => {
+            const label = columnLabelFor(cell.textContent, this.customStatuses);
+            if (label === null) {
+                return;
+            }
+            const strong = document.createElement('strong');
+            strong.textContent = label;
+            cell.replaceChildren(strong);
         });
     }
 
@@ -190,7 +193,7 @@ class EWPCustomPostStatus {
                         // Add custom statuses
                         Object.keys(self.customStatuses).forEach(statusKey => {
                             const statusData = self.customStatuses[statusKey];
-                            const label = statusData.label || statusKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            const label = statusLabel(statusKey, statusData);
 
                             // Check if option already exists
                             if (statusSelect.find(`option[value="${statusKey}"]`).length === 0) {
@@ -384,6 +387,25 @@ function awm_show_php_code(data) {
     }
 }
 
+/**
+ * Load the PHP code when a "Show php code" button (templates/admin-view/php-code-box.php,
+ * `data-ewp-php-code="{row id}"`) is clicked. Delegated, so it works for boxes
+ * rendered after load too.
+ *
+ * @param {MouseEvent} event Click anywhere in the document.
+ * @return {void}
+ */
+function ewp_php_code_click(event) {
+    var button = event.target.closest('[data-ewp-php-code]');
+    if (!button) {
+        return;
+    }
+    event.preventDefault();
+    ewp_get_php_code(button.getAttribute('data-ewp-php-code'));
+}
+
+document.addEventListener('click', ewp_php_code_click);
+
 
 
 
@@ -394,10 +416,14 @@ function awm_show_php_code(data) {
  * @param endpoint the endpoint to send results
  * @param callback the callback to manipulate the data
  * @param method the method to send the data
+ * @param {Event} [event] the click event (falls back to window.event for old inline callers)
  */
-function awm_options_rest_call(form, endpoint, callback, method) {
-    window.event.preventDefault();
-    window.event.stopPropagation();
+function awm_options_rest_call(form, endpoint, callback, method, event) {
+    var clickEvent = event || window.event;
+    if (clickEvent) {
+        clickEvent.preventDefault();
+        clickEvent.stopPropagation();
+    }
     if (!document.getElementById(form)) {
         console.log('no such form');
     }
@@ -413,6 +439,20 @@ function awm_options_rest_call(form, endpoint, callback, method) {
     }
     awm_ajax_call(defaults);
 }
+/**
+ * Delegated click listener for `[data-ewp-action="options-rest"]` buttons.
+ * @param {MouseEvent} event the click event
+ * @return {void}
+ */
+function ewp_options_rest_click(event) {
+    var args = optionsRestArgs(event.target && event.target.closest ? event.target.closest('[data-ewp-action]') : null);
+    if (args) {
+        awm_options_rest_call(args.form, args.endpoint, args.callback, args.method, event);
+    }
+}
+
+document.addEventListener('click', ewp_options_rest_click);
+
 /**
  * with this function we show the rest data of the call
  * @param data json_aray with the return of the rest

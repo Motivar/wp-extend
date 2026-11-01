@@ -93,6 +93,12 @@ class AWM_Add_Custom_List
    */
   public static $form_hooks = array();
 
+  /**
+   * Registers the custom list form page and hooks its load, footer, save and notice callbacks.
+   *
+   * @param array $args Registration args: `custom_id` (string) content type id and `custom_list` (array) list/form page definition.
+   * @return void
+   */
   public function __construct($args)
   {
     $this->custom_id = $args['custom_id'];
@@ -102,11 +108,15 @@ class AWM_Add_Custom_List
       self::$form_hooks[] = $this->pagehook;
     }
     add_action('load-' . $this->pagehook, array($this, 'on_load_page'));
-    add_action('admin_footer-' . $this->pagehook, array($this, 'on_page_footer'), 100);
     add_action('admin_init', array($this, 'save_page'), 10);
     add_action('admin_notices', [$this, 'show_message'], 100);
   }
 
+  /**
+   * Prints the 'Content updated!' admin notice when the `ewp_updated` request flag is set.
+   *
+   * @return void
+   */
   public function show_message()
   {
     if (isset($_REQUEST['ewp_updated'])) { ?>
@@ -207,6 +217,14 @@ class AWM_Add_Custom_List
         });
       }
 
+      /**
+       * Filters the meta boxes of a custom content form page.
+       *
+       * @since 1.0.0
+       *
+       * @param array  $metaboxes Meta box definitions registered for the page.
+       * @param string $id        Page id of the custom list.
+       */
       $this->meta_boxes = apply_filters('awm_content_db_metaboxes_filter', isset($args['metaboxes']) ? $args['metaboxes'] : array(), $id);
 
       $this->page_hook = $this->pagehook;
@@ -223,6 +241,12 @@ class AWM_Add_Custom_List
     }
   }
 
+  /**
+   * Returns the parent menu path only when it points to an `edit.php` screen, otherwise an empty string.
+   *
+   * @param array $args Page args; the optional `parent` key holds the parent menu slug/path.
+   * @return string Validated parent path, or an empty string.
+   */
   private function validateParentPath($args)
   {
     // Default to empty string
@@ -301,22 +325,23 @@ class AWM_Add_Custom_List
     return current_user_can($capability !== '' ? $capability : 'manage_options');
   }
 
+  /**
+   * Formerly printed the inline postbox setup script in the page footer.
+   *
+   * @deprecated 1.14.0 The setup moved to the ES module
+   *             assets/js/modules/ewp-content-form-postboxes.js, loaded by the
+   *             Dynamic Asset Loader when #ewp-content-form is on the page.
+   * @return void
+   */
   public function on_page_footer()
   {
-    ?>
-<script type="text/javascript">
-//<![CDATA[
-jQuery(document).ready(function($) {
- // close postboxes that should be closed
- $('.if-js-closed').removeClass('if-js-closed').addClass('closed');
- // postboxes setup
- postboxes.add_postbox_toggles('<?php echo $this->page_hook; ?>');
-});
-//]]>
-</script>
-<?php
   }
 
+  /**
+   * Loads (once per request) the content row and its meta for the `id` request parameter.
+   *
+   * @return array Array with `item` (main table row) and `meta` (meta values); both empty when no id is requested.
+   */
   public function get_current_view_data()
   {
     if (!empty(self::$item_data)) {
@@ -331,6 +356,11 @@ jQuery(document).ready(function($) {
     return self::$item_data;
   }
 
+  /**
+   * Enqueues postbox scripts and registers the meta boxes and the update actions box for the page.
+   *
+   * @return void
+   */
   public function on_load_page()
   {
     global $ewp_content_id;
@@ -370,11 +400,17 @@ jQuery(document).ready(function($) {
 
                 $view = isset($metaBoxData['view']) ? $metaBoxData['view'] : 'post';
                 $metaBoxData['library']['awm-id'] = $metaBoxData['id'];
+                /**
+                 * Filters the rendered HTML of a meta box on a custom content form page.
+                 *
+                 * @since 1.0.0
+                 *
+                 * @param string $content Rendered meta box fields HTML.
+                 * @param string $box_id  Meta box key.
+                 */
                 $content = apply_filters('awm_add_meta_boxes_filter_content', awm_show_content($metaBoxData['library'], $metaBoxData['post'], $view), $metaBoxData['id']);
                 if (!empty($content)) {
-                  echo $content;
-                echo '<input type="hidden" name="awm_metabox[]" value="' . $metaBoxData['id'] . '"/>';
-                echo '<input type="hidden" name="awm_metabox_case" value="post"/>';
+                  echo AWM_Meta::meta_box_html('content', $metaBoxData, $content, 'post'); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
                 }
               },
               $this->page_hook, // $page
@@ -397,6 +433,12 @@ jQuery(document).ready(function($) {
     ); // $priority
   }
 
+  /**
+   * Renders the update actions box (status field, delete link, save button, row id and hash) from templates/admin-view/update-box.php.
+   *
+   * @param array $data Update metas registered for the page; currently unused by this method.
+   * @return string Rendered HTML of the box.
+   */
   public function update_box($data)
   {
     global $ewp_args;
@@ -416,34 +458,78 @@ jQuery(document).ready(function($) {
       );
       $select_box = awm_show_content($select);
     }
-    $id = isset($item_data['item']['content_id']) ? absint($item_data['item']['content_id']) : '';
+    $item = isset($item_data['item']) && is_array($item_data['item']) ? $item_data['item'] : array();
+    $id   = isset($item['content_id']) ? absint($item['content_id']) : 0;
 
-    $save_text = $id != ''  ? __('Update', 'extend-wp') : __('Save', 'extend-wp');
-    $dev_notes = '';
-    if ($id) {
-      $dev_notes = array(
-        'content_id: ' . $id,
-        'hash: ' . $item_data['item']['hash']
+    return awm_parse_template(awm_path . 'templates/admin-view/update-box.php', array(
+      'status_html' => (string) $select_box,
+      'delete_url'  => ($id && $this->show_delete) ? wp_nonce_url(admin_url($this->page_link . '&id=' . $id . '&action=delete'), $this->page_id . '_delete') : '',
+      'save_text'   => $id ? __('Update', 'extend-wp') : __('Save', 'extend-wp'),
+      'details'     => self::row_details($item, (string) $this->page_id),
+    ));
+  }
+
+  /**
+   * Entries of the "Row details" disclosure in the update box: the row's id
+   * and hash by default, extended by the `ewp_content_row_details` filter.
+   *
+   * @param array  $item         Row being edited (`content_id`, `hash`, `status`, …); empty for a new row.
+   * @param string $content_type Content type id (the form's page id).
+   * @return array<string, array{label: string, value: string, code: bool, html: bool}> Entries keyed by slug;
+   *               entries without a label or value are dropped.
+   */
+  public static function row_details(array $item, $content_type)
+  {
+    $details = array();
+    if (!empty($item['content_id'])) {
+      $details['content_id'] = array('label' => __('ID', 'extend-wp'), 'value' => (string) absint($item['content_id']), 'code' => true);
+      if (!empty($item['hash'])) {
+        $details['hash'] = array('label' => __('Hash', 'extend-wp'), 'value' => (string) $item['hash'], 'code' => true);
+      }
+    }
+
+    /**
+     * Filter the entries of the "Row details" disclosure in the update box of
+     * a custom content edit form (collapsed by default, under Save/Update).
+     *
+     * Each entry is keyed by a slug and holds `label` and `value` (strings),
+     * plus optional `code` (bool, monospace and click-to-select, like the id
+     * and hash) and `html` (bool: `value` is markup, passed through
+     * wp_kses_post(); otherwise it is escaped as text). Return an empty array
+     * to hide the disclosure.
+     *
+     * @since 1.14.0
+     *
+     * @param array  $details      Entries keyed by slug (`content_id`, `hash` for a saved row; none for a new one).
+     * @param array  $item         Row being edited (`content_id`, `hash`, `status`, `created`, `modified`, …); empty for a new row.
+     * @param string $content_type Content type id.
+     */
+    $details = apply_filters('ewp_content_row_details', $details, $item, $content_type);
+
+    return self::normalize_row_details(is_array($details) ? $details : array());
+  }
+
+  /**
+   * Keep well-formed row-detail entries and fill in the optional flags.
+   *
+   * @param array $details Filtered entries.
+   * @return array<string, array{label: string, value: string, code: bool, html: bool}>
+   */
+  private static function normalize_row_details(array $details)
+  {
+    $normalized = array();
+    foreach ($details as $key => $entry) {
+      if (!is_array($entry) || !isset($entry['label'], $entry['value']) || !is_scalar($entry['value']) || '' === (string) $entry['value']) {
+        continue;
+      }
+      $normalized[$key] = array(
+        'label' => (string) $entry['label'],
+        'value' => (string) $entry['value'],
+        'code'  => !empty($entry['code']),
+        'html'  => !empty($entry['html']),
       );
-      $dev_notes = '<div class="ewp-dev-notes" style="font-size:90%;opacity:0.8;word-">' . implode('<br>', $dev_notes) . '</div>';
     }
-    $delete_button = '';
-    if ($this->show_delete) {
-      $delete_button = $id != '' ? '<a class="submitdelete deletion awm-delete-content-id" href="' . wp_nonce_url(admin_url($this->page_link . '&id=' . $id . '&action=delete'), $this->page_id . '_delete') . '">' . __('Delete ', 'extend-wp') . '</a>' : '';
-    }
-    return '<div class="submitbox ewp-status-box"><div id="major-publishing-actions">' . $select_box . '
-    <div>
-        <div id="delete-action">' . $delete_button . '</div>
-        <div id="publishing-action">
-        <span class="spinner"></span>
-                <input name="save" type="submit" class="button button-primary button-large" id="publish" value="' . $save_text . '">
-        </div>
-        </div>
-        <div class="clear"></div>
-        ' . $dev_notes . '
-         <div class="clear"></div>
-        </div>
-        </div>';
+    return $normalized;
   }
 
 

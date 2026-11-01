@@ -1,0 +1,1 @@
+:root{--ewp-debug-bg: #f4f4f4;--ewp-debug-border: #dddddd;--ewp-debug-text: #333333}pre.ewp-debug{padding:10px;overflow:auto;color:var(--ewp-debug-text);background:var(--ewp-debug-bg);border:1px solid var(--ewp-debug-border);border-radius:5px}

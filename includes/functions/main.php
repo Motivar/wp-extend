@@ -311,14 +311,22 @@ if (!function_exists('awm_get_metabox_info')) {
 
 
 if (!function_exists('awm_show_featured_image')) {
+    /**
+     * The post's featured image as a 50px thumbnail (admin list column).
+     *
+     * WordPress sizes and escapes it (width/height attributes, srcset), so no
+     * inline style is needed.
+     *
+     * @param int $post_ID Post ID.
+     * @return string Image markup, '' when the post has no featured image.
+     */
     function awm_show_featured_image($post_ID)
     {
         $post_thumbnail_id = get_post_thumbnail_id($post_ID);
-        if ($post_thumbnail_id) {
-            $post_thumbnail_img = wp_get_attachment_image_src($post_thumbnail_id, 'thumbnail');
-            return '<img src="' . $post_thumbnail_img[0] . '" style="max-width:50px;height:auto;"/>';
+        if (!$post_thumbnail_id) {
+            return '';
         }
-        return '';
+        return wp_get_attachment_image($post_thumbnail_id, array(50, 50), false, array('class' => 'ewp-list-thumb'));
     }
 }
 
@@ -344,10 +352,15 @@ if (!function_exists('ewp_debug')) {
      *
      * @param mixed $data The data to debug (array, object, string, etc.)
      * @param bool $exit Whether to exit after printing (default: false)
+     * @return void
      */
     function ewp_debug($data, $exit = false)
     {
-        echo '<pre style="background: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 5px; color: #333;">';
+        /*styled by assets/css/global/ewp-debug.min.css; enqueued this late, WordPress prints it in the footer*/
+        if (function_exists('wp_enqueue_style') && did_action('init')) {
+            wp_enqueue_style('ewp-debug', awm_url . 'assets/css/global/ewp-debug.min.css', array(), defined('AWM_ASSET_VERSION') ? AWM_ASSET_VERSION : false);
+        }
+        echo '<pre class="ewp-debug">';
         echo htmlspecialchars(print_r($data, true), ENT_QUOTES, 'UTF-8');
         echo '</pre>';
         if ($exit) {

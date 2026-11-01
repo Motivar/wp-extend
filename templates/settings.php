@@ -111,7 +111,12 @@ if (!empty($page)) {
             <div class="awm-rest-actions-wrap wrap">
                 <!-- Button to trigger the REST API call -->
                 <div><button
-                        onclick="awm_options_rest_call('<?php echo $form_id; ?>','<?php echo $namespace . $awm_settings['rest']['endpoint']; ?>','<?php echo $callback; ?>','<?php echo $method; ?>')"><?php echo $button; ?></button>
+                        type="button"
+                        data-ewp-action="options-rest"
+                        data-ewp-form="<?php echo esc_attr($form_id); ?>"
+                        data-ewp-endpoint="<?php echo esc_attr($namespace . $awm_settings['rest']['endpoint']); ?>"
+                        data-ewp-callback="<?php echo esc_attr($callback); ?>"
+                        data-ewp-method="<?php echo esc_attr($method); ?>"><?php echo wp_kses_post($button); ?></button>
                 </div>
                 <!-- Placeholder for REST API results -->
                 <div id="awm-rest-options-results"></div>
