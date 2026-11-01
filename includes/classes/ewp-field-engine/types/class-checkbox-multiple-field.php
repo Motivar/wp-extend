@@ -154,7 +154,7 @@ final class Checkbox_Multiple_Field implements Field_Type
         foreach ($all + $options as $key => $definition) {
             $is_all = self::APPLY_ALL === $key;
             $rows[] = array(
-                'id'          => $context->id() . '_' . $key . '_' . rand(10, 100),
+                'id'          => $context->id() . '_' . $key . '_' . wp_rand(10, 100),
                 'name'        => $is_all ? '' : $context->name() . '[]',
                 'value'       => $is_all ? '' : $key,
                 'data_value'  => $key,

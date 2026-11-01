@@ -331,7 +331,7 @@ final class Config_Sync
             /* translators: %s: directory. */
             return new \WP_Error('ewp_config_sync_path', sprintf(__('The path %s does not exist.', 'extend-wp'), $dir));
         }
-        if (!is_writable($dir)) {
+        if (!wp_is_writable($dir)) {
             /* translators: %s: directory. */
             return new \WP_Error('ewp_config_sync_path', sprintf(__('The path %s is not writable.', 'extend-wp'), $dir));
         }
@@ -373,7 +373,7 @@ final class Config_Sync
         $data = $this->portability->export(array_values($types));
         if (is_wp_error($data) && $data->get_error_code() === 'no_data') {
             /* Every row was deleted: keep the file, empty, so importing sites drop what they imported. */
-            $data = ['modified' => date('Y-m-d H:i:s')];
+            $data = ['modified' => awm_date('Y-m-d H:i:s')];
         }
         if (is_wp_error($data)) {
             /* translators: %s: error message. */
@@ -577,7 +577,7 @@ final class Config_Sync
 
         $removed = 0;
         foreach ((array) glob($type_dir . '/*.json') as $file) {
-            if (!isset($expected[basename($file)]) && @unlink($file)) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- counted below.
+            if (!isset($expected[basename($file)]) && wp_delete_file($file)) {
                 $removed++;
             }
         }
@@ -708,8 +708,8 @@ final class Config_Sync
             /* translators: %s: file path. */
             return new \WP_Error('ewp_config_sync_write', sprintf(__('Failed to save exported content to %s.', 'extend-wp'), $file));
         }
-        if (!@rename($tmp, $file)) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- reported below.
-            @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- best effort.
+        if (!@rename($tmp, $file)) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename -- atomic replace in the administrator's chosen folder under wp-content (configuration kept with a theme, for example); WP_Filesystem may ask for FTP credentials in a background save.
+            wp_delete_file($tmp);
             /* translators: %s: file path. */
             return new \WP_Error('ewp_config_sync_write', sprintf(__('Failed to save exported content to %s.', 'extend-wp'), $file));
         }
@@ -1104,9 +1104,9 @@ final class Config_Sync
         }
         $backup = $dir . self::LEGACY_BACKUP;
         if (is_file($backup)) {
-            @unlink($backup); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- replaced by the rename.
+            wp_delete_file($backup);
         }
-        if (!@rename($legacy, $backup)) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- reported below.
+        if (!@rename($legacy, $backup)) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename -- the administrator's chosen folder under wp-content (configuration kept with a theme, for example); WP_Filesystem may ask for FTP credentials in a background save.
             /* translators: %s: file path. */
             return new \WP_Error('ewp_config_sync_write', sprintf(__('Could not rename %s.', 'extend-wp'), $legacy));
         }

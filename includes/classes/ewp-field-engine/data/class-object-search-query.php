@@ -116,7 +116,7 @@ final class Object_Search_Query
             $title = get_the_title($pid);
             $results[] = array(
                 'id'    => absint($pid),
-                'label' => $title !== '' ? $title : sprintf(__('#%d (no title)', 'extend-wp'), $pid),
+                'label' => $title !== '' ? $title : sprintf(/* translators: %d: ID */ __('#%d (no title)', 'extend-wp'), $pid),
                 'type'  => $p['type'],
             );
         }
@@ -256,7 +256,7 @@ final class Object_Search_Query
                 continue;
             }
             $seen[$cid] = true;
-            $label = isset($row['content_title']) && $row['content_title'] !== '' ? $row['content_title'] : sprintf(__('#%d', 'extend-wp'), $cid);
+            $label = isset($row['content_title']) && $row['content_title'] !== '' ? $row['content_title'] : sprintf(/* translators: %d: ID */ __('#%d', 'extend-wp'), $cid);
             $results[] = array('id' => $cid, 'label' => $label, 'type' => $p['type']);
         }
         return array_slice($results, 0, $p['limit']);

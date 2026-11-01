@@ -261,7 +261,7 @@ final class Content_Portability_Resource extends Resource
     {
         $file = !empty($input['file']) ? (string) $input['file'] : './ewp-content-export.php';
         if (file_put_contents($file, (string) $data['code']) === false) {
-            \WP_CLI::error(sprintf(__('Failed to write to %s.', 'extend-wp'), $file));
+            \WP_CLI::error(sprintf(/* translators: %s: file path */ __('Failed to write to %s.', 'extend-wp'), $file));
             return;
         }
         $skipped = !empty($data['skipped']) ? ' Skipped (no PHP generator): ' . implode(', ', (array) $data['skipped']) . '.' : '';

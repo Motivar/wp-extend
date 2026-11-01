@@ -507,8 +507,8 @@ class Extend_WP_Search_Filters
       'orientation' => $orientation,
       'options' => $fields,
       'form_html' => awm_show_content($form_fields),
-      'button_apply' => isset($fields['button_apply']) ? __($fields['button_apply'], 'extend-wp') : '',
-      'button_reset' => isset($fields['button_reset']) ? __($fields['button_reset'], 'extend-wp') : '',
+      'button_apply' => isset($fields['button_apply']) ? __($fields['button_apply'], 'extend-wp') : '', // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
+      'button_reset' => isset($fields['button_reset']) ? __($fields['button_reset'], 'extend-wp') : '', // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
     ));
   }
 

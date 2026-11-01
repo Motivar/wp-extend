@@ -138,7 +138,7 @@ class AWM_List_Table extends WP_List_Table
             echo awm_parse_template(awm_path . 'templates/admin-view/list-table/top-actions.php', array( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
                 'views_html'  => self::capture(array($this, 'views')),
                 'search_html' => self::capture(function () {
-                    $this->search_box(sprintf(__('Search %s', 'extend-wp'), $this->_args['plural']), $this->_args['ewp_custom_args']['id'] . '-search-box');
+                    $this->search_box(sprintf(/* translators: %s: item / content type name */ __('Search %s', 'extend-wp'), $this->_args['plural']), $this->_args['ewp_custom_args']['id'] . '-search-box');
                 }),
                 'nonce_html'  => wp_nonce_field('bulk-' . $this->_args['plural'], '_wpnonce', true, false),
             ));

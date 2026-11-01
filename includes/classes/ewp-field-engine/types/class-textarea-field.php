@@ -92,7 +92,7 @@ final class Textarea_Field implements Field_Type
         if (null === $context->field('awm_strip_html')) {
             return $context->value();
         }
-        return strip_tags($context->value());
+        return wp_strip_all_tags($context->value());
     }
 
     /**

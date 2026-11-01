@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 ?>
-<div class="<?php echo esc_attr($variables['classes']); ?>" data-input="<?php echo esc_attr($variables['dom_id']); ?>" data-type="<?php echo esc_attr($variables['case']); ?>" <?php echo $variables['attributes']; ?> id="awm-element-<?php echo esc_attr($variables['dom_id']); ?>"><?php
+<div class="<?php echo esc_attr($variables['classes']); ?>" data-input="<?php echo esc_attr($variables['dom_id']); ?>" data-type="<?php echo esc_attr($variables['case']); ?>" <?php echo $variables['attributes']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wrapper attributes built in Field_Renderer::field_row() and the field types: static pairs, and show-when JSON with every double quote turned into a single one. ?> id="awm-element-<?php echo esc_attr($variables['dom_id']); ?>"><?php
 echo $variables['html']; // phpcs:ignore WordPress.Security.EscapeOutput -- rendered field.
 if ('' !== $variables['information']) :
 ?><div class="flx-tippy-admin-message"><span class="flx_icon flx-icon-gps" data-message="<?php echo esc_attr($variables['information']); ?>"></span></div><?php

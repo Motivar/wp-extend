@@ -21,5 +21,5 @@ if (!defined('ABSPATH')) {
 
 ?>
 <label for="<?php echo esc_attr($variables['id']); ?>" class="awm-input-label"><?php echo wp_kses_post($variables['label']); ?></label><?php
-echo $variables['explanation'];
+echo $variables['explanation']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the fields/explanation template, escaped with wp_kses_post().
 echo $variables['media']; // phpcs:ignore WordPress.Security.EscapeOutput -- Escaped by Media_Field_Renderer.

@@ -124,7 +124,7 @@ class Content_Portability_Case extends Case_Base
         }
 
         if (!empty($context['php_file']) && file_exists($context['php_file'])) {
-            @unlink($context['php_file']);
+            wp_delete_file($context['php_file']);
         }
 
         return $this->cleanup_fixture_type(isset($context['content_type']) ? (string) $context['content_type'] : '');

@@ -21,7 +21,7 @@ if (!defined('ABSPATH')) {
 }
 
 ?>
-<div class="awm-meta-message" id="<?php echo esc_attr($variables['id']); ?>"><div class="awm-meta-message-label"><?php echo wp_kses_post($variables['label']) . $variables['explanation']; ?></div><?php
+<div class="awm-meta-message" id="<?php echo esc_attr($variables['id']); ?>"><div class="awm-meta-message-label"><?php echo wp_kses_post($variables['label']) . $variables['explanation']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the fields/explanation template, escaped with wp_kses_post(). ?></div><?php
 if ($variables['inner']) :
 ?><div class="awm-meta-message-inner"><?php echo $variables['body']; // phpcs:ignore WordPress.Security.EscapeOutput -- developer markup: message value or callback output (may contain form elements/scripts), printed raw as before. ?></div><?php
 else :

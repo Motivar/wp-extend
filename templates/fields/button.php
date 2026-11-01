@@ -21,4 +21,4 @@ if (!defined('ABSPATH')) {
 }
 
 ?>
-<a href="<?php echo esc_url($variables['link']); ?>" id="<?php echo esc_attr($variables['id']); ?>" title="<?php echo esc_attr(wp_strip_all_tags($variables['label'])); ?>" class="<?php echo esc_attr($variables['classes']); ?>" <?php echo $variables['attributes']; ?>><?php echo wp_kses_post($variables['label']); ?></a><?php
+<a href="<?php echo esc_url($variables['link']); ?>" id="<?php echo esc_attr($variables['id']); ?>" title="<?php echo esc_attr(wp_strip_all_tags($variables['label'])); ?>" class="<?php echo esc_attr($variables['classes']); ?>" <?php echo $variables['attributes']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Field_Attributes::render(), escaped per pair. ?>><?php echo wp_kses_post($variables['label']); ?></a><?php

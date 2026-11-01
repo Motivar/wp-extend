@@ -29,7 +29,7 @@ final class Field_Attributes
                 $value = implode(',', $value);
             }
             if ('placeholder' === $key) {
-                $value = __($value, 'extend-wp');
+                $value = __($value, 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
             }
             $prepared[$key] = $value;
         }

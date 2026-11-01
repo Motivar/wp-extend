@@ -119,7 +119,7 @@ class Field_Engine_Case extends Case_Base
         }
         wp_delete_post((int) $context['post_id'], true);
 
-        return [sprintf(__('Deleted post %d and its meta.', 'extend-wp'), (int) $context['post_id'])];
+        return [sprintf(/* translators: %d: post ID */ __('Deleted post %d and its meta.', 'extend-wp'), (int) $context['post_id'])];
     }
 
     /**
