@@ -127,14 +127,6 @@ class Extend_WP_Fields
    'auto_translate' => true,
    'order' => 1,
   );
-  $boxes['awm_php_usage'] = array(
-   'title' => __('Php usage', 'extend-wp'),
-   'context' => 'normal',
-   'priority' => 'low',
-   'callback' => 'awm_php_views',
-   'auto_translate' => true,
-   'order' => 1,
-  );
   $boxes['awm_fields_usage'] = array(
    'title' => __('Fields Usage', 'extend-wp'),
 

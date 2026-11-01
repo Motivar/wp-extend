@@ -7,6 +7,7 @@ if (!defined('ABSPATH')) {
  */
 
 require_once dirname(__DIR__, 2) . '/ewp-content/class-content-portability.php';
+require_once dirname(__DIR__, 2) . '/ewp-content/class-config-sync.php';
 
 class Extend_WP_Import_Export
 {
@@ -20,204 +21,87 @@ class Extend_WP_Import_Export
   */
  private $portability;
 
+ /**
+  * Automatic configuration sync (auto export on save, auto import on admin_init).
+  *
+  * @var \EWP\Content\Config_Sync
+  */
+ private $sync;
+
  public function __construct()
  {
   $this->portability = new \EWP\Content\Content_Portability();
+  $this->sync = new \EWP\Content\Config_Sync($this->portability);
   add_filter('awm_add_options_boxes_filter', [$this, 'admin_menu']);
   add_filter('ewp_register_dynamic_assets', [$this, 'register_dynamic_assets']);
   /* The ewp/v1 import and export routes are generated from EWP\Surfaces\Resources\Content_Portability_Resource. */
-  add_action('ewp_custom_content_save_action', [$this, 'auto_export_content'], 100);
-  add_action('ewp_custom_content_delete_action', [$this, 'auto_export_content'], 100);
+  add_action('ewp_custom_content_save_action', [$this, 'auto_export_content'], 100, 3);
+  add_action('ewp_custom_content_delete_action', [$this, 'auto_export_content_deleted'], 100, 2);
   add_action('admin_init', [$this, 'auto_import_content'], 100);
- }
-
- public function get_import_options()
- {
-  /**
-   * get the options for the import export settings
-   * @return array
-   */
-  return apply_filters('ewp_auto_import_settings_filter', get_option('ewp_auto_import_settings', array()));
+  add_action('admin_notices', ['\EWP\Content\Config_Sync', 'render_notices']);
  }
 
  /**
-  * Import `ewp_configuration.json` from the configured path when it changed (auto import).
+  * The effective auto import settings (stored option through `ewp_auto_import_settings_filter`).
+  *
+  * @return array
+  */
+ public function get_import_options()
+ {
+  return $this->sync->import_settings();
+ }
+
+ /**
+  * Import the configuration at the configured path when it changed (auto import): the per object
+  * `ewp-config/` folder, or the legacy `ewp_configuration.json`.
   *
   * Runs on `admin_init` for administrators only, never on admin-ajax.
   *
-  * @return true|void True after a successful import.
+  * @return true|null True after a successful import.
   * @since 1.10.0 Administrators only; no cache flush when the import fails.
+  * @since 1.15.0 Delegates to \EWP\Content\Config_Sync; per object layout; stale rows are deleted correctly.
   */
  public function auto_import_content()
  {
-  /*admin_init also fires for admin-ajax and heartbeat and for every logged-in user; import only on an administrator's page load*/
-  if (wp_doing_ajax() || !current_user_can('manage_options')) {
-   return;
-  }
-  try {
-   $options = $this->get_import_options();
-
-   // Ensure import option is enabled and the configuration is correct
-   if (empty($options) || empty($options['import']) || empty($options['path']) || $options['import_type'] !== 'auto') {
-    return;
-   }
-
-   // Ensure path exists
-   $path = WP_CONTENT_DIR . trailingslashit($options['path']);
-   if (!file_exists($path)) {
-    throw new Exception(sprintf(__('The path %s does not exist.', 'extend-wp'), $path));
-   }
-
-   // Check if the configuration file exists
-   $file = $path . 'ewp_configuration.json';
-   if (!file_exists($file)) {
-    throw new Exception(sprintf(__('The file %s does not exist.', 'extend-wp'), $file));
-   }
-
-   // Check file signature to prevent duplicate imports
-   $file_signature = md5_file($file);
-   $signature = get_option('ewp_file_import_signature') ?: false;
-   if ($signature && $signature === $file_signature) {
-    return; // No changes detected
-   }
-
-   // Read and decode the JSON file
-   $content = file_get_contents($file);
-   $data = json_decode($content, true);
-
-   if (json_last_error() !== JSON_ERROR_NONE) {
-    throw new Exception(__('Invalid JSON in the configuration file.', 'extend-wp'));
-   }
-
-   $all_hashes = array();
-   // Loop through the content types and call the import function
-
-   foreach ($data as $content_type => $items) {
-    if ($content_type === 'modified') {
-     continue; // Skip metadata
-    }
-    $import = $this->import_content($content_type, $items);
-    if (is_wp_error($import) || !$import) {
-
-     // throw an error with the related messsage
-     throw new Exception(sprintf(__('Failed to import content of type %s.', 'extend-wp'), $content_type));
-    }
-    $all_hashes[$content_type] = $import;
-   }
-
-   // Update the file signature to prevent re-imports
-
-   $old_hashes = get_option('ewp_auto_imported_hashes') ?: array();
-   if (!$old_hashes || empty($old_hashes)) {
-    foreach ($old_hashes as $content_type => $hashes) {
-     if (empty($hashes) || !$hashes || !is_array($hashes)) {
-      continue;
-     }
-     /*check if $old_hashes[$content_type] are different than $all_hashes[$content_type] and delete the non used anymore*/
-     $new_array = isset($all_hashes[$content_type]) ? $all_hashes[$content_type] : array();
-     // Find the hashes that exist in old but not in new
-     $unused_hashes = array_diff($hashes, $new_array);
-     if (empty($unused_hashes)) {
-      awm_custom_content_delete($content_type, $unused_hashes, 'hash');
-     }
-    }
-   }
-   update_option('ewp_file_import_signature', $file_signature, false);
-   update_option('ewp_auto_imported_hashes', $all_hashes, false);
-
-
-   // Add a dismissible admin notice
-   add_action('admin_notices', function () {
-    echo '<div class="notice notice-success is-dismissible">';
-    echo '<p>' . __('EWP Content has been successfully imported.', 'extend-wp') . '</p>';
-    echo '</div>';
-   });
-   ewp_flush_cache();
-   return true;
-  } catch (Exception $e) {
-   // Handle exceptions and log the error
-   error_log(sprintf(__('Import error: %s', 'extend-wp'), $e->getMessage()));
-
-   // Add a dismissible admin notice for the error
-   add_action('admin_notices', function () use ($e) {
-    echo '<div class="notice notice-error">';
-    echo '<p>' . esc_html(sprintf(__('Import failed: %s. Please check your php error_logs.', 'extend-wp'), $e->getMessage())) . '</p>';
-    echo '</div>';
-   });
-   /*no cache flush here: nothing was imported, and a broken file would flush on every admin request*/
-  }
+  return $this->sync->auto_import();
  }
 
-
-
+ /**
+  * The effective auto export settings (stored option, dormant guard, `ewp_auto_export_settings_filter`).
+  *
+  * @return array
+  * @since 1.15.0 Reads the stored option (its name used to carry a trailing space).
+  */
  public function get_export_options()
  {
-  /**
-   * get the options for the import export settings
-   * @return array
-   */
-  return apply_filters('ewp_auto_export_settings_filter', get_option('ewp_auto_export_settings ', array()));
+  return $this->sync->export_settings();
  }
 
-
- public function auto_export_content($id)
+ /**
+  * A content row was saved: refresh its configuration file.
+  *
+  * @param string $content_type Content type id.
+  * @param int    $object_id    Saved content id.
+  *
+  * @return true|null|\WP_Error
+  * @since 1.15.0 Receives the saved id; never ends the request on a bad path.
+  */
+ public function auto_export_content($content_type, $object_id = 0)
  {
-  try {
-   $options = $this->get_export_options();
+  return $this->sync->handle_saved($content_type, $object_id);
+ }
 
-   if (empty($options) || !isset($options['store']) || !$options['store']) {
-    return;
-   }
-
-   // Ensure store option is enabled
-   if (empty($options['path']) || empty($options['types'])) {
-    throw new Exception(__('Export settings are incomplete or disabled.', 'extend-wp'));
-   }
-
-   if (!in_array($id, $options['types'])) {
-    return;
-   }
-
-   // Ensure path exists
-   $path = WP_CONTENT_DIR . trailingslashit($options['path']);
-   if (!file_exists($path)) {
-    throw new Exception(sprintf(__('The path %s does not exist.', 'extend-wp'), $path));
-   }
-
-   // Ensure path is writable
-   if (!is_writable($path)) {
-    throw new Exception(sprintf(__('The path %s is not writable.', 'extend-wp'), $path));
-   }
-
-   // Directly call the export_content function
-   $data = $this->export_content($options['types']);
-   if (is_wp_error($data)) {
-    throw new Exception(sprintf(__('Failed to export content: %s', 'extend-wp'), $data->get_error_message()));
-   }
-
-   // Convert data to JSON
-   $json_data = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-   if ($json_data === false) {
-    throw new Exception(__('Failed to encode export data to JSON.', 'extend-wp'));
-   }
-
-   // Save JSON data to file
-   $file_path = $path . 'ewp_configuration.json';
-   $result = file_put_contents($file_path, $json_data);
-
-   if ($result === false) {
-    throw new Exception(sprintf(__('Failed to save exported content to %s.', 'extend-wp'), $file_path));
-   }
-
-   // Log success
-   error_log(sprintf(__('Exported content saved to %s.', 'extend-wp'), $file_path));
-  } catch (Exception $e) {
-   // Handle exceptions and log the error
-   error_log(sprintf(__('Export error: %s', 'extend-wp'), $e->getMessage()));
-
-   // Optionally stop execution and show an error to the user
-   wp_die($e->getMessage(), __('Export Error', 'extend-wp'), array('response' => 500));
-  }
+ /**
+  * Rows were deleted: drop their configuration files.
+  *
+  * @param string $content_type Content type id.
+  *
+  * @return true|null|\WP_Error
+  * @since 1.15.0
+  */
+ public function auto_export_content_deleted($content_type)
+ {
+  return $this->sync->handle_deleted($content_type);
  }
 
  /**
@@ -260,12 +144,14 @@ class Extend_WP_Import_Export
   */
  public function register_dynamic_assets($assets)
  {
+  $version = defined('AWM_ASSET_VERSION') ? AWM_ASSET_VERSION : $this->version;
+  $selector = '.wrap[data-page="ewp-import-export"]';
   $assets[] = array(
    'handle' => 'extend-wp-import-export',
-   'selector' => '.wrap[data-page="ewp-import-export"]',
+   'selector' => $selector,
    'type' => 'script',
-   'src' => awm_url . 'assets/js/admin/import-export.js',
-   'version' => $this->version,
+   'src' => awm_url . 'build/modules/ewp-import-export.js',
+   'version' => $version,
    'context' => 'admin',
    'dependencies' => array(),
    'in_footer' => true,
@@ -279,10 +165,23 @@ class Extend_WP_Import_Export
       'importing' => __('Importing...', 'extend-wp'),
       'exporting' => __('Exporting...', 'extend-wp'),
       'success' => __('Operation completed successfully', 'extend-wp'),
-      'error' => __('An error occurred', 'extend-wp')
+      'error' => __('An error occurred', 'extend-wp'),
+      'copied' => __('Copied', 'extend-wp'),
+      /* translators: %s: comma separated content type ids. */
+      'skipped' => __('Skipped (no PHP export for these content types): %s', 'extend-wp'),
+      'noFile' => __('Please upload a file.', 'extend-wp'),
+      'invalidJson' => __('Invalid JSON file.', 'extend-wp'),
      )
     )
    )
+  );
+  $assets[] = array(
+   'handle' => 'extend-wp-import-export-style',
+   'selector' => $selector,
+   'type' => 'style',
+   'src' => awm_url . 'assets/css/admin/ewp-import-export.min.css',
+   'version' => $version,
+   'context' => 'admin',
   );
 
   return $assets;
@@ -327,9 +226,16 @@ class Extend_WP_Import_Export
     'case' => 'select',
     'options' => array(
      'json' => array('label' => __('JSON', 'extend-wp')),
-     //'php' => array('label' => __('PHP', 'extend-wp')),
+     'php' => array('label' => __('PHP', 'extend-wp')),
     ),
+    'explanation' => __('JSON can be imported on another site. PHP is code that registers the exported field groups, post types and taxonomies; other content types are skipped.', 'extend-wp'),
     'show-when' => array('case' => array('values' => array('export' => true))),
+   ),
+   'export_preview' => array(
+    'case' => 'html',
+    'show-when' => array('case' => array('values' => array('export' => true))),
+    'value' => awm_parse_template(awm_path . 'templates/admin-view/export-preview.php', array('title' => __('Export preview', 'extend-wp'))),
+    'exclude_meta' => true,
    ),
    'file' => array(
     'label_class' => array('awm-needed'),

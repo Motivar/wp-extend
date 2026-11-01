@@ -1,0 +1,71 @@
+// Export preview panel of Extend WP > Import/Export
+// (templates/admin-view/export-preview.php), compiled to
+// ewp-import-export.min.css (`npm run build:css`) and loaded by the Dynamic
+// Asset Loader on the Import/Export screen.
+
+:root {
+  --ewp-export-border: #c3c4c7;
+  --ewp-export-bar-bg: #f6f7f7;
+  --ewp-export-code-bg: #1d2327;
+  --ewp-export-code-color: #f0f0f1;
+  --ewp-export-notice-bg: #fcf9e8;
+  --ewp-export-notice-border: #dba617;
+  --ewp-export-radius: 4px;
+  --ewp-export-gap: 8px;
+  --ewp-export-code-max-height: 480px;
+}
+
+.ewp-export-preview {
+  margin-top: 16px;
+  border: 1px solid var(--ewp-export-border);
+  border-radius: var(--ewp-export-radius);
+  overflow: hidden;
+
+  &[hidden] {
+    display: none;
+  }
+
+  &__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ewp-export-gap);
+    padding: var(--ewp-export-gap) 12px;
+    background: var(--ewp-export-bar-bg);
+    border-bottom: 1px solid var(--ewp-export-border);
+  }
+
+  &__actions {
+    display: flex;
+    gap: var(--ewp-export-gap);
+  }
+
+  &__notice {
+    margin: 0;
+    padding: var(--ewp-export-gap) 12px;
+    background: var(--ewp-export-notice-bg);
+    border-left: 4px solid var(--ewp-export-notice-border);
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  &__code {
+    margin: 0;
+    padding: 12px;
+    max-height: var(--ewp-export-code-max-height);
+    overflow: auto;
+    background: var(--ewp-export-code-bg);
+    color: var(--ewp-export-code-color);
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre;
+
+    code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+  }
+}

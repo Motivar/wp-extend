@@ -488,54 +488,24 @@ if (!function_exists('awm_dev_notes')) {
 }
 
 
-if (!function_exists('awm_php_views')) {
-  /**
-   * The "Php code" box of the Fields edit form: a button that loads the PHP
-   * for the current field group (templates/admin-view/php-code-box.php).
-   *
-   * @return array Field library with the box, empty for a new (unsaved) group.
-   */
-  function awm_php_views()
-  {
-    global $ewp_content_id;
-    if ($ewp_content_id) {
-      $html = awm_parse_template(awm_path . 'templates/admin-view/php-code-box.php', array('content_id' => absint($ewp_content_id)));
-
-      return array(
-        'position_content' => array(
-          'label' => __('Php code', 'extend-wp'),
-          'case' => 'html',
-          'value' => $html,
-          'exclude_meta' => true,
-          'show_label' => true
-        )
-      );
-    }
-
-    return array();
-  }
-}
-
 if (!function_exists('awm_print_php')) {
+  /**
+   * The entries of an array as PHP source (without the surrounding brackets), one per line.
+   *
+   * Thin wrapper kept for external callers; strings are now escaped.
+   *
+   * @param array $fields Array to print.
+   *
+   * @return string Entries joined with ",\n".
+   *
+   * @deprecated 1.15.0 Use \EWP\Content\Php_Printer::print_items().
+   */
   function awm_print_php($fields)
   {
-    $vals = array();
-    foreach ($fields as $key => $item) {
-      $display = is_int($key) ? '' : '\'' . $key . '\'=>';
-      $value = '';
+    require_once awm_path . 'includes/classes/ewp-content/class-php-printer.php';
+    $printer = new \EWP\Content\Php_Printer();
 
-      if (!empty($item) && !is_array($item) && in_array($key, array('title', 'label', 'explanation'), true)) {
-        $value = '__(\'' . $item . '\',\'extend-wp\')';
-      }
-      if (is_array($item)) {
-        $value = ' array(' . awm_print_php($item) . ') ';
-      }
-      if (empty($value)) {
-        $value = is_int($item) ? $item : '\'' . $item . '\'';
-      }
-      $vals[] = $display . $value;
-    }
-    return implode(',@@@@', $vals);
+    return $printer->print_items((array) $fields, 0);
   }
 }
 

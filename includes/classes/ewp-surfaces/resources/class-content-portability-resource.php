@@ -94,14 +94,21 @@ final class Content_Portability_Resource extends Resource
                 ->description(__('Export every row of one or more content types with their meta, keyed by row hash so the payload can be imported elsewhere as an upsert. Definitions (field groups, post types) and data rows alike.', 'extend-wp'))
                 ->input([
                     Field::array('content_types')->items('string')->required()->cli_name('types')->describe(__('Content type ids to export, comma separated on REST and the CLI.', 'extend-wp')),
-                    Field::enum('method', ['json', 'php'])->describe(__('REST only: encode the payload as json (default) or a PHP serialized string.', 'extend-wp')),
-                    Field::string('file')->describe(__('Command line only: write the payload to this path (default ./ewp-content-export.json). Rows are streamed to the file in batches, so large tables do not have to fit in memory.', 'extend-wp')),
+                    Field::enum('method', ['json', 'php'])->describe(__('json (default): the rows of the content types, keyed by row hash. php: PHP code that registers the exported field groups (ewp_fields), post types (ewp_post_types) and taxonomies (ewp_taxonomies); the answer is {code, skipped} where skipped lists the types without a PHP generator. page and per_page are ignored for php. REST encodes the json payload as a string.', 'extend-wp')),
+                    Field::string('file')->describe(__('Command line only: write the payload to this path (default ./ewp-content-export.json, or ./ewp-content-export.php with method php). Rows are streamed to the file in batches, so large tables do not have to fit in memory.', 'extend-wp')),
                     Field::int('page')->min(1)->describe(__('Optional. Export only this page (from 1) of every type; the payload then carries pagination (type => page, per_page, total, total_pages). Omit for every row. Ignored with the command line file output unless per_page is set too.', 'extend-wp')),
                     Field::int('per_page')->min(1)->max(Content_Portability::MAX_PER_PAGE)->describe(__('Optional. Rows per page and type for a paged export, 1-1000 (default 500 when page is given).', 'extend-wp')),
                 ])
                 ->args([$this, 'export_args'])
                 ->transform([$this, 'export_transform'])
-                ->output(['type' => 'object', 'additionalProperties' => true])
+                ->output([
+                    'type'                 => 'object',
+                    'properties'           => [
+                        'code'    => ['type' => 'string', 'description' => __('method php: the PHP file contents.', 'extend-wp')],
+                        'skipped' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => __('method php: requested content types without a PHP generator.', 'extend-wp')],
+                    ],
+                    'additionalProperties' => true,
+                ])
                 ->rest('GET', 'export')
                 ->cli('export', ['presenter' => [$this, 'present_export']])
                 ->ability('export'),
@@ -126,8 +133,8 @@ final class Content_Portability_Resource extends Resource
     }
 
     /**
-     * export($content_types, $options): the CLI without a page streams to its file; every other call
-     * passes the page options (never `file`, which only the CLI may set).
+     * export($content_types, $options): method php asks for PHP code (`format`); the CLI without a page
+     * streams to its file; every other call passes the page options (never `file`, which only the CLI may set).
      *
      * @param array   $input Normalised input.
      * @param Context $ctx   Invocation context.
@@ -138,6 +145,9 @@ final class Content_Portability_Resource extends Resource
      */
     public function export_args(array $input, Context $ctx)
     {
+        if (isset($input['method']) && $input['method'] === 'php') {
+            return [(array) $input['content_types'], ['format' => 'php']];
+        }
         $options = [];
         foreach (['page', 'per_page'] as $key) {
             if (!empty($input[$key])) {
@@ -152,7 +162,8 @@ final class Content_Portability_Resource extends Resource
     }
 
     /**
-     * REST answers with an encoded string (the admin screen downloads it).
+     * REST answers the json export with an encoded string (the admin screen downloads it); the php export
+     * ({code, skipped}) is returned as an object. Before 1.15.0 method=php answered a PHP serialized string.
      *
      * @param array   $data  Export payload.
      * @param array   $input Input.
@@ -162,12 +173,8 @@ final class Content_Portability_Resource extends Resource
      */
     public function export_transform($data, array $input, Context $ctx)
     {
-        if ($ctx->surface() !== Context::REST || !is_array($data)) {
+        if ($ctx->surface() !== Context::REST || !is_array($data) || isset($data['code'])) {
             return $data;
-        }
-
-        if (isset($input['method']) && $input['method'] === 'php') {
-            return serialize($data);
         }
 
         return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
@@ -222,6 +229,10 @@ final class Content_Portability_Resource extends Resource
      */
     public function present_export($data, array $input, $format)
     {
+        if (isset($data['code'])) {
+            $this->present_php_export($data, $input);
+            return;
+        }
         if (isset($data['file'], $data['types'], $data['count'])) {
             \WP_CLI::success(sprintf('Exported %d row(s) of %d content type(s) to %s.', (int) $data['count'], count((array) $data['types']), $data['file']));
             return;
@@ -236,6 +247,25 @@ final class Content_Portability_Resource extends Resource
 
         $types = array_diff(array_keys($data), ['modified', 'pagination']);
         \WP_CLI::success(sprintf('Exported %d content type(s) to %s.', count($types), $file));
+    }
+
+    /**
+     * Write the PHP export to --file (default ./ewp-content-export.php).
+     *
+     * @param array $data  {code, skipped}.
+     * @param array $input Input.
+     *
+     * @return void
+     */
+    private function present_php_export(array $data, array $input)
+    {
+        $file = !empty($input['file']) ? (string) $input['file'] : './ewp-content-export.php';
+        if (file_put_contents($file, (string) $data['code']) === false) {
+            \WP_CLI::error(sprintf(__('Failed to write to %s.', 'extend-wp'), $file));
+            return;
+        }
+        $skipped = !empty($data['skipped']) ? ' Skipped (no PHP generator): ' . implode(', ', (array) $data['skipped']) . '.' : '';
+        \WP_CLI::success(sprintf('Exported PHP code to %s.', $file) . $skipped);
     }
 
     /**

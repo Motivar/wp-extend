@@ -264,6 +264,39 @@
             }
         },
         {
+            "id": "config-sync",
+            "label": "Configuration sync (status / export / migrate / import)",
+            "category": "content",
+            "layers": [
+                "rest",
+                "cli",
+                "ability"
+            ],
+            "class": "EWP\\SelfTest\\Cases\\Config_Sync_Case",
+            "requires": [],
+            "args": {},
+            "covers": {
+                "rest": [
+                    "ewp/v1/config-sync/status",
+                    "ewp/v1/config-sync/export",
+                    "ewp/v1/config-sync/migrate",
+                    "ewp/v1/config-sync/import"
+                ],
+                "cli": [
+                    "ewp content sync status",
+                    "ewp content sync export",
+                    "ewp content sync migrate",
+                    "ewp content sync import"
+                ],
+                "ability": [
+                    "ewp-content/sync-status",
+                    "ewp-content/sync-export",
+                    "ewp-content/sync-migrate",
+                    "ewp-content/sync-import"
+                ]
+            }
+        },
+        {
             "id": "object-search",
             "label": "Object search by name",
             "category": "system",

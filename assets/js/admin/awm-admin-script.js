@@ -369,42 +369,6 @@ function awm_show_position_settings(data, options) {
 
 }
 
-function ewp_get_php_code(id) {
-
-    var defaults = {
-        method: 'get',
-        url: awmGlobals.url + "/wp-json/extend-wp/v1/get-php-code/?awm_post_id=" + id,
-        callback: 'awm_show_php_code',
-    };
-    awm_ajax_call(defaults);
-
-}
-
-function awm_show_php_code(data) {
-    var element = document.getElementById('awm-php-code');
-    if (element) {
-        element.innerHTML = data;
-    }
-}
-
-/**
- * Load the PHP code when a "Show php code" button (templates/admin-view/php-code-box.php,
- * `data-ewp-php-code="{row id}"`) is clicked. Delegated, so it works for boxes
- * rendered after load too.
- *
- * @param {MouseEvent} event Click anywhere in the document.
- * @return {void}
- */
-function ewp_php_code_click(event) {
-    var button = event.target.closest('[data-ewp-php-code]');
-    if (!button) {
-        return;
-    }
-    event.preventDefault();
-    ewp_get_php_code(button.getAttribute('data-ewp-php-code'));
-}
-
-document.addEventListener('click', ewp_php_code_click);
 
 
 
@@ -475,8 +439,6 @@ window.awm_get_position_settings = awm_get_position_settings;
 window.awm_show_position_settings = awm_show_position_settings;
 window.awm_get_query_fields = awm_get_query_fields;
 window.awm_show_query_details = awm_show_query_details;
-window.ewp_get_php_code = ewp_get_php_code;
-window.awm_show_php_code = awm_show_php_code;
 window.awmSelectrBoxes = awmSelectrBoxes;
 window.awm_options_rest_call = awm_options_rest_call;
 window.awm_rest_options_callback = awm_rest_options_callback;

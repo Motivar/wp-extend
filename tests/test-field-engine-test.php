@@ -181,6 +181,20 @@ class Test_Field_Engine extends WP_UnitTestCase
     }
 
     /**
+     * Html: a `show-when` rule reaches the box like on every other case; without one no attribute is printed.
+     *
+     * @return void
+     */
+    public function test_html_field_carries_show_when()
+    {
+        $html = (string) awm_show_content(array('snap_html' => array('case' => 'html', 'value' => '<em>raw</em>', 'show-when' => array('store' => array('values' => true)))), 0, 'option');
+        $this->assertStringContainsString('show-when="{&#039;store&#039;:{&#039;values&#039;:true}}"', $html);
+
+        $plain = (string) awm_show_content(array('snap_html' => array('case' => 'html', 'value' => '<em>raw</em>')), 0, 'option');
+        $this->assertStringNotContainsString('show-when', $plain);
+    }
+
+    /**
      * Textarea: plain mode strips tags on request, escapes the value, and adds the full-width class.
      *
      * @return void

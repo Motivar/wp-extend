@@ -347,6 +347,7 @@ final class Field_Renderer
             'label'       => isset($field['show_label'], $field['label']) ? $field['label'] : null,
             'explanation' => $explanation,
             'value'       => $field['value'],
+            'show_when'   => (!empty($field['show-when']) && is_array($field['show-when'])) ? str_replace('"', '\'', wp_json_encode($field['show-when'])) : '',
         ));
         return array('html' => $html, 'counted' => false, 'replace_all' => $strip);
     }

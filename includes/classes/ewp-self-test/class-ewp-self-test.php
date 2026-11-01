@@ -148,6 +148,7 @@ final class EWP_Self_Test
             'class-options-portability-case',
             'class-ai-case',
             'class-content-portability-case',
+            'class-config-sync-case',
             'class-object-search-case',
             'class-typed-content-case',
             'class-field-builder-case',

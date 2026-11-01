@@ -28,6 +28,7 @@ class Content_Portability_Case extends Case_Base
             __('Ability: ewp-content/export — expect the payload object keyed by content type.', 'extend-wp'),
             __('CLI: wp ewp content export --types=<type> --file=<temp> — expect the file to be written (streamed in batches).', 'extend-wp'),
             __('Paged export: REST GET /ewp/v1/export?page=1&per_page=1 and ewp-content/export with page 1 / per_page 1 — expect the row plus pagination (total 1, total_pages 1).', 'extend-wp'),
+            __('PHP export (method=php) of ewp_fields plus the fixture type: REST GET /ewp/v1/export, ability ewp-content/export and wp ewp content export --method=php --file=<temp>.php — expect {code, skipped} with PHP code and the fixture type listed as skipped.', 'extend-wp'),
             __('Delete the row, then import it back on each surface: REST POST /ewp/v1/import, wp ewp content import <file> --yes, ewp-content/import (confirm: true) — expect the row to exist again.', 'extend-wp'),
             __('Cleanup: drop the fixture tables and the temporary file.', 'extend-wp'),
         ];
@@ -39,7 +40,8 @@ class Content_Portability_Case extends Case_Base
         $key     = 'selftest_' . substr(md5(uniqid('', true)), 0, 6);
         $type    = 'ewp_' . $key;
         $file    = trailingslashit(sys_get_temp_dir()) . 'ewp-self-test-' . $key . '.json';
-        $context = ['content_type' => $type, 'file' => $file, 'observed' => []];
+        $php_file = trailingslashit(sys_get_temp_dir()) . 'ewp-self-test-' . $key . '.php';
+        $context  = ['content_type' => $type, 'file' => $file, 'php_file' => $php_file, 'observed' => []];
         $o       = &$context['observed'];
 
         $this->register_fixture_type($key, 'ewp');
@@ -53,6 +55,12 @@ class Content_Portability_Case extends Case_Base
         $o['cli_export']     = $this->cli(EWP_Surfaces::cli('content-portability', 'export'), [], ['types' => $type, 'file' => $file]);
         $o['rest_export_paged']    = $this->rest('GET', '/ewp/v1/export', ['content_types' => [$type], 'page' => 1, 'per_page' => 1]);
         $o['ability_export_paged'] = $this->ability('ewp-content/export', ['content_types' => [$type], 'page' => 1, 'per_page' => 1]);
+
+        $php_types = ['ewp_fields', $type];
+        $o['rest_export_php']    = $this->rest('GET', '/ewp/v1/export', ['content_types' => $php_types, 'method' => 'php']);
+        $o['ability_export_php'] = $this->ability('ewp-content/export', ['content_types' => $php_types, 'method' => 'php']);
+        $o['cli_export_php']     = $this->cli(EWP_Surfaces::cli('content-portability', 'export'), [], ['types' => implode(',', $php_types), 'method' => 'php', 'file' => $php_file]);
+        $o['php_file_code']      = file_exists($php_file) ? (string) file_get_contents($php_file) : '';
 
         $payload = !empty($o['ability_export']['ok']) ? $o['ability_export']['data'] : [];
         $rows    = isset($payload[$type]) ? array_values((array) $payload[$type]) : [];
@@ -88,6 +96,17 @@ class Content_Portability_Case extends Case_Base
             return isset($data[$type], $data['pagination'][$type]['total_pages']) && (int) $data['pagination'][$type]['total_pages'] === 1 && count((array) $data[$type]) === 1;
         });
 
+        $php_check = function ($data) use ($context) {
+            return is_array($data) && isset($data['code'], $data['skipped']) && strpos($data['code'], '<?php') === 0 && in_array($context['content_type'], (array) $data['skipped'], true);
+        };
+        $rest_php = $this->status($o, 'rest_export_php') === 200 ? $o['rest_export_php']['data'] : null;
+        $checks[] = $this->check('rest', 'GET /ewp/v1/export?method=php returns {code, skipped} with the fixture type skipped', $php_check($rest_php), $this->detail($o, 'rest_export_php'));
+        $checks[] = $this->ability_check($o, 'ability_export_php', 'ewp-content/export (method php) returns {code, skipped}', $php_check);
+        $checks[] = $this->cli_check($o, 'cli_export_php', 'wp ewp content export --method=php writes the PHP file', 'Exported PHP code');
+        $checks[] = $this->cli_available()
+            ? $this->check('cli', 'The CLI PHP export file starts with a PHP tag', strpos($o['php_file_code'], '<?php') === 0, 'Wrote ' . strlen($o['php_file_code']) . ' bytes.')
+            : $this->skip('cli', 'The CLI PHP export file starts with a PHP tag', __('WP-CLI wrappers are not loaded in this process.', 'extend-wp'));
+
         $checks[] = $this->check('rest', 'POST /ewp/v1/import restores the row (upsert by hash)', $this->status($o, 'rest_import') === 200 && $o['after_rest'] === 1, $this->detail($o, 'rest_import'));
         $checks[] = $this->ability_check($o, 'ability_import', 'ewp-content/import (confirm: true) upserts without duplicating', function ($data) use ($o) {
             return isset($data['count']) && $data['count'] === 1 && $o['after_all'] === 1;
@@ -102,6 +121,10 @@ class Content_Portability_Case extends Case_Base
     {
         if (!empty($context['file']) && file_exists($context['file'])) {
             @unlink($context['file']);
+        }
+
+        if (!empty($context['php_file']) && file_exists($context['php_file'])) {
+            @unlink($context['php_file']);
         }
 
         return $this->cleanup_fixture_type(isset($context['content_type']) ? (string) $context['content_type'] : '');

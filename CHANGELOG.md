@@ -8,6 +8,104 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Unified export: PHP is an export format on the Import/Export screen; the "Show php code" box is removed** (`2026-11-01`):
+  - **Question/Prompt**: "Can we unify the export functionality? We need to get rid of the show php code … add php as an option and based on what users have added preview and download the code" (part 1 of 2; part 2 is the per-object JSON sync). One Sonnet agent implemented it; it was reviewed and documented here.
+  - **Shared service**:
+    - New `EWP\Content\Content_Php_Export` (`includes/classes/ewp-content/class-content-php-export.php`). `export(array $types)` returns `{code, skipped}`: one PHP file with a `<?php` header, an ABSPATH guard and one comment section per type and object.
+    - Built-in generators: `ewp_fields` (one `add_filter('awm_add_*_filter', …)` per position), `ewp_post_types` (`ewp_get_post_types_filter`) and `ewp_taxonomies` (`ewp_get_taxonomies_filter`). Types without a generator are listed in `skipped`.
+    - New `EWP\Content\Php_Printer` (`class-php-printer.php`) prints escaped, deterministic short-array PHP and wraps `label` / `title` / `explanation` in `__()`.
+    - **Fix:** the old `awm_print_php()` escaped nothing, so a `'` in a label produced broken PHP. The old `php_code()` also overwrote the group's fields with the boxes after the first position.
+  - **Surfaces** (all through `Content_Portability::export(…, ['format' => 'php'])`):
+    - `method=php` on the `export` operation of `Content_Portability_Resource`.
+    - REST `GET ewp/v1/export?method=php` and the `ewp-content/export` ability answer `{code, skipped}`.
+    - `wp ewp content export --types=… --method=php [--file=./ewp-content-export.php]` writes the file.
+    - `page` / `per_page` are ignored for php.
+  - **Admin screen** (`admin.php?page=ewp-import-export`):
+    - The method select offers PHP.
+    - After an export, a preview panel (`templates/admin-view/export-preview.php`) shows the code (or JSON) as text, with Copy and Download buttons and a notice for skipped types.
+    - The script moved from `assets/js/admin/import-export.js` to the lazy ES module `assets/js/modules/ewp-import-export.js` (+ `ewp-import-export/helpers.js`, with Jest tests). Styles are in `assets/css/admin/ewp-import-export.scss`, added to `build:css`.
+  - **Removed**:
+    - The "Php usage" box on the Fields edit form (`awm_php_usage`, `awm_php_views()`, `templates/admin-view/php-code-box.php`).
+    - Its JS (`ewp_get_php_code`, `awm_show_php_code`, `ewp_php_code_click` and their `window` exports in `awm-admin-script.js`).
+    - `tests/test-php-code-box-test.php`.
+  - **Preview placement** (follow-up prompt: "perform action should be placed like after select choices because if there are too much export code then we cannot see the button again"):
+    - The module moves the panel under the form's `.awm-form-submit-area` when it opens (`placeBelowSubmit()`), so "Perform Action" stays right under the selects. The code box keeps its own scroll (`max-height: 480px`).
+    - Changing Action away from Export hides the moved panel (`onActionChange()`).
+  - **Field engine fix found during the browser check**: `html` fields dropped `show-when`, so the config-sync panel on the settings page showed even with Auto export off.
+    - `Field_Renderer::html_row()` now passes `show_when` to `templates/fields/html.php`, which prints the attribute only when a rule is set. Existing html markup is unchanged; snapshots pass.
+    - Test: `Test_Field_Engine::test_html_field_carries_show_when`.
+    - Theme overrides of `extend-wp/fields/html.php` keep working; they just won't honour `show-when` until they print `$variables['show_when']`.
+  - **Verified in the logged-in admin (Chrome, 2026-11-01)**:
+    - PHP export of Field + Search Filter: the preview shows the code, and `ewp_search` appears in the skipped notice.
+    - The JSON export previews too.
+    - The panel sits below Perform Action, and switching to Import hides it.
+    - On the settings page, the sync panel and layout select appear only with Auto export on. The layout select defaults to per object when the path has no legacy file.
+    - The Migrate button and the Copy/Download clicks were not exercised.
+  - **New hook**: `ewp_php_export_generators` (filter; see HOOKS.md).
+  - **Tests**:
+    - New `tests/test-content-php-export-test.php`: escaping, valid PHP, generators, skipped types, filter.
+    - The `content-portability` self-test case now checks php on REST, the ability and the CLI.
+    - Jest has `ewp-import-export` helper tests.
+  - **Backwards compatibility**:
+    - **Breaking:** `ewp/v1/export?method=php` returned a PHP-serialized string. It now returns `{code, skipped}`. The admin UI never exposed it.
+    - `AWM_API::php_code()` and `GET extend-wp/v1/get-php-code` are deprecated (1.15.0) thin wrappers over the new service and still return highlighted HTML. They will be removed in a later release.
+    - `awm_print_php()` stays for external callers, now escaped, and no longer emits the `@@@@` line markers.
+    - `method=json` is unchanged.
+
+- **Config sync: one JSON file per object instead of one `ewp_configuration.json`** (`2026-11-01`):
+  - **Question/Prompt**: "now on json we create one json file, which is not ideal since a lot of merge conflicts happen … create a json per object-id … we don't want the repos which already have the old json file to be misconfigured" (part 2 of 2). One Opus agent implemented it; it was reviewed and documented here.
+  - **Shared service**:
+    - New `EWP\Content\Config_Sync` (`includes/classes/ewp-content/class-config-sync.php`) holds all auto export / auto import logic.
+    - `Extend_WP_Import_Export` keeps only thin hook wrappers, plus the new `auto_export_content_deleted`.
+    - `Content_Portability` gained `find_row()` and `walk_rows()`.
+  - **New layout (`per_object`)**:
+    - Files live at `{path}/ewp-config/format.json` (`{"format":2}`, written once) and `{path}/ewp-config/{content_type}/{hash}.json`.
+    - Hash, not `content_id`, because ids differ per database.
+    - Output is deterministic: keys sorted recursively, pretty-printed, trailing newline.
+    - `content_id`, `user_id` and the top-level `modified` are left out, so an untouched object never shows up in a diff.
+    - Writes are atomic and skipped when the bytes are identical.
+    - On save only that object's file is written. On delete, the type's folder is reconciled (files whose hash is no longer in the database are removed).
+  - **Import detects the layout**:
+    - `ewp-config/format.json` → per object.
+    - Otherwise `ewp_configuration.json` → legacy, unchanged.
+    - Both present → the folder wins and an admin notice says the single file can be deleted.
+    - The per-object change signature is a hash of every file's path, size and mtime, prefixed `v2:`.
+    - An empty `ewp-config/` is an error, not "delete everything".
+  - **Setting**: new `layout` key (`single` | `per_object`) in `ewp_auto_export_settings` and its filter.
+    - A missing `layout` means `single`, so filter-based configs and existing sites keep writing the single file.
+    - The settings field defaults to `single` when a legacy file exists at the path, else `per_object`.
+    - The settings page has a status panel and a "Migrate to per-object files" button (`templates/admin-view/config-sync-panel.php`, `assets/js/modules/ewp-config-sync.js`).
+  - **Migration** (`wp ewp content sync migrate --yes`, or the button):
+    - Writes `ewp-config/` from the database.
+    - Renames `ewp_configuration.json` to `ewp_configuration.legacy.json` (never deletes it).
+    - Sets `layout=per_object`.
+    - Rollout order (documented in `import-export/Readme.md`): upgrade the importing environments (QA/prod) first, then migrate on dev. Otherwise an old plugin version keeps reading the stale single file.
+  - **New surfaces** (kit resource `Config_Sync_Resource`, `manage_options`; migrate and import confirm on CLI and abilities):
+
+    | Operation | REST | CLI | Ability |
+    |---|---|---|---|
+    | status | `GET ewp/v1/config-sync/status` | `wp ewp content sync status` | `ewp-content/sync-status` |
+    | export | `POST ewp/v1/config-sync/export` | `wp ewp content sync export` | `ewp-content/sync-export` |
+    | migrate | `POST ewp/v1/config-sync/migrate` | `wp ewp content sync migrate` | `ewp-content/sync-migrate` |
+    | import | `POST ewp/v1/config-sync/import` | `wp ewp content sync import` | `ewp-content/sync-import` |
+
+  - **Fixed**:
+    - **Wrong option name:** `get_option('ewp_auto_export_settings ')` (trailing space) meant export settings saved in the UI were never applied; only the filter worked. The name is fixed. A stored option with `store` on but no `layout` is treated as **dormant** (off), and the settings page asks the admin to save again. Settings that were silently ignored therefore don't switch on by surprise.
+    - **Stale rows never deleted:** the stale-row cleanup on import was inverted, so objects removed at the source were never deleted on the importing site. Now only rows whose hash this site auto-imported before are deleted, resolved to ids (the `_data` table has no `hash` column).
+    - **Saves broken by a bad path:** auto export `wp_die()`d inside the save hook when the path was missing or not writable. It now logs and shows an admin notice on the next page (transient `ewp_config_sync_notices`); the save is never interrupted.
+    - **Paths:** they now join correctly with or without a leading slash. `..` is rejected.
+    - **Last row deleted with the `single` layout:** this no longer `wp_die()`s. The file is written with only `modified`, so importers remove what they had imported.
+  - **Checked, not a bug**: importing a row that carries a `content_id` never overwrites a different local row. `insert_db_data()` drops `content_id` on insert, and the hash match supplies the local id. Pinned by a test.
+  - **New hook**: `ewp_config_sync_filename` (filter). `ewp_auto_export_settings_filter` / `ewp_auto_import_settings_filter` are now listed in HOOKS.md (`layout` documented).
+  - **Tests**:
+    - `tests/test-config-sync-test.php` has 15 tests: legacy unchanged, per-object write and reconcile, identical bytes on re-export, detection (v2 / legacy / both), stale deletion scope, signature skip, migrate, dormant guard, the content_id case.
+    - New self-test case `config-sync`, listed in `manifest.json`.
+  - **Backwards compatibility**:
+    - Sites and repos on the single file see no change until someone migrates.
+    - Hashes are identical in both layouts, so switching never duplicates rows.
+    - **Behaviour change on importing sites:** because the stale-row fix now works, an import after this upgrade deletes rows that were auto-imported before and are no longer in the source. That includes every row of a content type removed from the exporting site's `types` list. Check `types` before the first import after the upgrade.
+    - Meta keys removed at the source are still not removed on the target (unchanged upsert behaviour).
+
 - **Field engine refactor released as 1.14.0** (`2026-11-01`):
   - **Question/Prompt**: "merge to main and run an update pipeline at motivar.io to see if all works".
   - **Merge**: `main` (1.11.0–1.13.0: content type surfaces, DataViews filters, multi-select filters) merged into `refactor/field-engine-phase-1`. Conflicts: `class-list-form.php` keeps main's capability checks (`require_capability()`, `user_can()`) and the deprecated no-op `on_page_footer()`; `ewp-admin-ui.min.css` recompiled from the merged SCSS; changelog entries kept from both sides.

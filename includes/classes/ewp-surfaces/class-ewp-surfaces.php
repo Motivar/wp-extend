@@ -6,6 +6,7 @@ use EWP\Content\Content_Service;
 use EWP\Surfaces\Resources\Content_Resource;
 use EWP\Surfaces\Resources\Content_Type_Rest_Resource;
 use EWP\Surfaces\Resources\Content_Portability_Resource;
+use EWP\Surfaces\Resources\Config_Sync_Resource;
 use EWP\Surfaces\Resources\Object_Search_Resource;
 use EWP\Surfaces\Resources\Block_Preview_Resource;
 use EWP\Surfaces\Resources\Field_Builder_Resource;
@@ -144,8 +145,11 @@ final class EWP_Surfaces
         require_once __DIR__ . '/resources/class-system-resource.php';
         require_once __DIR__ . '/resources/class-options-resource.php';
         require_once dirname(__DIR__) . '/ewp-content/class-content-portability.php';
+        require_once dirname(__DIR__) . '/ewp-content/class-config-sync.php';
+        require_once dirname(__DIR__) . '/ewp-content/class-content-php-export.php';
         require_once dirname(__DIR__) . '/ewp-search/class-object-search.php';
         require_once __DIR__ . '/resources/class-content-portability-resource.php';
+        require_once __DIR__ . '/resources/class-config-sync-resource.php';
         require_once __DIR__ . '/resources/class-object-search-resource.php';
         require_once __DIR__ . '/resources/class-field-builder-resource.php';
         require_once __DIR__ . '/resources/class-recently-seen-resource.php';
@@ -172,6 +176,7 @@ final class EWP_Surfaces
             'options'    => new Options_Resource(),
             'system'     => new System_Resource(new System_Service($this->service)),
             'content-portability' => new Content_Portability_Resource(new \EWP\Content\Content_Portability()),
+            'config-sync' => new Config_Sync_Resource(new \EWP\Content\Config_Sync()),
             'objects'    => new Object_Search_Resource(new \EWP\Search\Object_Search()),
             'field-builder' => new Field_Builder_Resource(new \AWM_API()),
         ], $this->service);

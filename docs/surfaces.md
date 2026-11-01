@@ -42,7 +42,8 @@ output schema therefore have exactly one definition.
 | `logger` | `EWP\Logger\EWP_Logger_Query` (+ `EWP_Logger_Diagnose` for the REST-only `diagnose`) | `extend-wp/v1/logs`, `/stats`, `/types`, `/owners`, `/entry/{log_id}`, `/trace/{request_id}`, `/cleanup`, `/diagnose` (REST only) | `wp ewp log list\|get\|trace\|stats\|types\|write\|delete\|cleanup` | `ewp-logger/*` (8) |
 | `options` | `EWP_Options_Portability` | `extend-wp/v1/options-portability/pages\|export\|import` | `wp ewp options list\|export\|import` | `ewp-options/list-pages`, `export`, `import` |
 | `system` | `EWP\Surfaces\System_Service` | `extend-wp/v1/system/info`, `/flush-cache` | `wp ewp system info`, `wp ewp delete-cache` | `ewp-system/get-site-info`, `flush-cache` |
-| `content-portability` | `EWP\Content\Content_Portability` | `ewp/v1/export`, `ewp/v1/import` | `wp ewp content export\|import` | `ewp-content/export`, `import` |
+| `content-portability` | `EWP\Content\Content_Portability` | `ewp/v1/export` (`method=json\|php`), `ewp/v1/import` | `wp ewp content export\|import` | `ewp-content/export`, `import` |
+| `config-sync` | `EWP\Content\Config_Sync` | `ewp/v1/config-sync/status` (GET), `…/export`, `…/migrate`, `…/import` (POST) | `wp ewp content sync status\|export\|migrate\|import` | `ewp-content/sync-status`, `sync-export`, `sync-migrate`, `sync-import` |
 | `objects` | `EWP\Search\Object_Search` | `extend-wp/v1/objects/search` | `wp ewp objects search` | `ewp-system/search-objects` |
 | `recently-seen` (REST only, public) | `EWP_Recently_Seen_UTIL` | `ewp/v1/recently-seen/{id}` | — | — |
 | per block (`Block_Preview_Resource`, REST only) | `EWP_Dynamic_Blocks` | `{namespace}/{name}/preview` | — | — |
