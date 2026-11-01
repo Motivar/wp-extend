@@ -44,7 +44,6 @@ class EWP_WP_Content_Installer
     add_action('admin_enqueue_scripts', [$this, 'enqueue_custom_status_scripts']);
     add_filter('display_post_states', [$this, 'display_custom_status_label'], 10, 2);
     add_filter('wp_insert_post_data', [$this, 'fix_custom_status_save'], 10, 2);
-    add_action('admin_footer-edit.php', [$this, 'fix_custom_status_column_display']);
     add_action('init', [$this, 'add_custom_status_to_gutenberg'], 20);
   }
 
@@ -258,8 +257,7 @@ class EWP_WP_Content_Installer
         $slug . '_slug',
         __($title . ' Slug', 'extend-wp'), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
         function ($views) use ($slug) {
-          $value = get_option($slug . '_slug');
-          echo '<input type="text" value="' . esc_attr($value) . '" name="' . esc_attr($slug . '_slug') . '" id="' . esc_attr($slug . '_slug') . '" class="regular-text" placeholder="' . esc_attr($slug) . '"/>';
+          echo awm_parse_template(awm_path . 'templates/admin-view/slug-field.php', array('slug' => (string) $slug, 'value' => (string) get_option($slug . '_slug'))); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
         },
         'permalink',
         'optional'
@@ -598,138 +596,22 @@ class EWP_WP_Content_Installer
           return $params;
         }, 10, 1);
 
-        // Add custom statuses to Gutenberg via JavaScript
-        add_action('enqueue_block_editor_assets', function () use ($type, $post_type) {
-          global $typenow, $post;
-
-          // Only run for the correct post type
-          if ($typenow !== $post_type && (!$post || $post->post_type !== $post_type)) {
-            return;
-          }
-
-          $custom_statuses = $type['custom_status'];
-
-          // Build status objects for Gutenberg
-          $status_list = [];
-          foreach ($custom_statuses as $status_key => $status_data) {
-            $status_list[$status_key] = [
-              'name' => $status_key,
-              'slug' => $status_key,
-              'label' => isset($status_data['label']) ? $status_data['label'] : ucfirst(str_replace('_', ' ', $status_key)),
-            ];
-          }
-?>
-          <script type="text/javascript">
-            (function(wp) {
-              if (!wp || !wp.data) return;
-
-              var customStatuses = <?php echo json_encode($status_list); ?>;
-              var postType = '<?php echo esc_js($post_type); ?>';
-
-              // Wait for editor to be fully ready
-              wp.domReady(function() {
-                var checkInterval = setInterval(function() {
-                  var editor = wp.data.select('core/editor');
-                  if (!editor) return;
-
-                  var currentPost = editor.getCurrentPost();
-                  if (!currentPost || currentPost.type !== postType) return;
-
-                  // Stop checking
-                  clearInterval(checkInterval);
-
-                  // Get existing statuses
-                  var existingStatuses = wp.data.select('core').getPostStatuses() || {};
-
-                  // Add our custom statuses to the store
-                  Object.keys(customStatuses).forEach(function(statusKey) {
-                    var statusData = customStatuses[statusKey];
-
-                    // Add to core data store
-                    existingStatuses[statusKey] = {
-                      name: statusData.label,
-                      slug: statusKey,
-                      _links: {}
-                    };
-                  });
-
-                  // Force update the statuses in the store
-                  wp.data.dispatch('core').receiveEntityRecords(
-                    'root',
-                    'status',
-                    Object.values(existingStatuses)
-                  );
-                }, 100);
-
-                // Stop after 10 seconds
-                setTimeout(function() {
-                  clearInterval(checkInterval);
-                }, 10000);
-              });
-            })(window.wp);
-          </script>
-    <?php
-        });
+        /*the block editor gets custom statuses from EWPCustomPostStatus::addToGutenberg() (awm-admin-script.js), fed by enqueue_custom_status_scripts()*/
       }
     }
   }
 
   /**
-   * Fix custom status display in the status column on list pages
-   * Outputs JavaScript to replace status text with custom labels
+   * Formerly printed an inline script that put custom status labels in the
+   * list screen's Status column.
+   *
+   * @deprecated 1.14.0 Done by EWPCustomPostStatus::fixStatusColumn() in
+   *             assets/js/admin/awm-admin-script.js, which builds the label
+   *             with textContent (the old script injected it as HTML).
+   * @return void
    */
   public function fix_custom_status_column_display()
   {
-    global $typenow;
-
-    if (!$typenow) {
-      return;
-    }
-
-    $types = $this->post_types;
-    if (empty($types)) {
-      return;
-    }
-
-    // Find custom statuses for current post type
-    $custom_statuses = [];
-    foreach ($types as $type) {
-      if ($type['post'] === $typenow && isset($type['custom_status']) && !empty($type['custom_status'])) {
-        $custom_statuses = $type['custom_status'];
-        break;
-      }
-    }
-
-    if (empty($custom_statuses)) {
-      return;
-    }
-
-    // Output JavaScript to replace status text in the status column
-    ?>
-    <script type="text/javascript">
-      jQuery(document).ready(function($) {
-        var customStatuses = <?php echo json_encode($custom_statuses); ?>;
-
-        // Replace status text in status column
-        $('.column-status').each(function() {
-          var $this = $(this);
-          var currentText = $this.text().trim();
-
-          // Check if current text matches a custom status key
-          Object.keys(customStatuses).forEach(function(statusKey) {
-            // WordPress might display the status key as-is or formatted
-            var formattedKey = statusKey.replace(/_/g, ' ');
-
-            if (currentText.toLowerCase() === statusKey.toLowerCase() ||
-              currentText.toLowerCase() === formattedKey.toLowerCase()) {
-              var label = customStatuses[statusKey].label || statusKey;
-              $this.html('<strong>' + label + '</strong>');
-            }
-          });
-        });
-      });
-    </script>
-<?php
   }
 
   /**

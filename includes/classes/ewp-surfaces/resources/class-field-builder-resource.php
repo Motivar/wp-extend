@@ -145,7 +145,7 @@ final class Field_Builder_Resource extends Resource
 
             'php-code' => Operation::read('php_code')
                 ->label(__('PHP export of a field group', 'extend-wp'))
-                ->description(__('Highlighted PHP snippet that registers a UI-built field group through the matching awm_add_*_filter hook.', 'extend-wp'))
+                ->description(__('Deprecated since 1.15.0, use the export operation with method=php. Highlighted PHP snippet that registers a UI-built field group through the matching awm_add_*_filter hook.', 'extend-wp'))
                 ->input([Field::int('awm_post_id')->required()->describe(__('ewp_fields row id.', 'extend-wp'))])
                 ->args(function (array $input) {
                     return [$input['awm_post_id']];

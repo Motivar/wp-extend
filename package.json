@@ -1,6 +1,6 @@
 {
   "name": "wp-extend",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "description": "library to include for wordpress developers with easy meta handling",
   "main": "index.js",
   "directories": {
@@ -9,7 +9,7 @@
   "scripts": {
     "build": "wp-scripts build",
     "start": "wp-scripts start",
-    "build:css": "sass --style=compressed --no-source-map assets/css/admin/ewp-admin-ui.scss assets/css/admin/ewp-admin-ui.min.css",
+    "build:css": "sass --style=compressed --no-source-map assets/css/admin/ewp-admin-ui.scss:assets/css/admin/ewp-admin-ui.min.css assets/css/global/ewp-debug.scss:assets/css/global/ewp-debug.min.css assets/css/admin/ewp-list-table.scss:assets/css/admin/ewp-list-table.min.css assets/css/admin/ewp-import-export.scss:assets/css/admin/ewp-import-export.min.css",
     "test:js": "wp-scripts test-unit-js assets/js"
   },
   "keywords": [],

@@ -488,51 +488,24 @@ if (!function_exists('awm_dev_notes')) {
 }
 
 
-if (!function_exists('awm_php_views')) {
-  /**
-   * with this function we configure the position of the inputs for the awm field
-   */
-  function awm_php_views()
-  {
-    global $ewp_content_id;
-    if ($ewp_content_id) {
-      $html = '<div id="awm-php-wrapper"><div><input type="button" value="' . __('Show php code', 'extend-wp') . '" onclick="ewp_get_php_code(' . $ewp_content_id . ')"/></div><div id="awm-php-code"></div></div>';
-
-      return array(
-        'position_content' => array(
-          'label' => __('Php code', 'extend-wp'),
-          'case' => 'html',
-          'value' => $html,
-          'exclude_meta' => true,
-          'show_label' => true
-        )
-      );
-    }
-
-    return array();
-  }
-}
-
 if (!function_exists('awm_print_php')) {
+  /**
+   * The entries of an array as PHP source (without the surrounding brackets), one per line.
+   *
+   * Thin wrapper kept for external callers; strings are now escaped.
+   *
+   * @param array $fields Array to print.
+   *
+   * @return string Entries joined with ",\n".
+   *
+   * @deprecated 1.15.0 Use \EWP\Content\Php_Printer::print_items().
+   */
   function awm_print_php($fields)
   {
-    $vals = array();
-    foreach ($fields as $key => $item) {
-      $display = is_int($key) ? '' : '\'' . $key . '\'=>';
-      $value = '';
+    require_once awm_path . 'includes/classes/ewp-content/class-php-printer.php';
+    $printer = new \EWP\Content\Php_Printer();
 
-      if (!empty($item) && !is_array($item) && in_array($key, array('title', 'label', 'explanation'), true)) {
-        $value = '__(\'' . $item . '\',\'extend-wp\')';
-      }
-      if (is_array($item)) {
-        $value = ' array(' . awm_print_php($item) . ') ';
-      }
-      if (empty($value)) {
-        $value = is_int($item) ? $item : '\'' . $item . '\'';
-      }
-      $vals[] = $display . $value;
-    }
-    return implode(',@@@@', $vals);
+    return $printer->print_items((array) $fields, 0);
   }
 }
 

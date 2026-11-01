@@ -42,10 +42,9 @@ output schema therefore have exactly one definition.
 | `logger` | `EWP\Logger\EWP_Logger_Query` (+ `EWP_Logger_Diagnose` for the REST-only `diagnose`) | `extend-wp/v1/logs`, `/stats`, `/types`, `/owners`, `/entry/{log_id}`, `/trace/{request_id}`, `/cleanup`, `/diagnose` (REST only) | `wp ewp log list\|get\|trace\|stats\|types\|write\|delete\|cleanup` | `ewp-logger/*` (8) |
 | `options` | `EWP_Options_Portability` | `extend-wp/v1/options-portability/pages\|export\|import` | `wp ewp options list\|export\|import` | `ewp-options/list-pages`, `export`, `import` |
 | `system` | `EWP\Surfaces\System_Service` | `extend-wp/v1/system/info`, `/flush-cache` | `wp ewp system info`, `wp ewp delete-cache` | `ewp-system/get-site-info`, `flush-cache` |
-| `content-portability` | `EWP\Content\Content_Portability` | `ewp/v1/export`, `ewp/v1/import` | `wp ewp content export\|import` | `ewp-content/export`, `import` |
+| `content-portability` | `EWP\Content\Content_Portability` | `ewp/v1/export` (`method=json\|php`), `ewp/v1/import` | `wp ewp content export\|import` | `ewp-content/export`, `import` |
+| `config-sync` | `EWP\Content\Config_Sync` | `ewp/v1/config-sync/status` (GET), `…/export`, `…/migrate`, `…/import` (POST) | `wp ewp content sync status\|export\|migrate\|import` | `ewp-content/sync-status`, `sync-export`, `sync-migrate`, `sync-import` |
 | `objects` | `EWP\Search\Object_Search` | `extend-wp/v1/objects/search` | `wp ewp objects search` | `ewp-system/search-objects` |
-| `rest-health` | `EWP\Surfaces\Rest_Health_Inventory` | `extend-wp/v1/rest-health/plugins`, `/endpoints` | `wp ewp rest-health plugins\|endpoints` | `ewp-rest-health/list-plugins`, `list-endpoints` |
-| `rest-health-probes` (REST only) | `EWP\Surfaces\Rest_Health_Probes` | `extend-wp/v1/rest-health/openapi`, `/test`, `/batch`, `/history` (GET, DELETE), `/monitor` (GET, POST), `/monitor/payloads` (GET, DELETE), `/preferences` (GET, POST) | — | — |
 | `recently-seen` (REST only, public) | `EWP_Recently_Seen_UTIL` | `ewp/v1/recently-seen/{id}` | — | — |
 | per block (`Block_Preview_Resource`, REST only) | `EWP_Dynamic_Blocks` | `{namespace}/{name}/preview` | — | — |
 | `field-builder` (REST only) | `AWM_API` | `extend-wp/v1/get-case-fields`, `/get-query-fields`, `/get-position-fields`, `/get-php-code`, `/awm-map-options`, `/modal-fields`, `/modal-save` | — | — |
@@ -58,7 +57,7 @@ commands and abilities it generates and the surfaces it deliberately skips.
 
 Several resources are REST-only by declaration (`Resource::surfaces()`
 returns `[Context::REST]`, or a callable that does while a feature is
-enabled): the REST-health page probes, the wp-admin field-builder/modal
+enabled): the wp-admin field-builder/modal
 helpers, the logger's AI diagnose box (an operation on the logger
 resource), the anonymous recently-seen recorder and the per-block editor
 previews. They render for a browser script, so a command or ability would
@@ -80,7 +79,7 @@ all surfaces by `Operation::run()`:
   in its `awm_register_content_db` definition.
 - The logger uses `EWP_Logger::get_viewer_capability()`; options and cache
   flushing `manage_options`; site info and the type inventory `read`; the
-  REST-health inventory `is_super_admin()`; object search the
+  object search the
   `awm_object_search_capability` filter (default per object type since
   1.5.8: the post type's `edit_posts`, the taxonomy's `assign_terms`,
   otherwise `manage_options`; posts the user cannot read are left out).
@@ -164,5 +163,5 @@ from a missing registration.
 | `ewp_surfaces_resources` | filter | `(Resource[] $resources, Content_Service $service)` |
 | `ewp_abilities_capability` | filter | `(string $capability, string $ability_name)` |
 | `ewp_logger_ability_definitions` | filter | `(array $definitions)` |
-| `ewp_rest_health_runtime_namespaces` | filter | `(array<string,string> $namespace_to_plugin)` |
+| `mmwp_rh_runtime_namespaces` (consumed by the standalone MammothWP REST Health plugin) | filter | `(array<string,string> $namespace_to_plugin)` |
 | `mmwp_kit_*` | see `lib/mammothwp/wp-kit/HOOKS.md` | |

@@ -29,7 +29,6 @@ Extend WP gives developers one way to describe fields and content, and builds th
 **Tools**
 
 * Activity log with retention, a log viewer and WP-CLI commands.
-* REST API Health page: every route of a plugin, with a Swagger UI to try them.
 * Options export and import between sites.
 * Dynamic asset loader: scripts and styles load only on pages that contain their elements.
 

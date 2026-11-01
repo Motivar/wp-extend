@@ -264,6 +264,39 @@
             }
         },
         {
+            "id": "config-sync",
+            "label": "Configuration sync (status / export / migrate / import)",
+            "category": "content",
+            "layers": [
+                "rest",
+                "cli",
+                "ability"
+            ],
+            "class": "EWP\\SelfTest\\Cases\\Config_Sync_Case",
+            "requires": [],
+            "args": {},
+            "covers": {
+                "rest": [
+                    "ewp/v1/config-sync/status",
+                    "ewp/v1/config-sync/export",
+                    "ewp/v1/config-sync/migrate",
+                    "ewp/v1/config-sync/import"
+                ],
+                "cli": [
+                    "ewp content sync status",
+                    "ewp content sync export",
+                    "ewp content sync migrate",
+                    "ewp content sync import"
+                ],
+                "ability": [
+                    "ewp-content/sync-status",
+                    "ewp-content/sync-export",
+                    "ewp-content/sync-migrate",
+                    "ewp-content/sync-import"
+                ]
+            }
+        },
+        {
             "id": "object-search",
             "label": "Object search by name",
             "category": "system",
@@ -284,33 +317,6 @@
                 ],
                 "ability": [
                     "ewp-system/search-objects"
-                ]
-            }
-        },
-        {
-            "id": "rest-health",
-            "label": "REST route inventory",
-            "category": "system",
-            "layers": [
-                "rest",
-                "cli",
-                "ability"
-            ],
-            "class": "EWP\\SelfTest\\Cases\\Rest_Health_Case",
-            "requires": [],
-            "args": {},
-            "covers": {
-                "rest": [
-                    "extend-wp/v1/rest-health/plugins",
-                    "extend-wp/v1/rest-health/endpoints"
-                ],
-                "cli": [
-                    "ewp rest-health plugins",
-                    "ewp rest-health endpoints"
-                ],
-                "ability": [
-                    "ewp-rest-health/list-plugins",
-                    "ewp-rest-health/list-endpoints"
                 ]
             }
         },
@@ -347,30 +353,6 @@
                     "ewp-wp-content/update-taxonomy",
                     "ewp-wp-content/delete-taxonomy"
                 ]
-            }
-        },
-        {
-            "id": "rest-health-probes",
-            "label": "REST-health page probes",
-            "category": "system",
-            "layers": [
-                "rest"
-            ],
-            "class": "EWP\\SelfTest\\Cases\\Rest_Health_Probes_Case",
-            "requires": [],
-            "args": {},
-            "covers": {
-                "rest": [
-                    "extend-wp/v1/rest-health/openapi",
-                    "extend-wp/v1/rest-health/test",
-                    "extend-wp/v1/rest-health/batch",
-                    "extend-wp/v1/rest-health/history",
-                    "extend-wp/v1/rest-health/monitor",
-                    "extend-wp/v1/rest-health/monitor/payloads",
-                    "extend-wp/v1/rest-health/preferences"
-                ],
-                "cli": [],
-                "ability": []
             }
         },
         {
@@ -432,6 +414,18 @@
                 "cli": [],
                 "ability": []
             }
+        },
+        {
+            "id": "field-engine",
+            "label": "Field engine: render, browser-style submit, save and re-render a meta box",
+            "category": "fields",
+            "layers": [
+                "core"
+            ],
+            "class": "EWP\\SelfTest\\Cases\\Field_Engine_Case",
+            "requires": [],
+            "args": {},
+            "covers": {}
         }
     ]
 }

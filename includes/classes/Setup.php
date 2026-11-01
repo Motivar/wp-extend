@@ -24,10 +24,7 @@ class Setup
   */
  public function __construct()
  {
-  // Register encryption hooks for meta and options
-  add_filter('update_post_meta', 'awm_encrypt_meta_on_save', 10, 4);
-  add_filter('update_user_meta', 'awm_encrypt_meta_on_save', 10, 4);
-  add_filter('update_term_meta', 'awm_encrypt_meta_on_save', 10, 4);
+  /*options re-save encrypted after update; post/term/user meta is encrypted in the save path (awm_custom_meta_update_vars() → awm_meta_save_encryption()), since update_{$type}_meta is an action whose return value was ignored*/
   add_action('updated_option', 'awm_encrypt_option_after_save', 10, 3);
 
   add_action('init', function () {
@@ -41,7 +38,7 @@ class Setup
    $logger->init();
   }, 0);
   require_once 'class-request-context.php';
-  /*guarded, unguessable files under uploads (logger, REST-health); before the logger*/
+  /*guarded, unguessable files under uploads (logger); before the logger*/
   require_once 'class-private-files.php';
   /*object-free unserialize for stored meta, logs and imports*/
   require_once 'class-serialization.php';
@@ -95,6 +92,11 @@ class Setup
   /*admin page, REST and CLI only; EWP_Surfaces::boot() requires it again on demand for Options_Resource*/
   if (!$front_end) {
    require_once 'ewp-options-portability/class-options-portability.php';
+  }
+  /*old REST API Health admin URL: redirects to the standalone MammothWP REST Health plugin*/
+  if (!$front_end) {
+   require_once 'ewp-rest-health-moved/class-ewp-rest-health-moved.php';
+   (new \EWP_REST_Health_Moved())->init();
   }
   /*registers manifest.json and the cases with the mammothwp/wp-self-test package (lib/), which boots on plugins_loaded unless `mmwp_self_test_enabled` says otherwise (off on production since package 0.7.0); a front-end request never runs self-tests*/
   if ($front_end) {

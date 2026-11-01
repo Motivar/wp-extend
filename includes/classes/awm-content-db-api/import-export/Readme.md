@@ -20,7 +20,7 @@ The Extend WP plugin provides two filters, `ewp_auto_import_settings_filter` and
 ### Key Points:
 1. **Auto Export**: Enable this in your **Development** environment to automatically export content types (e.g., `Field`, `Post Type`) to the specified path.
    - **Filepath Save Location**: Define a writable path relative to `wp-content` (e.g., `themes/twentytwentyfour/export`).
-2. **Auto Import**: Enable this in your **QA/Production** environment to automatically import content based on the `ewp_configuration.json` file.
+2. **Auto Import**: Enable this in your **QA/Production** environment to automatically import content from the exported files (the `ewp-config/` folder, or the legacy `ewp_configuration.json`).
    - **Filepath Load Location**: Ensure the path points to the same folder where the exported JSON is saved in the Development environment.
 
 > **Important**: This feature is designed to be used across **different environments**. Enable **Auto Export** in Development and **Auto Import** in QA/Production to ensure a seamless workflow.
@@ -107,6 +107,48 @@ add_filter('ewp_auto_export_settings_filter', function ($settings) {
 | `store`       | Enable or disable auto-export functionality.         | `true` or `false`                     |
 | `path`        | Define the relative path for export files.           | `themes/twentytwentyfour`|
 | `types`       | Specify the content types to export (e.g., posts).   | `['post', 'field']`                   |
+| `layout`      | File layout: `per_object` (one file per row) or `single` (legacy `ewp_configuration.json`). Missing means `single`, so existing filters keep working. | `per_object` |
+
+The settings page stores the same keys in the option `ewp_auto_export_settings`. That option was never read before 1.15.0 (its name carried a trailing space), so a site can hold an old `store = on` without having exported. To avoid suddenly writing files, the stored `store` is honoured only when the stored value also contains `layout` (written the next time the settings page is saved); until then the settings page shows a notice asking you to save again. Settings returned by the filter apply as before.
+
+---
+
+## File layouts
+
+| Layout | Files | Notes |
+|--------|-------|-------|
+| `single` (legacy) | `{path}/ewp_configuration.json` | Every exported type in one file. Rewritten on each save; one file means constant merge conflicts in git. |
+| `per_object` (format 2) | `{path}/ewp-config/format.json` and `{path}/ewp-config/{content_type}/{hash}.json` | One row with its meta per file. Output is deterministic (sorted keys, pretty printed, trailing newline, no top-level `modified`, no `content_id` / `user_id`), and a file is only rewritten when its bytes change, so two developers editing different objects never conflict. |
+
+- Saving a row writes only that row's file. Deleting rows removes the files of that type whose row no longer exists.
+- Row hashes are identical in both layouts, so switching layouts never duplicates rows.
+- Rename the files with the `ewp_config_sync_filename` filter (`$filename`, `$content_type`, `$row`); the name must be a plain `*.json` file name and stay stable per row.
+
+### How the importing site reads the files
+
+On every administrator page load (`admin_init`, never admin-ajax) the importing site looks at the import path:
+
+1. `ewp-config/format.json` exists: the per object layout is read (every `{type}/*.json`). If `ewp_configuration.json` is still there too, the folder wins and a notice says the single file is ignored and can be deleted.
+2. Otherwise `ewp_configuration.json` is read exactly as before.
+
+Nothing is imported when the source did not change (the single file by its md5; the folder by a hash of every file's relative path, size and mtime). Rows are upserted by hash. Rows whose hash this site imported last time (option `ewp_auto_imported_hashes`) but that the files no longer list are deleted; rows created on the importing site are never touched. A folder without any object file is treated as an error rather than as "delete everything".
+
+### Migrating from the single file
+
+1. **Upgrade the plugin on every importing environment (QA, production) first.** An environment running an older version only reads `ewp_configuration.json`; once the single file is renamed it would keep the last version it saw and never receive another change.
+2. On the exporting environment, open Settings > Extend WP and press **Migrate to per-object files**, or run `wp ewp content sync migrate --yes`. It writes `ewp-config/` from the database, renames `ewp_configuration.json` to `ewp_configuration.legacy.json` and saves `layout = per_object`. Settings supplied by `ewp_auto_export_settings_filter` need `'layout' => 'per_object'` added in code.
+3. Commit `ewp-config/` and the renamed legacy file, and deploy.
+
+### Surfaces
+
+| Operation | REST (`ewp/v1`) | WP-CLI | Ability |
+|-----------|-----------------|--------|---------|
+| Status (layout, folder, file counts, legacy file, last import signature) | `GET config-sync/status` | `wp ewp content sync status` | `ewp-content/sync-status` |
+| Re-export everything in the configured (or given) layout | `POST config-sync/export` | `wp ewp content sync export [--layout=<single\|per_object>]` | `ewp-content/sync-export` |
+| Migrate to one file per object | `POST config-sync/migrate` | `wp ewp content sync migrate --yes` | `ewp-content/sync-migrate` (`confirm: true`) |
+| Import now, ignoring the change signature | `POST config-sync/import` | `wp ewp content sync import [--path=<path>] --yes` | `ewp-content/sync-import` (`confirm: true`) |
+
+All need `manage_options`. Errors while exporting on save (missing or read-only folder) are logged and shown as an admin notice; they never stop the save.
 
 ---
 
@@ -156,7 +198,7 @@ add_filter('ewp_auto_export_settings_filter', function ($settings) {
 ## FAQ
 
 ### What happens if the path is not writable?
-The plugin will throw an error. Ensure the specified directory has the correct permissions for PHP to read/write files.
+The export logs the error and shows an admin notice; the save itself goes through. Ensure the specified directory has the correct permissions for PHP to read/write files.
 
 ### Can I use these filters for both plugins and themes simultaneously?
 Yes, but be cautious to avoid conflicts. Filters in plugins typically override those in themes due to priority.

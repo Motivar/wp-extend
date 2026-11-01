@@ -501,17 +501,15 @@ class Extend_WP_Search_Filters
     unset($fields['query_fields']);
     $async = isset($fields['async']) ? $fields['async'] : '';
     $orientation = isset($fields['orientation']) ? $fields['orientation'] : '';
-    $form = '<div id="ewp-search-' . $id . '" class="ewp-search-box ' . esc_attr($async) . ' ' . esc_attr($orientation) . '" options="' . esc_attr(str_replace('"', '\'', wp_json_encode($fields))) . '" search-id="' . $id . '"><form id="ewp-search-form-' . $id . '">' . awm_show_content(($form_fields)) . '</form>';
-    /*check whether search engine is async or not*/
-    switch ($async) {
-      case 'not_async':
-        $form .= '<div class="ewp-search-actions"><div class="ewp-search-actions-wrapper"><div class="ewp-search-apply" onclick="ewp_apply_search_form(' . $id . ')">' . esc_html__($fields['button_apply'], 'extend-wp') . '</div><div class="ewp-search-reset"  onclick="ewp_reset_search_form(' . $id . ')">' . esc_html__($fields['button_reset'], 'extend-wp') . '</div></div></div>'; // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
-        break;
-    }
-
-
-    $form .= '</div>';
-    return $form;
+    return awm_parse_template(awm_path . 'templates/frontend/search/form.php', array(
+      'id' => $id,
+      'async' => $async,
+      'orientation' => $orientation,
+      'options' => $fields,
+      'form_html' => awm_show_content($form_fields),
+      'button_apply' => isset($fields['button_apply']) ? __($fields['button_apply'], 'extend-wp') : '',
+      'button_reset' => isset($fields['button_reset']) ? __($fields['button_reset'], 'extend-wp') : '',
+    ));
   }
 
 

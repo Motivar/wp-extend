@@ -1,0 +1,1 @@
+(()=>{"use strict";"undefined"==typeof document||document.__ewpNoEnter||(document.__ewpNoEnter=!0,document.addEventListener("keydown",function(e){return!!function(e){return!("Enter"!==e.key||!e.target||"function"!=typeof e.target.closest)&&null!==e.target.closest("[data-ewp-noenter]")}(e)&&(e.preventDefault(),!0)}))})();

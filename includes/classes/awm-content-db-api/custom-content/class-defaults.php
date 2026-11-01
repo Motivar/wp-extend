@@ -34,6 +34,86 @@ class Extend_WP_Default_Content
     add_filter('awm_add_options_boxes_filter', [$this, 'admin_menu'], 1);
     add_action('wp_dashboard_setup', [$this, 'remove_dashboard_widgets']);
     add_action('updated_option', [$this, 'on_option_updated'], 10, 3);
+    add_filter('ewp_register_dynamic_assets', [$this, 'register_config_sync_assets']);
+  }
+
+  /**
+   * Register the configuration sync module (migrate button) with the Dynamic Asset Loader.
+   *
+   * @param array $assets Registered assets.
+   * @return array Assets with the module added.
+   * @since 1.15.0
+   */
+  public function register_config_sync_assets($assets)
+  {
+    $assets[] = array(
+      'handle'       => 'ewp-config-sync',
+      'selector'     => '.ewp-config-sync',
+      'type'         => 'script',
+      'src'          => awm_url . 'build/modules/ewp-config-sync.js',
+      'version'      => defined('AWM_ASSET_VERSION') ? AWM_ASSET_VERSION : '1.0.0',
+      'context'      => 'admin',
+      'dependencies' => array(),
+      'in_footer'    => true,
+      'localize'     => array(
+        'objectName' => 'ewpConfigSync',
+        'data'       => array(
+          'restUrl' => rest_url('ewp/v1/'),
+          'nonce'   => wp_create_nonce('wp_rest'),
+          'strings' => array(
+            'confirm' => __('Write one file per object, rename ewp_configuration.json and switch the layout? Importing environments must already run this plugin version.', 'extend-wp'),
+            'working' => __('Migrating...', 'extend-wp'),
+            'success' => __('Migrated. Commit the ewp-config folder and the renamed legacy file.', 'extend-wp'),
+            'error'   => __('The migration failed. Check the export path and content types.', 'extend-wp'),
+          ),
+        ),
+      ),
+    );
+    return $assets;
+  }
+
+  /**
+   * The configuration sync panel of the export section (status notice and migrate button).
+   *
+   * Only built on the settings screen: it touches the file system.
+   *
+   * @return string HTML from templates/admin-view/config-sync-panel.php.
+   * @since 1.15.0
+   */
+  private function config_sync_panel()
+  {
+    if (!$this->is_settings_screen()) {
+      return '';
+    }
+    $status = (new \EWP\Content\Config_Sync())->status();
+    return awm_parse_template(awm_path . 'templates/admin-view/config-sync-panel.php', array(
+      'dormant'     => $status['dormant'],
+      'can_migrate' => $status['layout'] !== \EWP\Content\Config_Sync::LAYOUT_PER_OBJECT || $status['legacy_file'],
+    ));
+  }
+
+  /**
+   * Whether the Extend WP settings page is being displayed.
+   *
+   * @return bool
+   * @since 1.15.0
+   */
+  private function is_settings_screen()
+  {
+    return is_admin() && isset($_GET['page']) && 'extend-wp' === sanitize_key(wp_unslash($_GET['page'])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display only.
+  }
+
+  /**
+   * Layout the settings page proposes: the legacy single file when one exists at the stored path, else per object.
+   *
+   * @return string `single` or `per_object`.
+   * @since 1.15.0
+   */
+  private function default_export_layout()
+  {
+    $stored = get_option('ewp_auto_export_settings', array());
+    $path   = is_array($stored) && isset($stored['path']) ? (string) $stored['path'] : '';
+    return (new \EWP\Content\Config_Sync())->default_layout($path);
   }
 
   /**
@@ -204,7 +284,7 @@ class Extend_WP_Default_Content
         'ewp_auto_export_settings' => array(
           'case' => 'section',
           'label' => __('Export EWP Content Configuration', 'extend-wp'),
-          'explanation' => __('Export your content to a file for backup or migration purposes. The filename will be <strong>ewp_configuration.json</strong>.', 'extend-wp'),
+          'explanation' => __('Export your content to files for backup or migration purposes: one file per object under <strong>ewp-config/</strong>, or a single <strong>ewp_configuration.json</strong>.', 'extend-wp'),
           'include' => array(
             // Auto export toggle
             'store' => array(
@@ -221,6 +301,18 @@ class Extend_WP_Default_Content
               'attributes' => array('multiple' => true),
               'show-when' => array('store' => array('values' => true))
             ),
+            // File layout
+            'layout' => array(
+              'label' => __('File layout', 'extend-wp'),
+              'case' => 'select',
+              'default' => $this->default_export_layout(),
+              'options' => array(
+                'per_object' => array('label' => __('One file per object (recommended, no merge conflicts)', 'extend-wp')),
+                'single' => array('label' => __('Single file (ewp_configuration.json)', 'extend-wp')),
+              ),
+              'show-when' => array('store' => array('values' => true)),
+              'explanation' => __('Importing sites read either layout automatically, once they run a plugin version that supports it.', 'extend-wp'),
+            ),
             // Export file path configuration
             'path' => array(
               'label_class' => array('awm-needed'),
@@ -229,9 +321,16 @@ class Extend_WP_Default_Content
               'type' => 'text',
               'show-when' => array('store' => array('values' => true)),
               'explanation' => sprintf(
-                /* translators: %s: folder path */ __('Place just the folder path following this address <strong>%s</strong>. Filename is auto-configured. Please also check that the path is writable by php!', 'extend-wp'),
+                /* translators: %s: folder path */ __('Place just the folder path following this address <strong>%s</strong>. Filenames are auto-configured. Please also check that the path is writable by php!', 'extend-wp'),
                 WP_CONTENT_DIR
               )
+            ),
+            // Status and migration
+            'config_sync_panel' => array(
+              'case' => 'html',
+              'value' => $this->config_sync_panel(),
+              'exclude_meta' => true,
+              'show-when' => array('store' => array('values' => true)),
             ),
           ),
         ),
@@ -240,7 +339,7 @@ class Extend_WP_Default_Content
         'ewp_auto_import_settings' => array(
           'case' => 'section',
           'label' => __('Import EWP Content Configuration', 'extend-wp'),
-          'explanation' => __('Import EWP content based on the <strong>ewp_configuration.json</strong>. The file should exist in the path you are going to provide.', 'extend-wp'),
+          'explanation' => __('Import EWP content from the <strong>ewp-config</strong> folder (one file per object) or the legacy <strong>ewp_configuration.json</strong>. The files should exist in the path you are going to provide.', 'extend-wp'),
           'include' => array(
             // Import toggle
             'import' => array(

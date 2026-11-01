@@ -1,0 +1,8 @@
+// Legacy custom content list (AWM_List_Table, `ewp_content_list_ui` → `legacy`):
+// the restrict filters sit inline with the Filter button, as the inline
+// style on templates/admin-view/list-table/filters.php used to do. Compiled to
+// ewp-list-table.min.css by `npm run build:css`; loaded by the Dynamic Asset
+// Loader when .ewp-list-filters is on the page.
+.ewp-list-filters {
+  display: inline-block;
+}

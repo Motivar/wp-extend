@@ -7,6 +7,487 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Unified export: PHP is an export format on the Import/Export screen; the "Show php code" box is removed** (`2026-11-01`):
+  - **Question/Prompt**: "Can we unify the export functionality? We need to get rid of the show php code … add php as an option and based on what users have added preview and download the code" (part 1 of 2; part 2 is the per-object JSON sync). One Sonnet agent implemented it; it was reviewed and documented here.
+  - **Shared service**:
+    - New `EWP\Content\Content_Php_Export` (`includes/classes/ewp-content/class-content-php-export.php`). `export(array $types)` returns `{code, skipped}`: one PHP file with a `<?php` header, an ABSPATH guard and one comment section per type and object.
+    - Built-in generators: `ewp_fields` (one `add_filter('awm_add_*_filter', …)` per position), `ewp_post_types` (`ewp_get_post_types_filter`) and `ewp_taxonomies` (`ewp_get_taxonomies_filter`). Types without a generator are listed in `skipped`.
+    - New `EWP\Content\Php_Printer` (`class-php-printer.php`) prints escaped, deterministic short-array PHP and wraps `label` / `title` / `explanation` in `__()`.
+    - **Fix:** the old `awm_print_php()` escaped nothing, so a `'` in a label produced broken PHP. The old `php_code()` also overwrote the group's fields with the boxes after the first position.
+  - **Surfaces** (all through `Content_Portability::export(…, ['format' => 'php'])`):
+    - `method=php` on the `export` operation of `Content_Portability_Resource`.
+    - REST `GET ewp/v1/export?method=php` and the `ewp-content/export` ability answer `{code, skipped}`.
+    - `wp ewp content export --types=… --method=php [--file=./ewp-content-export.php]` writes the file.
+    - `page` / `per_page` are ignored for php.
+  - **Admin screen** (`admin.php?page=ewp-import-export`):
+    - The method select offers PHP.
+    - After an export, a preview panel (`templates/admin-view/export-preview.php`) shows the code (or JSON) as text, with Copy and Download buttons and a notice for skipped types.
+    - The script moved from `assets/js/admin/import-export.js` to the lazy ES module `assets/js/modules/ewp-import-export.js` (+ `ewp-import-export/helpers.js`, with Jest tests). Styles are in `assets/css/admin/ewp-import-export.scss`, added to `build:css`.
+  - **Removed**:
+    - The "Php usage" box on the Fields edit form (`awm_php_usage`, `awm_php_views()`, `templates/admin-view/php-code-box.php`).
+    - Its JS (`ewp_get_php_code`, `awm_show_php_code`, `ewp_php_code_click` and their `window` exports in `awm-admin-script.js`).
+    - `tests/test-php-code-box-test.php`.
+  - **Preview placement** (follow-up prompt: "perform action should be placed like after select choices because if there are too much export code then we cannot see the button again"):
+    - The module moves the panel under the form's `.awm-form-submit-area` when it opens (`placeBelowSubmit()`), so "Perform Action" stays right under the selects. The code box keeps its own scroll (`max-height: 480px`).
+    - Changing Action away from Export hides the moved panel (`onActionChange()`).
+  - **Field engine fix found during the browser check**: `html` fields dropped `show-when`, so the config-sync panel on the settings page showed even with Auto export off.
+    - `Field_Renderer::html_row()` now passes `show_when` to `templates/fields/html.php`, which prints the attribute only when a rule is set. Existing html markup is unchanged; snapshots pass.
+    - Test: `Test_Field_Engine::test_html_field_carries_show_when`.
+    - Theme overrides of `extend-wp/fields/html.php` keep working; they just won't honour `show-when` until they print `$variables['show_when']`.
+  - **Verified in the logged-in admin (Chrome, 2026-11-01)**:
+    - PHP export of Field + Search Filter: the preview shows the code, and `ewp_search` appears in the skipped notice.
+    - The JSON export previews too.
+    - The panel sits below Perform Action, and switching to Import hides it.
+    - On the settings page, the sync panel and layout select appear only with Auto export on. The layout select defaults to per object when the path has no legacy file.
+    - The Migrate button and the Copy/Download clicks were not exercised.
+  - **New hook**: `ewp_php_export_generators` (filter; see HOOKS.md).
+  - **Tests**:
+    - New `tests/test-content-php-export-test.php`: escaping, valid PHP, generators, skipped types, filter.
+    - The `content-portability` self-test case now checks php on REST, the ability and the CLI.
+    - Jest has `ewp-import-export` helper tests.
+  - **Backwards compatibility**:
+    - **Breaking:** `ewp/v1/export?method=php` returned a PHP-serialized string. It now returns `{code, skipped}`. The admin UI never exposed it.
+    - `AWM_API::php_code()` and `GET extend-wp/v1/get-php-code` are deprecated (1.15.0) thin wrappers over the new service and still return highlighted HTML. They will be removed in a later release.
+    - `awm_print_php()` stays for external callers, now escaped, and no longer emits the `@@@@` line markers.
+    - `method=json` is unchanged.
+
+- **Config sync: one JSON file per object instead of one `ewp_configuration.json`** (`2026-11-01`):
+  - **Question/Prompt**: "now on json we create one json file, which is not ideal since a lot of merge conflicts happen … create a json per object-id … we don't want the repos which already have the old json file to be misconfigured" (part 2 of 2). One Opus agent implemented it; it was reviewed and documented here.
+  - **Shared service**:
+    - New `EWP\Content\Config_Sync` (`includes/classes/ewp-content/class-config-sync.php`) holds all auto export / auto import logic.
+    - `Extend_WP_Import_Export` keeps only thin hook wrappers, plus the new `auto_export_content_deleted`.
+    - `Content_Portability` gained `find_row()` and `walk_rows()`.
+  - **New layout (`per_object`)**:
+    - Files live at `{path}/ewp-config/format.json` (`{"format":2}`, written once) and `{path}/ewp-config/{content_type}/{hash}.json`.
+    - Hash, not `content_id`, because ids differ per database.
+    - Output is deterministic: keys sorted recursively, pretty-printed, trailing newline.
+    - `content_id`, `user_id` and the top-level `modified` are left out, so an untouched object never shows up in a diff.
+    - Writes are atomic and skipped when the bytes are identical.
+    - On save only that object's file is written. On delete, the type's folder is reconciled (files whose hash is no longer in the database are removed).
+  - **Import detects the layout**:
+    - `ewp-config/format.json` → per object.
+    - Otherwise `ewp_configuration.json` → legacy, unchanged.
+    - Both present → the folder wins and an admin notice says the single file can be deleted.
+    - The per-object change signature is a hash of every file's path, size and mtime, prefixed `v2:`.
+    - An empty `ewp-config/` is an error, not "delete everything".
+  - **Setting**: new `layout` key (`single` | `per_object`) in `ewp_auto_export_settings` and its filter.
+    - A missing `layout` means `single`, so filter-based configs and existing sites keep writing the single file.
+    - The settings field defaults to `single` when a legacy file exists at the path, else `per_object`.
+    - The settings page has a status panel and a "Migrate to per-object files" button (`templates/admin-view/config-sync-panel.php`, `assets/js/modules/ewp-config-sync.js`).
+  - **Migration** (`wp ewp content sync migrate --yes`, or the button):
+    - Writes `ewp-config/` from the database.
+    - Renames `ewp_configuration.json` to `ewp_configuration.legacy.json` (never deletes it).
+    - Sets `layout=per_object`.
+    - Rollout order (documented in `import-export/Readme.md`): upgrade the importing environments (QA/prod) first, then migrate on dev. Otherwise an old plugin version keeps reading the stale single file.
+  - **New surfaces** (kit resource `Config_Sync_Resource`, `manage_options`; migrate and import confirm on CLI and abilities):
+
+    | Operation | REST | CLI | Ability |
+    |---|---|---|---|
+    | status | `GET ewp/v1/config-sync/status` | `wp ewp content sync status` | `ewp-content/sync-status` |
+    | export | `POST ewp/v1/config-sync/export` | `wp ewp content sync export` | `ewp-content/sync-export` |
+    | migrate | `POST ewp/v1/config-sync/migrate` | `wp ewp content sync migrate` | `ewp-content/sync-migrate` |
+    | import | `POST ewp/v1/config-sync/import` | `wp ewp content sync import` | `ewp-content/sync-import` |
+
+  - **Fixed**:
+    - **Wrong option name:** `get_option('ewp_auto_export_settings ')` (trailing space) meant export settings saved in the UI were never applied; only the filter worked. The name is fixed. A stored option with `store` on but no `layout` is treated as **dormant** (off), and the settings page asks the admin to save again. Settings that were silently ignored therefore don't switch on by surprise.
+    - **Stale rows never deleted:** the stale-row cleanup on import was inverted, so objects removed at the source were never deleted on the importing site. Now only rows whose hash this site auto-imported before are deleted, resolved to ids (the `_data` table has no `hash` column).
+    - **Saves broken by a bad path:** auto export `wp_die()`d inside the save hook when the path was missing or not writable. It now logs and shows an admin notice on the next page (transient `ewp_config_sync_notices`); the save is never interrupted.
+    - **Paths:** they now join correctly with or without a leading slash. `..` is rejected.
+    - **Last row deleted with the `single` layout:** this no longer `wp_die()`s. The file is written with only `modified`, so importers remove what they had imported.
+  - **Checked, not a bug**: importing a row that carries a `content_id` never overwrites a different local row. `insert_db_data()` drops `content_id` on insert, and the hash match supplies the local id. Pinned by a test.
+  - **New hook**: `ewp_config_sync_filename` (filter). `ewp_auto_export_settings_filter` / `ewp_auto_import_settings_filter` are now listed in HOOKS.md (`layout` documented).
+  - **Tests**:
+    - `tests/test-config-sync-test.php` has 15 tests: legacy unchanged, per-object write and reconcile, identical bytes on re-export, detection (v2 / legacy / both), stale deletion scope, signature skip, migrate, dormant guard, the content_id case.
+    - New self-test case `config-sync`, listed in `manifest.json`.
+  - **Backwards compatibility**:
+    - Sites and repos on the single file see no change until someone migrates.
+    - Hashes are identical in both layouts, so switching never duplicates rows.
+    - **Behaviour change on importing sites:** because the stale-row fix now works, an import after this upgrade deletes rows that were auto-imported before and are no longer in the source. That includes every row of a content type removed from the exporting site's `types` list. Check `types` before the first import after the upgrade.
+    - Meta keys removed at the source are still not removed on the target (unchanged upsert behaviour).
+
+- **Field engine refactor released as 1.14.0** (`2026-11-01`):
+  - **Question/Prompt**: "merge to main and run an update pipeline at motivar.io to see if all works".
+  - **Merge**: `main` (1.11.0–1.13.0: content type surfaces, DataViews filters, multi-select filters) merged into `refactor/field-engine-phase-1`. Conflicts: `class-list-form.php` keeps main's capability checks (`require_capability()`, `user_can()`) and the deprecated no-op `on_page_footer()`; `ewp-admin-ui.min.css` recompiled from the merged SCSS; changelog entries kept from both sides.
+  - **Version labels**: everything the refactor had labelled `@since` / `@deprecated 1.11.0` (field engine classes, `templates/fields/*`, `library.php` wrappers, `HOOKS.md`, the engine README) now says 1.14.0, since 1.11.0 shipped other features on `main`. Labels that came from `main` are unchanged.
+  - **Version**: 1.14.0 (`package.json`, plugin header, `build/version.php`).
+  - **Fixed test (also failing on `main`)**: `Test_Content_View_Query::test_search` asserted that searching Cherry's id returns only Cherry, but a numeric term also LIKE-matches meta, and the double-serialized `tags` value starts with a length prefix (`s:18:…`, `s:30:…`) that contains the id for some id values. It now asserts that the id hit is included (`tests/test-content-view-query-test.php`).
+  - **Backwards compatibility**: no code changes beyond the merge.
+
+### Removed
+- **REST API Health moved out of Extend WP into the standalone "MammothWP REST Health" plugin** (`2026-11-01`):
+  - **Question/Prompt**: "Start step 9" (extract REST Health; the Extend WP side on this branch). The standalone plugin was already built and merged in `gitlab.motivar.io/mammothwp/rest-health`: `mammoth-rest-health`, prefix `mmwp_rh_`, Tools › REST API Health (`tools.php?page=mmwp-rh`), PHP 8.1+, depends on `mammothwp/wp-kit`. It imports Extend WP's REST Health preferences and probe history once, and runs side by side with Extend WP.
+  - **Removed from Extend WP**:
+    - `includes/classes/ewp-rest-health/` (discovery, runner, OpenAPI, admin page).
+    - The kit resources `Rest_Health_Resource` and `Rest_Health_Probes_Resource`, plus the `Rest_Health_Inventory` / `Rest_Health_Probes` services, which removes their REST routes, `wp ewp rest-health` commands and abilities.
+    - The `ewp-rest-health` log owner and log types.
+    - `assets/js/admin/ewp-rest-health.js` and `assets/css/admin/ewp-rest-health.css`.
+    - The `rest-health` / `rest-health-probes` self-test cases, the logger's read-side requires, the REST Health tests in `test-new-scope` and `test-security-hardening`, and the bench cases.
+    - The REST Health sections of the docs, CLAUDE.md and HOOKS.md (`ewp_rest_health_*` rows).
+  - **Kept**: Extend WP never deletes or migrates the stored REST Health data (user meta `ewp_rh_preferences`, `uploads/ewp-rest-health/`), so the new plugin can import it.
+  - **Runtime namespaces**: `EWP_Surfaces::report_rest_namespaces` now feeds the new plugin's `mmwp_rh_runtime_namespaces` filter (same `namespace => plugin basename` shape) instead of `ewp_rest_health_runtime_namespaces`. Extend WP's generated namespaces are still attributed to Extend WP there; without the plugin the filter does nothing.
+  - **Old screen URL**: `admin.php?page=ewp-rest-health` is handled by the new `EWP_REST_Health_Moved` (`includes/classes/ewp-rest-health-moved/`).
+    - If the standalone plugin is active (class `MammothWP\RestHealth\Plugin`, or `is_plugin_active('mammoth-rest-health/mammoth-rest-health.php')`), it redirects to `tools.php?page=mmwp-rh`.
+    - Otherwise it redirects to `plugins.php` with a one-request info notice for users who can activate plugins.
+    - It hooks `admin_page_access_denied`. `wp-admin/menu.php` rejects the removed page with `wp_die()` before `admin_init` runs, so the first `admin_init` version never redirected in the browser. A test now pins the hook.
+  - **Verified in the logged-in admin (Chrome, 2026-11-01)**: the old URL redirects to `tools.php?page=mmwp-rh` ("REST API Health", standalone plugin active on this site). The inactive path is covered by `tests/test-rest-health-moved-test.php` (7 tests).
+  - **Tests**: PHPUnit 512, OK, 1 skipped (as before). Self-test 14/14 (two REST Health cases removed). Jest 41/41.
+  - **Backwards compatibility**:
+    - The `ewp_rest_health_*` filters and the `extend-wp/v1` REST Health routes, CLI commands and abilities are gone. Their replacements, with an `mmwp_rh_` / `mmwp` prefix, are listed in the standalone plugin's HOOKS.md and `docs/cli-rest.md`.
+    - Nothing in this workspace used them except Extend WP itself.
+
+### Changed
+- **No inline event handlers: search form, filter chips, options REST button, tabs, repeater actions, map search** (`2026-10-31`):
+  - **Question/Prompt**: "Yes, 2 agents" (step 8 of the HTML-in-PHP cleanup; plan in `.ai/context/html-in-php-plan.md`). Two Sonnet agents worked in parallel; their work was reviewed, built and verified here.
+  - **Approach**:
+    - Every element that had an `onclick` / `onkeypress` now carries `data-ewp-action` (plus escaped data attributes for its arguments), and one delegated listener calls the same global function with the same element and arguments.
+    - The `window.*` functions stay, because theme template overrides and other plugins call them. Listeners act only on `[data-ewp-action]`, so an old override that still has an `onclick` keeps working and is not fired twice.
+    - No `on*=` attribute is left in `templates/` or `includes/`.
+  - **Front-end search** (`assets/js/public/ewp-search-script.js`, still a classic unbuilt script):
+    - The form string in `class-wp-search.php` is now `templates/frontend/search/form.php`, with the same ids, classes and attributes and the search id `absint`'d. A missing button label no longer raises a notice.
+    - Apply and reset (`search-apply` / `search-reset`) and the filter chips in `results-terms.php` (`search-remove-filter`) go through `ewp_search_run_action()`, guarded against double binding.
+  - **Options page REST button** (`templates/settings.php`):
+    - Its arguments were echoed unescaped into the `onclick`. They are now `esc_attr`'d `data-ewp-form/endpoint/callback/method` attributes, the button has `type="button"` and its label goes through `wp_kses_post`.
+    - `awm_options_rest_call()` gained an optional 5th `event` parameter. It falls back to the deprecated `window.event` for old callers.
+    - The pure part is in `assets/js/admin/options-rest-helpers.js`.
+  - **Field templates** (`fields/tabs.php`, `repeater-actions.php`, `map.php`):
+    - Tabs use `open-tab` + `data-ewp-tab`. The logic is in the new `assets/js/global/ewp-tab-actions.js`.
+    - **Behaviour fix:** switching a tab now touches only its own `.awm-tab-wrapper`. Before, two tab sets on one page reset each other. Without a wrapper it still falls back to the whole document. A missing panel no longer throws.
+    - Repeater actions: `repeater-add|remove|clone|up|down`. One guarded listener is registered when the repeater module loads, and it prefers the `window.*` overrides.
+    - The map search input gets `data-ewp-noenter` and a `keydown` Enter guard. `noenter()` is kept.
+    - The `sync` plugin's extra repeater button (`awm_show_actions_html`) has no `data-ewp-action` and is left alone.
+  - **Snapshots**: 35 files regenerated. With the handler and data attributes stripped from the diff, every changed line pairs up, so nothing else changed.
+  - **Build**:
+    - `build/` rebuilt: admin, global, maps and repeater bundles.
+    - The lazy repeater and maps chunks have new content hashes, and the bundles reference the new files.
+  - **Tests**:
+    - Jest: `assets/js/public/test/ewp-search-script.test.js`, `assets/js/admin/test/options-rest-helpers.test.js`, `assets/js/global/test/ewp-tab-actions.test.js` (including two tab sets) and `assets/js/modules/test/ewp-field-actions.test.js` (all five repeater actions, the Enter guard, the sync button ignored). Jest 41/41.
+    - PHPUnit: new `tests/test-search-templates-test.php`; `tests/test-field-leaf-types-test.php` updated for the map input. PHPUnit 508, OK, 1 skipped (as before). Self-test 16/16.
+  - **Verified in the logged-in admin (Chrome, 2026-10-31)**: on Fields › edit (#39) all five repeaters carry only data actions with no `onclick`. On `awm_positions`:
+    - add (2→3 rows), clone (→4) and remove (back to 2) work;
+    - move up/down moves a marked row from position 1 to 0 and back;
+    - no console errors, and nothing was saved.
+    - No admin page here has a tab field and no search filter is configured, so tabs and front-end search rely on their Jest/PHPUnit tests.
+  - **Files**:
+    - `includes/classes/ewp-search-filter/class-wp-search.php`
+    - `templates/frontend/search/{form.php (new),results-terms.php}`, `templates/settings.php`, `templates/fields/{tabs,repeater-actions,map}.php`
+    - `assets/js/public/ewp-search-script.js`, `assets/js/admin/{awm-admin-script.js,options-rest-helpers.js (new)}`, `assets/js/global/{awm-global-script.js,ewp-tab-actions.js (new)}`, `assets/js/modules/{awm-repeater-module.js,awm-maps-module.js}`
+    - `build/`, tests and fixtures.
+
+### Changed
+- **Legacy content list (`AWM_List_Table`) chrome from templates; status links fixed and escaped** (`2026-10-30`):
+  - **Question/Prompt**: "Commit, start step 7" (step 7 of the HTML-in-PHP cleanup).
+  - **Before**: the WP_List_Table view (`ewp_content_list_ui` → `legacy`, or `?ewp_list_ui=legacy`) mixed markup into its methods:
+    - The status links were built as strings: the first one was the invalid `<li "all">`, and their URLs and labels were unescaped.
+    - The filter bar had `style="display: inline-block;"` and an unescaped page id.
+    - The search box printed its label raw and kept a commented-out block of dead code.
+    - The top actions and tablenav were inline `?>` blocks.
+  - **Now**:
+    - Templates in `templates/admin-view/list-table/`: `top-actions.php`, `views.php`, `search-box.php`, `filters.php` and `tablenav.php`. Core pieces (bulk actions, pagination, `submit_button()`, the nonce) are captured and passed in.
+    - The new `AWM_List_Table::status_views()` builds the link data: All first, then each status with rows, URLs through `add_query_arg()`. In the template, URLs are `esc_url`'d, labels `wp_kses_post`'d and counts `absint`'d.
+    - `<li class="all">`, and `aria-current` marks the current view.
+    - The filter bar's `inline-block` moved to the new `assets/css/admin/ewp-list-table.scss` (`.ewp-list-filters`). It is compiled by `build:css` and lazy-loaded by the Dynamic Asset Loader.
+  - **Left as is**: the four `notice notice-*` bulk-action messages (standard WordPress admin notices).
+  - **Tests**: new `tests/test-list-table-templates-test.php` (status views, views/search/filters escaping, style registration).
+  - **Verified in the logged-in admin (Chrome, 2026-10-30)**: `admin.php?page=ewp_fields&ewp_list_ui=legacy` renders the table, "All (3)" (current) and "Enabled (3)" views, search, bulk-action nonce, top and bottom tablenav with bulk actions and pagination, no inline styles and no PHP warnings. No content type on this site has list filters, so the filter bar is covered by the template test only.
+  - **Files**: `includes/classes/awm-list-tables/class-list-table.php`, `includes/classes/class-extend-wp.php` (style registration), the new templates, `assets/css/admin/ewp-list-table.scss` / `.min.css`, `package.json`, the test.
+
+### Changed
+- **Extend WP field boxes (post, content form, term add/edit, user) rendered from one template** (`2026-10-30`):
+  - **Question/Prompt**: "Commit, start step 6" (step 6 of the HTML-in-PHP cleanup).
+  - **Before**: five places echoed box markup as PHP strings: the term add form, the term edit table, the user profile, post meta boxes (`AWM_Meta`) and custom content form boxes (`AWM_Add_Custom_List`). Each repeated its own copy of the `awm_metabox[]` / `awm_metabox_case` hidden inputs. Box ids and titles were printed raw.
+  - **Now**:
+    - New `AWM_Meta::meta_box_html($layout, $box, $fields, $case)` renders `templates/admin-view/meta-box.php`. Its layouts are `post`, `content`, `term-add`, `term-edit` and `user`, each with the same structure and classes as before.
+    - The hidden inputs are a single partial, `templates/admin-view/metabox-markers.php`.
+    - Ids are `esc_attr`'d and titles `wp_kses_post`'d.
+  - **Left as is**: the `awm_spinner_html` default (a filterable string localized to JS, `awmGlobals.spinnerHtml`).
+  - **Tests**: new `tests/test-meta-box-template-test.php` (markers in every layout, escaping, term-edit row structure, content layout without explanation). PHPUnit and self-test are green.
+  - **Verified in the logged-in admin (Chrome, 2026-10-30)**: the category add form (titled box inside `#addtag`) and the edit table (heading row, then the field rows), the profile box (titled div with a form table), and the five post-layout boxes on a content form all render with their `term` / `user` / `post` markers, with no PHP warnings and no console errors. Saving was not exercised.
+  - **Files**: `includes/classes/class-extend-wp.php`, `includes/classes/awm-list-tables/class-list-form.php`, new `templates/admin-view/meta-box.php` and `metabox-markers.php`, the test.
+
+### Changed
+- **Custom post statuses: no inline scripts; Status column label no longer injected as HTML; permalink slug input as a template** (`2026-10-30`):
+  - **Question/Prompt**: "Commit, start step 5" (step 5 of the HTML-in-PHP cleanup).
+  - **Before**, `EWP_WP_Content_Installer` printed two inline `<script>` blocks for post types with custom statuses:
+    - On `enqueue_block_editor_assets`: a script that added the statuses to the block editor's `core` store. The `EWPCustomPostStatus` class in `awm-admin-script.js` already ran on that screen, but its `addToGutenberg()` was an empty stub.
+    - On `admin_footer-edit.php`: a jQuery script that put the labels in the Status column with `$this.html('<strong>' + label + '</strong>')`, so a label containing HTML was injected as markup.
+  - **Now**:
+    - `EWPCustomPostStatus::addToGutenberg()` does the block-editor merge (once the editor has a post of this type; it gives up after 10 seconds).
+    - A new `fixStatusColumn()` handles the list column on list screens. It builds the `<strong>` with `textContent`.
+    - Both use the `ewpCustomPostStatus` data that `enqueue_custom_status_scripts()` already localized.
+    - The pure parts (`statusLabel`, `mergeStatusRecords`, `columnLabelFor`) are in the new `assets/js/admin/custom-post-status-helpers.js`, imported by the admin script. Classic editor and Quick Edit use `statusLabel` too.
+    - `fix_custom_status_column_display()` is no longer hooked; it stays as a deprecated no-op.
+  - **Permalink slug input** (Settings › Permalinks): it was echoed with an unescaped `name`, `id` and `placeholder`. It is now `templates/admin-view/slug-field.php`, with everything escaped.
+  - **Build**: `build/admin/awm-admin-script.js` is rebuilt (the helpers are bundled into it).
+  - **Tests**:
+    - Jest `assets/js/admin/test/custom-post-status-helpers.test.js` (5).
+    - PHPUnit `tests/test-custom-status-scripts-test.php`: no inline scripts on either hook, the deprecated method prints nothing, and the slug template is escaped.
+  - **Not verified in a browser**: no post type on this site has custom statuses. The Extend WP post-type table is empty, and the filox bookable types that get `book_only` aren't registered here. Check it on a site that uses them: the block editor's status selector, the list's Status column and Quick Edit.
+  - **Files**: `includes/classes/ewp-wp-content/class-wp-content-installer.php`, `assets/js/admin/awm-admin-script.js`, new `assets/js/admin/custom-post-status-helpers.js`, new `templates/admin-view/slug-field.php`, the build, and the tests.
+
+### Changed
+- **Fields edit form: "Show php code" button without an inline `onclick`** (`2026-10-30`):
+  - **Question/Prompt**: "Commit, start step 4" (step 4 of the HTML-in-PHP cleanup).
+  - **Before**: `awm_php_views()` built `<input type="button" onclick="ewp_get_php_code({id})">` and its wrapper as a PHP string, with the row id unescaped.
+  - **Now**:
+    - The box is the new template `templates/admin-view/php-code-box.php`: a `<button class="button" data-ewp-php-code="{absint id}">` and `#awm-php-code`.
+    - `assets/js/admin/awm-admin-script.js` has a delegated click listener, `ewp_php_code_click()`, that calls `ewp_get_php_code()` for any `[data-ewp-php-code]` button. That includes boxes rendered after load.
+    - `window.ewp_get_php_code` and `window.awm_show_php_code` stay global for other callers.
+    - `build/admin/awm-admin-script.js` is rebuilt; nothing else in `build/` changed.
+  - **Tests**: new `tests/test-php-code-box-test.php` (data attribute escaped, no `onclick`, no box for an unsaved group). PHPUnit and self-test are green.
+  - **Verified in the logged-in admin (Chrome, 2026-10-30)**: on Fields › edit (#39) the button renders as `<button data-ewp-php-code="39">`, and clicking it loads the generated PHP (8 KB) into `#awm-php-code`.
+
+### Changed
+- **Content edit form postboxes: ES module instead of an inline footer script** (`2026-10-30`):
+  - **Question/Prompt**: "Commit, start step 3" (step 3 of the HTML-in-PHP cleanup).
+  - **Before**: `AWM_Add_Custom_List::on_page_footer()` printed an inline jQuery `<script>` on `admin_footer-{page}`. It turned `.if-js-closed` boxes into `.closed` and called `postboxes.add_postbox_toggles('{page hook}')`.
+  - **Now**:
+    - New ES module `assets/js/modules/ewp-content-form-postboxes.js` (built to `build/modules/`), written in plain JS with no jQuery.
+    - It is registered with the Dynamic Asset Loader (`Extend_WP::register_content_form_assets()`, handle `ewp-content-form-postboxes`, selector `#ewp-content-form`, admin context, after WordPress's `postbox` script), so it loads only on content edit forms.
+    - It passes WordPress's `pagenow` (the screen id) to `add_postbox_toggles()`. That is also the key core uses to remember collapsed boxes per user.
+    - `on_page_footer()` is no longer hooked. It stays as a deprecated no-op (`@deprecated 1.14.0`) for code that calls it.
+  - **Docs**: `class-extend-wp.php` gained docblocks for 4 methods and 10 hook calls. HOOKS.md gained `awm_add_options_boxes_filter`, `awm_custom_lists_view_filter`, `awm_form_action`, `awm_jquery_load_filter`, `awm_spinner_html` and `awm_restrict_post_boxes_filter`.
+  - **Tests**:
+    - Jest `assets/js/modules/test/ewp-content-form-postboxes.test.js` (3).
+    - PHPUnit `tests/test-content-form-postboxes-test.php`: asset registration, and the footer method printing nothing.
+  - **Verified in the logged-in admin (Chrome, 2026-10-30)**: on Fields › edit (#39) the module loads, no inline postbox script is printed, `pagenow` is `admin_page_ewp_fields_form`, and a meta box collapses and reopens. No console errors.
+  - **Files**: new module, test files and `build/modules/ewp-content-form-postboxes.{js,asset.php}`; `includes/classes/class-extend-wp.php`, `includes/classes/awm-list-tables/class-list-form.php`, `HOOKS.md`.
+
+### Changed
+- **No inline styles in `awm_show_featured_image()` and `ewp_debug()`** (`2026-10-30`):
+  - **Question/Prompt**: "Commit, start step 2" (step 2 of the HTML-in-PHP cleanup, `.ai/context/html-in-php-plan.md`).
+  - **`awm_show_featured_image()`** (gallery admin list column, `ewp-gallery/class-ewp-gallery.php`):
+    - Before, it built `<img src="…" style="max-width:50px;height:auto;">` with an unescaped `src`.
+    - It now returns `wp_get_attachment_image($id, array(50, 50), false, array('class' => 'ewp-list-thumb'))`. WordPress sizes and escapes it with width/height attributes and a srcset, so no stylesheet is needed.
+    - It has a docblock now.
+  - **`ewp_debug()`** (also called by other plugins, front end included):
+    - Prints `<pre class="ewp-debug">` and enqueues the new `ewp-debug` stylesheet (`assets/css/global/ewp-debug.scss` → `.min.css`, colours as `:root` custom properties). Enqueued after the head, WordPress prints it in the footer.
+    - Same look as before, plus `overflow: auto` for long lines.
+  - **Build**:
+    - `npm run build:css` now compiles both `ewp-admin-ui` and `ewp-debug`; `ewp-admin-ui.min.css` is unchanged.
+    - The legacy `awm-admin-style.scss` and `awm-global-style.scss` no longer reproduce their committed `.min.css`, so they were not touched and are not rebuilt. Fixing that drift is a separate job.
+  - **Tests**: new `tests/test-inline-style-helpers-test.php` (featured image sized, classed, with no `style`; debug output escaped, classed and enqueued). PHPUnit and self-test are green.
+  - **Files**: `includes/functions/main.php`, new `assets/css/global/ewp-debug.scss` / `ewp-debug.min.css`, `package.json`, the test file.
+
+### Security
+- **List-column display values are escaped (`awm_display_meta_value()` / `Field_Value_Formatter`)** (`2026-10-30`):
+  - **Question/Prompt**: "fix escaping plan but for each step" (step 1 of the HTML-in-PHP cleanup).
+  - **The bug** (present since 1.0.0, moved unchanged in phase 5): the display formatter behind the post, term, user and custom-content list columns built HTML from stored values without escaping. All five callers echo its result as is.
+    - A `url` input put the raw value into `href` and the link text.
+    - Post titles, user display names, term names, post-type labels, repeater labels, custom-content titles and plain text values were printed raw.
+    - Anyone able to save a field value (the save guard's kses lets a plain string with `"` through) could inject attributes or markup into wp-admin list screens.
+  - **The fix**: every branch escapes what it builds.
+    - Text goes through a new `text()` helper (`esc_html`; lists are joined with `, `).
+    - Links use `esc_url` on the href and `esc_html` on the text, ids are `absint`'d, and url links get `rel="noopener"`.
+    - Option labels go through `wp_kses_post`, so markup such as icons survives.
+    - `message` / `html` values and `function` callback output stay raw, because they are developer markup, as in the field engine.
+  - **Visible changes**:
+    - An unknown user or term id is shown as escaped text: `'999999'` instead of the int `999999`.
+    - An array without a dedicated case shows `a, b` instead of `Array`.
+    - A `javascript:` url gets an empty `href`.
+    - `awm_display_meta_value_filter` now receives the escaped value.
+  - **Tests**: new `tests/test-display-value-escaping-test.php` (5 tests); `tests/test-data-classes-test.php` updated for the escaped values. PHPUnit: 489 tests, OK, 1 skipped (as before). Self-test: 16/16.
+  - **Files**: `includes/classes/ewp-field-engine/data/class-field-value-formatter.php`, the two test files.
+
+### Added
+- **`ewp_content_row_details` filter: developers can add entries to "Row details"** (`2026-10-30`):
+  - **Question/Prompt**: "make row details filterable by devs so they can add things if needed".
+  - **What**:
+    - The "Row details" disclosure in the Update actions box of a custom content edit form is built by the new `AWM_Add_Custom_List::row_details($item, $content_type)`. By default it holds `content_id` and `hash` for a saved row, and nothing for a new one.
+    - The new filter `ewp_content_row_details` receives `($details, $item, $content_type)` and can add, change or remove entries.
+    - Entries are keyed by slug: `{ label, value, code?: bool, html?: bool }`. `code` renders monospace and click-to-select. `html` passes the value through `wp_kses_post()`; without it the value is escaped as text. Malformed entries are dropped.
+    - Returning an empty array hides the disclosure.
+    - Each `<dd>` carries `data-detail="{slug}"` for styling or scripts.
+  - **Files**: `includes/classes/awm-list-tables/class-list-form.php` (`row_details()`, `normalize_row_details()`, `update_box()`), `templates/admin-view/update-box.php` (loops over the entries), `assets/css/admin/ewp-admin-ui.scss` / `.min.css` (plain-text values), `HOOKS.md`, `docs/custom-tables.md` (example), new `tests/test-content-row-details-test.php` (4 tests: defaults, add/remove/normalise, hide, escaping).
+  - **Backwards compatibility**: what is shown by default is unchanged. The template takes `details` instead of `content_id` / `hash`; it was introduced in the previous, unreleased entry.
+
+### Changed
+- **Content edit forms: tidier "Update actions" box; id and hash under a collapsed "Row details"** (`2026-10-30`):
+  - **Question/Prompt**: "can you also tidy up this?" (screenshot of the Update actions box), then "please make sure id and hash are viewable. maybe should be expandable and not seen by default".
+  - **Markup**:
+    - `AWM_Add_Custom_List::update_box()` built the box as one PHP string. It included an inline `style` with a broken `word-` property, a trailing space in "Delete ", and unescaped values.
+    - It now renders the new `templates/admin-view/update-box.php` with explicit variables: status HTML, delete URL, button label, content id and hash.
+  - **Layout**:
+    - The status field sits on top.
+    - An action bar runs to the box's edges with Delete on the left and Save/Update on the right, like WordPress's publish box.
+    - The row's id and hash sit in a native `<details>` "Row details" disclosure, collapsed by default. Expanded, it shows the full values in a soft panel: the hash wraps instead of being cut off, and one click selects it for copying. A new row (no id yet) shows no details, and its action bar runs to the bottom of the box.
+  - **Styles**: in `assets/css/admin/ewp-admin-ui.scss` (`.ewp-status-box`, scoped to `body.ewp-admin-ui-fields`, the skin the content edit forms already use), compiled with `npm run build:css`. `awm-admin-style.scss` was left alone, because it no longer compiles to the committed `awm-admin-style.min.css`.
+  - **Kept for scripts**: `#publish` (form validation in `awm-forms-module.js`), `.awm-delete-content-id` (delete confirmation), and `#delete-action`, `#publishing-action` and `.spinner`.
+  - **Docs**: `class-list-form.php` gained docblocks for 8 methods and for the `awm_add_meta_boxes_filter_content` filter. HOOKS.md gained rows for `awm_add_meta_boxes_filter_content` and `awm_content_db_metaboxes_filter`.
+  - **Verification**: a static preview, then the logged-in admin (Chrome, 2026-10-30). On Fields › edit (#39) the box renders as in the preview, "Row details" starts collapsed and opens to show the id and hash, with no console errors. Earlier check: a static preview: the real template, the site's WordPress admin CSS and the compiled plugin CSS. It showed the collapsed, expanded and new-row states. PHPUnit: 480 tests, OK, 1 skipped (as before). Self-test: 16/16.
+  - **Files**: new `templates/admin-view/update-box.php`; `includes/classes/awm-list-tables/class-list-form.php`, `assets/css/admin/ewp-admin-ui.scss`, `assets/css/admin/ewp-admin-ui.min.css`, `HOOKS.md`.
+
+### Security
+- **Encrypted post/term/user meta was stored in plain text; new end-to-end `field-engine` self-test** (`2026-10-29`):
+  - **Question/Prompt**: "can you do it via wp-self-test?" (replace the manual browser check of the field-engine refactor), then "Fix it now, then Phase 5".
+  - **The bug** (present since 1.3.0): fields with `encrypt => true` saved through meta boxes (post, term, user) were stored in plain text.
+    - `Setup.php` registered `awm_encrypt_meta_on_save()` with `add_filter('update_{post,user,term}_meta', …)`. Those are *actions*, so WordPress ignored the encrypted return value, and a first save goes through `add_*_meta` and never reaches that hook at all.
+    - Because the stored value was not encrypted, the edit form did not mask it either: the plain secret was printed into the password input's `value`.
+    - Options were not affected: `awm_encrypt_option_after_save()` re-saves on `updated_option`.
+  - **The fix**:
+    - New `awm_meta_save_encryption($meta_key, $value, $markers)` in `library.php`. `awm_custom_meta_update_vars()` calls it before writing. A value is encrypted when its field config asks for it, or when the form posted the key in `ewp_encrypt[]`; already-encrypted values are left alone.
+    - A masked value means the field was left untouched, so the stored ciphertext is kept. The old hook would have stored the mask string.
+    - The three no-op `update_*_meta` registrations are removed. `awm_encrypt_meta_on_save()` is kept as a function for external callers.
+    - **Existing data**: values saved before this fix stay in plain text until the field is saved again. No migration is included.
+  - **New self-test case `field-engine`** (`includes/classes/ewp-self-test/cases/class-field-engine-case.php`, manifest layer `core`, no surface coverage). It runs this round-trip on the real site:
+    - registers a post meta box covering every major field case;
+    - renders it with `awm_show_content()`;
+    - submits it like a browser, editing some values;
+    - saves through `EWP_Meta_Save_Guard::save()` with a real nonce;
+    - checks the stored meta (including the encrypted value) and that the re-rendered form submits the same values.
+    - It replaces the manual browser check of the refactor. The admin JavaScript (repeater cloning, tab switching) is still not exercised. It found the bug above.
+  - **Tests**: new `tests/test-meta-encryption-test.php` covers a new value encrypted, config-only encryption, a masked value keeping the ciphertext, no double encryption, plain keys untouched, and the render masking the stored secret. PHPUnit: 442 tests, OK, 1 skipped (as before). Self-test: 16/16.
+  - **Files**:
+    - `includes/functions/library.php`, `includes/classes/Setup.php`
+    - `includes/classes/ewp-self-test/` (`manifest.json`, `class-ewp-self-test.php`, `cases/class-field-engine-case.php`)
+    - `docs/self-test.md`, `tests/test-meta-encryption-test.php`
+  - **Backwards compatibility**: no hook was removed that ever had an effect. Flagged meta values are now actually encrypted, so code reading them must decrypt explicitly (`awm_decrypt_field_value()` / `EWP_Encryption::decrypt()`), as the encryption feature always documented.
+
+### Changed
+- **Field engine, phase 5: saving, data and encryption out of `library.php`** (`2026-10-29`):
+  - **Question/Prompt**: "Yes, start Phase 5" (three Sonnet agents in parallel, then reviewed and verified here).
+  - **What moved**: 26 functions, about 1,300 lines, went into service classes. Each `awm_*` function is now a one-line wrapper with the same name, signature, return value and `function_exists` guard.
+  - **`save/` (`EWP\Fields\Save`)**:
+    - `Meta_Saver`, behind `awm_save_custom_meta()` and `awm_custom_meta_update_vars()`. It covers nested-key resolution, per-view writes and blocked capability keys, still calls `awm_meta_save_encryption()` before writing, and still fires `awm_custom_meta_update_action`.
+    - `Translation_Sync` (WPML), behind `awm_find_tranlsatable_fields()`, `awm_field_hidden_in_current_language()`, `awm_auto_translate()` and `awm_translated_ids()`.
+  - **`data/` (`EWP\Fields\Data`)**:
+    - `Field_Value_Reader`, behind `awm_get_field_value()` and `awm_get_raw_field_value()`.
+    - `Field_Preparer`, behind `awm_prepare_field()`, `awm_resolve_field_options()` and the two option lists for EWP content types and options pages.
+    - `Object_Types`, behind `awm_object_id_filter_config()` and `awm_get_object_type_options()`; its per-request cache is now a static property.
+    - `Object_Search_Query`, behind `awm_object_search_query()`. The post-type, taxonomy and custom-content branches are separate methods, and the custom-content branch keeps its security checks: registered types only, a `sanitize_key` check on the slug, and the `%i` table placeholder.
+    - `Field_Value_Formatter`, behind `awm_display_meta_value()`, with one method per case.
+  - **`encryption/` (`EWP\Fields\Encryption`)**:
+    - `Field_Encryption` (built on `EWP_Encryption`) and `Option_Field_Path`.
+    - The option re-save still detaches and re-attaches `awm_encrypt_option_after_save` around `update_option()`, so it does not recurse.
+    - `awm_encrypt_meta_on_save()` and `awm_decrypt_meta_on_retrieve()` are now `@deprecated 1.14.0`. Neither is hooked any more since the encryption fix; both still work when called directly.
+  - **`library.php`**: down to 862 lines, from 2,698 at the start of the refactor. What is left: the wrappers, plus a few small helpers (`awm_safe_unserialize_array`, `awm_show_explanation`, `awm_get_wp_editor_args`, `awm_create_form`, `awm_callback_library(_options)`, `awm_custom_image_image_uploader_field`, `awm_gallery_meta_box_html`, `ewp_rest_check_user_is_admin`, `awm_repeater_check_quotes`).
+  - **Hooks**: every `apply_filters` / `do_action` keeps its name, arguments and order, and its docblock moved with it. `awm_custom_meta_update_action` gained a docblock. HOOKS.md now shows where 16 moved hooks fire, plus the two radio hooks that moved in phase 2.
+  - **Behaviour differences**, all limited to empty or broken input:
+    - `awm_custom_meta_update_vars()` returns `array()` instead of `null` plus a notice when nothing is saved.
+    - `awm_translated_ids_filter` receives `array()` instead of `null` when WPML lists no languages.
+    - The posted array is no longer altered while nested keys are resolved.
+    - Kept on purpose: `awm_get_field_value()` returns 0 for an unknown view, `awm_display_meta_value()` returns null for an unknown case, and a `strip` message or html field returns before `awm_display_meta_value_filter`.
+  - **Verification**:
+    - Every function in the three groups was confirmed to be a wrapper after the agents' concurrent edits; nothing was lost.
+    - The 385 snapshots are byte-identical to the phase 4 baseline.
+    - PHPUnit: 480 tests, OK, 1 skipped (as before). New tests: `tests/test-save-classes-test.php` (11), `tests/test-data-classes-test.php` (17) and `tests/test-encryption-classes-test.php` (9).
+    - Self-test: 16/16, including the `field-engine` round-trip.
+    - A warning that predates this work (`class-db-creator.php:1397`, a `where` group without `clause`) shows up during the self-test content cases. Nothing in this phase builds such a query, and it is left for a separate fix.
+  - **Files**:
+    - new `includes/classes/ewp-field-engine/{save,data,encryption}/` (classes and `init.php`)
+    - `includes/classes/ewp-field-engine/init.php` and `README.md` (new "Services" section)
+    - `includes/functions/library.php`, `HOOKS.md`, `CLAUDE.md`
+    - the three new test files
+  - **Backwards compatibility**: the public functions and hooks are unchanged. External callers (filox, `sync`, themes, `EWP\Search\Object_Search`) need no change.
+- **Field engine, phase 4: `awm_show_content()` becomes `Field_Renderer`; row wrappers, labels and containers as templates** (`2026-10-29`):
+  - **Question/Prompt**: "commit and continue" (after phase 3).
+  - **What moved**: the remaining ~300 lines of `awm_show_content()` moved into `EWP\Fields\Field_Renderer` (`includes/classes/ewp-field-engine/class-field-renderer.php`). That covers sorting, language and role visibility, preparation, encrypted-value masking, `attributes.value` and `default`, the id override, wrapper classes, the shared label, `show-when` / `disable-elements`, type dispatch, the save marker, the row wrapper per view, the `html` case and the container. It is split into small methods, each under 100 lines. `awm_show_content()` is now a one-line wrapper with the same signature.
+  - **New templates** (`templates/fields/`):
+    - `wrapper/default.php`, `wrapper/term-new.php`, `wrapper/term.php`, `wrapper/user.php`
+    - `label.php`, `explanation.php`, `html.php`, `save-marker.php`, `container.php`
+    - No field markup is built as a PHP string any more.
+  - **Snapshot coverage**: 7 more libraries (`html` with `strip`, an empty `html`, `show` 0, `label_class` with `awm_no_show`, `disable-elements`, a submit input, an unknown case), for 385 snapshots in total. They were recorded with the legacy code, and the new renderer reproduces them byte-for-byte on its first run.
+  - **Tests**: new `tests/test-field-renderer-test.php` covers what snapshots cannot: `not_visible_by` (hidden and dropped from the filtered library), `not_editable_by` (disabled, read-only, no save marker), administrators exempt, `specific` with a leading underscore, the admin-only `information` tooltip, filter arguments and order, `$awm_post_id`, the legacy empty return values, and re-entrant nested rendering. PHPUnit: 437 tests, OK, 1 skipped (as before). Self-test: 15/15.
+  - **Behaviour changes** (no snapshot changed):
+    - `awm_show_content_filter` gets one fragment per field. Before, the user and default wrappers pushed 2–4 pieces each. Nothing in the workspace hooks this filter.
+    - Its `$label` argument is now the caller's flag. Before, the last field's label leaked into it.
+    - `information`, wrapper labels, explanations and ids are escaped or kses'd where they were echoed raw.
+    - Term and user wrappers no longer raise an undefined-key warning for label-less fields. This fixes the bug noted in phase 3.
+    - An empty filter result returns `''`. Before, the filtered empty value was returned.
+  - **Kept for compatibility**:
+    - `global $awm_post_id` is still set (`filox-multi-vendor` reads it), and `$awm_field_configs` is still filled.
+    - `awm_label_class_filter` keeps its arguments (filox hooks it).
+    - The current user's roles are still resolved once per request.
+    - An empty library still returns `array()`.
+  - **Files**:
+    - new `includes/classes/ewp-field-engine/class-field-renderer.php`, `init.php`, `README.md`
+    - new templates above
+    - `includes/functions/library.php` (now about 1,800 lines, down from 2,698 at the start of the refactor), `HOOKS.md` (`awm_show_content_filter` and `awm_label_class_filter` rows), `CLAUDE.md`
+    - new `tests/test-field-renderer-test.php`, `tests/test-field-render-snapshot-test.php`, `tests/fixtures/field-snapshots/`
+  - **Backwards compatibility**: same signature and return contract for `awm_show_content()`, and the same markup.
+- **Field engine, phase 3: every remaining field case as a type + template; legacy switch removed** (`2026-10-29`):
+  - **Question/Prompt**: "Start Phase 3".
+  - **Snapshot coverage**: new fixtures for `function`, empty `message`, a `button` with a leading-underscore key, `awm_gallery`, `image` (stored and empty), `map`, `section` (plain and `keep_inputs`), `awm_tab`, `repeater` (stored rows with row titles, `minrows`, `no_template` + `hide_buttons`, `prePopulated`), `awm_modal` (with and without `include`) and `object_id_filter` (saved type and an unresolvable saved id), in all 7 views. That makes 336 snapshots. The modal's per-run `data-object-id` is normalised. Recording them showed two existing bugs that this change leaves alone: a `function` field whose callback does not exist fatals in `awm_resolve_field_options()`, and a label-less field raises an undefined-key warning in the term-row wrapper of `awm_show_content()`.
+  - **Engine**:
+    - `Field_Output::without_meta_marker()` / `has_meta_marker()`: a type can drop the automatic `awm_custom_meta[]` save marker (the modal saves through REST; the object picker posts its own two markers).
+    - `Field_Context` gains a last `$context_id` parameter and `context_id()`: the options page id passed to `awm_show_content()`, needed by the modal.
+  - **Nested and stateful types** (`includes/classes/ewp-field-engine/types/`, templates in `templates/fields/`):
+    - `Section_Field` → `section.php`.
+    - `Tab_Field` → `tabs.php`.
+    - `Repeater_Field` → `repeater.php`, `repeater-row.php`, `repeater-actions.php`. `awm_repeater_content()` becomes a wrapper around `Repeater_Field::row()`, and `awm_show_actions_html` still receives the same six arguments (the `sync` plugin hooks it).
+    - `Modal_Field` → `modal.php`.
+    - `Object_Id_Filter_Field` → `object-id-filter.php`.
+    - Nested fields still render through `awm_show_content()`.
+  - **Leaf types**:
+    - `Message_Field`, `Callback_Field` and `Gallery_Field` share `message-box.php`.
+    - `Button_Field` → `button.php`, `Image_Field` → `image.php`, `Map_Field` → `map.php`.
+    - `Media_Field_Renderer` (`class-media-field-renderer.php`, template `media.php`) now backs `awm_media_field_html()`, which keeps its signature and still applies `awm_media_field_html_filter` with the same arguments.
+    - Message bodies and `function` callback output stay raw, as before. They are developer markup that may contain form elements and scripts, which `wp_kses_post()` would strip.
+    - The map placeholder uses the `extend-wp` text domain instead of `awm`.
+  - **Legacy switch removed**: `awm_show_content()` now only prepares fields and dispatches through `Field_Registry`. The `$is_modal_field` special case is gone, because `Modal_Field` returns `without_meta_marker()`. An unknown case still renders nothing inside the row wrapper. `library.php` is down from 2,698 to about 2,080 lines.
+  - **HOOKS.md**:
+    - New row for `awm_show_actions_html`, now fired in `Repeater_Field`.
+    - `awm_media_field_html_filter` and `awm_modal_field_args` now point to where they fire.
+  - **Behaviour changes** (none visible in the snapshots):
+    - `awm_tab` with a tab `callback` + `callback_variables` read the callback from an undefined `$data` and failed. It now calls the tab's own callback with its variables.
+    - `awm_modal_field_args` fired after the modal title, button label, class and view were read, so it could change nothing. It now fires first. Nothing in this workspace hooks it.
+    - Labels, titles and item names that were echoed raw now pass through `wp_kses_post()`, and ids and values through `esc_attr()`.
+  - **Tests**:
+    - New `tests/test-field-nested-types-test.php` and `tests/test-field-leaf-types-test.php`.
+    - `tests/test-field-engine-test.php` now uses an unknown case as its unmigrated example.
+    - The `object_id_filter` fixture pins its type lists, because a post type registered by an earlier test leaked into it during the full run.
+    - Verification: all 336 snapshots are byte-identical to the baseline recorded with the legacy code. PHPUnit: 429 tests, OK, 1 skipped (as before). Self-test: 15/15.
+  - **Files**:
+    - `includes/classes/ewp-field-engine/`: `class-field-output.php`, `class-field-context.php`, `class-field-registry.php`, `init.php`, `README.md`, new `class-media-field-renderer.php`, new `types/class-{message,callback,gallery,button,image,map,section,tab,repeater,modal,object-id-filter}-field.php`
+    - new `templates/fields/{message-box,button,image,map,media,section,tabs,repeater,repeater-row,repeater-actions,modal,object-id-filter}.php`
+    - `includes/functions/library.php`, `HOOKS.md`, `CLAUDE.md`
+    - tests and `tests/fixtures/field-snapshots/`
+  - **Backwards compatibility**:
+    - `awm_show_content()`, `awm_media_field_html()` and `awm_repeater_content()` keep their signatures.
+    - Every filter fires with the same arguments. The one exception is `awm_modal_field_args`, which now fires earlier so that its result takes effect.
+    - The markup is unchanged for the snapshot fixtures. Values containing quotes or HTML in ids, labels and item names are now escaped or kses'd where they were echoed raw.
+    - Inline handlers (tabs, repeater actions, map search) are kept, because the admin scripts call them. Moving them to delegated listeners is a separate JS change.
+- **Field engine, phase 2: textarea, select, radio and checkbox_multiple as templates** (`2026-10-29`):
+  - **Question/Prompt**: "Start Phase 2".
+  - **`Field_Output` (new, `includes/classes/ewp-field-engine/class-field-output.php`)**: `Field_Type::render()` now returns an immutable `Field_Output` instead of a string. It carries the field's HTML and its effect on the view's row wrapper: `without_wrapper()`, `with_wrapper_classes()`, `with_wrapper_attributes()` and `suppressed()` (render nothing). These map onto `$display_wrapper`, `$label_class`, `$label_attrs` and `$stop` in `awm_show_content()`. `Field_Type::has_wrapper()` is removed. Cases that change their row wrapper (textarea's `awm-cls-100`, checkbox_multiple's exclusive mode, select suppressed in list-table filters) need this, and `has_wrapper()` could not express it. `Input_Field` and the engine tests are updated; the snapshots are unchanged.
+  - **Summary**: the four cases move out of the `awm_show_content()` switch (about 140 lines removed) into `EWP\Fields\Types\Textarea_Field`, `Select_Field`, `Radio_Field` and `Checkbox_Multiple_Field`. The classes shape the data (selected and checked state, optgroup grouping, apply-all logic, the radio filters, the `wp_editor()` capture); the templates only loop and print. Every dynamic value is escaped in the template (`esc_attr()`, `esc_textarea()`, `wp_kses_post()`); attribute strings the class has already escaped are printed as they are.
+  - **Snapshot coverage first**: before any renderer moved, `tests/test-field-render-snapshot-test.php` gained 16 libraries and a seventh view (`restrict_manage_posts`): select with `multiple` and a stored array, optgroups, `removeEmpty`, `no_style`, option `extra` attributes and empty options (suppressed in the filter bar); textarea with `awm_strip_html`; radio with `required` and `disable_wrapper`; checkbox_multiple with `disable_apply_all`, `apply_all_mode: exclusive` (nothing selected, one selected) and a custom `apply_all_label`. The baseline was recorded with the legacy code, and the migrated renderers pass it with no snapshot rewrite (the whole fixture directory is byte-identical). The `wp_editor` output is WordPress core and not stable, so it is covered by a unit test on the wrapper classes and the editor's textarea id instead.
+  - **Types and templates**:
+    - `Textarea_Field` / `fields/textarea.php`: wrapper class `awm-cls-100`, plus `awm-wp-editor` for the editor. The editor HTML is captured with output buffering (same `awm_get_wp_editor_args()` arguments, `readonly` for disabled fields, entity-decoded value) and printed by the template.
+    - `Select_Field` / `fields/select.php`: the options are flattened into entries (`option`, `group_start`, `group_end`); groups come first, then the options without a group. No options in the `restrict_manage_posts` view returns `suppressed()`.
+    - `Radio_Field` / `fields/radio.php`: `awm_radio_value_label_filter` and `awm_radio_after_text` fire with the same arguments as before (the shared label code in `awm_show_content()` still prints the radio label).
+    - `Checkbox_Multiple_Field` / `fields/checkbox-multiple.php`: prints the title and the explanation itself. Exclusive mode adds `data-apply-all-mode="exclusive"` to the row wrapper through `with_wrapper_attributes()`.
+    - `Field_Context` gets a new last constructor parameter `$explanation = ''` (the pre-rendered explanation HTML) and an `explanation()` getter.
+  - **Intended escaping changes (only visible with special characters)**: option values, `optgroup` ids and labels, the `extra` option attributes and the `name`, `id` and `value` of radio and checkbox inputs are now attribute-escaped (the legacy code printed them raw, so a `"` broke the markup). Select, radio and checkbox labels go through `wp_kses_post()`. A select optgroup that no option uses is no longer printed as a stray `</optgroup>`, and an option whose `optgroup` is not defined stays ungrouped (the legacy code raised undefined-index notices). The snapshot fixtures contain no such characters, so they are unchanged.
+  - **HOOKS.md**: rows added for `awm_translated_ids_filter`, `awm_wp_editor_args`, `ewp_decrypt_field_value` and `ewp_encrypt_field_value`, which were fired but undocumented, and for WPML's own `wpml_active_languages` and `wpml_object_id` filters that Extend WP applies (type `filter (WPML)`, not fired for extension). No new hooks are introduced.
+  - **Tests**: 11 new tests in `tests/test-field-engine-test.php` (textarea strip and editor wrapper classes; select selected, multiple, placeholder, optgroup grouping, suppression and escaping; radio checked, required, wrapper and both filters; checkbox_multiple toggle, exclusive, disabled apply-all and empty options).
+  - **Files**: `includes/classes/ewp-field-engine/types/class-{textarea,select,radio,checkbox-multiple}-field.php`, `templates/fields/{textarea,select,radio,checkbox-multiple}.php`, `includes/classes/ewp-field-engine/{init.php,class-field-registry.php,class-field-context.php,README.md}`, `includes/functions/library.php`, `tests/test-field-render-snapshot-test.php`, `tests/test-field-engine-test.php`, `tests/fixtures/field-snapshots/`, `HOOKS.md`. Removed: `templates/frontend/inputs/checkbox_multiple.php`.
+  - **Backwards compatibility**: `Field_Type` was introduced in the still-unreleased phase 1, so there are no external implementers. The markup of every existing field is byte-identical (the checkbox options keep the single spaces the old template produced). The old `templates/frontend/inputs/checkbox_multiple.php` and the `global $ewp_input_vars` it read are removed; nothing in the plugin references them, but a theme or plugin that overrode that template via the `awm_parse_template_location` filter must move the override to `extend-wp/fields/checkbox-multiple.php` in the theme, which receives `$variables['context']` and `$variables['rows']` instead. Cases are replaceable through `ewp_register_field_types` and the `ewp_field_template_path` filter like `input`.
+- **Field engine, phase 1: OOP renderers and templates behind `awm_show_content()`, starting with `input`** (`2026-10-29`):
+  - **Question/Prompt**: "can we somehow optimize and refactor code for library.php? we need it OOP and what is more we need all inputs as templates if possible. the code is too old". Then: "please proceed and optimize model use in order to avoid unnecessary costs".
+  - **Plan**: `library.php` moves to `EWP\Fields` one field `case` at a time, with no change to the procedural API (56 files in filox and themes call `awm_show_content()`). Phase 0 is the safety net, phase 1 the core plus the `input` pilot. Later phases cover the remaining cases, then saving, display formatting, options and encryption, and finally reduce `library.php` to thin wrappers.
+  - **Phase 0, snapshot tests**: the new `tests/test-field-render-snapshot-test.php` records the markup of 17 field libraries (every input type, textarea, select, radio, checkbox_multiple, message, html, button, ordering, `awm-id`) in 6 views (post, new term, term, user, option, none). That is 102 snapshots in `tests/fixtures/field-snapshots/`. Whitespace inside tags and the random `checkbox_multiple` id suffixes are normalised. Rewrite them with `EWP_UPDATE_SNAPSHOTS=1`.
+  - **Phase 1, engine** (`includes/classes/ewp-field-engine/`, docs in its `README.md`):
+    - `Field_Context`: immutable field state.
+    - `Field_Type`: interface for field types.
+    - `Field_Registry`: maps a case to its type, built lazily.
+    - `Template_Loader`: theme override, then plugin template, then filter, rendered by `awm_parse_template()`. Template names are allow-listed.
+    - `Field_Attributes`: the attribute loop extracted from `awm_show_content()`.
+    - `Types\Input_Field` with `templates/fields/input.php` and `templates/fields/input-hidden.php`.
+    - `awm_show_content()` asks the registry first and falls back to the legacy switch for cases that are not migrated yet. The ~45-line `input` branch is removed.
+  - **Markup change (intended, only one)**: `after_message` was emitted with its tags closed in the wrong order (`<span><label>…</span></label>`). It is now `<span class="awm-after-message"><label for="…">…</label></span>`. Browsers already parsed the old markup into the same DOM. The message now passes through `wp_kses_post()`. All other snapshots are byte-identical.
+  - **New hooks**:
+    - `ewp_register_field_types` (action): add or replace field types.
+    - `ewp_field_template_path` (filter): swap a field template's file.
+    - Themes can override templates at `extend-wp/fields/{name}.php`.
+  - **HOOKS.md**: also lists the 16 existing `library.php` hooks that were missing (`awm_show_content_filter`, `awm_show_content_value_filter`, `awm_label_class_filter`, …). There are new docblocks on `awm_display_meta_value_filter` and `awm_show_content_fields_filter`.
+  - **Loading**: `library.php` requires `ewp-field-engine/init.php` from its own copy, because Composer may load another bundled copy of Extend WP. A `class_exists` guard prevents redeclaring the classes. The code is PHP 7.4-compatible, the same baseline as `mammothwp/wp-kit`.
+  - **Files**:
+    - new `includes/classes/ewp-field-engine/` (`init.php`, `class-field-context.php`, `interface-field-type.php`, `class-field-registry.php`, `class-template-loader.php`, `class-field-attributes.php`, `types/class-input-field.php`, `README.md`)
+    - new `templates/fields/input.php`, `templates/fields/input-hidden.php`
+    - `includes/functions/library.php`, `HOOKS.md`
+    - new `tests/test-field-render-snapshot-test.php`, `tests/test-field-engine-test.php`, `tests/fixtures/field-snapshots/*.html`
+  - **Backwards compatibility**: the signatures of `awm_show_content()` and every other `awm_*` function are unchanged. All existing filters fire as before (`awm_label_class_filter`, `awm_show_content_value_filter`, `awm_show_content_filter`). A plugin that registers its own `input` type through `ewp_register_field_types` replaces the built-in one.
 ### Added
 - **DataViews lists: multi-select filters and one filter popover at a time (1.13.0)** (`2026-10-28`):
   - **Question/Prompt**: on the Filox bookings list, "can we add multiple selection in filters? for instance products, and source should be multiple"; the screenshot also showed the Status popover still open behind the Product popover.
@@ -576,7 +1057,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **No `strip_tags()` deprecation on hidden edit pages (Fields, Post Types, Taxonomies, Search Filters, content UI)** (`2026-10-16`):
   - **Question/Prompt**: "Also there is a message warning in wp-extend fields registration page. Can we fix it ? Deprecated: strip_tags(): Passing null to parameter #1 ($string) of type string is deprecated in /var/www/html/web/wp-admin/admin-header.php on line 41"
-  - **Cause**: with `show_new => false`, `AWM_List_Form` registers the `{id}_form` edit page with an empty parent so it stays out of the menu. `get_admin_page_title()` looks the title up in the menus, finds nothing and leaves the global `$title` null, which `admin-header.php` passes to `strip_tags()`. The browser tab title was empty too.
+  - **Cause**: with `show_new => false`, `AWM_Add_Custom_List` registers the `{id}_form` edit page with an empty parent so it stays out of the menu. `get_admin_page_title()` looks the title up in the menus, finds nothing and leaves the global `$title` null, which `admin-header.php` passes to `strip_tags()`. The browser tab title was empty too.
   - **Fix** (`includes/classes/awm-list-tables/class-list-form.php`): for hidden pages, a `load-{pagehook}` callback sets `$title` to the page title ("New Field", "New Post type"…) when WordPress found none.
   - **Tests**: logged-in requests to `ewp_fields_form` and `ewp_post_types_form` on filox-test: no deprecation notice, `<title>` "New Field" / "New Post type".
   - **Affected Files**: `includes/classes/awm-list-tables/class-list-form.php`, `CHANGELOG.md`.

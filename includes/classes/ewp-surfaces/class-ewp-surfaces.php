@@ -6,10 +6,9 @@ use EWP\Content\Content_Service;
 use EWP\Surfaces\Resources\Content_Resource;
 use EWP\Surfaces\Resources\Content_Type_Rest_Resource;
 use EWP\Surfaces\Resources\Content_Portability_Resource;
+use EWP\Surfaces\Resources\Config_Sync_Resource;
 use EWP\Surfaces\Resources\Object_Search_Resource;
-use EWP\Surfaces\Resources\Rest_Health_Resource;
 use EWP\Surfaces\Resources\Block_Preview_Resource;
-use EWP\Surfaces\Resources\Rest_Health_Probes_Resource;
 use EWP\Surfaces\Resources\Field_Builder_Resource;
 use EWP\Surfaces\Resources\Fields_Resource;
 use EWP\Surfaces\Resources\Logger_Resource;
@@ -77,7 +76,7 @@ final class EWP_Surfaces
         Kit::on_ready([$this, 'attach']);
         add_filter('mmwp_kit_operation_capability', [$this, 'reemit_ability_capability'], 10, 4);
         add_filter('mmwp_kit_ability_definitions', [$this, 'reemit_logger_definitions'], 10, 2);
-        add_filter('ewp_rest_health_runtime_namespaces', [$this, 'report_rest_namespaces']);
+        add_filter('mmwp_rh_runtime_namespaces', [$this, 'report_rest_namespaces']);
     }
 
     /**
@@ -146,13 +145,12 @@ final class EWP_Surfaces
         require_once __DIR__ . '/resources/class-system-resource.php';
         require_once __DIR__ . '/resources/class-options-resource.php';
         require_once dirname(__DIR__) . '/ewp-content/class-content-portability.php';
+        require_once dirname(__DIR__) . '/ewp-content/class-config-sync.php';
+        require_once dirname(__DIR__) . '/ewp-content/class-content-php-export.php';
         require_once dirname(__DIR__) . '/ewp-search/class-object-search.php';
-        require_once __DIR__ . '/class-rest-health-inventory.php';
         require_once __DIR__ . '/resources/class-content-portability-resource.php';
+        require_once __DIR__ . '/resources/class-config-sync-resource.php';
         require_once __DIR__ . '/resources/class-object-search-resource.php';
-        require_once __DIR__ . '/resources/class-rest-health-resource.php';
-        require_once __DIR__ . '/class-rest-health-probes.php';
-        require_once __DIR__ . '/resources/class-rest-health-probes-resource.php';
         require_once __DIR__ . '/resources/class-field-builder-resource.php';
         require_once __DIR__ . '/resources/class-recently-seen-resource.php';
         require_once __DIR__ . '/resources/class-block-preview-resource.php';
@@ -178,9 +176,8 @@ final class EWP_Surfaces
             'options'    => new Options_Resource(),
             'system'     => new System_Resource(new System_Service($this->service)),
             'content-portability' => new Content_Portability_Resource(new \EWP\Content\Content_Portability()),
+            'config-sync' => new Config_Sync_Resource(new \EWP\Content\Config_Sync()),
             'objects'    => new Object_Search_Resource(new \EWP\Search\Object_Search()),
-            'rest-health' => new Rest_Health_Resource(new Rest_Health_Inventory()),
-            'rest-health-probes' => new Rest_Health_Probes_Resource(new Rest_Health_Probes()),
             'field-builder' => new Field_Builder_Resource(new \AWM_API()),
         ], $this->service);
 
@@ -324,7 +321,7 @@ final class EWP_Surfaces
     }
 
     /**
-     * Tell REST-health discovery which namespaces this plugin's resources own.
+     * Tell the standalone MammothWP REST Health plugin which namespaces this plugin's resources own.
      *
      * Per-type content resources are skipped: a type registered by another
      * plugin belongs to that plugin, and the registry does not know which.

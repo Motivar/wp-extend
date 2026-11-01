@@ -42,64 +42,25 @@ class AWM_API
    * @param int $post_id ewp_fields row id.
    *
    * @return string HTML; empty when the row does not exist.
+   *
+   * @deprecated 1.15.0 Use \EWP\Content\Content_Php_Export (method=php of the export operation). Removed in the next release.
    */
   public function php_code($post_id)
   {
+    _deprecated_function(__METHOD__, '1.15.0', '\\EWP\\Content\\Content_Php_Export::export()');
     $post_id = absint($post_id);
     if ($post_id < 1) {
       return '';
     }
-    $code = array();
-    $awm_field = awm_get_db_content('ewp_fields', array('include' => $post_id));
-    if (empty($awm_field)) {
+    $row = awm_get_db_content('ewp_fields', array('include' => $post_id));
+    if (empty($row)) {
       return '';
     }
-    $awm_field = $awm_field[0];
-    $field_meta = awm_get_db_content_meta('ewp_fields', $awm_field['content_id']);
-    $fields = $field_meta['awm_fields'] ?: array();
-    $positions = $field_meta['awm_positions'] ?: array();
-    $awm_type = $field_meta['awm_type'] ?: array();
-    $awm_explanation = $field_meta['awm_explanation'] ?: '';
-    $counter = 0;
-    foreach ($positions as $position) {
-      $final_fields = array();
-      $final_fields[$awm_field['content_id'] . '_' . $counter] = $awm_field;
-      $final_fields[$awm_field['content_id'] . '_' . $counter]['fields'] = $fields;
-      $final_fields[$awm_field['content_id'] . '_' . $counter]['position'] = $position;
-      $final_fields[$awm_field['content_id'] . '_' . $counter]['type'] = $awm_type;
-      $final_fields[$awm_field['content_id'] . '_' . $counter]['explanation'] = $awm_explanation;
-      $fields = awm_create_boxes($position['case'], $final_fields);
-      $content = awm_print_php($fields);
-   
-      $filter = '';
-      switch ($position['case']) {
-        case 'post_type':
-          $filter = 'awm_add_meta_boxes_filter';
-          break;
-        case 'ewp_block':
-          $filter = 'ewp_gutenburg_blocks_filter';
-          break;
-        case 'taxonomy':
-          $filter = 'awm_add_term_meta_boxes_filter';
-          break;
-        case 'customizer':
-          $filter = 'awm_add_customizer_settings_filter';
-          break;
-        case 'options':
-          $filter = 'awm_add_options_boxes_filter';
-          break;
-        case 'user':
-          $filter = 'awm_add_user_boxes_filter';
-          break;
-      }
-      $code[] = str_replace('@@@@', '<br>', highlight_string('<?php add_filter(\'' . $filter . '\',function($boxes){
-            $boxes+=array(' . $content . ');
-            return $boxes;
-          }); 
-        ?>', true));
-      $counter++;
-    }
-    return implode('', $code);
+    require_once dirname(__DIR__) . '/ewp-content/class-content-php-export.php';
+    $export = new \EWP\Content\Content_Php_Export();
+    $code = $export->fields_code($row[0], awm_get_db_content_meta('ewp_fields', $row[0]['content_id']), new \EWP\Content\Php_Printer());
+
+    return $code === '' ? '' : highlight_string("<?php\n" . $code . "\n", true);
   }
 
   /**

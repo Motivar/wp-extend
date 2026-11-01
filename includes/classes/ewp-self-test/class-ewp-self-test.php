@@ -148,13 +148,13 @@ final class EWP_Self_Test
             'class-options-portability-case',
             'class-ai-case',
             'class-content-portability-case',
+            'class-config-sync-case',
             'class-object-search-case',
-            'class-rest-health-case',
             'class-typed-content-case',
-            'class-rest-health-probes-case',
             'class-field-builder-case',
             'class-recently-seen-case',
             'class-block-preview-case',
+            'class-field-engine-case',
         ] as $file) {
             require_once __DIR__ . '/cases/' . $file . '.php';
         }

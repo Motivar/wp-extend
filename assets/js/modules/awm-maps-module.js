@@ -152,6 +152,38 @@ function noenter() {
     return !(window.event && window.event.keyCode == 13);
 }
 
+/**
+ * Whether a keydown event is Enter on an element flagged `data-ewp-noenter`.
+ *
+ * @param {KeyboardEvent} event Keydown event.
+ * @return {boolean} True when the event should be cancelled.
+ */
+function shouldBlockEnter(event) {
+    if (event.key !== 'Enter' || !event.target || typeof event.target.closest !== 'function') {
+        return false;
+    }
+    return null !== event.target.closest('[data-ewp-noenter]');
+}
+
+/**
+ * Keydown handler: stops Enter from submitting the form from a map search box.
+ *
+ * @param {KeyboardEvent} event Keydown event.
+ * @return {boolean} True when the event was cancelled.
+ */
+function handleNoEnterKeydown(event) {
+    if (!shouldBlockEnter(event)) {
+        return false;
+    }
+    event.preventDefault();
+    return true;
+}
+
+if (typeof document !== 'undefined' && !document.__ewpNoEnter) {
+    document.__ewpNoEnter = true;
+    document.addEventListener('keydown', handleNoEnterKeydown);
+}
+
 // Export functions
 export {
     awm_add_map,
@@ -159,5 +191,7 @@ export {
     awmInitMap,
     removeMarkers,
     placeMarker,
-    noenter
+    noenter,
+    shouldBlockEnter,
+    handleNoEnterKeydown
 };

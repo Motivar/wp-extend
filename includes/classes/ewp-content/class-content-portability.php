@@ -6,6 +6,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+require_once __DIR__ . '/class-content-php-export.php';
+
 /**
  * Export and import of custom content rows (definitions and data) across
  * sites, keyed by row hash so re-importing is an upsert.
@@ -50,17 +52,22 @@ final class Content_Portability
      *     @type int    $page     Page to export, from 1. With per_page.
      *     @type int    $per_page Rows per page and type, 1–MAX_PER_PAGE (default BATCH when page is given).
      *     @type string $file     Write the whole export to this path instead of returning it (the CLI's --file).
+     *     @type string $format   `php` returns the definitions as PHP code (see export_php()) instead of the rows; page, per_page and file are ignored (since 1.15.0).
      * }
      *
      * @return array|\WP_Error `{type: {id: row + meta}, modified[, pagination]}`, or with `file`
-     *                         `{file, count, types: {type: rows}, modified}`; error when nothing was found
-     *                         or the file cannot be written.
+     *                         `{file, count, types: {type: rows}, modified}`, or with `format` php
+     *                         `{code, skipped}`; error when nothing was found or the file cannot be written.
      *
      * @since 1.5.0
      * @since 1.11.0 Batched reads; `page`, `per_page` and `file` options.
+     * @since 1.15.0 `format` option.
      */
     public function export(array $content_types, array $options = [])
     {
+        if (isset($options['format']) && $options['format'] === 'php') {
+            return $this->export_php($content_types);
+        }
         $content_types = array_values(array_filter(array_map('strval', $content_types)));
         if (!empty($options['file'])) {
             return $this->export_file($content_types, (string) $options['file']);
@@ -96,6 +103,26 @@ final class Content_Portability
         }
 
         return $data;
+    }
+
+    /**
+     * Export field groups, post types and taxonomies as PHP code that registers them.
+     *
+     * @param string[] $content_types Content type ids; types without a generator are reported as skipped.
+     *
+     * @return array|\WP_Error `{code: string, skipped: string[]}`; an error when no type was requested.
+     *
+     * @since 1.15.0
+     */
+    public function export_php(array $content_types)
+    {
+        $content_types = array_values(array_filter(array_map('strval', $content_types)));
+        if ($content_types === []) {
+            return new \WP_Error('no_data', __('No data to export', 'extend-wp'), ['status' => 400]);
+        }
+        $export = new Content_Php_Export();
+
+        return $export->export($content_types);
     }
 
     /**
@@ -181,12 +208,7 @@ final class Content_Portability
             }
             awm_get_db_content_metas($content_type, array_column($rows, 'content_id'));
             foreach ($rows as $row) {
-                if (empty($row['hash'])) {
-                    $row['hash'] = md5(serialize($row));
-                    awm_insert_db_content($content_type, $row);
-                }
-                $row['meta'] = awm_get_db_content_meta($content_type, $row['content_id']);
-                $callback($row);
+                $callback($this->with_hash_and_meta($content_type, $row));
             }
             $visited += count($rows);
             \EWP\Db\Content_Meta::forget();
@@ -195,6 +217,62 @@ final class Content_Portability
         remove_filter('ewp_db_cache_table', $no_cache, PHP_INT_MAX);
 
         return $visited;
+    }
+
+    /**
+     * Attach the row's meta, backfilling a missing hash (rows written before hashes existed).
+     *
+     * @param string $content_type Content type id.
+     * @param array  $row          A `{type}_main` row.
+     *
+     * @return array The row with `hash` and `meta`.
+     *
+     * @since 1.15.0
+     */
+    private function with_hash_and_meta($content_type, array $row)
+    {
+        if (empty($row['hash'])) {
+            $row['hash'] = md5(serialize($row));
+            awm_insert_db_content($content_type, $row);
+        }
+        $row['meta'] = awm_get_db_content_meta($content_type, $row['content_id']);
+
+        return $row;
+    }
+
+    /**
+     * One row of a content type with its meta (and a backfilled hash), as export() would list it.
+     *
+     * @param string $content_type Content type id.
+     * @param int    $content_id   Row id.
+     *
+     * @return array|null The row, or null when it does not exist.
+     *
+     * @since 1.15.0
+     */
+    public function find_row($content_type, $content_id)
+    {
+        $rows = awm_get_db_content((string) $content_type, ['include' => [(int) $content_id], 'limit' => 1]);
+        if (!is_array($rows) || $rows === []) {
+            return null;
+        }
+
+        return $this->with_hash_and_meta((string) $content_type, reset($rows));
+    }
+
+    /**
+     * Call $callback for every row of a content type (batched, flat memory), as export() reads them.
+     *
+     * @param string   $content_type Content type id.
+     * @param callable $callback     fn(array $row): void, the row carrying `meta` and `hash`.
+     *
+     * @return int Rows visited.
+     *
+     * @since 1.15.0
+     */
+    public function walk_rows($content_type, callable $callback)
+    {
+        return $this->each_row((string) $content_type, 0, 0, $callback);
     }
 
     /**
