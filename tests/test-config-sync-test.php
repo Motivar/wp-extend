@@ -447,4 +447,34 @@ class Test_Config_Sync extends WP_UnitTestCase
         $this->assertSame($existing, (int) $updated[0]['content_id']);
         $this->assertSame('Renamed on source', $updated[0]['content_title']);
     }
+
+    /**
+     * The per object export of the Import/Export screen (zip) holds exactly the files the auto export writes.
+     *
+     * @return void
+     */
+    public function test_per_object_export_files_match_the_auto_export()
+    {
+        $this->enable_export('per_object');
+        $this->create_row('Zip one');
+        $this->create_row('Zip two');
+
+        $built = (new Content_Portability())->export([self::$type], ['layout' => 'per_object']);
+        $this->assertIsArray($built);
+        $this->assertSame([self::$type => 2], $built['types']);
+        $this->assertSame("{\n    \"format\": 2\n}\n", $built['files']['ewp-config/format.json']);
+
+        $on_disk = [];
+        foreach ((array) glob($this->dir . 'ewp-config/' . self::$type . '/*.json') as $file) {
+            $on_disk['ewp-config/' . self::$type . '/' . basename($file)] = file_get_contents($file);
+        }
+        $from_export = $built['files'];
+        unset($from_export['ewp-config/format.json']);
+        ksort($on_disk);
+        ksort($from_export);
+        $this->assertCount(2, $on_disk);
+        $this->assertSame($on_disk, $from_export, 'zip entries are byte-identical to the auto exported files');
+
+        $this->assertInstanceOf(\WP_Error::class, (new Content_Portability())->export(['no_such_type_xyz'], ['layout' => 'per_object']));
+    }
 }

@@ -123,6 +123,7 @@ The settings page stores the same keys in the option `ewp_auto_export_settings`.
 - Saving a row writes only that row's file. Deleting rows removes the files of that type whose row no longer exists.
 - Row hashes are identical in both layouts, so switching layouts never duplicates rows.
 - Rename the files with the `ewp_config_sync_filename` filter (`$filename`, `$content_type`, `$row`); the name must be a plain `*.json` file name and stay stable per row.
+- The manual JSON export on Extend WP > Import/Export produces the same files (built by `Config_Sync::object_file()`, byte-identical) as a `.zip`; unzip it into the configured path to seed a repository. The screen also imports such a zip (or a legacy `.json`) as an upsert. Elsewhere: `GET ewp/v1/export?layout=per_object`, `wp ewp content export --layout=per_object --file=<folder>`, ability `ewp-content/export` with `layout: per_object`.
 
 ### How the importing site reads the files
 

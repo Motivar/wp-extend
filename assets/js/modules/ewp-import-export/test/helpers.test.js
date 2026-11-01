@@ -1,7 +1,7 @@
 /**
  * Unit tests for the Import/Export screen helpers (`npm run test:js`).
  */
-import { normalizeMethod, exportPreview, exportFileName, skippedMessage } from '../helpers';
+import { normalizeMethod, exportPreview, exportFileName, skippedMessage, rowsFromFiles } from '../helpers';
 
 describe( 'normalizeMethod', () => {
 	it( 'keeps php and falls back to json', () => {
@@ -43,5 +43,31 @@ describe( 'skippedMessage', () => {
 
 	it( 'is empty without skipped types', () => {
 		expect( skippedMessage( 'Skipped: %s', [] ) ).toBe( '' );
+	} );
+} );
+
+describe( 'per object export', () => {
+	const files = {
+		'ewp-config/format.json': '{\n    "format": 2\n}\n',
+		'ewp-config/ewp_fields/b.json': '{"hash":"b"}\n',
+		'ewp-config/ewp_fields/a.json': '{"hash":"a"}\n',
+		'ewp_search/c.json': '{"hash":"c"}\n',
+		'ewp-config/ewp_fields/broken.json': '{nope',
+		'ewp-config/ewp_fields/list.json': '[1,2]',
+		'readme.txt': 'ignored',
+	};
+
+	it( 'previews every file under its path and downloads a zip', () => {
+		const out = exportPreview( 'json', { files: { 'ewp-config/format.json': '{"format":2}\n' }, types: {} } );
+		expect( out.text ).toBe( '// ewp-config/format.json\n{"format":2}\n' );
+		expect( out.extension ).toBe( 'zip' );
+		expect( out.mime ).toBe( 'application/zip' );
+		expect( out.files ).toEqual( { 'ewp-config/format.json': '{"format":2}\n' } );
+	} );
+
+	it( 'groups row files by their folder and skips the marker and invalid files', () => {
+		const { rows, invalid } = rowsFromFiles( files );
+		expect( rows ).toEqual( { ewp_fields: [ { hash: 'a' }, { hash: 'b' } ], ewp_search: [ { hash: 'c' } ] } );
+		expect( invalid ).toEqual( [ 'ewp-config/ewp_fields/broken.json', 'ewp-config/ewp_fields/list.json' ] );
 	} );
 } );

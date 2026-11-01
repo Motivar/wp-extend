@@ -450,20 +450,85 @@ final class Config_Sync
      */
     private function write_row_file($dir, $content_type, array $row)
     {
-        $type_dir = $this->type_dir($dir, $content_type);
-        if (is_wp_error($type_dir)) {
-            return $type_dir;
+        $file = $this->object_file($content_type, $row);
+        if ($file === null || is_wp_error($file)) {
+            return $file === null ? false : $file;
         }
-        $name = $this->filename_for($content_type, $row);
-        if ($name === null) {
-            return false;
-        }
+        $type_dir = dirname($dir . $file['path']);
         if (!wp_mkdir_p($type_dir)) {
             /* translators: %s: directory. */
             return new \WP_Error('ewp_config_sync_path', sprintf(__('Could not create %s.', 'extend-wp'), $type_dir));
         }
 
-        return $this->write_atomic($type_dir . '/' . $name, $this->encode_json($this->portable_row($row)));
+        return $this->write_atomic($dir . $file['path'], $file['contents']);
+    }
+
+    /**
+     * The per object file of one row: its path inside the export root and its bytes. The single
+     * source of the per object layout, used by the auto export, `sync export|migrate` and the
+     * per object (zip) export of the Import/Export screen, so all of them produce identical files.
+     *
+     * @param string $content_type Content type id.
+     * @param array  $row          Row with meta and hash.
+     *
+     * @return array{path: string, contents: string}|null|\WP_Error `ewp-config/{type}/{name}.json` and its JSON;
+     *                                                              null for a row without a usable hash; error for an unsafe type id.
+     *
+     * @since 1.15.0
+     */
+    public function object_file($content_type, array $row)
+    {
+        $type_dir = $this->type_dir('', $content_type);
+        if (is_wp_error($type_dir)) {
+            return $type_dir;
+        }
+        $name = $this->filename_for($content_type, $row);
+        if ($name === null) {
+            return null;
+        }
+
+        return ['path' => $type_dir . '/' . $name, 'contents' => $this->encode_json($this->portable_row($row))];
+    }
+
+    /**
+     * Every file of the per object layout for the given types, in memory: the marker file plus one
+     * file per row, exactly as the auto export writes them. Used for the zip download.
+     *
+     * @param string[] $content_types Content type ids.
+     *
+     * @return array|\WP_Error {files: path => contents (paths start with `ewp-config/`), types: type => rows};
+     *                         an error when no row was found or a type id is unsafe.
+     *
+     * @since 1.15.0
+     */
+    public function build_files(array $content_types)
+    {
+        $files = [self::DIR . '/' . self::FORMAT_FILE => $this->encode_json(['format' => self::FORMAT_VERSION])];
+        $types = [];
+        foreach (array_values(array_filter(array_map('strval', $content_types))) as $type) {
+            $error = null;
+            $count = $this->portability->walk_rows($type, function (array $row) use ($type, &$files, &$error) {
+                $file = $error === null ? $this->object_file($type, $row) : null;
+                if (is_wp_error($file)) {
+                    $error = $file;
+                    return;
+                }
+                if ($file !== null) {
+                    $files[$file['path']] = $file['contents'];
+                }
+            });
+            if ($error !== null) {
+                return $error;
+            }
+            if ($count > 0) {
+                $types[$type] = $count;
+            }
+        }
+        if ($types === []) {
+            return new \WP_Error('no_data', __('No data to export', 'extend-wp'), ['status' => 400]);
+        }
+
+        return ['files' => $files, 'types' => $types];
     }
 
     /**

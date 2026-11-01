@@ -29,6 +29,7 @@ class Content_Portability_Case extends Case_Base
             __('CLI: wp ewp content export --types=<type> --file=<temp> — expect the file to be written (streamed in batches).', 'extend-wp'),
             __('Paged export: REST GET /ewp/v1/export?page=1&per_page=1 and ewp-content/export with page 1 / per_page 1 — expect the row plus pagination (total 1, total_pages 1).', 'extend-wp'),
             __('PHP export (method=php) of ewp_fields plus the fixture type: REST GET /ewp/v1/export, ability ewp-content/export and wp ewp content export --method=php --file=<temp>.php — expect {code, skipped} with PHP code and the fixture type listed as skipped.', 'extend-wp'),
+            __('Per object export (layout=per_object): REST GET /ewp/v1/export, ability ewp-content/export and wp ewp content export --layout=per_object --file=<temp folder> — expect {files, types} with ewp-config/format.json and one ewp-config/<type>/<hash>.json, and the folder written by the CLI.', 'extend-wp'),
             __('Delete the row, then import it back on each surface: REST POST /ewp/v1/import, wp ewp content import <file> --yes, ewp-content/import (confirm: true) — expect the row to exist again.', 'extend-wp'),
             __('Cleanup: drop the fixture tables and the temporary file.', 'extend-wp'),
         ];
@@ -41,7 +42,8 @@ class Content_Portability_Case extends Case_Base
         $type    = 'ewp_' . $key;
         $file    = trailingslashit(sys_get_temp_dir()) . 'ewp-self-test-' . $key . '.json';
         $php_file = trailingslashit(sys_get_temp_dir()) . 'ewp-self-test-' . $key . '.php';
-        $context  = ['content_type' => $type, 'file' => $file, 'php_file' => $php_file, 'observed' => []];
+        $files_dir = trailingslashit(sys_get_temp_dir()) . 'ewp-self-test-' . $key . '-files';
+        $context  = ['content_type' => $type, 'file' => $file, 'php_file' => $php_file, 'files_dir' => $files_dir, 'observed' => []];
         $o       = &$context['observed'];
 
         $this->register_fixture_type($key, 'ewp');
@@ -61,6 +63,11 @@ class Content_Portability_Case extends Case_Base
         $o['ability_export_php'] = $this->ability('ewp-content/export', ['content_types' => $php_types, 'method' => 'php']);
         $o['cli_export_php']     = $this->cli(EWP_Surfaces::cli('content-portability', 'export'), [], ['types' => implode(',', $php_types), 'method' => 'php', 'file' => $php_file]);
         $o['php_file_code']      = file_exists($php_file) ? (string) file_get_contents($php_file) : '';
+
+        $o['rest_export_files']    = $this->rest('GET', '/ewp/v1/export', ['content_types' => [$type], 'layout' => 'per_object']);
+        $o['ability_export_files'] = $this->ability('ewp-content/export', ['content_types' => [$type], 'layout' => 'per_object']);
+        $o['cli_export_files']     = $this->cli(EWP_Surfaces::cli('content-portability', 'export'), [], ['types' => $type, 'layout' => 'per_object', 'file' => $files_dir]);
+        $o['cli_files_written']    = count((array) glob($files_dir . '/ewp-config/' . $type . '/*.json'));
 
         $payload = !empty($o['ability_export']['ok']) ? $o['ability_export']['data'] : [];
         $rows    = isset($payload[$type]) ? array_values((array) $payload[$type]) : [];
@@ -107,6 +114,24 @@ class Content_Portability_Case extends Case_Base
             ? $this->check('cli', 'The CLI PHP export file starts with a PHP tag', strpos($o['php_file_code'], '<?php') === 0, 'Wrote ' . strlen($o['php_file_code']) . ' bytes.')
             : $this->skip('cli', 'The CLI PHP export file starts with a PHP tag', __('WP-CLI wrappers are not loaded in this process.', 'extend-wp'));
 
+        $files_check = function ($data) use ($context) {
+            $type = $context['content_type'];
+            if (!is_array($data) || !isset($data['files']['ewp-config/format.json'], $data['types'][$type])) {
+                return false;
+            }
+            $rows = array_filter(array_keys((array) $data['files']), function ($path) use ($type) {
+                return strpos($path, 'ewp-config/' . $type . '/') === 0;
+            });
+            return count($rows) === 1 && (int) $data['types'][$type] === 1;
+        };
+        $rest_files = $this->status($o, 'rest_export_files') === 200 ? $o['rest_export_files']['data'] : null;
+        $checks[]   = $this->check('rest', 'GET /ewp/v1/export?layout=per_object returns {files, types} with the marker and one row file', $files_check($rest_files), $this->detail($o, 'rest_export_files'));
+        $checks[]   = $this->ability_check($o, 'ability_export_files', 'ewp-content/export (layout per_object) returns {files, types}', $files_check);
+        $checks[]   = $this->cli_check($o, 'cli_export_files', 'wp ewp content export --layout=per_object writes the folder', 'as 2 file(s)');
+        $checks[]   = $this->cli_available()
+            ? $this->check('cli', 'The CLI per object export wrote one row file', $o['cli_files_written'] === 1, 'Found ' . $o['cli_files_written'] . ' row file(s).')
+            : $this->skip('cli', 'The CLI per object export wrote one row file', __('WP-CLI wrappers are not loaded in this process.', 'extend-wp'));
+
         $checks[] = $this->check('rest', 'POST /ewp/v1/import restores the row (upsert by hash)', $this->status($o, 'rest_import') === 200 && $o['after_rest'] === 1, $this->detail($o, 'rest_import'));
         $checks[] = $this->ability_check($o, 'ability_import', 'ewp-content/import (confirm: true) upserts without duplicating', function ($data) use ($o) {
             return isset($data['count']) && $data['count'] === 1 && $o['after_all'] === 1;
@@ -127,6 +152,26 @@ class Content_Portability_Case extends Case_Base
             @unlink($context['php_file']);
         }
 
+        if (!empty($context['files_dir']) && is_dir($context['files_dir'])) {
+            $this->remove_files_dir((string) $context['files_dir']);
+        }
+
         return $this->cleanup_fixture_type(isset($context['content_type']) ? (string) $context['content_type'] : '');
+    }
+
+    /**
+     * Remove the folder written by the per object CLI export.
+     *
+     * @param string $dir Folder (inside the system temp dir).
+     *
+     * @return void
+     */
+    private function remove_files_dir($dir)
+    {
+        $items = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($items as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
     }
 }

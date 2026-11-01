@@ -52,6 +52,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `awm_print_php()` stays for external callers, now escaped, and no longer emits the `@@@@` line markers.
     - `method=json` is unchanged.
 
+- **JSON export on the Import/Export screen downloads the per-object files as a zip** (`2026-11-01`):
+  - **Question/Prompt**: "json does not have the new way" → "zip file, but when auto export is enabled it should run the same technique".
+  - **One builder**: new `Config_Sync::object_file()` returns a row's path and bytes.
+    - The auto export, `sync export|migrate` and the new `Config_Sync::build_files()` all use it, so a zip entry is byte-identical to the file the auto export writes.
+    - A PHPUnit test pins this: `test_per_object_export_files_match_the_auto_export`.
+  - **Surfaces**: `layout` (`single` default | `per_object`) on the `export` operation. `Content_Portability::export(…, ['layout' => 'per_object'])` → `export_files()`.
+    - REST `GET ewp/v1/export?layout=per_object` and the `ewp-content/export` ability answer `{files: path => contents, types: type => rows}`.
+    - `wp ewp content export --types=… --layout=per_object [--file=./ewp-content-export]` writes the `ewp-config/` tree into that folder.
+    - With no `layout`, REST, CLI and abilities behave exactly as before.
+  - **Admin screen**:
+    - JSON export now asks for `layout=per_object`. The preview lists every file under a `// path` header, and Download builds a `.zip` in the browser.
+    - Import accepts that zip (or one re-packed by the OS) as well as the legacy single `.json`. Rows are grouped by their folder name and posted per type to the existing `ewp/v1/import`, so a manual import upserts and never deletes.
+    - New `assets/js/modules/ewp-import-export/zip.js`, dependency-free: STORE writer, plus a reader for stored or deflated entries through `DecompressionStream`. No zip64.
+    - New helpers `filesPreview()` and `rowsFromFiles()`.
+  - **Tests**: Jest `zip.test.js` (CRC check value, UTF-8 round trip, deflated entry, non-zip) and per-object helper tests, 72/72. The self-test `content-portability` case has new `layout=per_object` checks on REST, the ability and the CLI (16 checks, pass).
+  - **Verified in Chrome**: a JSON export of Field shows `ewp-config/format.json` and `ewp-config/ewp_fields/{hash}.json` in the preview. The Download click (a real file download) and a zip import were not exercised in the browser; both are covered by Jest.
+  - **Backwards compatibility**:
+    - The screen no longer offers the single-file JSON download. `wp ewp content export` without `--layout` and REST/abilities without `layout` still produce it.
+    - Old `.json` exports still import.
+
 - **Config sync: one JSON file per object instead of one `ewp_configuration.json`** (`2026-11-01`):
   - **Question/Prompt**: "now on json we create one json file, which is not ideal since a lot of merge conflicts happen … create a json per object-id … we don't want the repos which already have the old json file to be misconfigured" (part 2 of 2). One Opus agent implemented it; it was reviewed and documented here.
   - **Shared service**:

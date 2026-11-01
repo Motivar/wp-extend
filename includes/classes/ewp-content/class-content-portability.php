@@ -53,6 +53,7 @@ final class Content_Portability
      *     @type int    $per_page Rows per page and type, 1–MAX_PER_PAGE (default BATCH when page is given).
      *     @type string $file     Write the whole export to this path instead of returning it (the CLI's --file).
      *     @type string $format   `php` returns the definitions as PHP code (see export_php()) instead of the rows; page, per_page and file are ignored (since 1.15.0).
+     *     @type string $layout   `per_object` returns one file per row in the config sync layout (see export_files()); page, per_page and file are ignored (since 1.15.0).
      * }
      *
      * @return array|\WP_Error `{type: {id: row + meta}, modified[, pagination]}`, or with `file`
@@ -67,6 +68,9 @@ final class Content_Portability
     {
         if (isset($options['format']) && $options['format'] === 'php') {
             return $this->export_php($content_types);
+        }
+        if (isset($options['layout']) && $options['layout'] === 'per_object') {
+            return $this->export_files($content_types);
         }
         $content_types = array_values(array_filter(array_map('strval', $content_types)));
         if (!empty($options['file'])) {
@@ -123,6 +127,23 @@ final class Content_Portability
         $export = new Content_Php_Export();
 
         return $export->export($content_types);
+    }
+
+    /**
+     * Export the rows as the per object files of the config sync (`ewp-config/{type}/{hash}.json`),
+     * byte-identical to what the auto export writes, so the Import/Export screen can zip them.
+     *
+     * @param string[] $content_types Content type ids.
+     *
+     * @return array|\WP_Error `{files: path => contents, types: type => rows}`; an error when nothing was found.
+     *
+     * @since 1.15.0
+     */
+    public function export_files(array $content_types)
+    {
+        require_once __DIR__ . '/class-config-sync.php';
+
+        return (new Config_Sync($this))->build_files($content_types);
     }
 
     /**
