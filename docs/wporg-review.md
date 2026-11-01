@@ -1,7 +1,7 @@
 # WordPress.org preparation — review report (`wporg` branch)
 
 For: Nikos and his review agent. Kept up to date with every push to `wporg`.
-Last update: 2026-10-31, after commit `643ddf5a`.
+Last update: 2026-11-01, after commit `40d68d93` (main 1.14.0 merged in).
 
 **Nothing on this branch is pushed to `main` until Nikos approves.**
 
@@ -14,6 +14,9 @@ too and will use it. Filox's `wporg` branch bundles this branch
 (`motivar/extend-wp: dev-wporg`); see Filox's `docs/wporg-review.md`.
 
 - `wporg` is branched from `main` (fbf588bc, 1.13.0) and only receives `main` merges.
+  **2026-11-01: `main` 75303d0b (1.14.0, 20 commits: field engine, templates, PHP export /
+  config sync, REST Health removed) is merged in (8c2e59f8)**, so merging `wporg` into `main`
+  is a fast-forward again.
   **Nothing here is merged into `main` until you review it.**
 - Changes are meant to be behaviour-neutral for every site using Extend WP.
 - Every commit has a `CHANGELOG.md` entry under `[Unreleased]` → `### Changed`.
@@ -41,8 +44,14 @@ too and will use it. Filox's `wporg` branch bundles this branch
 | d45ea5a1 | `tools/build-wporg.sh`: WordPress.org package from `HEAD` without tests, tools, docs, examples, `lib/bin`, notes (`HOOKS.md` stays), configs; 1.4 MB | None (not loaded by WordPress) | Package installed as `extend-wp` on filox-test with the Filox WordPress.org package: front / admin pages without errors or notices, Filox self-tests 13 passed |
 | 0da91881 | Plugin Check on the package → 0 in Extend WP's own code: `wp_delete_file()`, `wp_is_writable()`, `wp_rand()`, `wp_strip_all_tags()`; streaming / locked file writes marked; dynamic loader waits until an injected dependency has loaded (`data-ewp-loading`) | Textareas with `awm_strip_html` also trimmed; dependent dynamic assets wait for their dependency to load | PHPUnit 408 / 408; Filox date picker with WordPress's moment.js through the loader, also with moment delayed 2 s; package smoke test |
 | 643ddf5a | **`tools/build-wporg.sh`: package without `mammothwp/wp-self-test`; Composer's autoloader patched for Plugin Check.** The autoloader is regenerated offline without wp-self-test (`dump-autoload --no-dev --optimize`, entries removed from `installed.json` / `installed.php`, no `platform_check.php`); then direct-access guards, no PHP < 5.6 message, `esc_html()` in `InstalledVersions`' exceptions (same step as Filox). `wp-kit` stays: REST, WP-CLI and abilities are built on it. **Plugin Check on the package 18 → 1** (now counted with `wp-kit`) | None (composer installs untouched); WordPress.org sites have no self-tests | Packages installed in place of Filox on filox-test: activate, no PHP errors, 67 Extend WP routes, product page identical apart from Extend WP's asset URLs |
+| 8c2e59f8 | **Merge `main` (1.14.0) into `wporg`.** 15 conflicts. Main wins where it moved markup into templates (settings, term / user / post boxes, list table and form, search form, slug field, field engine, object search, import/export → `Config_Sync`); its own code already has the import guard (administrators only, no ajax, no flush after a failed import). Kept from wporg: `Requires at least: 6.8`, `awm_date()`, `awm_show_explanation()` escaping, `esc_html()` in `ewp_debug()`, translator comments. REST Health deleted as on main, with wporg's Swagger UI copy (`assets/third-party/`) and its readme line | Main's changes are yours; the merge adds none of its own | Trial merge first (`git merge-tree`); every conflict file compared with main after resolving (`class-import-export.php` identical) |
+| 40d68d93 | **Plugin Check on main's new code (package: 50 → 1)**: field templates mark prints escaped where they are built (`Field_Attributes::render()`, `Select_Field::data_html()`, the explanation template, wrapper attributes) or escape at the print (`map.php` id, search form id as int); 5 translator comments; dynamic labels marked; `wp_rand()`, `wp_strip_all_tags()` (`awm_strip_html` textareas), `wp_is_writable()`, `awm_date()`, `wp_delete_file()` in `Config_Sync` and two self-test cases; two atomic `rename()` and one test `rmdir()` kept with the reason; Stable tag 1.14.0. **4e31f06e restored in the field engine**: `Field_Renderer::field_row()` drops `attributes['name']` for input / select / textarea / checkbox_multiple | Output unchanged: your render snapshots pass byte for byte. `show-when` stays unescaped (JSON with every `"` turned into `'`, so it cannot leave the attribute) to keep that | PHPUnit 557 / 557, new `test_attributes_name_is_not_printed_twice` fails without the fix; package Plugin Check; merged Extend WP inside Filox on filox-test: self-tests, 6 front-end pages identical (random ids / whitespace masked), 9 admin pages with the same form fields |
 
 ## `awm_show_content()` escaping (please review)
+
+*Since the 1.14.0 merge* `awm_show_content()` is your `Field_Renderer` and `templates/fields/*`;
+they escape these values themselves, so the section below describes the pre-merge code.
+What wporg added on top is in 40d68d93.
 
 Why here: Filox could not escape the result from outside. `wp_kses()` over it dropped
 attributes Extend WP's JS reads (`count`, `options`, `awm-skip-selectr`, `exclude_meta`,
@@ -80,7 +89,11 @@ baselines compare 0 first): **0 differences**. Filox Settings page 110 → 113 m
 
 ## Tests on this branch
 
-- Self-test (`wp mmwp self-test run --plugin=extend-wp`): **14 passed, 1 skipped**
+- After the 1.14.0 merge (40d68d93): self-test **15 passed, 0 skipped** (inside Filox on filox-test),
+  PHPUnit **557 / 557** (main alone: 556 / 556; +1 for the restored duplicate-`name` fix).
+  One deprecation notice in the self-test run comes from main: the field-builder `php_code`
+  operation still calls `AWM_API::php_code()`, deprecated since 1.15.0.
+- Before the merge: self-test (`wp mmwp self-test run --plugin=extend-wp`): **14 passed, 1 skipped**
   (before d798ea35: `content-crud` failed, also on unchanged `main`).
 - PHPUnit (`tests/`, run on filox-test with a temporary copy + `wp_extend_tests`
   database): **408 / 408** (before 00af2c72: `Test_Content_View_Query::test_search`
@@ -93,7 +106,7 @@ baselines compare 0 first): **0 differences**. Filox Settings page 110 → 113 m
 | | Start | Now |
 |---|---|---|
 | Licence header | missing | done |
-| Remote scripts (Swagger UI from unpkg) | 2 | 0 (`examples/` still has CDN samples: leave `examples/` out of the WordPress.org package) |
+| Remote scripts (Swagger UI from unpkg) | 2 | 0: REST Health and its Swagger UI left with the 1.14.0 merge (`examples/` still has CDN samples and stays out of the package) |
 | `date()` | 9 | 0 |
 | Late escaping (core: `includes`, `templates`, main file) | 105 (99 on re-count) | **0** |
 | i18n (translators comments, non-literal strings, text domain) | 171 | **0** (dynamic labels marked) |
@@ -109,7 +122,10 @@ baselines compare 0 first): **0 differences**. Filox Settings page 110 → 113 m
 - [ ] `html` / `message` / `function` cases left as developer markup — agree?
 - [ ] Dropping the second `name` (4e31f06e): any code of yours that relied on `attributes['name']` taking effect? (It never did in browsers.)
 - [ ] Multi-value fields out of free-text search (00af2c72)
-- [ ] Swagger UI version pin (5.34.0) and package size
+- [ ] 1.14.0 merge (8c2e59f8): conflicts resolved to your code; check nothing of yours was lost
+- [ ] `show-when` left unescaped in `Field_Renderer::field_row()` (safe: no `"` can occur) so your snapshots stay byte-identical — or prefer `esc_attr()` and update the snapshots?
+- [ ] `Field_Renderer` drops `attributes['name']` for input / select / textarea / checkbox_multiple (40d68d93, as 4e31f06e did in the legacy code)
+- [ ] Field-builder `php_code` operation still calls the deprecated `AWM_API::php_code()` (from main; FYI)
 - [ ] Exception messages of `View_Query` / `Where` / `SQL` left unescaped (marked): they are API error text
 - [ ] `class-wp-content.php` translates content-type labels with Filox's domain (`__($metas['singular'], 'filox')`, marked). These are labels admins type on the Content Types screen, translated through Filox's `.po`; switching the domain would drop those translations on live sites, so it stays (FYI).
 - [ ] `content-crud` check reading the error instead of `ok` (d798ea35)
