@@ -16,7 +16,7 @@
  *     @type string $information Admin tooltip text ('' for none; default wrapper only).
  * }
  *
- * @since 1.11.0
+ * @since 1.14.0
  */
 
 if (!defined('ABSPATH')) {

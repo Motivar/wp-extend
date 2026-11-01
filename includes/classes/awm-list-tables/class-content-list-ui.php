@@ -42,6 +42,26 @@ class EWP_Content_List_UI
     const MULTI_CASES = array('checkbox_multiple');
 
     /**
+     * Declarable filter types (since 1.12.0) => operators a declaration may pick. Input types (date, number,
+     * text) are entered in the panel and sent as `between` / `afterInc` / `beforeInc` /
+     * `greaterThanOrEqual` / `lessThanOrEqual` / `contains` conditions. A `select` picks one value (`is`,
+     * `isNot`), or several with `multiple` (since 1.13.0: `isAny`, `isNone`, i.e. SQL IN / NOT IN).
+     */
+    const FILTER_TYPES = array(
+        'select'      => array('is', 'isNot', 'isAny', 'isNone'),
+        'multiselect' => array('isAny', 'isNone', 'isAll', 'isNotAll'),
+        'date'        => array(),
+        'number'      => array(),
+        'text'        => array(),
+    );
+
+    /** Default operators of the element filter types. */
+    const FILTER_DEFAULT_OPERATORS = array('select' => array('is', 'isNot'), 'multiselect' => array('isAny', 'isNone'));
+
+    /** Operators of a `select` declared `multiple` (since 1.13.0): one chip "is any: A, B" / "is none: A, B". */
+    const MULTIPLE_OPERATORS = array('isAny', 'isNone');
+
+    /**
      * Hook the asset registration (must run before `init` priority 1, when the loader collects entries).
      *
      * @return void
@@ -49,6 +69,7 @@ class EWP_Content_List_UI
     public static function init()
     {
         add_filter('ewp_register_dynamic_assets', array(__CLASS__, 'register_assets'));
+        add_filter('ewp_content_view_fields', array(__CLASS__, 'view_field_values'), 20, 2);
     }
 
     /**
@@ -190,6 +211,7 @@ class EWP_Content_List_UI
     public static function config($type, array $args)
     {
         $registry  = AWM_Add_Content_DB_Setup::$ewp_data_configuration[$type];
+        $surfaces  = AWM_Add_Content_DB_Setup::normalize_surfaces(isset($registry['surfaces']) ? $registry['surfaces'] : array());
         $fields    = self::fields($type, $args);
         $page_link = self::page_link($args);
         $statuses = array();
@@ -203,7 +225,10 @@ class EWP_Content_List_UI
             'fields'      => $fields,
             'statuses'    => $statuses,
             'writable'    => !empty($registry['writable']),
-            'canDelete'   => !empty($registry['writable']) && !empty($registry['show_delete']),
+            /* since 1.11.0: the type's `surfaces`; set status and delete still call the REST routes, which route them through Content_Service */
+            'canSetStatus' => !empty($registry['writable']) && $surfaces['set_status'] !== false,
+            'canDelete'   => !empty($registry['writable']) && !empty($registry['show_delete']) && $surfaces['delete'] !== false,
+            'canDuplicate' => $surfaces['duplicate'],
             'editUrl'     => awm_edit_screen_link($args) . '&id=',
             /* the legacy duplicate row action, handled by AWM_List_Table::process_bulk_action() on this page; the nonce does not depend on the id */
             'duplicateUrl' => wp_nonce_url(admin_url($page_link . '&action=duplicate'), $page_link . '_duplicate') . '&id=',
@@ -260,7 +285,193 @@ class EWP_Content_List_UI
                 $field['operators'] = array('isAny', 'isNone');
             }
         }
+        unset($field);
+        return self::apply_filters_config($fields, self::declared_filters($type, $args), $view);
+    }
+
+    /**
+     * The filters a content type declares for its DataViews list (registration key `list_filters`,
+     * then `ewp_content_list_filters`).
+     *
+     * @since 1.12.0
+     *
+     * @param string $type Content type id.
+     * @param array  $args List arguments (the registration plus `id`).
+     * @return array Field id => declaration { type, label?, elements?, operators?, field?, fields?, isPrimary? }.
+     */
+    public static function declared_filters($type, array $args)
+    {
+        $filters = isset($args['list_filters']) && is_array($args['list_filters']) ? $args['list_filters'] : array();
+
+        /**
+         * Filters the filters of a content type's DataViews list (shown in its filter panel).
+         *
+         * Each entry is keyed by a field id: an existing list field (a column) gets the filter, any other id
+         * becomes a filter-only field. Declarations are validated by EWP_Content_List_UI::normalize_filter();
+         * invalid ones are dropped. The REST `query` route applies them like any view filter.
+         *
+         * @since 1.12.0
+         *
+         * @param array  $filters Field id => { type: select|multiselect|date|number|text, label?: string,
+         *                        elements?: array (value => label, or list of {value, label}), operators?: string[],
+         *                        multiple?: bool (select: pick several values, `isAny` / `isNone`; since 1.13.0),
+         *                        field?: string (view field the filter applies to, default the id),
+         *                        fields?: array (date / number: view fields the user may apply the range to,
+         *                        value => label), isPrimary?: bool }.
+         * @param string $type    Content type id.
+         */
+        return (array) apply_filters('ewp_content_list_filters', $filters, (string) $type);
+    }
+
+    /**
+     * Attach normalised filter declarations to the list fields; ids that are not fields become filter-only fields
+     * (`hidden`, not in the default view, not offered as a column).
+     *
+     * @since 1.12.0
+     *
+     * @param array[] $fields   Field definitions from fields().
+     * @param array   $declared Field id => declaration (declared_filters()).
+     * @param array   $view     Content_Service::view_fields() of the type (the allowlist).
+     * @return array[] Field definitions; filterable ones carry `filter`.
+     */
+    public static function apply_filters_config(array $fields, array $declared, array $view)
+    {
+        $index = array_flip(array_column($fields, 'id'));
+        foreach ($declared as $id => $declaration) {
+            $id     = (string) $id;
+            $filter = is_array($declaration) ? self::normalize_filter($id, $declaration, $view) : null;
+            if ($filter === null) {
+                continue;
+            }
+            if (isset($index[$id])) {
+                $fields[$index[$id]]['filter'] = $filter;
+                continue;
+            }
+            $label    = isset($declaration['label']) ? wp_strip_all_tags((string) $declaration['label']) : $id;
+            $fields[] = array('id' => $id, 'column' => $id, 'label' => $label, 'type' => 'text', 'source' => 'render', 'enableSorting' => false, 'enableHiding' => false, 'html' => false, 'hidden' => true, 'filter' => $filter);
+        }
         return $fields;
+    }
+
+    /**
+     * Validate and normalise one filter declaration against the type's view fields, so the list only ever
+     * sends conditions the REST `query` route accepts.
+     *
+     * @since 1.12.0
+     *
+     * @param string $id          Field id the filter is declared on.
+     * @param array  $declaration { type, elements?, operators?, multiple?, field?, fields?, isPrimary? } (see `ewp_content_list_filters`).
+     * @param array  $view        Field id => view field (Content_Service::view_fields()); null skips the check
+     *                            (for lists with their own REST adapter, e.g. a `restPath` of their own).
+     * @return array|null { type, field, fields: list<{value, label}>, elements?: list<{value, label}>, operators?: string[],
+     *                    multiple?: bool (element filters: several values per chip, since 1.13.0), isPrimary: bool }, null when invalid.
+     */
+    public static function normalize_filter($id, array $declaration, $view = null)
+    {
+        $type = isset($declaration['type']) ? (string) $declaration['type'] : '';
+        if (!isset(self::FILTER_TYPES[$type])) {
+            return null;
+        }
+        $known  = function ($field) use ($view) {
+            return !is_array($view) || isset($view[$field]);
+        };
+        $target = isset($declaration['field']) ? (string) $declaration['field'] : (string) $id;
+        $ranged = in_array($type, array('date', 'number'), true);
+        $fields = $ranged && isset($declaration['fields']) && is_array($declaration['fields']) ? self::elements($declaration['fields']) : array();
+        $fields = array_values(array_filter($fields, function ($option) use ($known) {
+            return $known($option['value']);
+        }));
+        if (!$fields && !$known($target)) {
+            return null;
+        }
+        $filter = array('type' => $type, 'field' => $target, 'fields' => $fields, 'isPrimary' => !empty($declaration['isPrimary']));
+        if (!isset(self::FILTER_DEFAULT_OPERATORS[$type])) {
+            return $filter;
+        }
+        $filter['elements'] = self::elements(isset($declaration['elements']) && is_array($declaration['elements']) ? $declaration['elements'] : array());
+        if (!$filter['elements']) {
+            return null;
+        }
+        $filter['operators'] = self::filter_operators($type, $declaration);
+        $filter['multiple']  = !array_intersect($filter['operators'], array('is', 'isNot'));
+        return $filter;
+    }
+
+    /**
+     * Operators of an element filter declaration. A `select` is single (`is`, `isNot`) unless it is declared
+     * `multiple` or only lists `isAny` / `isNone` (since 1.13.0); DataViews cannot mix the two kinds in one
+     * filter, so a `multiple` select keeps only its list operators.
+     *
+     * @since 1.13.0
+     *
+     * @param string $type        `select` or `multiselect`.
+     * @param array  $declaration Declaration (`operators?`, `multiple?`).
+     * @return string[] Operators, the first being the default.
+     */
+    public static function filter_operators($type, array $declaration)
+    {
+        $declared = isset($declaration['operators']) ? array_values(array_intersect((array) $declaration['operators'], self::FILTER_TYPES[$type])) : array();
+        if ($type !== 'select') {
+            return $declared ?: self::FILTER_DEFAULT_OPERATORS[$type];
+        }
+        $multiple = !empty($declaration['multiple']) || ($declared && !array_intersect($declared, array('is', 'isNot')));
+        $allowed  = $multiple ? self::MULTIPLE_OPERATORS : self::FILTER_DEFAULT_OPERATORS['select'];
+        $picked   = array_values(array_intersect($declared, $allowed));
+        return $picked ?: $allowed;
+    }
+
+    /**
+     * `ewp_content_view_fields` (since 1.13.0): a view field targeted by a declared `select` / `multiselect`
+     * filter only accepts that filter's element values with the element operators (`is`, `isAny`, `isNone`, …),
+     * so the REST `query` route, `wp ewp content query` and `ewp-content/query-items` refuse (400) a value
+     * the panel never offers. View_Query reads the list from the field's `values`.
+     *
+     * @since 1.13.0
+     *
+     * @param array  $fields View fields (Content_Service::view_fields()).
+     * @param string $type   Content type id.
+     * @return array View fields; targeted ones carry `values` (list of strings).
+     */
+    public static function view_field_values($fields, $type)
+    {
+        static $running = false;
+        if (!is_array($fields) || $running || !class_exists('AWM_Add_Content_DB_Setup') || !isset(AWM_Add_Content_DB_Setup::$ewp_data_configuration[$type])) {
+            return $fields;
+        }
+        $running = true;
+        $allowed = self::declared_values((string) $type, array_merge(AWM_Add_Content_DB_Setup::$ewp_data_configuration[$type], array('id' => (string) $type)));
+        $running = false;
+        foreach ($allowed as $field => $values) {
+            if (isset($fields[$field]) && is_array($fields[$field])) {
+                $previous               = isset($fields[$field]['values']) && is_array($fields[$field]['values']) ? $fields[$field]['values'] : array();
+                $fields[$field]['values'] = array_values(array_unique(array_merge($previous, $values)));
+            }
+        }
+        return $fields;
+    }
+
+    /**
+     * Element values of a type's declared `select` / `multiselect` filters, by target view field.
+     *
+     * @since 1.13.0
+     *
+     * @param string $type Content type id.
+     * @param array  $args List arguments (the registration plus `id`).
+     * @return array<string, string[]> View field id => allowed values.
+     */
+    public static function declared_values($type, array $args)
+    {
+        $allowed = array();
+        foreach (self::declared_filters($type, $args) as $id => $declaration) {
+            $kind = is_array($declaration) && isset($declaration['type']) ? (string) $declaration['type'] : '';
+            if (!isset(self::FILTER_DEFAULT_OPERATORS[$kind]) || empty($declaration['elements']) || !is_array($declaration['elements'])) {
+                continue;
+            }
+            $target           = isset($declaration['field']) ? (string) $declaration['field'] : (string) $id;
+            $values           = array_column(self::elements($declaration['elements']), 'value');
+            $allowed[$target] = array_values(array_unique(array_merge(isset($allowed[$target]) ? $allowed[$target] : array(), $values)));
+        }
+        return $allowed;
     }
 
     /**
@@ -339,15 +550,18 @@ class EWP_Content_List_UI
     }
 
     /**
-     * DataViews elements from an options / statuses array.
+     * DataViews elements from an options / statuses array, or from a list of `{value, label}` (since 1.12.0).
      *
-     * @param array $options Value => { label } or value => label.
+     * @param array $options Value => { label }, value => label, or a list of { value, label }.
      * @return array[] { value, label }.
      */
     private static function elements(array $options)
     {
         $elements = array();
         foreach ($options as $value => $option) {
+            if (is_array($option) && array_key_exists('value', $option)) {
+                $value = $option['value'];
+            }
             $label      = is_array($option) ? (isset($option['label']) ? $option['label'] : $value) : $option;
             $elements[] = array('value' => (string) $value, 'label' => wp_strip_all_tags((string) $label));
         }
@@ -422,6 +636,7 @@ class EWP_Content_List_UI
 
     /**
      * Row actions as the legacy list builds them (Edit, Duplicate, Delete) after `ewp_row_actions_{type}_filter`.
+     * Duplicate / Delete are left out when the type's `surfaces` turn them off (since 1.11.0).
      *
      * @param array $args List arguments.
      * @param array $row  Raw `_main` row.
@@ -434,11 +649,14 @@ class EWP_Content_List_UI
         }
         $id        = (int) $row['content_id'];
         $page_link = self::page_link($args);
+        $surfaces  = AWM_Add_Content_DB_Setup::normalize_surfaces(isset($args['surfaces']) ? $args['surfaces'] : array());
         $actions   = array(
             'edit'      => sprintf('<a href="%s">%s</a>', esc_url(awm_edit_screen_link($args) . '&id=' . $id), __('Edit', 'extend-wp')),
-            'duplicate' => sprintf('<a href="%s">%s</a>', esc_url(wp_nonce_url(admin_url($page_link . '&id=' . $id . '&action=duplicate'), $page_link . '_duplicate')), __('Duplicate', 'extend-wp')),
         );
-        if (!isset($args['show_delete']) || $args['show_delete']) {
+        if ($surfaces['duplicate']) {
+            $actions['duplicate'] = sprintf('<a href="%s">%s</a>', esc_url(wp_nonce_url(admin_url($page_link . '&id=' . $id . '&action=duplicate'), $page_link . '_duplicate')), __('Duplicate', 'extend-wp'));
+        }
+        if ((!isset($args['show_delete']) || $args['show_delete']) && $surfaces['delete'] !== false) {
             $actions['delete'] = sprintf('<a href="%s" class="awm-delete-content-id">%s</a>', esc_url(wp_nonce_url(admin_url($page_link . '&id=' . $id . '&action=delete'), $page_link . '_delete')), __('Delete', 'extend-wp'));
         }
         /** This filter is documented in includes/classes/awm-list-tables/class-list-table.php */

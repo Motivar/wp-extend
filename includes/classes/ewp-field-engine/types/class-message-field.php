@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
  * lives in templates/fields/message-box.php.
  *
  * @package EWP\Fields
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Message_Field implements Field_Type
 {

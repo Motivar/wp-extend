@@ -16,7 +16,7 @@
  *     @type string|null $actions     Filtered action buttons HTML, null when `hide_buttons`.
  * }
  *
- * @since 1.11.0
+ * @since 1.14.0
  */
 
 if (!defined('ABSPATH')) {

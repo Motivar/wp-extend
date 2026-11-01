@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
  * `select` (or their `view`) with a `callback` that lists the choices.
  *
  * @package EWP\Fields\Data
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Field_Preparer
 {

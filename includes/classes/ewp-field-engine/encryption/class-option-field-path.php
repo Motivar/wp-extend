@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
  * (`provider_config[openai_api_key]`) addressing a key inside an array option.
  *
  * @package EWP\Fields\Encryption
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Option_Field_Path
 {

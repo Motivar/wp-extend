@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
  * AWMMediaField handles the wp.media frame, pre-selection, sorting and removal.
  *
  * @package EWP\Fields
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Media_Field_Renderer
 {

@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
  * (see HOOKS.md). Markup lives in templates/fields/radio.php.
  *
  * @package EWP\Fields
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Radio_Field implements Field_Type
 {

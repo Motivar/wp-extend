@@ -18,7 +18,7 @@
  *     @type string[]                  $save_markers Meta keys posted as `awm_custom_meta[]` (none in view `none`).
  * }
  *
- * @since 1.11.0
+ * @since 1.14.0
  */
 
 if (!defined('ABSPATH')) {

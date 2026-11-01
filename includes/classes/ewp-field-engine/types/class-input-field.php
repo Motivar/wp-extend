@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
  * templates/fields/input.php and templates/fields/input-hidden.php.
  *
  * @package EWP\Fields
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Input_Field implements Field_Type
 {

@@ -51,13 +51,28 @@ tests_add_filter('ewp_logger_file_directory', function () {
 
 require $_tests_dir . '/includes/bootstrap.php';
 
+/**
+ * Create the tables of every registered content type, the built-in ones
+ * (ewp_fields, ewp_post_types, ewp_taxonomies, ewp_search, ...) included.
+ * They are created on `admin_init`, which neither suite fires, and their
+ * names carry no table prefix, so the test installer never drops them: on a
+ * database an older run left them in they exist, on a fresh wp_extend_tests
+ * the typed-content self-test case could not save a row. Same two calls as
+ * AWM_Add_Content_DB_Setup::init() + on_load(), without hooking anything
+ * twice; a no-op for tables that are already there.
+ */
+foreach (AWM_Content_DB::get_instance()->awm_register_content_db() as $ewp_test_key => $ewp_test_structure) {
+    $ewp_test_setup = new AWM_Add_Content_DB_Setup();
+    $ewp_test_setup->get_table_conf(['key' => $ewp_test_key, 'structure' => $ewp_test_structure]);
+    $ewp_test_setup->on_load();
+}
+unset($ewp_test_key, $ewp_test_structure, $ewp_test_setup);
+
 require_once __DIR__ . '/includes/trait-content-fixture.php';
 require_once __DIR__ . '/includes/trait-block-fixture.php';
 
 /**
- * Note: on a fresh test database, the plugin's own built-in content
- * types (ewp_fields, ewp_search, ewp_post_types, ...) log harmless
- * "table does not exist" warnings the first time something touches them
- * — their tables are created on `admin_init`, which a CLI/REST-only test
- * run never fires, and nothing here depends on those tables existing.
+ * Note: the plugin's built-in content types may still log a harmless
+ * "table does not exist" warning while WordPress boots above, before their
+ * tables are created.
  */

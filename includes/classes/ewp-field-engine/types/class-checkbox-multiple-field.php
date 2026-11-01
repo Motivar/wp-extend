@@ -24,7 +24,7 @@ if (!defined('ABSPATH')) {
  * shared label code skips this case). Markup: templates/fields/checkbox-multiple.php.
  *
  * @package EWP\Fields
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Checkbox_Multiple_Field implements Field_Type
 {

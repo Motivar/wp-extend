@@ -38,6 +38,8 @@ class Content_Crud_Case extends Case_Base
             __('Create two more rows, one via wp ewp content create and one via ewp-content/create-item.', 'extend-wp'),
             __('Delete one row on each surface: REST DELETE /ewp/selftest_<random>/delete, wp ewp content delete, ewp-content/delete-item (confirm: true).', 'extend-wp'),
             __('Confirm the type lists as writable in wp ewp content types and ewp-content/list-items reports no rows left.', 'extend-wp'),
+            __('Register a second temporary type whose registration turns generic writes off (surfaces: generic_write false, set_status false, delete routed to a callback); write one row through awm_custom_content_save().', 'extend-wp'),
+            __('On that type: REST POST /create, wp ewp content create, ewp-content/create-item, ewp-content/update-item, REST POST /status and ewp-content/set-status — expect each to be refused (ewp_content_surface_disabled, 403 on REST); REST DELETE /delete — expect 200 and the row deleted by the type\'s callback.', 'extend-wp'),
             __('Cleanup: delete any remaining rows, drop both fixture tables and their version options, flush the plugin cache.', 'extend-wp'),
         ];
     }
@@ -112,7 +114,88 @@ class Content_Crud_Case extends Case_Base
         $o['ability_list']  = $this->ability('ewp-content/list-items', ['content_type' => $content_type]);
         $o['rest_list']     = $this->rest('GET', $route);
 
+        $this->run_routed_type($context);
+
         return $context;
+    }
+
+    /**
+     * A type that turns the generic writes off (`surfaces`, since 1.11.0): every generic create / update /
+     * set-status is refused on REST, CLI and abilities, and the generic delete goes through the type's callback.
+     *
+     * @param array $context Run context (receives routed_type and observations).
+     *
+     * @return void
+     */
+    private function run_routed_type(array &$context)
+    {
+        $key    = 'selftest_' . substr(md5(uniqid('', true)), 0, 6);
+        $prefix = $context['prefix'];
+        $type   = $prefix . '_' . $key;
+        $calls  = new \ArrayObject();
+        $o      = &$context['observed'];
+
+        $context['routed_type'] = $type;
+        $this->register_fixture_type($key, $prefix, ['surfaces' => [
+            'generic_write' => false,
+            'set_status'    => false,
+            'duplicate'     => false,
+            'delete'        => function (array $ids, $content_type) use ($calls) {
+                $calls[] = $ids;
+                return awm_custom_content_delete($content_type, $ids);
+            },
+        ]]);
+
+        $id    = (int) awm_custom_content_save($type, ['content_id' => 'new', 'title' => 'Routed row', 'status' => 'enabled', 'awm_custom_meta' => ['required_field'], 'required_field' => 'r']);
+        $route = '/' . $prefix . '/' . $key;
+
+        $o['routed_rest_create']    = $this->rest('POST', $route . '/create', ['title' => 'Refused', 'meta' => ['required_field' => 'x']]);
+        $o['routed_cli_create']     = $this->cli(['EWP_Content_CLI', 'create'], [], ['type' => $type, 'title' => 'Refused', 'meta' => wp_json_encode(['required_field' => 'x'])]);
+        $o['routed_ability_create'] = $this->ability('ewp-content/create-item', ['content_type' => $type, 'title' => 'Refused', 'meta' => ['required_field' => 'x']]);
+        $o['routed_ability_update'] = $this->ability('ewp-content/update-item', ['content_type' => $type, 'id' => $id, 'title' => 'Refused']);
+        $o['routed_rest_status']    = $this->rest('POST', $route . '/status', ['ids' => (string) $id, 'status' => 'disabled']);
+        $o['routed_ability_status'] = $this->ability('ewp-content/set-status', ['content_type' => $type, 'ids' => [$id], 'status' => 'disabled']);
+        $o['routed_rest_delete']    = $this->rest('DELETE', $route . '/delete', ['ids' => (string) $id]);
+        $o['routed_delete_calls']   = count($calls);
+        $o['routed_rows_left']      = count((array) awm_get_db_content($type, ['fields' => ['content_id']]));
+    }
+
+    /**
+     * Checks of run_routed_type().
+     *
+     * @param array $o Observations.
+     *
+     * @return array[] Checks.
+     */
+    private function validate_routed_type(array $o)
+    {
+        $ability_refused = function ($key, $label) use ($o) {
+            if (!$this->abilities_available()) {
+                return $this->skip('ability', $label, __('Abilities API not available on this site.', 'extend-wp'));
+            }
+            $r    = isset($o[$key]) ? $o[$key] : [];
+            $pass = !empty($r['found']) && empty($r['ok']) && strpos((string) $r['error'], 'ewp_content_surface_disabled') === 0;
+            return $this->check('ability', $label, $pass, isset($r['error']) ? (string) $r['error'] : __('not executed', 'extend-wp'));
+        };
+        $rest_refused = function ($key, $label) use ($o) {
+            $pass = $this->status($o, $key) === 403 && isset($o[$key]['data']['code']) && $o[$key]['data']['code'] === 'ewp_content_surface_disabled';
+            return $this->check('rest', $label, $pass, $this->detail($o, $key));
+        };
+        $checks   = [];
+        $checks[] = $rest_refused('routed_rest_create', 'generic_write false: POST /create is refused with 403');
+        if (!$this->cli_available()) {
+            $checks[] = $this->skip('cli', 'generic_write false: wp ewp content create is refused', __('WP-CLI wrappers are not loaded in this process.', 'extend-wp'));
+        } else {
+            $r        = isset($o['routed_cli_create']) ? $o['routed_cli_create'] : ['ok' => true, 'error' => ''];
+            $checks[] = $this->check('cli', 'generic_write false: wp ewp content create is refused', empty($r['ok']) && strpos((string) $r['error'], 'does not allow') !== false, (string) $r['error']);
+        }
+        $checks[] = $ability_refused('routed_ability_create', 'generic_write false: ewp-content/create-item is refused');
+        $checks[] = $ability_refused('routed_ability_update', 'generic_write false: ewp-content/update-item is refused');
+        $checks[] = $rest_refused('routed_rest_status', 'set_status false: POST /status is refused with 403');
+        $checks[] = $ability_refused('routed_ability_status', 'set_status false: ewp-content/set-status is refused');
+        $checks[] = $this->check('rest', 'surfaces.delete: DELETE /delete runs the type\'s callback', $this->status($o, 'routed_rest_delete') === 200 && $o['routed_delete_calls'] === 1 && $o['routed_rows_left'] === 0, $this->detail($o, 'routed_rest_delete'));
+
+        return $checks;
     }
 
     /** {@inheritDoc} */
@@ -167,13 +250,18 @@ class Content_Crud_Case extends Case_Base
         });
         $checks[] = $this->check('rest', 'GET /{type} (list) returns 200', $this->status($o, 'rest_list') === 200, $this->detail($o, 'rest_list'));
 
-        return $checks;
+        return array_merge($checks, $this->validate_routed_type($o));
     }
 
     /** {@inheritDoc} */
     public function cleanup(array $context)
     {
-        return $this->cleanup_fixture_type(isset($context['content_type']) ? (string) $context['content_type'] : '');
+        $messages = $this->cleanup_fixture_type(isset($context['content_type']) ? (string) $context['content_type'] : '');
+        if (!empty($context['routed_type'])) {
+            $messages = array_merge($messages, $this->cleanup_fixture_type((string) $context['routed_type']));
+        }
+
+        return $messages;
     }
 
     /**

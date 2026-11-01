@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
  * behind awm_display_meta_value().
  *
  * @package EWP\Fields\Data
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Field_Value_Formatter
 {

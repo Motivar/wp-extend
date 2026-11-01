@@ -32,7 +32,7 @@ if (!defined('ABSPATH')) {
  * add or replace types.
  *
  * @package EWP\Fields
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Field_Registry
 {
@@ -133,7 +133,7 @@ final class Field_Registry
         /**
          * Register or replace field types rendered by awm_show_content().
          *
-         * @since 1.11.0
+         * @since 1.14.0
          *
          * @param Field_Registry $registry Call `$registry->register( new My_Type() )`.
          */

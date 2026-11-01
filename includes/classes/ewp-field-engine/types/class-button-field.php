@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
  * templates/fields/button.php.
  *
  * @package EWP\Fields
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Button_Field implements Field_Type
 {

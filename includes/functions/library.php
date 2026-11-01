@@ -151,7 +151,7 @@ if (!function_exists('awm_meta_save_encryption')) {
      * `ewp_encrypt[]` marker. A masked value means the user left the field
      * untouched, so the stored ciphertext must be kept.
      *
-     * @since 1.11.0
+     * @since 1.14.0
      *
      * @param string $meta_key Required. Meta key being saved.
      * @param mixed  $value    Required. Submitted (unslashed or slashed) value.
@@ -170,7 +170,7 @@ if (!function_exists('awm_encrypt_meta_on_save')) {
      * Formerly hooked into update_post_meta, update_user_meta, update_term_meta
      * (an action whose return value WordPress ignores, so nothing was encrypted).
      *
-     * @deprecated 1.11.0 Use awm_meta_save_encryption(), called from the save path.
+     * @deprecated 1.14.0 Use awm_meta_save_encryption(), called from the save path.
      *
      * @param mixed $meta_id The meta ID (only logged)
      * @param int $object_id The object ID (post, user, or term)
@@ -192,7 +192,7 @@ if (!function_exists('awm_decrypt_meta_on_retrieve')) {
      * No longer registered on get_post_meta, get_user_meta, get_term_meta;
      * decryption is explicit at read time.
      *
-     * @deprecated 1.11.0 Use awm_decrypt_field_value( $value, $field_config, false ).
+     * @deprecated 1.14.0 Use awm_decrypt_field_value( $value, $field_config, false ).
      *
      * @param mixed $meta_value The meta value from the database
      * @param int $object_id The object ID (post, user, or term)
@@ -521,7 +521,7 @@ if (!function_exists('awm_show_content')) {
     /**
      * Render a field library (meta boxes, term/user fields, options pages, front-end forms).
      *
-     * Thin wrapper around \EWP\Fields\Field_Renderer::render() (since 1.11.0); see
+     * Thin wrapper around \EWP\Fields\Field_Renderer::render() (since 1.14.0); see
      * includes/classes/ewp-field-engine/README.md.
      *
      * @param array     $arrs       Field library (meta key => definition), optional `awm-id` container id.

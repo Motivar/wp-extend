@@ -13,7 +13,7 @@
  *     @type array                     $entries     Option and optgroup entries (`kind`: option, group_start, group_end).
  * }
  *
- * @since 1.11.0
+ * @since 1.14.0
  */
 
 if (!defined('ABSPATH')) {

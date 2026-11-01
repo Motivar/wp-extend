@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
  * awm_get_object_type_options().
  *
  * @package EWP\Fields\Data
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Object_Types
 {

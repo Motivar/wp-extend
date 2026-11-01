@@ -10,7 +10,7 @@
  *     @type string|null               $editor_html wp_editor() markup, null for a plain textarea.
  * }
  *
- * @since 1.11.0
+ * @since 1.14.0
  */
 
 if (!defined('ABSPATH')) {

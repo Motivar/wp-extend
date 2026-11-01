@@ -13,7 +13,7 @@
  *     @type string $data_id     Repeater element id.
  * }
  *
- * @since 1.11.0
+ * @since 1.14.0
  */
 
 if (!defined('ABSPATH')) {

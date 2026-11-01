@@ -12,7 +12,7 @@
  *     @type string                    $rows        Rendered rows (repeater-row.php), template row last.
  * }
  *
- * @since 1.11.0
+ * @since 1.14.0
  */
 
 if (!defined('ABSPATH')) {

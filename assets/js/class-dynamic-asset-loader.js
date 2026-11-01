@@ -219,7 +219,7 @@ class EWPDynamicAssetLoader {
 
             script.onerror = () => {
                 this.log(`Script load failed: ${asset.handle}`, { src: asset.src });
-                this.loadedAssets.delete(asset.handle);
+                this.loadedAssets.delete(this.getAssetKey(asset));
                 this.dispatchAssetLoadedEvent(asset, false);
             };
 
@@ -267,7 +267,7 @@ class EWPDynamicAssetLoader {
 
             link.onerror = () => {
                 this.log(`Style load failed: ${asset.handle}`, { src: asset.src });
-                this.loadedAssets.delete(asset.handle);
+                this.loadedAssets.delete(this.getAssetKey(asset));
                 this.dispatchAssetLoadedEvent(asset, false);
             };
 
@@ -375,10 +375,9 @@ class EWPDynamicAssetLoader {
             return true;
         }
 
-        // Check if already loaded by this loader
-        if (this.loadedAssets.has(handle)) {
-            return true;
-        }
+        // Not read from loadedAssets: an asset is marked there before its <script> is appended (it may
+        // still be waiting for its own dependencies), so the set cannot tell that a dependency is ready.
+        // A dependency this loader injected is found by its element id above.
 
         // Check WordPress script queue (if available)
         if (typeof wp !== 'undefined' && wp.scripts && wp.scripts.queue) {
@@ -452,11 +451,11 @@ class EWPDynamicAssetLoader {
      * @return {void}
      */
     loadCriticalAssets() {
-        const criticalAssets = this.assets.filter(a => a.critical && !this.loadedAssets.has(a.handle));
+        const criticalAssets = this.assets.filter(a => a.critical && !this.isAssetLoaded(a));
         this.log('Loading critical assets', { count: criticalAssets.length, handles: criticalAssets.map(a => a.handle) });
         
         this.assets.forEach(asset => {
-            if (asset.critical && !this.loadedAssets.has(asset.handle)) {
+            if (asset.critical && !this.isAssetLoaded(asset)) {
                 this.loadAsset(asset);
             }
         });
@@ -566,14 +565,19 @@ class EWPDynamicAssetLoader {
 
     /**
      * Check if specific asset is loaded by handle and type
-     * 
+     *
+     * Also the public API: a bare handle without a type is loaded when it is loaded as a script or
+     * as a style.
+     *
      * @param {Object|string} asset Asset object or handle string
      * @param {string} type Asset type (script or style) - only used if asset is string
      * @return {boolean} True if loaded
      */
     isAssetLoaded(asset, type = null) {
-        const key = this.getAssetKey(asset, type);
-        return this.loadedAssets.has(key);
+        if (typeof asset === 'string' && !type) {
+            return this.loadedAssets.has(this.getAssetKey(asset, 'script')) || this.loadedAssets.has(this.getAssetKey(asset, 'style'));
+        }
+        return this.loadedAssets.has(this.getAssetKey(asset, type));
     }
 
     /**
@@ -718,16 +722,6 @@ class EWPDynamicAssetLoader {
      */
     getRegisteredAssets() {
         return this.assets;
-    }
-
-    /**
-     * Public API: Check if an asset is loaded
-     * 
-     * @param {string} handle Asset handle to check
-     * @return {boolean} True if loaded, false otherwise
-     */
-    isAssetLoaded(handle) {
-        return this.loadedAssets.has(handle);
     }
 
     /**

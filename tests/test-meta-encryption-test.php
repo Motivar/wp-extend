@@ -3,7 +3,7 @@
  * Fields flagged `encrypt` are stored encrypted when saved through the
  * meta-box save path (EWP_Meta_Save_Guard → awm_save_custom_meta()).
  *
- * Before 1.11.0 the encryption ran on `update_{$type}_meta`, an action whose
+ * Before 1.14.0 the encryption ran on `update_{$type}_meta`, an action whose
  * return value WordPress ignores, so such values were stored in plain text.
  */
 

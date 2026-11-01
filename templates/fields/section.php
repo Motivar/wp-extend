@@ -10,7 +10,7 @@
  *     @type string                    $inner   Rendered nested fields (awm_show_content() output).
  * }
  *
- * @since 1.11.0
+ * @since 1.14.0
  */
 
 if (!defined('ABSPATH')) {

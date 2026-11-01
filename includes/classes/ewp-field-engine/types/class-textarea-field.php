@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
  * WordPress core output captured here and printed by the template.
  *
  * @package EWP\Fields
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Textarea_Field implements Field_Type
 {

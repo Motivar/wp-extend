@@ -1,6 +1,6 @@
 # Field engine (`EWP\Fields`)
 
-OOP renderers behind `awm_show_content()` (`includes/functions/library.php`). Since 1.11.0 every field `case` renders here; the ~800-line `switch` that used to build the HTML as strings is gone. The procedural API stays the same, because filox, themes and other plugins call `awm_show_content()` (and `awm_media_field_html()`, `awm_repeater_content()`) directly.
+OOP renderers behind `awm_show_content()` (`includes/functions/library.php`). Since 1.14.0 every field `case` renders here; the ~800-line `switch` that used to build the HTML as strings is gone. The procedural API stays the same, because filox, themes and other plugins call `awm_show_content()` (and `awm_media_field_html()`, `awm_repeater_content()`) directly.
 
 ## How a field renders
 
@@ -39,16 +39,16 @@ OOP renderers behind `awm_show_content()` (`includes/functions/library.php`). Si
 
 | Case | Since | Templates |
 |---|---|---|
-| `input` | 1.11.0 | `fields/input.php`, `fields/input-hidden.php` |
-| `textarea` | 1.11.0 | `fields/textarea.php` |
-| `select` | 1.11.0 | `fields/select.php` |
-| `radio` | 1.11.0 | `fields/radio.php` |
-| `checkbox_multiple` | 1.11.0 | `fields/checkbox-multiple.php` (replaces `templates/frontend/inputs/checkbox_multiple.php`) |
-| `message`, `function`, `awm_gallery` | 1.11.0 | `fields/message-box.php` (+ `fields/media.php` for the gallery) |
-| `button`, `image`, `map` | 1.11.0 | `fields/button.php`, `fields/image.php` (+ `fields/media.php`), `fields/map.php` |
-| `section`, `awm_tab` | 1.11.0 | `fields/section.php`, `fields/tabs.php` |
-| `repeater` | 1.11.0 | `fields/repeater.php`, `fields/repeater-row.php`, `fields/repeater-actions.php` |
-| `awm_modal`, `object_id_filter` | 1.11.0 | `fields/modal.php`, `fields/object-id-filter.php` |
+| `input` | 1.14.0 | `fields/input.php`, `fields/input-hidden.php` |
+| `textarea` | 1.14.0 | `fields/textarea.php` |
+| `select` | 1.14.0 | `fields/select.php` |
+| `radio` | 1.14.0 | `fields/radio.php` |
+| `checkbox_multiple` | 1.14.0 | `fields/checkbox-multiple.php` (replaces `templates/frontend/inputs/checkbox_multiple.php`) |
+| `message`, `function`, `awm_gallery` | 1.14.0 | `fields/message-box.php` (+ `fields/media.php` for the gallery) |
+| `button`, `image`, `map` | 1.14.0 | `fields/button.php`, `fields/image.php` (+ `fields/media.php`), `fields/map.php` |
+| `section`, `awm_tab` | 1.14.0 | `fields/section.php`, `fields/tabs.php` |
+| `repeater` | 1.14.0 | `fields/repeater.php`, `fields/repeater-row.php`, `fields/repeater-actions.php` |
+| `awm_modal`, `object_id_filter` | 1.14.0 | `fields/modal.php`, `fields/object-id-filter.php` |
 
 `html` is handled by `Field_Renderer` itself (no `Field_Type`): it skips `awm_prepare_field()` and the row wrapper, and with `strip` replaces everything rendered before it.
 
@@ -87,7 +87,7 @@ The non-rendering half of `library.php` lives here too. Each `awm_*` function st
 | `data/Object_Types` | `awm_object_id_filter_config()`, `awm_get_object_type_options()` (cached per request). |
 | `data/Object_Search_Query` | `awm_object_search_query()`: post types, taxonomies, custom content (registered types only, `%i` table names). `EWP\Search\Object_Search` calls the function. |
 | `data/Field_Value_Formatter` | `awm_display_meta_value()`, one method per case. |
-| `encryption/Field_Encryption`, `Option_Field_Path` | `awm_should_encrypt_field()`, `awm_encrypt_field_value()`, `awm_decrypt_field_value()`, `awm_meta_save_encryption()`, option field encryption (`awm_encrypt_option_after_save()` on `updated_option`). `awm_encrypt_meta_on_save()` and `awm_decrypt_meta_on_retrieve()` are deprecated (1.11.0) and no longer hooked. |
+| `encryption/Field_Encryption`, `Option_Field_Path` | `awm_should_encrypt_field()`, `awm_encrypt_field_value()`, `awm_decrypt_field_value()`, `awm_meta_save_encryption()`, option field encryption (`awm_encrypt_option_after_save()` on `updated_option`). `awm_encrypt_meta_on_save()` and `awm_decrypt_meta_on_retrieve()` are deprecated (1.14.0) and no longer hooked. |
 
 `data/init.php`, `save/init.php` and `encryption/init.php` load each group; the engine's `init.php` requires them.
 

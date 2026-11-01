@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
  * `$variables`.
  *
  * @package EWP\Fields
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Template_Loader
 {
@@ -67,7 +67,7 @@ final class Template_Loader
         /**
          * Filter the file a field template renders from.
          *
-         * @since 1.11.0
+         * @since 1.14.0
          *
          * @param string $path Resolved path (theme override or plugin default).
          * @param string $name Template name, e.g. `fields/input`.

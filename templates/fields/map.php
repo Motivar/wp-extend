@@ -14,7 +14,7 @@
  *     @type bool   $required Search box carries required="true".
  * }
  *
- * @since 1.11.0
+ * @since 1.14.0
  */
 
 if (!defined('ABSPATH')) {

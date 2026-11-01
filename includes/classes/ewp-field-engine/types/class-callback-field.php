@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
  * function. Markup lives in templates/fields/message-box.php.
  *
  * @package EWP\Fields
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Callback_Field implements Field_Type
 {

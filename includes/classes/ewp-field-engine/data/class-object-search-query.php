@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
  * by title/name (and meta when `search_meta` is true).
  *
  * @package EWP\Fields\Data
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Object_Search_Query
 {

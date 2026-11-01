@@ -12,7 +12,7 @@
  *     @type string                    $after_text HTML appended after the options (`awm_radio_after_text`).
  * }
  *
- * @since 1.11.0
+ * @since 1.14.0
  */
 
 if (!defined('ABSPATH')) {

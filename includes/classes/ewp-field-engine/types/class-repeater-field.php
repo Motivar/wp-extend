@@ -21,7 +21,7 @@ if (!defined('ABSPATH')) {
  * `awm_show_actions_html`). awm_repeater_content() wraps row().
  *
  * @package EWP\Fields
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Repeater_Field implements Field_Type
 {

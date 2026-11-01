@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
  * Register implementations on the `ewp_register_field_types` action.
  *
  * @package EWP\Fields
- * @since 1.11.0
+ * @since 1.14.0
  */
 interface Field_Type
 {

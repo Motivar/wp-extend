@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
  * awm_get_field_value() and awm_get_raw_field_value().
  *
  * @package EWP\Fields\Data
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Field_Value_Reader
 {

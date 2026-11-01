@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
  * deletes the meta, anything else updates it.
  *
  * @package EWP\Fields\Save
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Meta_Saver
 {

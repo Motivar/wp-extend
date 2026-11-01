@@ -18,12 +18,13 @@ trait Fixture_Content_Type
     /**
      * Register the fixture type and create its tables and REST routes now.
      *
-     * @param string $key    Raw key (`selftest_xxxxxx`).
-     * @param string $prefix Content prefix / REST namespace.
+     * @param string $key       Raw key (`selftest_xxxxxx`).
+     * @param string $prefix    Content prefix / REST namespace.
+     * @param array  $overrides Optional. Registration keys merged over the default structure (since 1.11.0, e.g. `surfaces`).
      *
      * @return void
      */
-    protected function register_fixture_type($key, $prefix)
+    protected function register_fixture_type($key, $prefix, array $overrides = [])
     {
         $structure = [
             'list_name'          => 'Self-test fixture',
@@ -44,6 +45,8 @@ trait Fixture_Content_Type
                 ],
             ],
         ];
+
+        $structure = array_replace($structure, $overrides);
 
         $setup = new \AWM_Add_Content_DB_Setup();
         $setup->init(['key' => $key, 'structure' => $structure]);

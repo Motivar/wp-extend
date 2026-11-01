@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
  * templates/fields/tabs.php.
  *
  * @package EWP\Fields
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Tab_Field implements Field_Type
 {

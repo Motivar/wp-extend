@@ -13,7 +13,7 @@
  *     @type bool                      $encrypt       Emit the `ewp_encrypt[]` marker.
  * }
  *
- * @since 1.11.0
+ * @since 1.14.0
  */
 
 if (!defined('ABSPATH')) {

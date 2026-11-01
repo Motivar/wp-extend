@@ -13,7 +13,7 @@
  *     @type string $attributes Escaped `key="value"` attribute markup.
  * }
  *
- * @since 1.11.0
+ * @since 1.14.0
  */
 
 if (!defined('ABSPATH')) {

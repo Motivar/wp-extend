@@ -26,7 +26,8 @@ class Content_Portability_Case extends Case_Base
             __('Register a temporary content type "ewp_selftest_<random>" and create one row in it.', 'extend-wp'),
             __('REST: GET /ewp/v1/export?content_types[]=<type> — expect 200 and a JSON string containing the row hash.', 'extend-wp'),
             __('Ability: ewp-content/export — expect the payload object keyed by content type.', 'extend-wp'),
-            __('CLI: wp ewp content export --types=<type> --file=<temp> — expect the file to be written.', 'extend-wp'),
+            __('CLI: wp ewp content export --types=<type> --file=<temp> — expect the file to be written (streamed in batches).', 'extend-wp'),
+            __('Paged export: REST GET /ewp/v1/export?page=1&per_page=1 and ewp-content/export with page 1 / per_page 1 — expect the row plus pagination (total 1, total_pages 1).', 'extend-wp'),
             __('Delete the row, then import it back on each surface: REST POST /ewp/v1/import, wp ewp content import <file> --yes, ewp-content/import (confirm: true) — expect the row to exist again.', 'extend-wp'),
             __('Cleanup: drop the fixture tables and the temporary file.', 'extend-wp'),
         ];
@@ -50,6 +51,8 @@ class Content_Portability_Case extends Case_Base
         $o['rest_export']    = $this->rest('GET', '/ewp/v1/export', ['content_types' => [$type], 'method' => 'json']);
         $o['ability_export'] = $this->ability('ewp-content/export', ['content_types' => [$type]]);
         $o['cli_export']     = $this->cli(EWP_Surfaces::cli('content-portability', 'export'), [], ['types' => $type, 'file' => $file]);
+        $o['rest_export_paged']    = $this->rest('GET', '/ewp/v1/export', ['content_types' => [$type], 'page' => 1, 'per_page' => 1]);
+        $o['ability_export_paged'] = $this->ability('ewp-content/export', ['content_types' => [$type], 'page' => 1, 'per_page' => 1]);
 
         $payload = !empty($o['ability_export']['ok']) ? $o['ability_export']['data'] : [];
         $rows    = isset($payload[$type]) ? array_values((array) $payload[$type]) : [];
@@ -78,6 +81,12 @@ class Content_Portability_Case extends Case_Base
             return isset($data[$context['content_type']]);
         });
         $checks[] = $this->cli_check($o, 'cli_export', 'wp ewp content export writes the file', 'Exported');
+        $paged    = $this->status($o, 'rest_export_paged') === 200 && is_string($o['rest_export_paged']['data']) ? json_decode($o['rest_export_paged']['data'], true) : null;
+        $checks[] = $this->check('rest', 'GET /ewp/v1/export?page=1&per_page=1 returns the page with pagination', isset($paged['pagination'][$context['content_type']]['total'], $paged[$context['content_type']]) && (int) $paged['pagination'][$context['content_type']]['total'] === 1, $this->detail($o, 'rest_export_paged'));
+        $checks[] = $this->ability_check($o, 'ability_export_paged', 'ewp-content/export (page 1, per_page 1) returns pagination', function ($data) use ($context) {
+            $type = $context['content_type'];
+            return isset($data[$type], $data['pagination'][$type]['total_pages']) && (int) $data['pagination'][$type]['total_pages'] === 1 && count((array) $data[$type]) === 1;
+        });
 
         $checks[] = $this->check('rest', 'POST /ewp/v1/import restores the row (upsert by hash)', $this->status($o, 'rest_import') === 200 && $o['after_rest'] === 1, $this->detail($o, 'rest_import'));
         $checks[] = $this->ability_check($o, 'ability_import', 'ewp-content/import (confirm: true) upserts without duplicating', function ($data) use ($o) {

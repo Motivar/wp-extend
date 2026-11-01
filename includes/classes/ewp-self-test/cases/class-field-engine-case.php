@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
  * It does not run the admin JavaScript (repeater cloning, tab switching).
  *
  * @package EWP\SelfTest
- * @since   1.11.0
+ * @since   1.14.0
  */
 class Field_Engine_Case extends Case_Base
 {

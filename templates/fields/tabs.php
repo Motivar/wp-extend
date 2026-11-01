@@ -11,7 +11,7 @@
  *     @type array                     $panels  Per tab: `id`, `label`, `inner` (rendered nested fields).
  * }
  *
- * @since 1.11.0
+ * @since 1.14.0
  */
 
 if (!defined('ABSPATH')) {

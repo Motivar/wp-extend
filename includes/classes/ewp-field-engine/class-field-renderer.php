@@ -21,7 +21,7 @@ if (!defined('ABSPATH')) {
  * per-render state is kept on the instance.
  *
  * @package EWP\Fields
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Field_Renderer
 {
@@ -512,7 +512,7 @@ final class Field_Renderer
         /**
          * Filter the rendered fragments of a field library (one per row).
          *
-         * @since 1.0.0 Receives the caller's `$label` flag since 1.11.0 (before, the last field's label leaked in).
+         * @since 1.0.0 Receives the caller's `$label` flag since 1.14.0 (before, the last field's label leaked in).
          *
          * @param string[] $fragments Rendered rows.
          * @param int      $id        Object ID.

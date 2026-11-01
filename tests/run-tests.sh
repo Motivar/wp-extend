@@ -13,13 +13,45 @@
 #
 # Exit codes: 0 all green; 1 a suite failed; 0 with a warning when DDEV is
 # not available, since that is an infrastructure gap, not a code problem.
+#
+# Works in any DDEV project layout: the plugin path and the WordPress core
+# directory are read from the project (the nearest .ddev/config.yaml and its
+# `docroot`), not assumed to be wp-content/ under the project root.
 
 set -uo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
-PLUGIN_DIR="wp-content/plugins/$(basename "$REPO_ROOT")"
+# The DDEV project root: /var/www/html inside the container, otherwise the
+# nearest parent of the repo holding .ddev/config.yaml.
+find_project_root() {
+    local dir="$REPO_ROOT"
+    while [ "$dir" != "/" ]; do
+        if [ -f "$dir/.ddev/config.yaml" ]; then
+            echo "$dir"
+            return 0
+        fi
+        dir="$(dirname "$dir")"
+    done
+    return 1
+}
+
+PROJECT_ROOT="${DDEV_APPROOT:-$(find_project_root || true)}"
+if [ -n "$PROJECT_ROOT" ] && [ "${REPO_ROOT#"$PROJECT_ROOT"/}" != "$REPO_ROOT" ]; then
+    # the plugin as the container sees it, relative to /var/www/html (e.g. web/wp-content/plugins/wp-extend)
+    PLUGIN_DIR="${REPO_ROOT#"$PROJECT_ROOT"/}"
+    DOCROOT="${DDEV_DOCROOT:-$(awk -F': *' '/^docroot:/ { print $2; exit }' "$PROJECT_ROOT/.ddev/config.yaml" 2>/dev/null | tr -d "\"'")}"
+else
+    PLUGIN_DIR="wp-content/plugins/$(basename "$REPO_ROOT")"
+    DOCROOT=""
+fi
+WP_CORE_DIR_IN_DDEV="/var/www/html${DOCROOT:+/$DOCROOT}"
+
+# The suites need the self-test package, which stays off on production
+# (mmwp_self_test_enabled, package 0.7.0+); run them as development unless the
+# caller says otherwise, whatever the site's own environment type is.
+TEST_ENV="WP_ENVIRONMENT_TYPE=${WP_ENVIRONMENT_TYPE:-development} WP_CORE_DIR=$WP_CORE_DIR_IN_DDEV WP_TESTS_DB_HOST=db"
 RUNNER="lib/mammothwp/wp-self-test/bin/run.php"
 [ -f "$RUNNER" ] || RUNNER="tests/self-test-runner.php"
 
@@ -31,9 +63,9 @@ if [ "${IS_DDEV_PROJECT:-}" = "true" ]; then
     echo "[tests] Running the prepared-SQL lint (phpcs.xml.dist) inside DDEV..."
     tests/vendor/bin/phpcs --standard=phpcs.xml.dist -q || exit 1
     echo "[tests] Running PHPUnit (tests/) inside DDEV..."
-    WP_CORE_DIR=/var/www/html WP_TESTS_DB_HOST=db tests/vendor/bin/phpunit -c phpunit.xml.dist || exit 1
+    env $TEST_ENV tests/vendor/bin/phpunit -c phpunit.xml.dist || exit 1
     echo "[tests] Running the self-test suite ($RUNNER) inside DDEV..."
-    WP_CORE_DIR=/var/www/html WP_TESTS_DB_HOST=db php "$RUNNER" || exit 1
+    env $TEST_ENV php "$RUNNER" || exit 1
     echo "[tests] All tests passed."
     exit 0
 fi
@@ -78,9 +110,9 @@ echo "[tests] Running the prepared-SQL lint (phpcs.xml.dist)..."
 ddev exec bash -c "cd $PLUGIN_DIR && tests/vendor/bin/phpcs --standard=phpcs.xml.dist -q" || exit 1
 
 echo "[tests] Running PHPUnit (tests/)..."
-ddev exec bash -c "cd $PLUGIN_DIR && WP_CORE_DIR=/var/www/html WP_TESTS_DB_HOST=db tests/vendor/bin/phpunit -c phpunit.xml.dist" || exit 1
+ddev exec bash -c "cd $PLUGIN_DIR && $TEST_ENV tests/vendor/bin/phpunit -c phpunit.xml.dist" || exit 1
 
 echo "[tests] Running the self-test suite ($RUNNER)..."
-ddev exec bash -c "cd $PLUGIN_DIR && WP_CORE_DIR=/var/www/html WP_TESTS_DB_HOST=db php $RUNNER" || exit 1
+ddev exec bash -c "cd $PLUGIN_DIR && $TEST_ENV php $RUNNER" || exit 1
 
 echo "[tests] All tests passed."

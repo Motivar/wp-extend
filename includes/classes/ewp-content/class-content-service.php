@@ -122,6 +122,67 @@ class Content_Service
     }
 
     /**
+     * How a content type handles a generic action (its `surfaces` registration key, since 1.11.0).
+     *
+     * @param string $content_type Content type id.
+     * @param string $surface      `duplicate`, `set_status`, `delete` or `generic_write`.
+     *
+     * @return bool|callable|null `duplicate` / `generic_write`: bool (default true). `set_status` / `delete`:
+     *                            null for the generic implementation, a callable that replaces it, false when refused.
+     *
+     * @since 1.11.0
+     */
+    public function get_surface($content_type, $surface)
+    {
+        if (!class_exists('AWM_Add_Content_DB_Setup')) {
+            return in_array($surface, ['duplicate', 'generic_write'], true) ? true : null;
+        }
+        $config   = $this->get_config($content_type);
+        $surfaces = \AWM_Add_Content_DB_Setup::normalize_surfaces(isset($config['surfaces']) ? $config['surfaces'] : []);
+
+        return array_key_exists($surface, $surfaces) ? $surfaces[$surface] : null;
+    }
+
+    /**
+     * The error returned when a content type turned a generic action off.
+     *
+     * @param string $content_type Content type id.
+     * @param string $surface      The refused action.
+     *
+     * @return \WP_Error `ewp_content_surface_disabled`, status 403.
+     *
+     * @since 1.11.0
+     */
+    private function surface_disabled($content_type, $surface)
+    {
+        return new \WP_Error(
+            'ewp_content_surface_disabled',
+            sprintf(
+                /* translators: 1: action (duplicate, set_status, delete, create, update), 2: content type id. */
+                __('The %2$s content type does not allow the generic "%1$s" action. Use the plugin that owns the type.', 'extend-wp'),
+                $surface,
+                $content_type
+            ),
+            ['status' => 403]
+        );
+    }
+
+    /**
+     * Refuse create / update when the type set `surfaces.generic_write` to false.
+     *
+     * @param string $content_type Content type id.
+     * @param string $action       `create` or `update`, for the message.
+     *
+     * @return true|\WP_Error
+     *
+     * @since 1.11.0
+     */
+    private function check_generic_write($content_type, $action)
+    {
+        return $this->get_surface($content_type, 'generic_write') === false ? $this->surface_disabled($content_type, $action) : true;
+    }
+
+    /**
      * Status keys registered for a content type.
      *
      * @param string $content_type Content type id.
@@ -535,6 +596,8 @@ class Content_Service
     /**
      * Set the status of several rows through the normal save pipeline, so
      * `{type}_save_action` and `ewp_custom_content_save_action` fire per row.
+     * A type's `surfaces.set_status` callable replaces the save (since 1.11.0);
+     * `false` refuses it with `ewp_content_surface_disabled` (403).
      *
      * The shared implementation behind REST `{prefix}/{type}/status`,
      * `wp ewp content set-status` and the `ewp-content/set-status` ability.
@@ -561,9 +624,17 @@ class Content_Service
             return $status;
         }
 
+        $route = $this->get_surface($content_type, 'set_status');
+        if ($route === false) {
+            return $this->surface_disabled($content_type, 'set_status');
+        }
+        if (is_callable($route)) {
+            return $this->routed_result(call_user_func($route, $ids, $status, $content_type), $ids, 'updated');
+        }
+
         $updated = $not_found = [];
         foreach ($ids as $id) {
-            $result = $this->update_item($content_type, $id, ['status' => $status]);
+            $result = $this->patch_item($content_type, $id, ['status' => $status]);
             if (is_wp_error($result) && $result->get_error_code() === 'ewp_abilities_not_found') {
                 $not_found[] = $id;
                 continue;
@@ -625,12 +696,18 @@ class Content_Service
      * @param string $status       Item status.
      * @param array  $meta         Meta values.
      *
-     * @return array|\WP_Error The created row.
+     * @return array|\WP_Error The created row; `ewp_content_surface_disabled` (403) when the type set
+     *                         `surfaces.generic_write` to false.
      *
      * @since 1.4.0
      */
     public function create_item($content_type, $title, $status, array $meta)
     {
+        $allowed = $this->check_generic_write($content_type, 'create');
+        if (is_wp_error($allowed)) {
+            return $allowed;
+        }
+
         $status = $this->resolve_status($content_type, $status);
         if (is_wp_error($status)) {
             return $status;
@@ -656,11 +733,34 @@ class Content_Service
      * @param int    $id           Row id.
      * @param array  $patch        Keys `title`, `status` and `meta`.
      *
-     * @return array|\WP_Error The updated row.
+     * @return array|\WP_Error The updated row; `ewp_content_surface_disabled` (403) when the type set
+     *                         `surfaces.generic_write` to false.
      *
      * @since 1.4.0
      */
     public function update_item($content_type, $id, array $patch)
+    {
+        $allowed = $this->check_generic_write($content_type, 'update');
+        if (is_wp_error($allowed)) {
+            return $allowed;
+        }
+
+        return $this->patch_item($content_type, $id, $patch);
+    }
+
+    /**
+     * Merge a patch over a stored row and save it (update_item() without the generic_write check;
+     * set_status() uses it, since a status change is governed by `surfaces.set_status`).
+     *
+     * @param string $content_type Content type id.
+     * @param int    $id           Row id.
+     * @param array  $patch        Keys `title`, `status` and `meta`.
+     *
+     * @return array|\WP_Error The updated row.
+     *
+     * @since 1.11.0
+     */
+    private function patch_item($content_type, $id, array $patch)
     {
         $existing = $this->get_item($content_type, $id);
         if (is_wp_error($existing)) {
@@ -692,12 +792,13 @@ class Content_Service
     }
 
     /**
-     * Delete rows.
+     * Delete rows, or hand them to the type's `surfaces.delete` callable (since 1.11.0).
      *
      * @param string $content_type Content type id.
      * @param array  $ids          Row ids.
      *
-     * @return array|\WP_Error Deletion summary.
+     * @return array|\WP_Error Deletion summary { deleted, count, not_found }; `ewp_content_surface_disabled`
+     *                         (403) when the type set `surfaces.delete` to false.
      *
      * @since 1.4.0
      */
@@ -707,6 +808,10 @@ class Content_Service
 
         if (empty($ids)) {
             return new \WP_Error('ewp_abilities_invalid_id', __('At least one item id is required.', 'extend-wp'), ['status' => 400]);
+        }
+
+        if ($this->get_surface($content_type, 'delete') === false) {
+            return $this->surface_disabled($content_type, 'delete');
         }
 
         $existing = awm_get_db_content($content_type, ['include' => $ids, 'fields' => ['content_id']]);
@@ -726,6 +831,16 @@ class Content_Service
             );
         }
 
+        $route = $this->get_surface($content_type, 'delete');
+        if (is_callable($route)) {
+            $result = $this->routed_result(call_user_func($route, $found, $content_type), $found, 'deleted');
+            if (is_array($result)) {
+                $result['not_found'] = array_values(array_unique(array_merge($result['not_found'], array_diff($ids, $found))));
+            }
+
+            return $result;
+        }
+
         $deleted = awm_custom_content_delete($content_type, $found);
 
         if (!$deleted) {
@@ -739,9 +854,71 @@ class Content_Service
         ];
     }
 
+    /**
+     * Duplicate a row with its meta (awm_custom_content_duplicate(), so `{type}_after_duplicate_action` fires),
+     * unless the type set `surfaces.duplicate` to false. The shared implementation behind the Duplicate
+     * row action of both admin lists.
+     *
+     * @param string $content_type Content type id.
+     * @param int    $id           Row id to copy.
+     *
+     * @return array|\WP_Error The copy (normalized row); `ewp_content_surface_disabled` (403) when refused,
+     *                         `ewp_abilities_not_found` (404) for an unknown id.
+     *
+     * @since 1.11.0
+     */
+    public function duplicate_item($content_type, $id)
+    {
+        if ($this->get_surface($content_type, 'duplicate') === false) {
+            return $this->surface_disabled($content_type, 'duplicate');
+        }
+
+        $original = $this->get_item($content_type, $id);
+        if (is_wp_error($original)) {
+            return $original;
+        }
+
+        $new_id = awm_custom_content_duplicate($content_type, (int) $id);
+        if (!$new_id) {
+            return new \WP_Error('ewp_content_duplicate_failed', __('The item could not be duplicated.', 'extend-wp'), ['status' => 500]);
+        }
+
+        return $this->get_item($content_type, $new_id);
+    }
+
     /* ---------------------------------------------------------------------
      * Internals
      * ------------------------------------------------------------------ */
+
+    /**
+     * Shape what a `surfaces.set_status` / `surfaces.delete` callable returned like the generic result.
+     *
+     * @param mixed  $result What the callable returned: an array with `{key}` (ids) and optional `not_found`,
+     *                       true (every id handled), false, or a WP_Error.
+     * @param int[]  $ids    Ids passed to the callable.
+     * @param string $key    `updated` or `deleted`.
+     *
+     * @return array|\WP_Error { count, {key}: int[], not_found: int[] }.
+     *
+     * @since 1.11.0
+     */
+    private function routed_result($result, array $ids, $key)
+    {
+        if (is_wp_error($result)) {
+            return $result;
+        }
+        if ($result === true) {
+            $result = [$key => $ids];
+        }
+        if (!is_array($result)) {
+            return new \WP_Error('ewp_content_routed_action_failed', __('The content type could not complete the action.', 'extend-wp'), ['status' => 500]);
+        }
+
+        $done      = isset($result[$key]) ? array_values(array_map('intval', (array) $result[$key])) : $ids;
+        $not_found = isset($result['not_found']) ? array_values(array_map('intval', (array) $result['not_found'])) : [];
+
+        return array_merge($result, [$key => $done, 'count' => count($done), 'not_found' => $not_found]);
+    }
 
     /**
      * Persist a row through the plugin's save pipeline.
@@ -841,7 +1018,7 @@ class Content_Service
             $meta   = is_array($stored) ? $stored : [];
         }
 
-        return [
+        $normalized = [
             'id'           => $id,
             'content_type' => (string) $content_type,
             'title'        => isset($row['content_title']) ? (string) $row['content_title'] : '',
@@ -850,8 +1027,41 @@ class Content_Service
             'modified'     => isset($row['modified']) ? (string) $row['modified'] : null,
             'user_id'      => isset($row['user_id']) ? (int) $row['user_id'] : null,
             'hash'         => isset($row['hash']) ? (string) $row['hash'] : null,
-            'meta'         => (object) $meta,
         ];
+
+        // Since 1.11.0: the type's own `_main` columns, under their registration key (never overriding the keys above).
+        foreach ($this->custom_columns($content_type) as $key => $column) {
+            if (!isset($normalized[$key]) && array_key_exists($column, $row)) {
+                $normalized[$key] = $row[$column];
+            }
+        }
+
+        $normalized['meta'] = (object) $meta;
+
+        return $normalized;
+    }
+
+    /**
+     * The type's own `_main` columns (registration `main_table_data.data`), beyond the default ones.
+     *
+     * @param string $content_type Content type id.
+     *
+     * @return array Registration key => stored column name (`sql_key` or the key).
+     *
+     * @since 1.11.0
+     */
+    public function custom_columns($content_type)
+    {
+        $config  = $this->get_config($content_type);
+        $columns = [];
+        foreach (isset($config['save_columns']) ? (array) $config['save_columns'] : [] as $key => $column) {
+            if (in_array($key, self::RESERVED_KEYS, true) || !is_array($column) || empty($column['sql'])) {
+                continue;
+            }
+            $columns[(string) $key] = isset($column['sql_key']) ? (string) $column['sql_key'] : (string) $key;
+        }
+
+        return $columns;
     }
 
     /**

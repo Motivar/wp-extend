@@ -12,7 +12,7 @@
  *     @type string $media       Media field HTML (escaped by Media_Field_Renderer).
  * }
  *
- * @since 1.11.0
+ * @since 1.14.0
  */
 
 if (!defined('ABSPATH')) {

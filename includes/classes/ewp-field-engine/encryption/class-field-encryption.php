@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
  * are only read through the small accessors below.
  *
  * @package EWP\Fields\Encryption
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Field_Encryption
 {

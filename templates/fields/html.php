@@ -13,7 +13,7 @@
  *     @type string      $value       The HTML to show.
  * }
  *
- * @since 1.11.0
+ * @since 1.14.0
  */
 
 if (!defined('ABSPATH')) {

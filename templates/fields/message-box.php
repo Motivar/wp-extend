@@ -13,7 +13,7 @@
  *     @type bool   $inner       Wrap the body in `.awm-meta-message-inner` (and sanitise it); false prints trusted markup (media field) as is.
  * }
  *
- * @since 1.11.0
+ * @since 1.14.0
  */
 
 if (!defined('ABSPATH')) {

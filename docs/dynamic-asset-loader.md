@@ -226,23 +226,25 @@ document.addEventListener('ewp_dynamic_asset_loaded', function(e) {
 
 ## JavaScript API
 
-Access the loader instance globally:
+The running loader is `window.EWPDynamicAssetLoader.instance` (`EWPDynamicAssetLoader` itself is the class). Assets are tracked by handle **and** type (`my-widget:script`, `my-widget:style`), so one handle can register a script and a style.
 
 ```javascript
-// Check if asset is loaded
-if (window.EWPDynamicAssetLoader.isAssetLoaded('my-widget-script')) {
+const loader = window.EWPDynamicAssetLoader.instance;
+
+// Check if an asset is loaded: with a type, that one; without, as a script or a style
+if (loader.isAssetLoaded('my-widget-script', 'script')) {
     console.log('Widget script is loaded');
 }
 
-// Get all loaded assets
-const loadedAssets = window.EWPDynamicAssetLoader.getLoadedAssets();
-console.log('Loaded assets:', Array.from(loadedAssets));
+// Loaded assets, as `handle:type` keys
+console.log('Loaded assets:', loader.getLoadedAssets());
 
-// Manually trigger check (useful after AJAX content load)
-window.EWPDynamicAssetLoader.refresh();
+// After AJAX content load: load the assets whose selector is now in the DOM
+// (already loaded assets are skipped; fixed in 1.10.1, before it every matching script was injected again)
+loader.checkAssets(); // same as loader.refresh()
 
 // Destroy the loader (cleanup)
-window.EWPDynamicAssetLoader.destroy();
+loader.destroy();
 ```
 
 ## Best Practices
@@ -330,7 +332,7 @@ The loader logs errors and warnings to the console:
 console.log(ewpDynamicAssets.assets);
 
 // Check what's loaded
-console.log(window.EWPDynamicAssetLoader.getLoadedAssets());
+console.log(window.EWPDynamicAssetLoader.instance.getLoadedAssets());
 ```
 
 ### PHP Debugging

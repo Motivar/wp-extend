@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
  * the `awm_custom_meta[]` save marker. Markup: templates/fields/modal.php.
  *
  * @package EWP\Fields
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Modal_Field implements Field_Type
 {
@@ -58,7 +58,7 @@ final class Modal_Field implements Field_Type
         /**
          * Filter modal field arguments before rendering.
          *
-         * @since 1.2.0 Fired before the button arguments are read since 1.11.0, so they can be changed.
+         * @since 1.2.0 Fired before the button arguments are read since 1.14.0, so they can be changed.
          *
          * @param array  $field     Field configuration.
          * @param string $meta_key  Meta key.

@@ -9,7 +9,7 @@
  *     @type string $text Explanation (translated; may contain basic HTML).
  * }
  *
- * @since 1.11.0
+ * @since 1.14.0
  */
 
 if (!defined('ABSPATH')) {

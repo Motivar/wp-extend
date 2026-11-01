@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
  * Markup lives in templates/fields/message-box.php and templates/fields/media.php.
  *
  * @package EWP\Fields
- * @since 1.11.0
+ * @since 1.14.0
  */
 final class Gallery_Field implements Field_Type
 {
