@@ -52,6 +52,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `awm_print_php()` stays for external callers, now escaped, and no longer emits the `@@@@` line markers.
     - `method=json` is unchanged.
 
+- **Removed the leftover "Enable REST Health Monitoring" logger setting** (`2026-11-01`):
+  - **Question/Prompt**: "this should be also deleted — Enable the REST API Health monitoring page for testing and debugging REST endpoints. Restricted to super-admin users only."
+  - **Summary**: The `rest_api_enabled` checkbox on the logger settings page did nothing since REST API Health moved to the standalone MammothWP REST Health plugin. Nothing read it, so the field and its default are removed from `EWP_Logger_Settings` (`includes/classes/ewp-logger/class-ewp-logger-settings.php`).
+  - **Backwards compatibility**: a value already stored in `ewp_logger_settings` is left in the option and ignored. The `ewp_logger_settings_fields` filter no longer receives the key.
+
 - **Activity log entries for config auto export/import and manual export/import** (`2026-11-01`):
   - **Question/Prompt**: "please also add ewp_logger events when auto import/export or when export in order to have this in log".
   - **New log action types** (owner `extend-wp`, level `developer`, object type `custom_content`), registered on `ewp_logger_initialized` from `Extend_WP_Import_Export`:

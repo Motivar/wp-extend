@@ -80,7 +80,6 @@ class EWP_Logger_Settings
     {
         return [
             'enabled'          => '',
-            'rest_api_enabled' => '',
             'retention_months' => 6,
             'max_entries_per_file' => 5000,
         ];
@@ -114,13 +113,6 @@ class EWP_Logger_Settings
                 'case'        => 'input',
                 'type'        => 'checkbox',
                 'explanation' => __('Enable or disable the EWP logging system globally.', 'extend-wp'),
-            ],
-            'rest_api_enabled' => [
-                'label'       => __('Enable REST Health Monitoring', 'extend-wp'),
-                'case'        => 'input',
-                'type'        => 'checkbox',
-                'show-when'   => ['enabled' => ['values' => true]],
-                'explanation' => __('Enable the REST API Health monitoring page for testing and debugging REST endpoints. Restricted to super-admin users only.', 'extend-wp'),
             ],
             'retention_months' => [
                 'label'       => __('Retention Period (months)', 'extend-wp'),
@@ -196,13 +188,6 @@ class EWP_Logger_Settings
     }
 
     /**
-     * Reset the settings cache. Useful after saving options.
-     *
-     * @return void
-     *
-     * @since 1.0.0
-     */
-    /**
      * Whether AI access to the logs is enabled.
      *
      * Gates registration of the logger abilities and the diagnose box.
@@ -230,6 +215,13 @@ class EWP_Logger_Settings
         return (bool) apply_filters('ewp_logger_ai_enabled', true);
     }
 
+    /**
+     * Reset the settings cache. Useful after saving options.
+     *
+     * @return void
+     *
+     * @since 1.0.0
+     */
     public static function reset_cache()
     {
         self::$settings_cache = null;
