@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **REST API Health moved out of Extend WP into the standalone "MammothWP REST Health" plugin** (`2026-11-01`):
+  - **Question/Prompt**: "Start step 9" (extract REST Health; the Extend WP side on this branch). The standalone plugin was already built and merged in `gitlab.motivar.io/mammothwp/rest-health`: `mammoth-rest-health`, prefix `mmwp_rh_`, Tools › REST API Health (`tools.php?page=mmwp-rh`), PHP 8.1+, depends on `mammothwp/wp-kit`. It imports Extend WP's REST Health preferences and probe history once, and runs side by side with Extend WP.
+  - **Removed from Extend WP**:
+    - `includes/classes/ewp-rest-health/` (discovery, runner, OpenAPI, admin page).
+    - The kit resources `Rest_Health_Resource` and `Rest_Health_Probes_Resource`, plus the `Rest_Health_Inventory` / `Rest_Health_Probes` services, which removes their REST routes, `wp ewp rest-health` commands and abilities.
+    - The `ewp-rest-health` log owner and log types.
+    - `assets/js/admin/ewp-rest-health.js` and `assets/css/admin/ewp-rest-health.css`.
+    - The `rest-health` / `rest-health-probes` self-test cases, the logger's read-side requires, the REST Health tests in `test-new-scope` and `test-security-hardening`, and the bench cases.
+    - The REST Health sections of the docs, CLAUDE.md and HOOKS.md (`ewp_rest_health_*` rows).
+  - **Kept**: Extend WP never deletes or migrates the stored REST Health data (user meta `ewp_rh_preferences`, `uploads/ewp-rest-health/`), so the new plugin can import it.
+  - **Runtime namespaces**: `EWP_Surfaces::report_rest_namespaces` now feeds the new plugin's `mmwp_rh_runtime_namespaces` filter (same `namespace => plugin basename` shape) instead of `ewp_rest_health_runtime_namespaces`. Extend WP's generated namespaces are still attributed to Extend WP there; without the plugin the filter does nothing.
+  - **Old screen URL**: `admin.php?page=ewp-rest-health` is handled by the new `EWP_REST_Health_Moved` (`includes/classes/ewp-rest-health-moved/`).
+    - If the standalone plugin is active (class `MammothWP\RestHealth\Plugin`, or `is_plugin_active('mammoth-rest-health/mammoth-rest-health.php')`), it redirects to `tools.php?page=mmwp-rh`.
+    - Otherwise it redirects to `plugins.php` with a one-request info notice for users who can activate plugins.
+    - It hooks `admin_page_access_denied`. `wp-admin/menu.php` rejects the removed page with `wp_die()` before `admin_init` runs, so the first `admin_init` version never redirected in the browser. A test now pins the hook.
+  - **Verified in the logged-in admin (Chrome, 2026-11-01)**: the old URL redirects to `tools.php?page=mmwp-rh` ("REST API Health", standalone plugin active on this site). The inactive path is covered by `tests/test-rest-health-moved-test.php` (7 tests).
+  - **Tests**: PHPUnit 512, OK, 1 skipped (as before). Self-test 14/14 (two REST Health cases removed). Jest 41/41.
+  - **Backwards compatibility**:
+    - The `ewp_rest_health_*` filters and the `extend-wp/v1` REST Health routes, CLI commands and abilities are gone. Their replacements, with an `mmwp_rh_` / `mmwp` prefix, are listed in the standalone plugin's HOOKS.md and `docs/cli-rest.md`.
+    - Nothing in this workspace used them except Extend WP itself.
+
 ### Changed
 - **No inline event handlers: search form, filter chips, options REST button, tabs, repeater actions, map search** (`2026-10-31`):
   - **Question/Prompt**: "Yes, 2 agents" (step 8 of the HTML-in-PHP cleanup; plan in `.ai/context/html-in-php-plan.md`). Two Sonnet agents worked in parallel; their work was reviewed, built and verified here.
