@@ -88,7 +88,7 @@ class EWP_Content_List_UI
             'handle'       => self::HANDLE,
             'selector'     => self::SELECTOR,
             'type'         => 'script',
-            'src'          => awm_url . 'build/modules/ewp-dataviews-list.js',
+            'src'          => EWP_PLUGIN_URL . 'build/modules/ewp-dataviews-list.js',
             'version'      => $asset['version'],
             'context'      => 'admin',
             'dependencies' => $asset['dependencies'],
@@ -98,7 +98,7 @@ class EWP_Content_List_UI
             'handle'       => self::HANDLE . '-style',
             'selector'     => self::SELECTOR,
             'type'         => 'style',
-            'src'          => awm_url . 'build/modules/ewp-dataviews-list.css',
+            'src'          => EWP_PLUGIN_URL . 'build/modules/ewp-dataviews-list.css',
             'version'      => $asset['version'],
             'context'      => 'admin',
             'dependencies' => array('wp-components'),
@@ -161,7 +161,7 @@ class EWP_Content_List_UI
     {
         static $asset = false;
         if ($asset === false) {
-            $file  = awm_path . 'build/modules/ewp-dataviews-list.asset.php';
+            $file  = EWP_PLUGIN_DIR . 'build/modules/ewp-dataviews-list.asset.php';
             $asset = is_readable($file) ? (array) include $file : null;
         }
         return $asset;
@@ -183,7 +183,7 @@ class EWP_Content_List_UI
         wp_enqueue_style('wp-components');
 
         $config = self::config((string) $args['id'], $args);
-        include awm_path . 'templates/admin-view/content-list.php';
+        include EWP_PLUGIN_DIR . 'templates/admin-view/content-list.php';
     }
 
     /**

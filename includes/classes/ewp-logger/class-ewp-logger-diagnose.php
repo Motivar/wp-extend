@@ -797,7 +797,7 @@ class EWP_Logger_Diagnose
             'handle'    => 'ewp-log-diagnose-script',
             'selector'  => '.ewp-log-diagnose',
             'type'      => 'script',
-            'src'       => awm_url . 'assets/js/admin/class-ewp-log-diagnose.js',
+            'src'       => EWP_PLUGIN_URL . 'assets/js/admin/class-ewp-log-diagnose.js',
             'version'   => '1.0.0',
             'context'   => 'admin',
             'in_footer' => true,

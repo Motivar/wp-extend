@@ -277,11 +277,11 @@ class Extend_WP_Search_Filters
       if ($conf['show_search_terms']) {
         global $ewp_search_query_terms;
         $ewp_search_query_terms = $args['terms'];
-        $content[] = awm_parse_template(awm_path . 'templates/frontend/search/results-terms.php');
+        $content[] = awm_parse_template(EWP_PLUGIN_DIR . 'templates/frontend/search/results-terms.php');
       }
       $main_content = __($conf['empty_results_message'], 'extend-wp');
       if (!empty($ewp_search_query->posts)) {
-        $main_content = awm_parse_template(awm_path . 'templates/frontend/search/results.php');
+        $main_content = awm_parse_template(EWP_PLUGIN_DIR . 'templates/frontend/search/results.php');
       }
       $content[] = $main_content;
       return rest_ensure_response(new WP_REST_Response(implode('', $content)), 200);
@@ -308,7 +308,7 @@ class Extend_WP_Search_Filters
       'handle' => 'ewp-search',
       'selector' => '.ewp-search-box',
       'type' => 'script',
-      'src' => awm_url . 'assets/js/public/ewp-search-script.js',
+      'src' => EWP_PLUGIN_URL . 'assets/js/public/ewp-search-script.js',
       'version' => $version,
       'dependencies' => array(),
       'in_footer' => true,
@@ -501,7 +501,7 @@ class Extend_WP_Search_Filters
     unset($fields['query_fields']);
     $async = isset($fields['async']) ? $fields['async'] : '';
     $orientation = isset($fields['orientation']) ? $fields['orientation'] : '';
-    return awm_parse_template(awm_path . 'templates/frontend/search/form.php', array(
+    return awm_parse_template(EWP_PLUGIN_DIR . 'templates/frontend/search/form.php', array(
       'id' => $id,
       'async' => $async,
       'orientation' => $orientation,

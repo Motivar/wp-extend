@@ -208,11 +208,11 @@ class EWP_Dynamic_Blocks
    */
   public function register_script()
   {
-    $asset_file = include(awm_path . 'build/index.asset.php'); // Ensure awm_path is defined and secure.
+    $asset_file = include(EWP_PLUGIN_DIR . 'build/index.asset.php'); // Ensure EWP_PLUGIN_DIR is defined and secure.
 
     wp_register_script(
       'ewp-gutenberg-blocks',
-      awm_url . 'build/index.js', // Ensure awm_url is defined and secure.
+      EWP_PLUGIN_URL . 'build/index.js', // Ensure EWP_PLUGIN_URL is defined and secure.
       $asset_file['dependencies'],
       $asset_file['version'],
       true // Load in footer for performance.

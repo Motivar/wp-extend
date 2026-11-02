@@ -502,7 +502,7 @@ if (!function_exists('awm_print_php')) {
    */
   function awm_print_php($fields)
   {
-    require_once awm_path . 'includes/classes/ewp-content/class-php-printer.php';
+    require_once EWP_PLUGIN_DIR . 'includes/classes/ewp-content/class-php-printer.php';
     $printer = new \EWP\Content\Php_Printer();
 
     return $printer->print_items((array) $fields, 0);

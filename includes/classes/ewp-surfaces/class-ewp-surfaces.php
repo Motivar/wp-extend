@@ -335,11 +335,11 @@ final class EWP_Surfaces
     public function report_rest_namespaces(array $runtime)
     {
         $registry = $this->registry();
-        if ($registry === null || !defined('awm_path')) {
+        if ($registry === null || !defined('EWP_PLUGIN_DIR')) {
             return $runtime;
         }
 
-        $owner = plugin_basename(awm_path . 'extend-wp.php');
+        $owner = plugin_basename(EWP_PLUGIN_DIR . 'extend-wp.php');
         foreach ($registry->all() as $resource) {
             $namespace = $resource->rest_namespace();
             if ($namespace === null || $namespace === '' || $resource instanceof Content_Type_Rest_Resource) {
