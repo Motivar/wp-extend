@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.14.2] - 2026-11-02
+
+### Fixed
+- **HOTFIX: `awm_ajax_call()` never ran the success callback for string JSON responses (onparnassos.gr booking page stuck on "loading")** (`2026-11-02`):
+  - **Question/Prompt**: production incident on onparnassos.gr; Filox's availability endpoint returns a JSON *string* (HTML) and the callback never fired.
+  - **Root cause**: `build/global/awm-global-script.js` became a webpack bundle with `"use strict"`. `awm_ajax_call()` did `responseData.element = Options.element` on the parsed response; on a primitive string that throws `TypeError: Cannot create property 'element' on string` in strict mode (it was a silent no-op in the old non-strict script). The catch reported "Error parsing JSON response" and called the error handler instead of the success callback.
+  - **Fix**: `element` is only attached when the parsed response is a non-null object; strings/numbers/null reach the callback unchanged, as before. No other place in `assets/js` assigns properties on a parsed response (audited every `JSON.parse`).
+  - **Files**: `assets/js/global/awm-global-script.js`, rebuilt `build/global/awm-global-script.js` (+ `.asset.php`), `build/version.php`, `extend-wp.php`, `package.json` (1.14.1 -> 1.14.2).
+  - **Compatibility**: no hooks, routes or settings changed.
+  - **Tests**: new `assets/js/global/test/awm-ajax-call.test.js` (mocked XMLHttpRequest: string response + `element` -> callback gets the string, no error handler; object response + `element` -> attached). `npm run test:js` passes (75). PHPUnit not run (JS-only change).
+
 ### Fixed
 - **Block editor: "getPostStatuses is not a function" on post types with custom statuses** (`2026-11-02`):
   - **Question/Prompt**: console log from `post.php?post=10&action=edit` on wp-filox showing `Uncaught (in promise) TypeError: t(...).getPostStatuses is not a function` in `awm-admin-script.js`.
