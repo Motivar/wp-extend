@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Block editor: "getPostStatuses is not a function" on post types with custom statuses** (`2026-11-02`):
+  - **Question/Prompt**: console log from `post.php?post=10&action=edit` on wp-filox showing `Uncaught (in promise) TypeError: t(...).getPostStatuses is not a function` in `awm-admin-script.js`.
+  - **Root cause**: `EWPCustomPostStatus::addToGutenberg()` read existing statuses with `wp.data.select('core').getPostStatuses()`, a selector the `core` store has never had (carried over from the inline script the post-type installer printed before 1.14.0, where it failed the same way). The throw happened inside a `wp.data.subscribe` callback, so the custom statuses were never added to the editor.
+  - **Fix**: use `select('core').getEntityRecords('root', 'status')` (the `root`/`status` entity, an array or null). `mergeStatusRecords()` in `assets/js/admin/custom-post-status-helpers.js` now accepts that array as well as a slug-keyed object, skipping records without a `slug`.
+  - **Files**: `assets/js/admin/awm-admin-script.js`, `assets/js/admin/custom-post-status-helpers.js`, `assets/js/admin/test/custom-post-status-helpers.test.js`, rebuilt `build/admin/awm-admin-script.js` (+ `.asset.php`).
+  - **Compatibility**: no hooks, routes or settings changed. Other errors in that log come from Filox, not this plugin: the `gstatic.com/charts/loader.js` CORS/`google is not defined` failure, and `flxRatesSettings function does not exist!` (a `data-callback` on Filox fields whose function is not loaded on that screen; `awm_check_call_back()` only logs it).
+  - **Tests**: new Jest case for the array input; `npm run test:js` (73 passing). PHPUnit/self-test not run (JS-only change).
+
 - **Hotfix 1.14.1: fields rendered empty when another copy of extend-wp is loaded first** (`2026-11-02`):
   - **Incident**: onparnassos.gr. Filox's hidden `flx_check_in` / `flx_check_out` inputs never rendered, so booking searches lost their dates; every `awm_show_content()` call returned an empty string.
   - **Root cause**: the site loads two copies, this plugin (1.14.0) and an older one bundled in Filox (`filox/includes/3rd-party/extend-wp`, 1.10.1). The bundled copy loads first and defines `awm_path` / `awm_url` (the old copy's directory). Since 1.14.0 (`EWP\Fields\Template_Loader`) every field is rendered from `awm_path . 'templates/'`, which does not exist in 1.10.1, so `locate('fields/container')` returned `''`. The same constants also built the URLs of `build/`, `assets/` and the `templates/admin-view` / `templates/frontend` paths.

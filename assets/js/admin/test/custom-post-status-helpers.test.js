@@ -19,6 +19,11 @@ describe('mergeStatusRecords', () => {
         expect(records[1]).toEqual({ name: 'In review', slug: 'in_review', _links: {} });
     });
 
+    it('accepts the array getEntityRecords returns', () => {
+        const records = mergeStatusRecords([{ name: 'Draft', slug: 'draft' }], statuses);
+        expect(records.map((record) => record.slug)).toEqual(['draft', 'in_review', 'on_hold']);
+    });
+
     it('copes with an empty store', () => {
         expect(mergeStatusRecords(null, { a: { label: 'A' } })).toEqual([{ name: 'A', slug: 'a', _links: {} }]);
     });
