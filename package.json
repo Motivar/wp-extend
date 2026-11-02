@@ -1,6 +1,6 @@
 {
   "name": "wp-extend",
-  "version": "1.14.2",
+  "version": "1.14.3",
   "description": "library to include for wordpress developers with easy meta handling",
   "main": "index.js",
   "directories": {

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.14.3] - 2026-11-02
+
+### Fixed
+- **Dynamic Asset Loader injected scripts/styles WordPress had already printed, so they ran twice** (`2026-11-02`):
+  - **Question/Prompt**: on onparnassos.gr `/diamoni/` the loader appended `filox-custom-inputs`, `filox-engine-script`, `filox-booking-script`, `tippy`, `tippy-filox-script` although WP had printed the same files (`<handle>-js`); `custom-inputs.min.js` re-ran `flx_create_engine_calendar()` and reset the date button, and handlers were bound twice.
+  - **Root cause**: `loadAsset()` only consulted its own `loadedAssets` Set; the DOM check existed only for dependencies.
+  - **Fix**: new `isAssetInDom()` / `normalizeAssetUrl()` in `assets/js/class-dynamic-asset-loader.js`. Before injecting, an asset counts as present when `script#<handle>-js`, `script#<handle>` (styles: `link#<handle>-css`, `link#<handle>`) exists, or a `script[src]`/`link[href]` equals the asset src on origin+path (query string ignored; exact, not substring). It is then marked loaded, NOT injected, localize globals are NOT re-exported, and the `ewp_asset_loaded`-style load event still dispatches as for an injected asset. Elements the loader injects now carry `data-ewp-dynamic-asset` and are ignored by the check, so failed loads can still be retried. Inline-CSS styles keep their own existing check. `isDependencyLoaded()` is unchanged.
+  - **PHP**: not changed. The config is localized at `wp_enqueue_scripts` priority 999 and other plugins can still enqueue later (and `done` is only true after printing), so a server-side `wp_script_is()` filter would be unreliable; the JS check is authoritative. Only the loader's cache-busting `VERSION` constant went 1.0.7 -> 1.0.8.
+  - **Files**: `assets/js/class-dynamic-asset-loader.js` (served raw, no build copy), `includes/classes/class-dynamic-asset-loader.php`, `assets/js/test/class-dynamic-asset-loader.test.js`, `extend-wp.php`, `package.json`, `build/version.php` (1.14.2 -> 1.14.3).
+  - **Compatibility**: no hooks, routes or settings changed. Assets absent from the DOM load exactly as before.
+  - **Tests**: new Jest suite (WP `-js` id, same src with different ver, similar-path non-match, absent -> injected once, localize skipped, style equivalents); `npm run test:js` passes (83). PHPUnit/self-test not run (JS-only change).
+
 ## [1.14.2] - 2026-11-02
 
 ### Fixed
