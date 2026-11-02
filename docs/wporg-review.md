@@ -1,7 +1,7 @@
 # WordPress.org preparation — review report (`wporg` branch)
 
 For: Nikos and his review agent. Kept up to date with every push to `wporg`.
-Last update: 2026-11-01, after commit `40d68d93` (main 1.14.0 merged in).
+Last update: 2026-11-02, after commit `f67dd2f2` (main caf71b79 merged in).
 
 **Nothing on this branch is pushed to `main` until Nikos approves.**
 
@@ -17,6 +17,8 @@ too and will use it. Filox's `wporg` branch bundles this branch
   **2026-11-01: `main` 75303d0b (1.14.0, 20 commits: field engine, templates, PHP export /
   config sync, REST Health removed) is merged in (8c2e59f8)**, so merging `wporg` into `main`
   is a fast-forward again.
+  **2026-11-02: `main` caf71b79 (4 commits: per-object JSON export as zip, config sync
+  logging, dead REST Health setting) is merged in (34577c7a), no conflicts.**
   **Nothing here is merged into `main` until you review it.**
 - Changes are meant to be behaviour-neutral for every site using Extend WP.
 - Every commit has a `CHANGELOG.md` entry under `[Unreleased]` → `### Changed`.
@@ -46,6 +48,8 @@ too and will use it. Filox's `wporg` branch bundles this branch
 | 643ddf5a | **`tools/build-wporg.sh`: package without `mammothwp/wp-self-test`; Composer's autoloader patched for Plugin Check.** The autoloader is regenerated offline without wp-self-test (`dump-autoload --no-dev --optimize`, entries removed from `installed.json` / `installed.php`, no `platform_check.php`); then direct-access guards, no PHP < 5.6 message, `esc_html()` in `InstalledVersions`' exceptions (same step as Filox). `wp-kit` stays: REST, WP-CLI and abilities are built on it. **Plugin Check on the package 18 → 1** (now counted with `wp-kit`) | None (composer installs untouched); WordPress.org sites have no self-tests | Packages installed in place of Filox on filox-test: activate, no PHP errors, 67 Extend WP routes, product page identical apart from Extend WP's asset URLs |
 | 8c2e59f8 | **Merge `main` (1.14.0) into `wporg`.** 15 conflicts. Main wins where it moved markup into templates (settings, term / user / post boxes, list table and form, search form, slug field, field engine, object search, import/export → `Config_Sync`); its own code already has the import guard (administrators only, no ajax, no flush after a failed import). Kept from wporg: `Requires at least: 6.8`, `awm_date()`, `awm_show_explanation()` escaping, `esc_html()` in `ewp_debug()`, translator comments. REST Health deleted as on main, with wporg's Swagger UI copy (`assets/third-party/`) and its readme line | Main's changes are yours; the merge adds none of its own | Trial merge first (`git merge-tree`); every conflict file compared with main after resolving (`class-import-export.php` identical) |
 | 40d68d93 | **Plugin Check on main's new code (package: 50 → 1)**: field templates mark prints escaped where they are built (`Field_Attributes::render()`, `Select_Field::data_html()`, the explanation template, wrapper attributes) or escape at the print (`map.php` id, search form id as int); 5 translator comments; dynamic labels marked; `wp_rand()`, `wp_strip_all_tags()` (`awm_strip_html` textareas), `wp_is_writable()`, `awm_date()`, `wp_delete_file()` in `Config_Sync` and two self-test cases; two atomic `rename()` and one test `rmdir()` kept with the reason; Stable tag 1.14.0. **4e31f06e restored in the field engine**: `Field_Renderer::field_row()` drops `attributes['name']` for input / select / textarea / checkbox_multiple | Output unchanged: your render snapshots pass byte for byte. `show-when` stays unescaped (JSON with every `"` turned into `'`, so it cannot leave the attribute) to keep that | PHPUnit 557 / 557, new `test_attributes_name_is_not_printed_twice` fails without the fix; package Plugin Check; merged Extend WP inside Filox on filox-test: self-tests, 6 front-end pages identical (random ids / whitespace masked), 9 admin pages with the same form fields |
+| 34577c7a | **Merge `main` caf71b79 into `wporg`** (4 commits). No conflicts | Main's changes are yours; the merge adds none of its own | — |
+| f67dd2f2 | **Plugin Check on main's portability code (package: 5 → 1)**: translator comment on `Failed to write to %s.` (`present_files_export()`); `unlink()` → `wp_delete_file()` in `Content_Portability_Case::remove_files_dir()`, its two `rmdir()` marked as in `Config_Sync_Case` | None (comment; self-test cleanup) | PHPCS (prepared SQL) clean; PHPUnit 559 / 559; self-test 15 passed, 0 skipped; package Plugin Check |
 
 ## `awm_show_content()` escaping (please review)
 
@@ -89,6 +93,8 @@ baselines compare 0 first): **0 differences**. Filox Settings page 110 → 113 m
 
 ## Tests on this branch
 
+- After the caf71b79 merge (f67dd2f2), copy on filox-test: PHPCS clean, PHPUnit **559 / 559**,
+  self-test **15 passed, 0 failed, 0 skipped** (144 checks).
 - After the 1.14.0 merge (40d68d93): self-test **15 passed, 0 skipped** (inside Filox on filox-test),
   PHPUnit **557 / 557** (main alone: 556 / 556; +1 for the restored duplicate-`name` fix).
   One deprecation notice in the self-test run comes from main: the field-builder `php_code`
