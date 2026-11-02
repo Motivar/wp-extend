@@ -345,8 +345,10 @@ function awm_ajax_call(options) {
                             var responseData = JSON.parse(request.responseText);
                             EWPDynamicAssetLoader.log('Response parsed', responseData);
 
-                            // Attach element reference to response if provided
-                            if (Options.element) {
+                            // Attach element reference to response if provided.
+                            // Only objects can carry it: assigning a property on a primitive
+                            // (e.g. a JSON string of HTML) throws in strict mode (webpack bundle).
+                            if (Options.element && responseData !== null && typeof responseData === 'object') {
                                 responseData.element = Options.element;
                                 EWPDynamicAssetLoader.log('Element attached to response');
                             }
