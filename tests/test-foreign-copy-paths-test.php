@@ -34,7 +34,8 @@ class Test_Foreign_Copy_Paths extends WP_UnitTestCase
             'flx_check_in'  => array('case' => 'input', 'type' => 'hidden', 'label' => 'In', 'class' => array('flx_date_pick'), 'attributes' => array('attach-to' => 'F', 'id' => 'flx_check_in_F')),
             'flx_check_out' => array('case' => 'input', 'type' => 'hidden', 'label' => 'Out', 'class' => array('flx_date_pick'), 'attributes' => array('attach-to' => 'F', 'id' => 'flx_check_out_F')),
         ));
-        $this->assertSame(2, preg_match_all('/<input[^>]*type="hidden"/', $html));
+        // Each field also renders a hidden awm_custom_meta[] save marker; count the field inputs only.
+        $this->assertSame(2, preg_match_all('/<input(?![^>]*name="awm_custom_meta\[\]")[^>]*type="hidden"/', $html));
         $this->assertStringContainsString('id="flx_check_in_F"', $html);
         $this->assertStringContainsString('id="flx_check_out_F"', $html);
         $this->assertStringContainsString('attach-to="F"', $html);
@@ -51,8 +52,9 @@ class Test_Foreign_Copy_Paths extends WP_UnitTestCase
         }
         $dir = sys_get_temp_dir() . '/ewp-foreign-copy-' . getmypid();
         wp_mkdir_p($dir);
+        // WP_TESTS_SKIP_INSTALL: reuse the parent's test DB; reinstalling it mid-suite drops the tables under the parent run.
         $cmd = sprintf(
-            'cd %s && EWP_TEST_FOREIGN_COPY_DIR=%s WP_CORE_DIR=%s WP_TESTS_DB_HOST=%s tests/vendor/bin/phpunit -c phpunit.xml.dist --filter %s 2>&1',
+            'cd %s && WP_TESTS_SKIP_INSTALL=1 EWP_TEST_FOREIGN_COPY_DIR=%s WP_CORE_DIR=%s WP_TESTS_DB_HOST=%s tests/vendor/bin/phpunit -c phpunit.xml.dist --filter %s 2>&1',
             escapeshellarg(self::root()),
             escapeshellarg($dir),
             escapeshellarg((string) getenv('WP_CORE_DIR')),

@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Compatibility**: no hooks, routes or settings changed. Other errors in that log come from Filox, not this plugin: the `gstatic.com/charts/loader.js` CORS/`google is not defined` failure, and `flxRatesSettings function does not exist!` (a `data-callback` on Filox fields whose function is not loaded on that screen; `awm_check_call_back()` only logs it).
   - **Tests**: new Jest case for the array input; `npm run test:js` (73 passing). PHPUnit/self-test not run (JS-only change).
 
+- **Tests: `Test_Foreign_Copy_Paths` (from the 1.14.1 hotfix) failed and broke the rest of the suite** (`2026-11-02`):
+  - **Question/Prompt**: "can you push this?" — the pre-push hook blocked the push (`composer test`: 6 errors, 4 failures).
+  - **Causes**: `test_hidden_inputs_render` counted every `type="hidden"` input, including each field's `awm_custom_meta[]` save marker (4, not 2). `test_with_foreign_awm_path` re-ran PHPUnit in a child process that reinstalled the shared test DB mid-suite, dropping tables under the parent run (`wptests_options doesn't exist` in unrelated tests).
+  - **Fix**: the count skips the save marker; the child process runs with `WP_TESTS_SKIP_INSTALL=1` and reuses the parent's DB. Test-only; `tests/test-foreign-copy-paths-test.php`.
+  - **Verification**: `composer test` — PHPUnit 563 OK (1 skipped), self-test 15 passed.
+
 - **Hotfix 1.14.1: fields rendered empty when another copy of extend-wp is loaded first** (`2026-11-02`):
   - **Incident**: onparnassos.gr. Filox's hidden `flx_check_in` / `flx_check_out` inputs never rendered, so booking searches lost their dates; every `awm_show_content()` call returned an empty string.
   - **Root cause**: the site loads two copies, this plugin (1.14.0) and an older one bundled in Filox (`filox/includes/3rd-party/extend-wp`, 1.10.1). The bundled copy loads first and defines `awm_path` / `awm_url` (the old copy's directory). Since 1.14.0 (`EWP\Fields\Template_Loader`) every field is rendered from `awm_path . 'templates/'`, which does not exist in 1.10.1, so `locate('fields/container')` returned `''`. The same constants also built the URLs of `build/`, `assets/` and the `templates/admin-view` / `templates/frontend` paths.
