@@ -6,19 +6,24 @@
  *
  * - Export (JSON or PHP): asks `ewp/v1/export`, shows the result in the preview
  *   panel (templates/admin-view/export-preview.php) with Copy and Download buttons.
- * - Import: reads the chosen JSON file and posts every content type to `ewp/v1/import`.
+ *   JSON uses the per object layout of the config sync (`layout=per_object`) and
+ *   downloads a zip of `ewp-config/{type}/{hash}.json`, the same files the auto
+ *   export writes.
+ * - Import: reads the chosen zip (per object files) or legacy JSON file and posts
+ *   every content type to `ewp/v1/import`.
  *
  * Uses the globals of awm-global-script.js (`awm_ajax_call`, `ewp_jsVanillaSerialize`,
  * `awmGlobals`) and the strings in `ewpImportExport.strings`.
  *
  * @since 1.15.0 Replaces assets/js/admin/import-export.js; adds the PHP method and the preview panel.
  */
-import { normalizeMethod, exportPreview, exportFileName, skippedMessage } from './ewp-import-export/helpers';
+import { normalizeMethod, exportPreview, exportFileName, skippedMessage, rowsFromFiles } from './ewp-import-export/helpers';
+import { createZip, isZip, readZip } from './ewp-import-export/zip';
 
 const FORM_ID = 'awm-form-ewp-import-export';
 
-/** Text and MIME type of the export currently previewed. */
-const state = { text: '', extension: 'json', mime: 'application/json' };
+/** Text, MIME type and (per object export) files of the export currently previewed. */
+const state = { text: '', extension: 'json', mime: 'application/json', files: null };
 
 /**
  * A localized string.
@@ -97,6 +102,7 @@ function showPreview( form, method, response ) {
 	state.text = preview.text;
 	state.extension = preview.extension;
 	state.mime = preview.mime;
+	state.files = preview.files || null;
 
 	panel.querySelector( '[data-ewp-export-code]' ).textContent = preview.text;
 	const notice = panel.querySelector( '[data-ewp-export-notice]' );
@@ -148,7 +154,11 @@ function onActionChange( event ) {
 async function runExport( form ) {
 	const method = normalizeMethod( form.querySelector( '[name="method"]' )?.value );
 	try {
-		const response = await sendRequest( window.ewp_jsVanillaSerialize( form ), 'get', 'export' );
+		const data = window.ewp_jsVanillaSerialize( form );
+		if ( method === 'json' && Array.isArray( data ) ) {
+			data.push( 'layout=per_object' );
+		}
+		const response = await sendRequest( data, 'get', 'export' );
 		showPreview( form, method, response );
 	} catch ( error ) {
 		const panel = form.querySelector( '[data-ewp-export-preview]' );
@@ -175,32 +185,47 @@ function runImport( form ) {
 		logDiv.textContent = t( 'noFile', 'Please upload a file.' );
 		return;
 	}
-	const reader = new FileReader();
-	reader.onload = ( event ) => importFile( form, logDiv, event.target.result );
-	reader.readAsText( fileInput.files[ 0 ] );
+	fileInput.files[ 0 ].arrayBuffer().then( ( buffer ) => importFile( form, logDiv, new Uint8Array( buffer ) ) );
+}
+
+/**
+ * Rows by content type from an uploaded file: a zip of per object files, or a
+ * legacy export (`{type: {id: row}, modified}`).
+ *
+ * @param {Uint8Array}  bytes  File bytes.
+ * @param {HTMLElement} logDiv Log container (invalid entries are reported there).
+ * @return {Promise<Object<string, Object|Object[]>>} Content type => rows.
+ */
+async function importRows( bytes, logDiv ) {
+	if ( isZip( bytes ) ) {
+		const { rows, invalid } = rowsFromFiles( await readZip( bytes ) );
+		invalid.forEach( ( path ) => importLogLine( logDiv, [ 'Skipped invalid file ', { b: path } ] ) );
+		return rows;
+	}
+	const data = JSON.parse( new TextDecoder().decode( bytes ) );
+	delete data.modified;
+	delete data.pagination;
+	return data;
 }
 
 /**
  * Post the content types of an export file to the import route.
  *
- * @param {HTMLFormElement} form    The import/export form.
- * @param {HTMLElement}     logDiv  Log container.
- * @param {string}          content File contents.
+ * @param {HTMLFormElement} form   The import/export form.
+ * @param {HTMLElement}     logDiv Log container.
+ * @param {Uint8Array}      bytes  File contents (zip or JSON).
  * @return {Promise<void>}
  */
-async function importFile( form, logDiv, content ) {
+async function importFile( form, logDiv, bytes ) {
 	let jsonData;
 	try {
-		jsonData = JSON.parse( content );
+		jsonData = await importRows( bytes, logDiv );
 	} catch ( error ) {
 		logDiv.textContent = t( 'invalidJson', 'Invalid JSON file.' );
 		return;
 	}
 	const formData = window.ewp_jsVanillaSerialize( form, true );
 	for ( const key of Object.keys( jsonData ) ) {
-		if ( key === 'modified' || key === 'pagination' ) {
-			continue;
-		}
 		const entries = Object.keys( jsonData[ key ] ).length;
 		importLogLine( logDiv, [ 'Importing ', { b: entries }, ' entries for ', { b: key } ] );
 		try {
@@ -243,7 +268,8 @@ function onSubmit( event ) {
  * @return {void}
  */
 function downloadExport() {
-	const url = window.URL.createObjectURL( new Blob( [ state.text ], { type: state.mime } ) );
+	const body = state.files ? createZip( state.files ) : state.text;
+	const url = window.URL.createObjectURL( new Blob( [ body ], { type: state.mime } ) );
 	const link = document.createElement( 'a' );
 	link.href = url;
 	link.download = exportFileName( state.extension );

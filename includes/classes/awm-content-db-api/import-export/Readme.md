@@ -123,6 +123,7 @@ The settings page stores the same keys in the option `ewp_auto_export_settings`.
 - Saving a row writes only that row's file. Deleting rows removes the files of that type whose row no longer exists.
 - Row hashes are identical in both layouts, so switching layouts never duplicates rows.
 - Rename the files with the `ewp_config_sync_filename` filter (`$filename`, `$content_type`, `$row`); the name must be a plain `*.json` file name and stay stable per row.
+- The manual JSON export on Extend WP > Import/Export produces the same files (built by `Config_Sync::object_file()`, byte-identical) as a `.zip`; unzip it into the configured path to seed a repository. The screen also imports such a zip (or a legacy `.json`) as an upsert. Elsewhere: `GET ewp/v1/export?layout=per_object`, `wp ewp content export --layout=per_object --file=<folder>`, ability `ewp-content/export` with `layout: per_object`.
 
 ### How the importing site reads the files
 
@@ -151,6 +152,19 @@ Nothing is imported when the source did not change (the single file by its md5; 
 All need `manage_options`. Errors while exporting on save (missing or read-only folder) are logged and shown as an admin notice; they never stop the save.
 
 ---
+
+### Activity log (EWP Logger)
+
+When the EWP Logger is enabled (Extend WP > Logger), every export and import leaves one entry, owner `extend-wp`, level `developer`, object type `custom_content`:
+
+| Action type | When | Data |
+|-------------|------|------|
+| `config_auto_export` | Auto export on a save (`trigger: save`, with `object_id`) or delete (`trigger: delete`); `sync export` (`trigger: manual`); migration (`trigger: migrate`) | `content_type` or `types`, `layout`, `path`; files `written` / `removed` and `rows` for a full export; `error` when it failed (behaviour 0) |
+| `config_auto_import` | Auto import on an admin page load (`trigger: admin_init`) or `sync import` (`trigger: manual`). An unchanged source is not logged | `path`, `format` (`v2` / `legacy`), `rows` per type, `deleted`; behaviour 2 (warning) when rows were deleted, 0 with `error` when it failed |
+| `content_export` | Manual export: Import/Export screen, `GET ewp/v1/export`, `wp ewp content export`, `ewp-content/export` | `types`, `form` (`json`, `per_object`, `php`, `file`), `counts` per type, `skipped` (php), `files` (per_object), page options |
+| `content_import` | Manual import of one content type: Import/Export screen, `POST ewp/v1/import`, `wp ewp content import`, `ewp-content/import` | `content_type`, `rows` received, `imported`; `error` when it failed |
+
+The sync's own reads and writes go through the same portability service with logging off, so one sync run is one entry.
 
 ## Use Cases
 

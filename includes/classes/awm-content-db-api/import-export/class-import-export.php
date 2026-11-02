@@ -39,6 +39,8 @@ class Extend_WP_Import_Export
   add_action('ewp_custom_content_delete_action', [$this, 'auto_export_content_deleted'], 100, 2);
   add_action('admin_init', [$this, 'auto_import_content'], 100);
   add_action('admin_notices', ['\EWP\Content\Config_Sync', 'render_notices']);
+  add_action('ewp_logger_initialized', ['\EWP\Content\Config_Sync', 'register_log_types']);
+  add_action('ewp_logger_initialized', ['\EWP\Content\Content_Portability', 'register_log_types']);
  }
 
  /**
@@ -170,7 +172,7 @@ class Extend_WP_Import_Export
       /* translators: %s: comma separated content type ids. */
       'skipped' => __('Skipped (no PHP export for these content types): %s', 'extend-wp'),
       'noFile' => __('Please upload a file.', 'extend-wp'),
-      'invalidJson' => __('Invalid JSON file.', 'extend-wp'),
+      'invalidJson' => __('Invalid file: expected a zip of a JSON export or a JSON file.', 'extend-wp'),
      )
     )
    )
@@ -228,7 +230,7 @@ class Extend_WP_Import_Export
      'json' => array('label' => __('JSON', 'extend-wp')),
      'php' => array('label' => __('PHP', 'extend-wp')),
     ),
-    'explanation' => __('JSON can be imported on another site. PHP is code that registers the exported field groups, post types and taxonomies; other content types are skipped.', 'extend-wp'),
+    'explanation' => __('JSON downloads a zip with one file per object (ewp-config/{type}/{hash}.json), the same files the auto export writes; unzip it into your repository or import it on another site. PHP is code that registers the exported field groups, post types and taxonomies; other content types are skipped.', 'extend-wp'),
     'show-when' => array('case' => array('values' => array('export' => true))),
    ),
    'export_preview' => array(
@@ -242,9 +244,9 @@ class Extend_WP_Import_Export
     'label' => __('Import File', 'extend-wp'),
     'case' => 'input',
     'type' => 'file',
-    'attributes' => array('accept' => '.json'),
+    'attributes' => array('accept' => '.zip,.json'),
     'show-when' => array('case' => array('values' => array('import' => true))),
-    'explanation' => __('Please upload a JSON file', 'extend-wp')
+    'explanation' => __('Upload the zip of a JSON export (one file per object) or a legacy single JSON file.', 'extend-wp')
    ),
    'import_message' => array(
     'case' => 'html',

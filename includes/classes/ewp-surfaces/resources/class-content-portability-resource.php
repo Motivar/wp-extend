@@ -38,41 +38,81 @@ final class Content_Portability_Resource extends Resource
         $this->service = $service;
     }
 
+    /**
+     * Kit resource name.
+     *
+     * @return string
+     */
     public function name()
     {
         return 'content-portability';
     }
 
+    /**
+     * Human readable resource label.
+     *
+     * @return string
+     */
     public function label()
     {
         return __('EWP Content Portability', 'extend-wp');
     }
 
+    /**
+     * The service the operations call.
+     *
+     * @return Content_Portability
+     */
     public function service()
     {
         return $this->service;
     }
 
+    /**
+     * REST namespace of the routes.
+     *
+     * @return string
+     */
     public function rest_namespace()
     {
         return 'ewp/v1';
     }
 
+    /**
+     * REST base path of the routes.
+     *
+     * @return string
+     */
     public function rest_base()
     {
         return '/';
     }
 
+    /**
+     * WP-CLI command prefix.
+     *
+     * @return string
+     */
     public function cli_base()
     {
         return 'ewp content';
     }
 
+    /**
+     * Abilities API category slug.
+     *
+     * @return string
+     */
     public function ability_category()
     {
         return 'ewp-content';
     }
 
+    /**
+     * Abilities API category label and description.
+     *
+     * @return array
+     */
     public function ability_category_args()
     {
         return [
@@ -81,11 +121,21 @@ final class Content_Portability_Resource extends Resource
         ];
     }
 
+    /**
+     * Capability every operation requires.
+     *
+     * @return string
+     */
     public function capability()
     {
         return 'manage_options';
     }
 
+    /**
+     * Export and import operations, generated on REST, WP-CLI and abilities.
+     *
+     * @return Operation[]
+     */
     public function operations()
     {
         return [
@@ -95,7 +145,8 @@ final class Content_Portability_Resource extends Resource
                 ->input([
                     Field::array('content_types')->items('string')->required()->cli_name('types')->describe(__('Content type ids to export, comma separated on REST and the CLI.', 'extend-wp')),
                     Field::enum('method', ['json', 'php'])->describe(__('json (default): the rows of the content types, keyed by row hash. php: PHP code that registers the exported field groups (ewp_fields), post types (ewp_post_types) and taxonomies (ewp_taxonomies); the answer is {code, skipped} where skipped lists the types without a PHP generator. page and per_page are ignored for php. REST encodes the json payload as a string.', 'extend-wp')),
-                    Field::string('file')->describe(__('Command line only: write the payload to this path (default ./ewp-content-export.json, or ./ewp-content-export.php with method php). Rows are streamed to the file in batches, so large tables do not have to fit in memory.', 'extend-wp')),
+                    Field::enum('layout', ['single', 'per_object'])->describe(__('method json only. single (default): one payload with every row. per_object: one file per row in the config sync layout (ewp-config/format.json plus ewp-config/{type}/{hash}.json, byte-identical to the auto export); the answer is {files: path => contents, types: type => rows}. The admin screen zips these files. page and per_page are ignored for per_object.', 'extend-wp')),
+                    Field::string('file')->describe(__('Command line only: write the payload to this path (default ./ewp-content-export.json, or ./ewp-content-export.php with method php). With layout per_object this is a folder (default ./ewp-content-export) that receives the ewp-config/ tree. Rows are streamed to the file in batches, so large tables do not have to fit in memory.', 'extend-wp')),
                     Field::int('page')->min(1)->describe(__('Optional. Export only this page (from 1) of every type; the payload then carries pagination (type => page, per_page, total, total_pages). Omit for every row. Ignored with the command line file output unless per_page is set too.', 'extend-wp')),
                     Field::int('per_page')->min(1)->max(Content_Portability::MAX_PER_PAGE)->describe(__('Optional. Rows per page and type for a paged export, 1-1000 (default 500 when page is given).', 'extend-wp')),
                 ])
@@ -106,6 +157,8 @@ final class Content_Portability_Resource extends Resource
                     'properties'           => [
                         'code'    => ['type' => 'string', 'description' => __('method php: the PHP file contents.', 'extend-wp')],
                         'skipped' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => __('method php: requested content types without a PHP generator.', 'extend-wp')],
+                        'files'   => ['type' => 'object', 'additionalProperties' => ['type' => 'string'], 'description' => __('layout per_object: file path (starting with ewp-config/) => JSON contents.', 'extend-wp')],
+                        'types'   => ['type' => 'object', 'additionalProperties' => ['type' => 'integer'], 'description' => __('layout per_object: content type => rows exported.', 'extend-wp')],
                     ],
                     'additionalProperties' => true,
                 ])
@@ -148,6 +201,9 @@ final class Content_Portability_Resource extends Resource
         if (isset($input['method']) && $input['method'] === 'php') {
             return [(array) $input['content_types'], ['format' => 'php']];
         }
+        if (isset($input['layout']) && $input['layout'] === 'per_object') {
+            return [(array) $input['content_types'], ['layout' => 'per_object']];
+        }
         $options = [];
         foreach (['page', 'per_page'] as $key) {
             if (!empty($input[$key])) {
@@ -173,7 +229,7 @@ final class Content_Portability_Resource extends Resource
      */
     public function export_transform($data, array $input, Context $ctx)
     {
-        if ($ctx->surface() !== Context::REST || !is_array($data) || isset($data['code'])) {
+        if ($ctx->surface() !== Context::REST || !is_array($data) || isset($data['code']) || isset($data['files'])) {
             return $data;
         }
 
@@ -233,6 +289,10 @@ final class Content_Portability_Resource extends Resource
             $this->present_php_export($data, $input);
             return;
         }
+        if (isset($data['files'])) {
+            $this->present_files_export($data, $input);
+            return;
+        }
         if (isset($data['file'], $data['types'], $data['count'])) {
             \WP_CLI::success(sprintf('Exported %d row(s) of %d content type(s) to %s.', (int) $data['count'], count((array) $data['types']), $data['file']));
             return;
@@ -266,6 +326,27 @@ final class Content_Portability_Resource extends Resource
         }
         $skipped = !empty($data['skipped']) ? ' Skipped (no PHP generator): ' . implode(', ', (array) $data['skipped']) . '.' : '';
         \WP_CLI::success(sprintf('Exported PHP code to %s.', $file) . $skipped);
+    }
+
+    /**
+     * Write the per object export into --file, a folder (default ./ewp-content-export).
+     *
+     * @param array $data  {files: path => contents, types: type => rows}.
+     * @param array $input Input.
+     *
+     * @return void
+     */
+    private function present_files_export(array $data, array $input)
+    {
+        $root = untrailingslashit(!empty($input['file']) ? (string) $input['file'] : './ewp-content-export');
+        foreach ((array) $data['files'] as $path => $contents) {
+            $target = $root . '/' . $path;
+            if (strpos((string) $path, '..') !== false || !wp_mkdir_p(dirname($target)) || file_put_contents($target, (string) $contents) === false) {
+                \WP_CLI::error(sprintf(__('Failed to write to %s.', 'extend-wp'), $target));
+                return;
+            }
+        }
+        \WP_CLI::success(sprintf('Exported %d row(s) of %d content type(s) as %d file(s) to %s.', array_sum((array) $data['types']), count((array) $data['types']), count((array) $data['files']), $root));
     }
 
     /**

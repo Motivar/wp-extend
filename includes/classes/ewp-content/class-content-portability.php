@@ -29,6 +29,32 @@ final class Content_Portability
     /** Largest `per_page` of a paged export (since 1.11.0). */
     const MAX_PER_PAGE = 1000;
 
+    /** Logger owner of the export/import entries (since 1.15.0). */
+    const LOG_OWNER = 'extend-wp';
+
+    /** Logger action type of an export (since 1.15.0). */
+    const LOG_EXPORT = 'content_export';
+
+    /** Logger action type of an import (since 1.15.0). */
+    const LOG_IMPORT = 'content_import';
+
+    /**
+     * Register the export/import action types with the EWP Logger.
+     *
+     * @return void
+     *
+     * @hook ewp_logger_initialized
+     * @since 1.15.0
+     */
+    public static function register_log_types()
+    {
+        if (!function_exists('ewp_register_log_type')) {
+            return;
+        }
+        ewp_register_log_type(self::LOG_OWNER, self::LOG_EXPORT, 'Content Export', 'Custom content rows were exported (Import/Export screen, REST, WP-CLI or ability).');
+        ewp_register_log_type(self::LOG_OWNER, self::LOG_IMPORT, 'Content Import', 'Custom content rows were imported (Import/Export screen, REST, WP-CLI or ability).');
+    }
+
     /**
      * Export the rows of the given content types with their meta.
      *
@@ -53,6 +79,8 @@ final class Content_Portability
      *     @type int    $per_page Rows per page and type, 1–MAX_PER_PAGE (default BATCH when page is given).
      *     @type string $file     Write the whole export to this path instead of returning it (the CLI's --file).
      *     @type string $format   `php` returns the definitions as PHP code (see export_php()) instead of the rows; page, per_page and file are ignored (since 1.15.0).
+     *     @type string $layout   `per_object` returns one file per row in the config sync layout (see export_files()); page, per_page and file are ignored (since 1.15.0).
+     *     @type bool   $log      False to skip the `content_export` log entry (the config sync logs its own); default true (since 1.15.0).
      * }
      *
      * @return array|\WP_Error `{type: {id: row + meta}, modified[, pagination]}`, or with `file`
@@ -65,8 +93,29 @@ final class Content_Portability
      */
     public function export(array $content_types, array $options = [])
     {
+        $result = $this->run_export($content_types, $options);
+        if (!isset($options['log']) || $options['log'] !== false) {
+            $this->log_export($content_types, $options, $result);
+        }
+
+        return $result;
+    }
+
+    /**
+     * The export itself (see export()), without logging.
+     *
+     * @param string[] $content_types Content type ids.
+     * @param array    $options       As export().
+     *
+     * @return array|\WP_Error As export().
+     */
+    private function run_export(array $content_types, array $options)
+    {
         if (isset($options['format']) && $options['format'] === 'php') {
             return $this->export_php($content_types);
+        }
+        if (isset($options['layout']) && $options['layout'] === 'per_object') {
+            return $this->export_files($content_types);
         }
         $content_types = array_values(array_filter(array_map('strval', $content_types)));
         if (!empty($options['file'])) {
@@ -123,6 +172,23 @@ final class Content_Portability
         $export = new Content_Php_Export();
 
         return $export->export($content_types);
+    }
+
+    /**
+     * Export the rows as the per object files of the config sync (`ewp-config/{type}/{hash}.json`),
+     * byte-identical to what the auto export writes, so the Import/Export screen can zip them.
+     *
+     * @param string[] $content_types Content type ids.
+     *
+     * @return array|\WP_Error `{files: path => contents, types: type => rows}`; an error when nothing was found.
+     *
+     * @since 1.15.0
+     */
+    public function export_files(array $content_types)
+    {
+        require_once __DIR__ . '/class-config-sync.php';
+
+        return (new Config_Sync($this))->build_files($content_types);
     }
 
     /**
@@ -296,14 +362,37 @@ final class Content_Portability
      *
      * @param string $content_type Content type id.
      * @param array  $rows         Rows as exported (each with optional `meta`).
+     * @param array  $options      {
+     *     Optional.
+     *
+     *     @type bool $log False to skip the `content_import` log entry (the config sync logs its own); default true.
+     * }
      *
      * @return array|\WP_Error content_type, count, hashes
      *
      * @since 1.5.0
+     * @since 1.15.0 `$options` (`log`).
      */
-    public function import($content_type, array $rows)
+    public function import($content_type, array $rows, array $options = [])
     {
-        $content_type = (string) $content_type;
+        $result = $this->run_import((string) $content_type, $rows);
+        if (!isset($options['log']) || $options['log'] !== false) {
+            $this->log_import((string) $content_type, count($rows), $result);
+        }
+
+        return $result;
+    }
+
+    /**
+     * The import itself (see import()), without logging.
+     *
+     * @param string $content_type Content type id.
+     * @param array  $rows         Rows as exported.
+     *
+     * @return array|\WP_Error As import().
+     */
+    private function run_import($content_type, array $rows)
+    {
         if ($content_type === '' || $rows === []) {
             return new \WP_Error('no_content', __('No content provided', 'extend-wp'), ['status' => 400]);
         }
@@ -335,5 +424,98 @@ final class Content_Portability
         }
 
         return ['content_type' => $content_type, 'count' => count($hashes), 'hashes' => $hashes];
+    }
+
+    /**
+     * Log an export: what was asked, in which form, and how many rows or files came out.
+     *
+     * @param string[]        $content_types Requested content type ids.
+     * @param array           $options       export() options.
+     * @param array|\WP_Error $result        export() result.
+     *
+     * @return void
+     */
+    private function log_export(array $content_types, array $options, $result)
+    {
+        $form = isset($options['format']) && $options['format'] === 'php' ? 'php' : (isset($options['layout']) && $options['layout'] === 'per_object' ? 'per_object' : (!empty($options['file']) ? 'file' : 'json'));
+        $data = ['types' => array_values(array_map('strval', $content_types)), 'form' => $form];
+        foreach (['page', 'per_page', 'file'] as $key) {
+            if (!empty($options[$key])) {
+                $data[$key] = $options[$key];
+            }
+        }
+        if (is_wp_error($result)) {
+            $data['error'] = $result->get_error_message();
+            self::log(self::LOG_EXPORT, sprintf('Content export failed (%s): %s', implode(', ', $data['types']), $result->get_error_message()), $data, 0);
+            return;
+        }
+        $data['counts'] = self::export_counts($result);
+        if (isset($result['skipped'])) {
+            $data['skipped'] = (array) $result['skipped'];
+        }
+        if (isset($result['files'])) {
+            $data['files'] = count((array) $result['files']);
+        }
+        self::log(self::LOG_EXPORT, sprintf('Exported %d row(s) of %s as %s', array_sum($data['counts']), implode(', ', $data['types']), $form), $data, 1);
+    }
+
+    /**
+     * Rows per content type in an export result.
+     *
+     * @param array $result export() result (payload, file summary, files or php).
+     *
+     * @return array<string, int> Type => rows (empty for php).
+     */
+    private static function export_counts(array $result)
+    {
+        if (isset($result['types']) && is_array($result['types'])) {
+            return array_map('intval', $result['types']);
+        }
+        $counts = [];
+        foreach ($result as $key => $rows) {
+            if (!in_array($key, ['modified', 'pagination', 'code', 'skipped'], true) && is_array($rows)) {
+                $counts[(string) $key] = count($rows);
+            }
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Log an import of one content type.
+     *
+     * @param string          $content_type Content type id.
+     * @param int             $rows         Rows received.
+     * @param array|\WP_Error $result       import() result.
+     *
+     * @return void
+     */
+    private function log_import($content_type, $rows, $result)
+    {
+        $data = ['content_type' => $content_type, 'rows' => (int) $rows];
+        if (is_wp_error($result)) {
+            $data['error'] = $result->get_error_message();
+            self::log(self::LOG_IMPORT, sprintf('Content import into %s failed: %s', $content_type, $result->get_error_message()), $data, 0);
+            return;
+        }
+        $data['imported'] = (int) $result['count'];
+        self::log(self::LOG_IMPORT, sprintf('Imported %d row(s) into %s', (int) $result['count'], $content_type), $data, 1);
+    }
+
+    /**
+     * Write an entry to the EWP Logger when it is available.
+     *
+     * @param string $type      Action type (LOG_EXPORT or LOG_IMPORT).
+     * @param string $message   Summary.
+     * @param array  $data      Details.
+     * @param int    $behaviour 1 success, 0 error.
+     *
+     * @return void
+     */
+    private static function log($type, $message, array $data, $behaviour)
+    {
+        if (function_exists('ewp_log')) {
+            ewp_log(self::LOG_OWNER, $type, $message, $data, 'developer', 'custom_content', $behaviour);
+        }
     }
 }

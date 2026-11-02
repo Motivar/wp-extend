@@ -172,6 +172,11 @@ class Test_Config_Sync extends WP_UnitTestCase
         }
     }
 
+    /**
+     * Single layout export and import are unchanged.
+     *
+     * @return void
+     */
     public function test_single_layout_export_and_import_are_unchanged()
     {
         add_filter('ewp_auto_export_settings_filter', function () {
@@ -195,6 +200,11 @@ class Test_Config_Sync extends WP_UnitTestCase
         $this->assertSame(1, $this->row_count());
     }
 
+    /**
+     * Filter settings without layout keep the single file.
+     *
+     * @return void
+     */
     public function test_filter_settings_without_layout_keep_the_single_file()
     {
         add_filter('ewp_auto_export_settings_filter', function () {
@@ -206,6 +216,11 @@ class Test_Config_Sync extends WP_UnitTestCase
         $this->assertSame(Config_Sync::LAYOUT_SINGLE, $this->sync->export_settings()['layout']);
     }
 
+    /**
+     * Per object save writes only that rows file.
+     *
+     * @return void
+     */
     public function test_per_object_save_writes_only_that_rows_file()
     {
         $this->enable_export('per_object');
@@ -226,6 +241,11 @@ class Test_Config_Sync extends WP_UnitTestCase
         $this->assertStringContainsString('changed', file_get_contents($first_file));
     }
 
+    /**
+     * Per object delete reconciles the type folder.
+     *
+     * @return void
+     */
     public function test_per_object_delete_reconciles_the_type_folder()
     {
         $this->enable_export('per_object');
@@ -238,6 +258,11 @@ class Test_Config_Sync extends WP_UnitTestCase
         $this->assertSame([$this->hash_of($keep) . '.json'], $this->object_files());
     }
 
+    /**
+     * Output is deterministic.
+     *
+     * @return void
+     */
     public function test_output_is_deterministic()
     {
         $a = $this->sync->encode_json(['b' => 1, 'a' => ['z' => 1, 'y' => [3, 1, 2]]]);
@@ -261,6 +286,11 @@ class Test_Config_Sync extends WP_UnitTestCase
         $this->assertSame($bytes, file_get_contents($file));
     }
 
+    /**
+     * Import detects the layout.
+     *
+     * @return void
+     */
     public function test_import_detects_the_layout()
     {
         $this->assertSame('none', $this->sync->detect_format($this->dir));
@@ -285,6 +315,11 @@ class Test_Config_Sync extends WP_UnitTestCase
         $this->assertSame('v2', $this->sync->detect_format($this->dir));
     }
 
+    /**
+     * Import skips an unchanged source.
+     *
+     * @return void
+     */
     public function test_import_skips_an_unchanged_source()
     {
         $this->enable_export('per_object');
@@ -303,6 +338,11 @@ class Test_Config_Sync extends WP_UnitTestCase
         $this->assertSame('imported', $this->sync->import(['path' => $this->rel])['status']);
     }
 
+    /**
+     * Stale deletion only removes rows previously auto imported.
+     *
+     * @return void
+     */
     public function test_stale_deletion_only_removes_rows_previously_auto_imported()
     {
         $this->enable_export('per_object');
@@ -327,6 +367,11 @@ class Test_Config_Sync extends WP_UnitTestCase
         $this->assertNotEmpty($a);
     }
 
+    /**
+     * Hashes are shared by both layouts so switching never duplicates.
+     *
+     * @return void
+     */
     public function test_hashes_are_shared_by_both_layouts_so_switching_never_duplicates()
     {
         $this->enable_export('single');
@@ -341,6 +386,11 @@ class Test_Config_Sync extends WP_UnitTestCase
         $this->assertSame(1, $this->row_count());
     }
 
+    /**
+     * Migrate writes files retires the legacy file and saves the layout.
+     *
+     * @return void
+     */
     public function test_migrate_writes_files_retires_the_legacy_file_and_saves_the_layout()
     {
         $this->enable_export('single');
@@ -361,6 +411,11 @@ class Test_Config_Sync extends WP_UnitTestCase
         $this->assertSame(2, $this->sync->status()['per_object_files']);
     }
 
+    /**
+     * A stored export setting without layout stays dormant.
+     *
+     * @return void
+     */
     public function test_a_stored_export_setting_without_layout_stays_dormant()
     {
         update_option(Config_Sync::OPTION_EXPORT, ['store' => true, 'types' => [self::$type], 'path' => $this->rel]);
@@ -376,6 +431,11 @@ class Test_Config_Sync extends WP_UnitTestCase
         $this->assertFileExists($this->dir . Config_Sync::LEGACY_FILE);
     }
 
+    /**
+     * A bad path raises a notice instead of ending the request.
+     *
+     * @return void
+     */
     public function test_a_bad_path_raises_a_notice_instead_of_ending_the_request()
     {
         update_option(Config_Sync::OPTION_EXPORT, ['store' => true, 'types' => [self::$type], 'path' => $this->rel . '/missing', 'layout' => 'per_object']);
@@ -390,6 +450,11 @@ class Test_Config_Sync extends WP_UnitTestCase
         $this->assertSame('error', reset($stored)['level']);
     }
 
+    /**
+     * Paths cannot climb out of wp content.
+     *
+     * @return void
+     */
     public function test_paths_cannot_climb_out_of_wp_content()
     {
         $this->assertWPError($this->sync->resolve_dir('../uploads'));
@@ -397,6 +462,11 @@ class Test_Config_Sync extends WP_UnitTestCase
         $this->assertSame(untrailingslashit(WP_CONTENT_DIR) . '/a/b/', $this->sync->resolve_dir('/a/b/'));
     }
 
+    /**
+     * The filename filter is honoured and sanitised.
+     *
+     * @return void
+     */
     public function test_the_filename_filter_is_honoured_and_sanitised()
     {
         add_filter('ewp_config_sync_filename', function ($name, $type, $row) {
@@ -415,6 +485,11 @@ class Test_Config_Sync extends WP_UnitTestCase
         $this->assertFileDoesNotExist($this->dir . 'ewp-config/escape.json');
     }
 
+    /**
+     * Importing a row never overwrites a different row with the same content id.
+     *
+     * @return void
+     */
     public function test_importing_a_row_never_overwrites_a_different_row_with_the_same_content_id()
     {
         $portability = new Content_Portability();
@@ -446,5 +521,136 @@ class Test_Config_Sync extends WP_UnitTestCase
         $updated = awm_get_db_content(self::$type, ['include_hashes' => [$existing_hash]]);
         $this->assertSame($existing, (int) $updated[0]['content_id']);
         $this->assertSame('Renamed on source', $updated[0]['content_title']);
+    }
+
+    /**
+     * The per object export of the Import/Export screen (zip) holds exactly the files the auto export writes.
+     *
+     * @return void
+     */
+    public function test_per_object_export_files_match_the_auto_export()
+    {
+        $this->enable_export('per_object');
+        $this->create_row('Zip one');
+        $this->create_row('Zip two');
+
+        $built = (new Content_Portability())->export([self::$type], ['layout' => 'per_object']);
+        $this->assertIsArray($built);
+        $this->assertSame([self::$type => 2], $built['types']);
+        $this->assertSame("{\n    \"format\": 2\n}\n", $built['files']['ewp-config/format.json']);
+
+        $on_disk = [];
+        foreach ((array) glob($this->dir . 'ewp-config/' . self::$type . '/*.json') as $file) {
+            $on_disk['ewp-config/' . self::$type . '/' . basename($file)] = file_get_contents($file);
+        }
+        $from_export = $built['files'];
+        unset($from_export['ewp-config/format.json']);
+        ksort($on_disk);
+        ksort($from_export);
+        $this->assertCount(2, $on_disk);
+        $this->assertSame($on_disk, $from_export, 'zip entries are byte-identical to the auto exported files');
+
+        $this->assertInstanceOf(\WP_Error::class, (new Content_Portability())->export(['no_such_type_xyz'], ['layout' => 'per_object']));
+    }
+
+    /**
+     * Turn the EWP Logger on for one test and collect the entries instead of queueing them.
+     *
+     * @param array $entries Receives every entry (by reference).
+     *
+     * @return callable Restores the logger's enabled flag and removes the capture.
+     */
+    private function capture_log(array &$entries)
+    {
+        \EWP\Logger\EWP_Logger::instance();
+        $flag = new \ReflectionProperty(\EWP\Logger\EWP_Logger::class, 'enabled');
+        $flag->setAccessible(true);
+        $was = $flag->getValue();
+        $flag->setValue(null, true);
+        add_filter('ewp_logger_before_log', function ($entry) use (&$entries) {
+            /* Only the export/import types; saves also log content_save etc. */
+            if (in_array($entry['action_type'], ['config_auto_export', 'config_auto_import', 'content_export', 'content_import'], true)) {
+                $entries[] = $entry;
+            }
+            return false;
+        }, PHP_INT_MAX);
+
+        return function () use ($flag, $was) {
+            $flag->setValue(null, $was);
+            remove_all_filters('ewp_logger_before_log', PHP_INT_MAX);
+        };
+    }
+
+    /**
+     * Action types of the collected entries, in order.
+     *
+     * @param array $entries Logger entries.
+     *
+     * @return string[]
+     */
+    private static function log_types(array $entries)
+    {
+        return array_column($entries, 'action_type');
+    }
+
+    /**
+     * Auto export, sync export / import and manual export / import each leave one log entry of their own type;
+     * nested portability calls inside the sync are not logged twice.
+     *
+     * @return void
+     */
+    public function test_sync_and_manual_export_import_are_logged()
+    {
+        $entries = [];
+        $restore = $this->capture_log($entries);
+        try {
+            $this->enable_export('single');
+            $this->create_row('Logged single');
+            $this->assertSame(['config_auto_export'], self::log_types($entries), 'a single-layout save logs only the auto export');
+            $data = maybe_unserialize($entries[0]['data']);
+            $this->assertSame('save', $data['trigger']);
+            $this->assertSame('single', $data['layout']);
+            $this->assertSame(1, (int) $entries[0]['behaviour']);
+
+            $entries = [];
+            $this->enable_export('per_object');
+            $this->create_row('Logged object');
+            $this->assertSame(['config_auto_export'], self::log_types($entries));
+
+            $entries = [];
+            $this->sync->export($this->sync->export_settings(true));
+            $this->assertSame(['config_auto_export'], self::log_types($entries));
+            $this->assertSame('manual', maybe_unserialize($entries[0]['data'])['trigger']);
+
+            $entries = [];
+            $this->sync->import(['path' => $this->rel, 'force' => true, 'trigger' => 'admin_init']);
+            $this->assertSame(['config_auto_import'], self::log_types($entries), 'the sync import logs once, not per content type');
+            $this->assertSame('admin_init', maybe_unserialize($entries[0]['data'])['trigger']);
+
+            $entries = [];
+            $this->sync->import(['path' => $this->rel]);
+            $this->assertSame([], $entries, 'an unchanged source is not logged');
+
+            $entries = [];
+            $portability = new Content_Portability();
+            $portability->export([self::$type], ['layout' => 'per_object']);
+            $payload = $portability->export([self::$type]);
+            $this->assertSame(['content_export', 'content_export'], self::log_types($entries));
+            $this->assertSame('per_object', maybe_unserialize($entries[0]['data'])['form']);
+            $this->assertSame([self::$type => 2], maybe_unserialize($entries[1]['data'])['counts']);
+
+            $entries = [];
+            $portability->import(self::$type, array_values($payload[self::$type]));
+            $this->assertSame(['content_import'], self::log_types($entries));
+            $this->assertSame(2, maybe_unserialize($entries[0]['data'])['imported']);
+
+            $entries = [];
+            update_option(Config_Sync::OPTION_EXPORT, ['store' => true, 'types' => [self::$type], 'path' => $this->rel . '/missing', 'layout' => 'per_object']);
+            $this->create_row('Logged failure');
+            $this->assertSame(['config_auto_export'], self::log_types($entries));
+            $this->assertSame(0, (int) $entries[0]['behaviour'], 'a failed auto export is logged as an error');
+        } finally {
+            $restore();
+        }
     }
 }
