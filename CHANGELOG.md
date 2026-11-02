@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Hotfix 1.14.1: fields rendered empty when another copy of extend-wp is loaded first** (`2026-11-02`):
+  - **Incident**: onparnassos.gr. Filox's hidden `flx_check_in` / `flx_check_out` inputs never rendered, so booking searches lost their dates; every `awm_show_content()` call returned an empty string.
+  - **Root cause**: the site loads two copies, this plugin (1.14.0) and an older one bundled in Filox (`filox/includes/3rd-party/extend-wp`, 1.10.1). The bundled copy loads first and defines `awm_path` / `awm_url` (the old copy's directory). Since 1.14.0 (`EWP\Fields\Template_Loader`) every field is rendered from `awm_path . 'templates/'`, which does not exist in 1.10.1, so `locate('fields/container')` returned `''`. The same constants also built the URLs of `build/`, `assets/` and the `templates/admin-view` / `templates/frontend` paths.
+  - **Fix**: this copy resolves its own files from new own-location constants `EWP_PLUGIN_DIR` / `EWP_PLUGIN_URL` (defined if not defined, from `plugin_dir_path(__FILE__)` / `plugin_dir_url(__FILE__)`). `Template_Loader` defaults to `dirname(__FILE__, 4) . '/templates/'`, with no global at all. Every `awm_path` / `awm_url` use in `includes/` and `templates/` (assets, build, admin-view and frontend templates, export preview, config-sync, list tables, search, gutenberg block, activation hooks, plugin file lookups) now uses the new constants. The theme override (`extend-wp/...`) and the `$base_dir` argument are unchanged.
+  - **Compatibility**: `awm_path`, `awm_url` and `awm_relative_path` keep their values and are still defined for add-ons; the three `define()`s are now guarded with `defined()` (the first copy still wins, without a redefinition warning).
+  - **Version**: 1.14.0 -> 1.14.1 (`extend-wp.php`, `package.json`, `build/version.php`).
+  - **Tests**: new `tests/test-foreign-copy-paths-test.php` (own-location constants, `locate('fields/container')`, the Filox hidden inputs with ids and `attach-to`, a child PHPUnit process where `tests/bootstrap.php` defines `awm_path` from `EWP_TEST_FOREIGN_COPY_DIR`, and a guard that no source uses `awm_path` / `awm_url`).
+  - **Verification**: `php -l` on all changed files; standalone `Template_Loader` check with `awm_path` pointing to a missing dir. The PHPUnit/self-test/Jest suites need DDEV (no Docker/DB on the runner) and were NOT run here.
+
 ### Changed
 - **Unified export: PHP is an export format on the Import/Export screen; the "Show php code" box is removed** (`2026-11-01`):
   - **Question/Prompt**: "Can we unify the export functionality? We need to get rid of the show php code … add php as an option and based on what users have added preview and download the code" (part 1 of 2; part 2 is the per-object JSON sync). One Sonnet agent implemented it; it was reviewed and documented here.

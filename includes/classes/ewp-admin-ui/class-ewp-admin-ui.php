@@ -58,7 +58,7 @@ class EWP_Admin_UI
    */
   public function register()
   {
-    wp_register_style(self::HANDLE, awm_url . 'assets/css/admin/ewp-admin-ui.min.css', array('awm-admin-style'), AWM_ASSET_VERSION);
+    wp_register_style(self::HANDLE, EWP_PLUGIN_URL . 'assets/css/admin/ewp-admin-ui.min.css', array('awm-admin-style'), AWM_ASSET_VERSION);
   }
 
   /**

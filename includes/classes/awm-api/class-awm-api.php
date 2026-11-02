@@ -304,7 +304,7 @@ class AWM_API
      */
     $template_path = apply_filters(
       'awm_modal_template_path',
-      awm_path . 'templates/admin-view/modal-field.php',
+      EWP_PLUGIN_DIR . 'templates/admin-view/modal-field.php',
       $modal_id,
       $args
     );

@@ -114,7 +114,7 @@ class Dynamic_Asset_Loader
     {
         wp_register_script(
             self::LOADER_HANDLE,
-            awm_url . 'assets/js/class-dynamic-asset-loader.js',
+            EWP_PLUGIN_URL . 'assets/js/class-dynamic-asset-loader.js',
             array(),
             self::VERSION,
             true

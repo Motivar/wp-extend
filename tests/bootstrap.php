@@ -25,6 +25,11 @@ require_once $_tests_dir . '/includes/functions.php';
  * any run on `plugins_loaded`) fire in a clean database.
  */
 tests_add_filter('muplugins_loaded', function () {
+    // Regression harness: simulate another bundled copy (e.g. Filox's) that defined awm_path / awm_url first.
+    if (getenv('EWP_TEST_FOREIGN_COPY_DIR')) {
+        define('awm_path', trailingslashit(getenv('EWP_TEST_FOREIGN_COPY_DIR')));
+        define('awm_url', 'http://example.org/foreign-copy/');
+    }
     require dirname(__DIR__) . '/extend-wp.php';
 });
 

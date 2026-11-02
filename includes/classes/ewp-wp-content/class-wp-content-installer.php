@@ -24,8 +24,8 @@ class EWP_WP_Content_Installer
 
   public function init()
   {
-    register_activation_hook(awm_path . 'extend-wp.php', array($this, 'activate'));
-    register_deactivation_hook(awm_path . 'extend-wp.php', array($this, 'deactivate'));
+    register_activation_hook(EWP_PLUGIN_DIR . 'extend-wp.php', array($this, 'activate'));
+    register_deactivation_hook(EWP_PLUGIN_DIR . 'extend-wp.php', array($this, 'deactivate'));
     add_action('init', [$this, 'register_post_types'], 0);
     add_action('init', [$this, 'register_taxonomies'], 0);
     add_filter('init', [$this, 'connect_post_types_taxonomies'], 0);
@@ -257,7 +257,7 @@ class EWP_WP_Content_Installer
         $slug . '_slug',
         __($title . ' Slug', 'extend-wp'),
         function ($views) use ($slug) {
-          echo awm_parse_template(awm_path . 'templates/admin-view/slug-field.php', array('slug' => (string) $slug, 'value' => (string) get_option($slug . '_slug'))); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
+          echo awm_parse_template(EWP_PLUGIN_DIR . 'templates/admin-view/slug-field.php', array('slug' => (string) $slug, 'value' => (string) get_option($slug . '_slug'))); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
         },
         'permalink',
         'optional'

@@ -392,7 +392,7 @@ class EWP_Logger_Viewer
             'handle'       => 'ewp-log-viewer-style',
             'selector'     => '.ewp-log-viewer-wrap',
             'type'         => 'style',
-            'src'          => awm_url . 'assets/css/admin/ewp-log-viewer.min.css',
+            'src'          => EWP_PLUGIN_URL . 'assets/css/admin/ewp-log-viewer.min.css',
             'version'      => '1.0.0',
             'context'      => 'admin',
         ];
@@ -401,7 +401,7 @@ class EWP_Logger_Viewer
             'handle'       => 'ewp-log-viewer-script',
             'selector'     => '.ewp-log-viewer-wrap',
             'type'         => 'script',
-            'src'          => awm_url . 'assets/js/admin/class-ewp-log-viewer.js',
+            'src'          => EWP_PLUGIN_URL . 'assets/js/admin/class-ewp-log-viewer.js',
             'version'      => '1.0.0',
             'context'      => 'admin',
             'in_footer'    => true,

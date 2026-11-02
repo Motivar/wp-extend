@@ -113,7 +113,7 @@ class AWM_List_Table extends WP_List_Table
         if (empty($this->list_filters) || 'top' !== $which) {
             return;
         }
-        echo awm_parse_template(awm_path . 'templates/admin-view/list-table/filters.php', array( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
+        echo awm_parse_template(EWP_PLUGIN_DIR . 'templates/admin-view/list-table/filters.php', array( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
             'filters_html' => (string) awm_show_content($this->list_filters, 0, 'restrict_manage_posts'),
             'page_id'      => (string) $this->page_id,
             'submit_html'  => self::capture(function () {
@@ -135,7 +135,7 @@ class AWM_List_Table extends WP_List_Table
             return;
         }
         if ('top' === $which) {
-            echo awm_parse_template(awm_path . 'templates/admin-view/list-table/top-actions.php', array( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
+            echo awm_parse_template(EWP_PLUGIN_DIR . 'templates/admin-view/list-table/top-actions.php', array( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
                 'views_html'  => self::capture(array($this, 'views')),
                 'search_html' => self::capture(function () {
                     $this->search_box(sprintf(__('Search %s', 'extend-wp'), $this->_args['plural']), $this->_args['ewp_custom_args']['id'] . '-search-box');
@@ -143,7 +143,7 @@ class AWM_List_Table extends WP_List_Table
                 'nonce_html'  => wp_nonce_field('bulk-' . $this->_args['plural'], '_wpnonce', true, false),
             ));
         }
-        echo awm_parse_template(awm_path . 'templates/admin-view/list-table/tablenav.php', array( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
+        echo awm_parse_template(EWP_PLUGIN_DIR . 'templates/admin-view/list-table/tablenav.php', array( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
             'which'           => (string) $which,
             'bulk_html'       => $this->has_items() ? self::capture(function () use ($which) {
                 $this->bulk_actions($which);
@@ -179,7 +179,7 @@ class AWM_List_Table extends WP_List_Table
      */
     public function search_box($text, $input_id)
     {
-        echo awm_parse_template(awm_path . 'templates/admin-view/list-table/search-box.php', array( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
+        echo awm_parse_template(EWP_PLUGIN_DIR . 'templates/admin-view/list-table/search-box.php', array( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
             'text'        => (string) $text,
             'input_id'    => (string) $input_id,
             'value'       => isset($_REQUEST['s']) ? sanitize_text_field(wp_unslash($_REQUEST['s'])) : '',
@@ -199,7 +199,7 @@ class AWM_List_Table extends WP_List_Table
         if (empty($this->_args['ewp_custom_args']['status'])) {
             return '';
         }
-        echo awm_parse_template(awm_path . 'templates/admin-view/list-table/views.php', array('views' => self::status_views( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
+        echo awm_parse_template(EWP_PLUGIN_DIR . 'templates/admin-view/list-table/views.php', array('views' => self::status_views( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
             $this->_args['ewp_custom_args']['status'],
             $this->get_total_items(),
             admin_url($this->page_link),

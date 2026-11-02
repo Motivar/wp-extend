@@ -461,7 +461,7 @@ class AWM_Add_Custom_List
     $item = isset($item_data['item']) && is_array($item_data['item']) ? $item_data['item'] : array();
     $id   = isset($item['content_id']) ? absint($item['content_id']) : 0;
 
-    return awm_parse_template(awm_path . 'templates/admin-view/update-box.php', array(
+    return awm_parse_template(EWP_PLUGIN_DIR . 'templates/admin-view/update-box.php', array(
       'status_html' => (string) $select_box,
       'delete_url'  => ($id && $this->show_delete) ? wp_nonce_url(admin_url($this->page_link . '&id=' . $id . '&action=delete'), $this->page_id . '_delete') : '',
       'save_text'   => $id ? __('Update', 'extend-wp') : __('Save', 'extend-wp'),
@@ -544,6 +544,6 @@ class AWM_Add_Custom_List
     global $ewp_args;
     $args['page_hook'] = $this->page_hook;
     $ewp_args = $args + $this->get_current_view_data();
-    echo awm_parse_template(awm_path . 'templates/admin-view/edit-post.php');
+    echo awm_parse_template(EWP_PLUGIN_DIR . 'templates/admin-view/edit-post.php');
   }
 }

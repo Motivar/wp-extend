@@ -32,7 +32,7 @@ if (!defined('ABSPATH')) {
 $box_id      = $variables['box_id'];
 $explanation = $variables['explanation']; // phpcs:ignore -- awm_show_explanation() output, echoed below.
 $fields      = $variables['fields'];
-$markers     = awm_parse_template(awm_path . 'templates/admin-view/metabox-markers.php', array('box_id' => $box_id, 'case' => $variables['case']));
+$markers     = awm_parse_template(EWP_PLUGIN_DIR . 'templates/admin-view/metabox-markers.php', array('box_id' => $box_id, 'case' => $variables['case']));
 
 switch ($variables['layout']) {
     case 'term-add':

@@ -847,7 +847,7 @@ class EWP_Options_Portability
 			'handle'       => 'ewp-options-portability',
 			'selector'     => '.ewp-options-portability-wrap',
 			'type'         => 'script',
-			'src'          => awm_url . 'assets/js/admin/class-ewp-options-portability.js',
+			'src'          => EWP_PLUGIN_URL . 'assets/js/admin/class-ewp-options-portability.js',
 			'version'      => self::$version,
 			'context'      => 'admin',
 			'dependencies' => array(),
@@ -889,7 +889,7 @@ class EWP_Options_Portability
 			'handle'   => 'ewp-options-portability-css',
 			'selector' => '.ewp-options-portability-wrap',
 			'type'     => 'style',
-			'src'      => awm_url . 'assets/css/admin/ewp-options-portability.css',
+			'src'      => EWP_PLUGIN_URL . 'assets/css/admin/ewp-options-portability.css',
 			'version'  => self::$version,
 			'context'  => 'admin',
 		);
@@ -946,7 +946,7 @@ class EWP_Options_Portability
 			return $version;
 		}
 
-		$plugin_file = awm_path . 'extend-wp.php';
+		$plugin_file = EWP_PLUGIN_DIR . 'extend-wp.php';
 
 		if (!function_exists('get_plugin_data')) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';

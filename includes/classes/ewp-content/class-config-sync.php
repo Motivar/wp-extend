@@ -1333,7 +1333,7 @@ final class Config_Sync
         self::$notices = [];
 
         foreach ($notices as $notice) {
-            echo awm_parse_template(awm_path . 'templates/admin-view/config-sync-notice.php', $notice); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
+            echo awm_parse_template(EWP_PLUGIN_DIR . 'templates/admin-view/config-sync-notice.php', $notice); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
         }
     }
 
