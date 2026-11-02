@@ -157,6 +157,16 @@ class EWPDynamicAssetLoader {
             return;
         }
 
+        if (this.isAssetInDom(asset)) {
+            // WordPress already printed this asset: do not execute it a second time and do not
+            // re-export its localize data (WP printed that too). The loaded event still fires so
+            // listeners behave as for an injected asset.
+            this.log(`Asset already in DOM, skipping injection: ${asset.handle}`, { type: asset.type, src: asset.src });
+            this.markAssetAsLoaded(asset);
+            this.dispatchLoadEvent(asset);
+            return;
+        }
+
         this.log(`Loading asset: ${asset.handle}`, { type: asset.type, src: asset.src });
 
         this.exportLocalizeSettingsAsGlobals(asset);
@@ -173,6 +183,67 @@ class EWPDynamicAssetLoader {
     }
 
     /**
+     * Strip query string and fragment from a URL so assets differing only by `?ver=` compare equal.
+     * Relative URLs are resolved against the document; the comparison is exact on the remaining path.
+     *
+     * @param {string} url Absolute or relative URL
+     * @return {string} URL without query string and fragment ('' when empty)
+     */
+    normalizeAssetUrl(url) {
+        if (!url) {
+            return '';
+        }
+
+        try {
+            const parsed = new URL(url, document.baseURI);
+            return parsed.origin + parsed.pathname;
+        } catch (error) {
+            return String(url).split('#')[0].split('?')[0];
+        }
+    }
+
+    /**
+     * Check whether WordPress (or anything else, but not this loader) already put the asset on the page.
+     * Matches `script#<handle>-js` / `script#<handle>` (styles: `link#<handle>-css` / `link#<handle>`)
+     * or a tag whose src/href equals the asset src ignoring the query string. Elements injected by this
+     * loader carry `data-ewp-dynamic-asset` and are ignored, so a failed load can be retried.
+     *
+     * @param {Object} asset Asset configuration
+     * @return {boolean} True if the asset is already present in the DOM
+     */
+    isAssetInDom(asset) {
+        if (!asset || !asset.handle) {
+            return false;
+        }
+
+        const isStyle = asset.type === 'style';
+        if (isStyle && asset.inline_css && asset.inline_css.trim() !== '') {
+            return false;
+        }
+
+        const tag = isStyle ? 'link' : 'script';
+        const attr = isStyle ? 'href' : 'src';
+        const ids = isStyle ? [asset.handle + '-css', asset.handle] : [asset.handle + '-js', asset.handle];
+
+        const foreign = el => el && !el.hasAttribute('data-ewp-dynamic-asset');
+
+        if (ids.some(id => {
+            const el = document.getElementById(id);
+            return foreign(el) && el.tagName.toLowerCase() === tag;
+        })) {
+            return true;
+        }
+
+        const target = this.normalizeAssetUrl(asset.src);
+        if (!target) {
+            return false;
+        }
+
+        const elements = document.querySelectorAll(tag + '[' + attr + ']');
+        return Array.from(elements).some(el => foreign(el) && this.normalizeAssetUrl(el.getAttribute(attr)) === target);
+    }
+
+    /**
      * Load script dynamically
      * 
      * @param {Object} asset Script configuration
@@ -182,6 +253,7 @@ class EWPDynamicAssetLoader {
         this.loadDependencies(asset.dependencies || []).then(() => {
             const script = document.createElement('script');
             script.id = asset.handle;
+            script.setAttribute('data-ewp-dynamic-asset', 'true');
             script.src = asset.src;
 
             if (asset.module === true) {
@@ -247,6 +319,7 @@ class EWPDynamicAssetLoader {
 
             const link = document.createElement('link');
             link.id = asset.handle;
+            link.setAttribute('data-ewp-dynamic-asset', 'true');
             link.rel = 'stylesheet';
             link.href = asset.src;
             link.media = asset.media || 'all';
@@ -293,6 +366,7 @@ class EWPDynamicAssetLoader {
 
         const style = document.createElement('style');
         style.id = asset.handle;
+        style.setAttribute('data-ewp-dynamic-asset', 'true');
         style.textContent = asset.inline_css;
 
         if (asset.media && asset.media !== 'all') {
