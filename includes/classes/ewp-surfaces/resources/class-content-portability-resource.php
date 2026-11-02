@@ -342,7 +342,7 @@ final class Content_Portability_Resource extends Resource
         foreach ((array) $data['files'] as $path => $contents) {
             $target = $root . '/' . $path;
             if (strpos((string) $path, '..') !== false || !wp_mkdir_p(dirname($target)) || file_put_contents($target, (string) $contents) === false) {
-                \WP_CLI::error(sprintf(__('Failed to write to %s.', 'extend-wp'), $target));
+                \WP_CLI::error(sprintf(/* translators: %s: file path */ __('Failed to write to %s.', 'extend-wp'), $target));
                 return;
             }
         }

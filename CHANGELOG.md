@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **`wporg` branch: `main` caf71b79 merged in (per-object JSON export as zip, config sync logging, dead REST Health setting removed); Plugin Check on the new code** (`2026-11-02`, `wporg` branch):
+  - **Question/Prompt**: "continue on filox" (main had moved 4 commits since yesterday's merge; no conflicts).
+  - **Plugin Check on the package: 5 → 1** (the remaining one is still wp-kit's `wp_register_ability_category()`):
+    - `Content_Portability_Resource::present_files_export()`: translator comment on `Failed to write to %s.`.
+    - `Content_Portability_Case::remove_files_dir()`: `unlink()` → `wp_delete_file()`; the two `rmdir()` calls stay, marked with the reason as in `Config_Sync_Case`.
 - **`wporg` branch: `main` 1.14.0 merged in; Plugin Check on Nikos's new code; duplicate `name` fix restored in the field engine** (`2026-11-01`, `wporg` branch):
   - **Question/Prompt**: "yes go ahead with the merge on Extend WP wporg" (main had moved 20 commits since the branch was cut, so the merge was no longer a fast-forward: 15 conflicts).
   - **Merge** (`Merge main (1.14.0) into wporg`): main's code wins where it moved markup into templates (settings, term / user / post boxes, list table and form, search form, slug field, field engine, object search, import/export → `Config_Sync`). Kept from wporg: `Requires at least: 6.8`, `awm_date()`, `awm_show_explanation()` escaping, `esc_html()` in `ewp_debug()`, translator comments. REST Health is deleted as on main, together with the Swagger UI copy wporg had bundled for it (`assets/third-party/`) and its `readme.txt` line. Main's own fixes already cover wporg's import guard (administrators only, no ajax, no flush after a failed import).

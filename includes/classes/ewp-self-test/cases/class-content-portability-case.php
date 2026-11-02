@@ -170,8 +170,8 @@ class Content_Portability_Case extends Case_Base
     {
         $items = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($items as $item) {
-            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+            $item->isDir() ? @rmdir($item->getPathname()) : wp_delete_file($item->getPathname()); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- best effort cleanup of the test's own folder; WP_Filesystem may ask for FTP credentials.
         }
-        @rmdir($dir);
+        @rmdir($dir); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- best effort cleanup of the test's own folder; WP_Filesystem may ask for FTP credentials.
     }
 }
