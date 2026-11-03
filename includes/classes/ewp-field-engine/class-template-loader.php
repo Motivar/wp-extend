@@ -27,11 +27,11 @@ final class Template_Loader
     private $paths = array();
 
     /**
-     * @param string $base_dir Plugin templates directory (default: awm_path . 'templates/').
+     * @param string $base_dir Plugin templates directory (default: this copy's templates/, resolved from __FILE__, never from awm_path).
      */
     public function __construct($base_dir = '')
     {
-        $this->base_dir = $base_dir ? trailingslashit($base_dir) : awm_path . 'templates/';
+        $this->base_dir = $base_dir ? trailingslashit($base_dir) : dirname(__FILE__, 4) . '/templates/';
     }
 
     /**

@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.14.3] - 2026-11-02
+
+### Fixed
+- **Dynamic Asset Loader injected scripts/styles WordPress had already printed, so they ran twice** (`2026-11-02`):
+  - **Question/Prompt**: on onparnassos.gr `/diamoni/` the loader appended `filox-custom-inputs`, `filox-engine-script`, `filox-booking-script`, `tippy`, `tippy-filox-script` although WP had printed the same files (`<handle>-js`); `custom-inputs.min.js` re-ran `flx_create_engine_calendar()` and reset the date button, and handlers were bound twice.
+  - **Root cause**: `loadAsset()` only consulted its own `loadedAssets` Set; the DOM check existed only for dependencies.
+  - **Fix**: new `isAssetInDom()` / `normalizeAssetUrl()` in `assets/js/class-dynamic-asset-loader.js`. Before injecting, an asset counts as present when `script#<handle>-js`, `script#<handle>` (styles: `link#<handle>-css`, `link#<handle>`) exists, or a `script[src]`/`link[href]` equals the asset src on origin+path (query string ignored; exact, not substring). It is then marked loaded, NOT injected, localize globals are NOT re-exported, and the `ewp_asset_loaded`-style load event still dispatches as for an injected asset. Elements the loader injects now carry `data-ewp-dynamic-asset` and are ignored by the check, so failed loads can still be retried. Inline-CSS styles keep their own existing check. `isDependencyLoaded()` is unchanged.
+  - **PHP**: not changed. The config is localized at `wp_enqueue_scripts` priority 999 and other plugins can still enqueue later (and `done` is only true after printing), so a server-side `wp_script_is()` filter would be unreliable; the JS check is authoritative. Only the loader's cache-busting `VERSION` constant went 1.0.7 -> 1.0.8.
+  - **Files**: `assets/js/class-dynamic-asset-loader.js` (served raw, no build copy), `includes/classes/class-dynamic-asset-loader.php`, `assets/js/test/class-dynamic-asset-loader.test.js`, `extend-wp.php`, `package.json`, `build/version.php` (1.14.2 -> 1.14.3).
+  - **Compatibility**: no hooks, routes or settings changed. Assets absent from the DOM load exactly as before.
+  - **Tests**: new Jest suite (WP `-js` id, same src with different ver, similar-path non-match, absent -> injected once, localize skipped, style equivalents); `npm run test:js` passes (83). PHPUnit/self-test not run (JS-only change).
+
+## [1.14.2] - 2026-11-02
+
+### Fixed
+- **HOTFIX: `awm_ajax_call()` never ran the success callback for string JSON responses (onparnassos.gr booking page stuck on "loading")** (`2026-11-02`):
+  - **Question/Prompt**: production incident on onparnassos.gr; Filox's availability endpoint returns a JSON *string* (HTML) and the callback never fired.
+  - **Root cause**: `build/global/awm-global-script.js` became a webpack bundle with `"use strict"`. `awm_ajax_call()` did `responseData.element = Options.element` on the parsed response; on a primitive string that throws `TypeError: Cannot create property 'element' on string` in strict mode (it was a silent no-op in the old non-strict script). The catch reported "Error parsing JSON response" and called the error handler instead of the success callback.
+  - **Fix**: `element` is only attached when the parsed response is a non-null object; strings/numbers/null reach the callback unchanged, as before. No other place in `assets/js` assigns properties on a parsed response (audited every `JSON.parse`).
+  - **Files**: `assets/js/global/awm-global-script.js`, rebuilt `build/global/awm-global-script.js` (+ `.asset.php`), `build/version.php`, `extend-wp.php`, `package.json` (1.14.1 -> 1.14.2).
+  - **Compatibility**: no hooks, routes or settings changed.
+  - **Tests**: new `assets/js/global/test/awm-ajax-call.test.js` (mocked XMLHttpRequest: string response + `element` -> callback gets the string, no error handler; object response + `element` -> attached). `npm run test:js` passes (75). PHPUnit not run (JS-only change).
+
+### Fixed
+- **Block editor: "getPostStatuses is not a function" on post types with custom statuses** (`2026-11-02`):
+  - **Question/Prompt**: console log from `post.php?post=10&action=edit` on wp-filox showing `Uncaught (in promise) TypeError: t(...).getPostStatuses is not a function` in `awm-admin-script.js`.
+  - **Root cause**: `EWPCustomPostStatus::addToGutenberg()` read existing statuses with `wp.data.select('core').getPostStatuses()`, a selector the `core` store has never had (carried over from the inline script the post-type installer printed before 1.14.0, where it failed the same way). The throw happened inside a `wp.data.subscribe` callback, so the custom statuses were never added to the editor.
+  - **Fix**: use `select('core').getEntityRecords('root', 'status')` (the `root`/`status` entity, an array or null). `mergeStatusRecords()` in `assets/js/admin/custom-post-status-helpers.js` now accepts that array as well as a slug-keyed object, skipping records without a `slug`.
+  - **Files**: `assets/js/admin/awm-admin-script.js`, `assets/js/admin/custom-post-status-helpers.js`, `assets/js/admin/test/custom-post-status-helpers.test.js`, rebuilt `build/admin/awm-admin-script.js` (+ `.asset.php`).
+  - **Compatibility**: no hooks, routes or settings changed. Other errors in that log come from Filox, not this plugin: the `gstatic.com/charts/loader.js` CORS/`google is not defined` failure, and `flxRatesSettings function does not exist!` (a `data-callback` on Filox fields whose function is not loaded on that screen; `awm_check_call_back()` only logs it).
+  - **Tests**: new Jest case for the array input; `npm run test:js` (73 passing). PHPUnit/self-test not run (JS-only change).
+
+- **Tests: `Test_Foreign_Copy_Paths` (from the 1.14.1 hotfix) failed and broke the rest of the suite** (`2026-11-02`):
+  - **Question/Prompt**: "can you push this?" — the pre-push hook blocked the push (`composer test`: 6 errors, 4 failures).
+  - **Causes**: `test_hidden_inputs_render` counted every `type="hidden"` input, including each field's `awm_custom_meta[]` save marker (4, not 2). `test_with_foreign_awm_path` re-ran PHPUnit in a child process that reinstalled the shared test DB mid-suite, dropping tables under the parent run (`wptests_options doesn't exist` in unrelated tests).
+  - **Fix**: the count skips the save marker; the child process runs with `WP_TESTS_SKIP_INSTALL=1` and reuses the parent's DB. Test-only; `tests/test-foreign-copy-paths-test.php`.
+  - **Verification**: `composer test` — PHPUnit 563 OK (1 skipped), self-test 15 passed.
+
+- **Hotfix 1.14.1: fields rendered empty when another copy of extend-wp is loaded first** (`2026-11-02`):
+  - **Incident**: onparnassos.gr. Filox's hidden `flx_check_in` / `flx_check_out` inputs never rendered, so booking searches lost their dates; every `awm_show_content()` call returned an empty string.
+  - **Root cause**: the site loads two copies, this plugin (1.14.0) and an older one bundled in Filox (`filox/includes/3rd-party/extend-wp`, 1.10.1). The bundled copy loads first and defines `awm_path` / `awm_url` (the old copy's directory). Since 1.14.0 (`EWP\Fields\Template_Loader`) every field is rendered from `awm_path . 'templates/'`, which does not exist in 1.10.1, so `locate('fields/container')` returned `''`. The same constants also built the URLs of `build/`, `assets/` and the `templates/admin-view` / `templates/frontend` paths.
+  - **Fix**: this copy resolves its own files from new own-location constants `EWP_PLUGIN_DIR` / `EWP_PLUGIN_URL` (defined if not defined, from `plugin_dir_path(__FILE__)` / `plugin_dir_url(__FILE__)`). `Template_Loader` defaults to `dirname(__FILE__, 4) . '/templates/'`, with no global at all. Every `awm_path` / `awm_url` use in `includes/` and `templates/` (assets, build, admin-view and frontend templates, export preview, config-sync, list tables, search, gutenberg block, activation hooks, plugin file lookups) now uses the new constants. The theme override (`extend-wp/...`) and the `$base_dir` argument are unchanged.
+  - **Compatibility**: `awm_path`, `awm_url` and `awm_relative_path` keep their values and are still defined for add-ons; the three `define()`s are now guarded with `defined()` (the first copy still wins, without a redefinition warning).
+  - **Version**: 1.14.0 -> 1.14.1 (`extend-wp.php`, `package.json`, `build/version.php`).
+  - **Tests**: new `tests/test-foreign-copy-paths-test.php` (own-location constants, `locate('fields/container')`, the Filox hidden inputs with ids and `attach-to`, a child PHPUnit process where `tests/bootstrap.php` defines `awm_path` from `EWP_TEST_FOREIGN_COPY_DIR`, and a guard that no source uses `awm_path` / `awm_url`).
+  - **Verification**: `php -l` on all changed files; standalone `Template_Loader` check with `awm_path` pointing to a missing dir. The PHPUnit/self-test/Jest suites need DDEV (no Docker/DB on the runner) and were NOT run here.
+
 ### Changed
 - **`wporg` branch: `main` caf71b79 merged in (per-object JSON export as zip, config sync logging, dead REST Health setting removed); Plugin Check on the new code** (`2026-11-02`, `wporg` branch):
   - **Question/Prompt**: "continue on filox" (main had moved 4 commits since yesterday's merge; no conflicts).

@@ -10,7 +10,7 @@ if (!function_exists('awm_options_callback')) {
      */
     function awm_options_callback()
     {
-        echo awm_parse_template(awm_path . 'templates/settings.php'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Extend WP template output; the templates escape their own values.
+        echo awm_parse_template(EWP_PLUGIN_DIR . 'templates/settings.php'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Extend WP template output; the templates escape their own values.
     }
 }
 
@@ -358,7 +358,7 @@ if (!function_exists('ewp_debug')) {
     {
         /*styled by assets/css/global/ewp-debug.min.css; enqueued this late, WordPress prints it in the footer*/
         if (function_exists('wp_enqueue_style') && did_action('init')) {
-            wp_enqueue_style('ewp-debug', awm_url . 'assets/css/global/ewp-debug.min.css', array(), defined('AWM_ASSET_VERSION') ? AWM_ASSET_VERSION : false);
+            wp_enqueue_style('ewp-debug', EWP_PLUGIN_URL . 'assets/css/global/ewp-debug.min.css', array(), defined('AWM_ASSET_VERSION') ? AWM_ASSET_VERSION : false);
         }
         echo '<pre class="ewp-debug">';
         echo esc_html(print_r($data, true));

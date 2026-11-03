@@ -294,7 +294,7 @@ class EWP_Gallery_Meta_Box
             'handle'       => 'awm-media-field-script',
             'selector'     => '.awm-media-field',
             'type'         => 'script',
-            'src'          => awm_url . 'assets/js/admin/class-awm-media-field.js',
+            'src'          => EWP_PLUGIN_URL . 'assets/js/admin/class-awm-media-field.js',
             'version'      => $version,
             'context'      => 'admin',
             'dependencies' => array(),
@@ -320,7 +320,7 @@ class EWP_Gallery_Meta_Box
             'handle'   => 'awm-media-field-style',
             'selector' => '.awm-media-field',
             'type'     => 'style',
-            'src'      => awm_url . 'assets/css/admin/awm-media-field.css',
+            'src'      => EWP_PLUGIN_URL . 'assets/css/admin/awm-media-field.css',
             'version'  => $version,
             'context'  => 'admin',
         );

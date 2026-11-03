@@ -152,7 +152,7 @@ class Extend_WP_Import_Export
    'handle' => 'extend-wp-import-export',
    'selector' => $selector,
    'type' => 'script',
-   'src' => awm_url . 'build/modules/ewp-import-export.js',
+   'src' => EWP_PLUGIN_URL . 'build/modules/ewp-import-export.js',
    'version' => $version,
    'context' => 'admin',
    'dependencies' => array(),
@@ -181,7 +181,7 @@ class Extend_WP_Import_Export
    'handle' => 'extend-wp-import-export-style',
    'selector' => $selector,
    'type' => 'style',
-   'src' => awm_url . 'assets/css/admin/ewp-import-export.min.css',
+   'src' => EWP_PLUGIN_URL . 'assets/css/admin/ewp-import-export.min.css',
    'version' => $version,
    'context' => 'admin',
   );
@@ -236,7 +236,7 @@ class Extend_WP_Import_Export
    'export_preview' => array(
     'case' => 'html',
     'show-when' => array('case' => array('values' => array('export' => true))),
-    'value' => awm_parse_template(awm_path . 'templates/admin-view/export-preview.php', array('title' => __('Export preview', 'extend-wp'))),
+    'value' => awm_parse_template(EWP_PLUGIN_DIR . 'templates/admin-view/export-preview.php', array('title' => __('Export preview', 'extend-wp'))),
     'exclude_meta' => true,
    ),
    'file' => array(

@@ -22,12 +22,19 @@ export function statusLabel(statusKey, statusData) {
  * Status records for the block editor's `core` store: the existing ones plus
  * the custom statuses, as `wp.data.dispatch('core').receiveEntityRecords('root', 'status', …)` expects.
  *
- * @param {Object} existing       Statuses already in the store, keyed by slug (may be empty).
+ * @param {Object[]|Object|null} existing Statuses already in the store: the array
+ *                                         `select('core').getEntityRecords('root', 'status')` returns,
+ *                                         or an object keyed by slug (may be empty/null).
  * @param {Object} customStatuses Custom statuses keyed by slug.
  * @return {Object[]} Records (`name` = label, `slug`, `_links`).
  */
 export function mergeStatusRecords(existing, customStatuses) {
-    const merged = Object.assign({}, existing || {});
+    const merged = {};
+    (Array.isArray(existing) ? existing : Object.values(existing || {})).forEach((record) => {
+        if (record && record.slug) {
+            merged[record.slug] = record;
+        }
+    });
     Object.keys(customStatuses || {}).forEach((statusKey) => {
         merged[statusKey] = {
             name: statusLabel(statusKey, customStatuses[statusKey]),

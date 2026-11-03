@@ -247,7 +247,7 @@ do_action('awm_modal_before_wrapper', $modal_id, $args);
              */
             $buttons_html = '';
             ob_start();
-            include awm_path . 'templates/admin-view/modal-footer-buttons.php';
+            include EWP_PLUGIN_DIR . 'templates/admin-view/modal-footer-buttons.php';
             $default_buttons = ob_get_clean();
 
             echo apply_filters( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- footer buttons from templates/admin-view/modal-footer-buttons.php.

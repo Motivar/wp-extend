@@ -134,7 +134,7 @@ class EWPCustomPostStatus {
             dispatch('core').receiveEntityRecords(
                 'root',
                 'status',
-                mergeStatusRecords(select('core').getPostStatuses() || {}, this.customStatuses)
+                mergeStatusRecords(select('core').getEntityRecords('root', 'status'), this.customStatuses)
             );
         });
         setTimeout(() => {

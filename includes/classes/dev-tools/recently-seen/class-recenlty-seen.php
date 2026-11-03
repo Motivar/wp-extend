@@ -147,7 +147,7 @@ class EWP_Recently_Seen_UTIL
     public function registerScripts()
     {
         $version = 0.02;
-        wp_register_script('ewp-recently-seen', awm_url . 'assets/js/public/ewp-recently.js', array(), $version, true);
+        wp_register_script('ewp-recently-seen', EWP_PLUGIN_URL . 'assets/js/public/ewp-recently.js', array(), $version, true);
     }
     /**
      * Conditionally enqueues scripts for the Recently Seen functionality

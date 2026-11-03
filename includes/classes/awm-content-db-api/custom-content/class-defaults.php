@@ -50,7 +50,7 @@ class Extend_WP_Default_Content
       'handle'       => 'ewp-config-sync',
       'selector'     => '.ewp-config-sync',
       'type'         => 'script',
-      'src'          => awm_url . 'build/modules/ewp-config-sync.js',
+      'src'          => EWP_PLUGIN_URL . 'build/modules/ewp-config-sync.js',
       'version'      => defined('AWM_ASSET_VERSION') ? AWM_ASSET_VERSION : '1.0.0',
       'context'      => 'admin',
       'dependencies' => array(),
@@ -86,7 +86,7 @@ class Extend_WP_Default_Content
       return '';
     }
     $status = (new \EWP\Content\Config_Sync())->status();
-    return awm_parse_template(awm_path . 'templates/admin-view/config-sync-panel.php', array(
+    return awm_parse_template(EWP_PLUGIN_DIR . 'templates/admin-view/config-sync-panel.php', array(
       'dormant'     => $status['dormant'],
       'can_migrate' => $status['layout'] !== \EWP\Content\Config_Sync::LAYOUT_PER_OBJECT || $status['legacy_file'],
     ));

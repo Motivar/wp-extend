@@ -4,7 +4,7 @@ Tags: custom fields, meta boxes, options pages, custom tables, developer
 Requires at least: 6.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.14.0
+Stable tag: 1.14.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -53,5 +53,5 @@ Field groups, post types and taxonomies can be built from the admin. Custom cont
 
 == Changelog ==
 
-= 1.13.0 =
+= 1.14.3 =
 * First release on WordPress.org.

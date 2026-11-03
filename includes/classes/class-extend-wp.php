@@ -294,10 +294,10 @@ class AWM_Meta
     private function register_script_styles()
     {
         $version = AWM_ASSET_VERSION;
-        wp_register_style('awm-global-style', awm_url . 'assets/css/global/awm-global-style.min.css', false, $version);
-        wp_register_style('awm-admin-style', awm_url . 'assets/css/admin/awm-admin-style.min.css', false, $version);
+        wp_register_style('awm-global-style', EWP_PLUGIN_URL . 'assets/css/global/awm-global-style.min.css', false, $version);
+        wp_register_style('awm-admin-style', EWP_PLUGIN_URL . 'assets/css/admin/awm-admin-style.min.css', false, $version);
 
-        wp_register_script('awm-global-script', awm_url . 'build/global/awm-global-script.js', array(), $version, true);
+        wp_register_script('awm-global-script', EWP_PLUGIN_URL . 'build/global/awm-global-script.js', array(), $version, true);
 
         // Get wp_editor args for JavaScript use
         $wp_editor_args = awm_get_wp_editor_args('', '', '');
@@ -323,23 +323,23 @@ class AWM_Meta
             ), 
             'url' => esc_url(home_url()),
             'nonce' => wp_create_nonce('wp_rest'),
-            'buildUrl' => esc_url(awm_url . 'build/'),
+            'buildUrl' => esc_url(EWP_PLUGIN_URL . 'build/'),
             'wpEditorArgs' => $wp_editor_args,
             'spinnerHtml' => $spinner_html
         ));
 
         // Register module scripts for lazy loading (bundled via webpack)
-        wp_register_script('awm-tinymce-module', awm_url . 'build/modules/awm-tinymce-module.js', array(), $version, true);
-        wp_register_script('awm-repeater-module', awm_url . 'build/modules/awm-repeater-module.js', array(), $version, true);
-        wp_register_script('awm-forms-module', awm_url . 'build/modules/awm-forms-module.js', array(), $version, true);
-        wp_register_script('awm-inputs-module', awm_url . 'build/modules/awm-inputs-module.js', array(), $version, true);
+        wp_register_script('awm-tinymce-module', EWP_PLUGIN_URL . 'build/modules/awm-tinymce-module.js', array(), $version, true);
+        wp_register_script('awm-repeater-module', EWP_PLUGIN_URL . 'build/modules/awm-repeater-module.js', array(), $version, true);
+        wp_register_script('awm-forms-module', EWP_PLUGIN_URL . 'build/modules/awm-forms-module.js', array(), $version, true);
+        wp_register_script('awm-inputs-module', EWP_PLUGIN_URL . 'build/modules/awm-inputs-module.js', array(), $version, true);
 
-        wp_register_script('awm-admin-script', awm_url . 'build/admin/awm-admin-script.js', array('awm-global-script'), $version, true);
-        wp_register_style('jquery-ui-awm', awm_url . 'assets/css/global/jquery-ui.min.css');
+        wp_register_script('awm-admin-script', EWP_PLUGIN_URL . 'build/admin/awm-admin-script.js', array('awm-global-script'), $version, true);
+        wp_register_style('jquery-ui-awm', EWP_PLUGIN_URL . 'assets/css/global/jquery-ui.min.css');
         // Enqueue delete confirmation script for admin pages
         wp_register_script(
             'awm-delete-confirmation',
-            awm_url . '/assets/js/class-delete-confirmation.js',
+            EWP_PLUGIN_URL . '/assets/js/class-delete-confirmation.js',
             array(), // No dependencies - pure vanilla JS
             $version,
             true // Load in footer
@@ -347,7 +347,7 @@ class AWM_Meta
         // Register dynamic block events handler for admin area
         wp_register_script(
             'awm-dynamic-block-events',
-            awm_url . '/assets/js/admin/class-dynamic-block-events.js',
+            EWP_PLUGIN_URL . '/assets/js/admin/class-dynamic-block-events.js',
             array(), // No dependencies - pure vanilla JS
             $version,
             true // Load in footer
@@ -370,7 +370,7 @@ class AWM_Meta
             'handle'       => 'ewp-content-form-postboxes',
             'selector'     => '#ewp-content-form',
             'type'         => 'script',
-            'src'          => awm_url . 'build/modules/ewp-content-form-postboxes.js',
+            'src'          => EWP_PLUGIN_URL . 'build/modules/ewp-content-form-postboxes.js',
             'version'      => defined('AWM_ASSET_VERSION') ? AWM_ASSET_VERSION : '1.0.0',
             'context'      => 'admin',
             'dependencies' => array('postbox'),
@@ -381,7 +381,7 @@ class AWM_Meta
             'handle'   => 'ewp-list-table',
             'selector' => '.ewp-list-filters',
             'type'     => 'style',
-            'src'      => awm_url . 'assets/css/admin/ewp-list-table.min.css',
+            'src'      => EWP_PLUGIN_URL . 'assets/css/admin/ewp-list-table.min.css',
             'version'  => defined('AWM_ASSET_VERSION') ? AWM_ASSET_VERSION : '1.0.0',
             'context'  => 'admin',
         );
@@ -406,7 +406,7 @@ class AWM_Meta
             'handle'       => 'awm-modal-field',
             'selector'     => '.awm-modal-trigger',
             'type'         => 'script',
-            'src'          => awm_url . 'assets/js/admin/class-awm-modal-field.js',
+            'src'          => EWP_PLUGIN_URL . 'assets/js/admin/class-awm-modal-field.js',
             'version'      => $version,
             'context'      => 'admin',
             'dependencies' => array(),
@@ -433,7 +433,7 @@ class AWM_Meta
             'handle'   => 'awm-modal-field-style',
             'selector' => '.awm-modal-trigger',
             'type'     => 'style',
-            'src'      => awm_url . 'assets/css/admin/awm-modal-field.css',
+            'src'      => EWP_PLUGIN_URL . 'assets/css/admin/awm-modal-field.css',
             'version'  => $version,
             'context'  => 'admin',
         );
@@ -444,7 +444,7 @@ class AWM_Meta
             'handle'   => 'awm-object-id-filter-style',
             'selector' => '.awm-object-id-filter-wrap',
             'type'     => 'style',
-            'src'      => awm_url . 'assets/css/admin/awm-object-id-filter.css',
+            'src'      => EWP_PLUGIN_URL . 'assets/css/admin/awm-object-id-filter.css',
             'version'  => defined('AWM_ASSET_VERSION') ? AWM_ASSET_VERSION : $version,
             'context'  => 'admin',
         );
@@ -835,7 +835,7 @@ class AWM_Meta
      */
     public static function meta_box_html($layout, array $box, $fields, $case)
     {
-        return awm_parse_template(awm_path . 'templates/admin-view/meta-box.php', array(
+        return awm_parse_template(EWP_PLUGIN_DIR . 'templates/admin-view/meta-box.php', array(
             'layout'      => (string) $layout,
             'box_id'      => isset($box['id']) ? (string) $box['id'] : '',
             'title'       => isset($box['title']) ? (string) $box['title'] : '',
