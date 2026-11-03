@@ -1,7 +1,7 @@
 # WordPress.org preparation — review report (`wporg` branch)
 
 For: Nikos and his review agent. Kept up to date with every push to `wporg`.
-Last update: 2026-11-02, after commit `f67dd2f2` (main caf71b79 merged in).
+Last update: 2026-11-03, after commit `4bf22034` (main 1.14.3 merged in).
 
 **Nothing on this branch is pushed to `main` until Nikos approves.**
 
@@ -19,6 +19,8 @@ too and will use it. Filox's `wporg` branch bundles this branch
   is a fast-forward again.
   **2026-11-02: `main` caf71b79 (4 commits: per-object JSON export as zip, config sync
   logging, dead REST Health setting) is merged in (34577c7a), no conflicts.**
+  **2026-11-03: `main` b79d6aac (1.14.1 – 1.14.3: own paths from `EWP_PLUGIN_DIR` / `EWP_PLUGIN_URL`,
+  `awm_ajax_call()` string responses, assets WordPress already printed) is merged in (4bf22034).**
   **Nothing here is merged into `main` until you review it.**
 - Changes are meant to be behaviour-neutral for every site using Extend WP.
 - Every commit has a `CHANGELOG.md` entry under `[Unreleased]` → `### Changed`.
@@ -50,6 +52,7 @@ too and will use it. Filox's `wporg` branch bundles this branch
 | 40d68d93 | **Plugin Check on main's new code (package: 50 → 1)**: field templates mark prints escaped where they are built (`Field_Attributes::render()`, `Select_Field::data_html()`, the explanation template, wrapper attributes) or escape at the print (`map.php` id, search form id as int); 5 translator comments; dynamic labels marked; `wp_rand()`, `wp_strip_all_tags()` (`awm_strip_html` textareas), `wp_is_writable()`, `awm_date()`, `wp_delete_file()` in `Config_Sync` and two self-test cases; two atomic `rename()` and one test `rmdir()` kept with the reason; Stable tag 1.14.0. **4e31f06e restored in the field engine**: `Field_Renderer::field_row()` drops `attributes['name']` for input / select / textarea / checkbox_multiple | Output unchanged: your render snapshots pass byte for byte. `show-when` stays unescaped (JSON with every `"` turned into `'`, so it cannot leave the attribute) to keep that | PHPUnit 557 / 557, new `test_attributes_name_is_not_printed_twice` fails without the fix; package Plugin Check; merged Extend WP inside Filox on filox-test: self-tests, 6 front-end pages identical (random ids / whitespace masked), 9 admin pages with the same form fields |
 | 34577c7a | **Merge `main` caf71b79 into `wporg`** (4 commits). No conflicts | Main's changes are yours; the merge adds none of its own | — |
 | f67dd2f2 | **Plugin Check on main's portability code (package: 5 → 1)**: translator comment on `Failed to write to %s.` (`present_files_export()`); `unlink()` → `wp_delete_file()` in `Content_Portability_Case::remove_files_dir()`, its two `rmdir()` marked as in `Config_Sync_Case` | None (comment; self-test cleanup) | PHPCS (prepared SQL) clean; PHPUnit 559 / 559; self-test 15 passed, 0 skipped; package Plugin Check |
+| 4bf22034 | **Merge `main` 1.14.3 into `wporg`** (8 commits). 4 conflicts, all one pattern: main moved `awm_path` to `EWP_PLUGIN_DIR` on the lines where wporg added `phpcs:ignore` justifications (`class-list-form.php`, `main.php` ×1, `search/results.php` ×3): main's paths + wporg's comments. Header: Version 1.14.3, `Requires at least: 6.8` kept; readme Stable tag and first changelog entry 1.14.3 | Main's changes are yours; the merge adds none of its own | PHPCS clean; PHPUnit 564 / 564; self-test 15 passed; Jest 83 / 83; package Plugin Check 1 error (the known wp-kit one); `git archive` Plugin Check vs ef98cff8: no new errors, 2 new warnings (`EWP_PLUGIN_DIR` / `EWP_PLUGIN_URL` not prefixed `extend_wp`, like the `awm_*` constants); inside Filox `wporg` on filox-test: Filox tests 13 passed |
 
 ## `awm_show_content()` escaping (please review)
 
@@ -93,6 +96,8 @@ baselines compare 0 first): **0 differences**. Filox Settings page 110 → 113 m
 
 ## Tests on this branch
 
+- After the 1.14.3 merge (4bf22034), copy on filox-test: PHPCS clean, PHPUnit **564 / 564**,
+  self-test **15 passed, 0 failed, 0 skipped** (144 checks), Jest **83 / 83**.
 - After the caf71b79 merge (f67dd2f2), copy on filox-test: PHPCS clean, PHPUnit **559 / 559**,
   self-test **15 passed, 0 failed, 0 skipped** (144 checks).
 - After the 1.14.0 merge (40d68d93): self-test **15 passed, 0 skipped** (inside Filox on filox-test),
