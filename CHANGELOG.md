@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`wporg`: `main` 1.14.3 merged** (4bf22034; `EWP_PLUGIN_DIR` paths kept with wporg's phpcs justifications, `Requires at least: 6.8`, readme Stable tag 1.14.3). Review report updated: tests and Plugin Check after the merge (`2026-11-03`).
 
 ### Fixed
+- **`wporg`: admin Thumb column keeps the thumbnail's `srcset`, `sizes`, `decoding`** (`2026-11-04`):
+  - **Question/Prompt**: 16-site runtime comparison (corfu.gr, onparnassos, vanakee): the 50 px `ewp-list-thumb` lost its responsive attributes; user: "yes fix them".
+  - **Root cause**: the column echoed `awm_show_featured_image()` through `wp_kses_post()`, whose `img` allow-list has no `srcset` / `sizes` / `decoding` / `fetchpriority`.
+  - **Fix**: `EWP_Gallery_Meta_Box::thumb_allowed_html()` = post HTML plus those `img` attributes, used with `wp_kses()` in the column; scripts and event handlers are still stripped.
+  - **Tests**: `tests/test-gallery-thumb-column-test.php`.
+  - **Files**: `includes/classes/ewp-gallery/class-ewp-gallery.php`, `tests/test-gallery-thumb-column-test.php`.
 - **`wporg`: `Call to undefined function awm_date()` on every wp-admin page when another Extend WP copy is installed via Composer** (`2026-11-04`):
   - **Question/Prompt**: 16-site runtime comparison, corfuairportshuttle.com with Filox wporg: HTTP 500 in wp-admin (ewp-logger viewer).
   - **Root cause**: 15 of the 16 test sites install standalone `motivar/extend-wp` via Composer (often inactive). The root `vendor/autoload.php` loads that copy's `includes/functions/init.php` at boot, and Composer then skips the bundled copy's same file (same file identifier). Functions come from the older copy, classes from the bundled one; `awm_date()` is the only global function new on wporg.
