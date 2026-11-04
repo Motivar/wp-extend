@@ -41,6 +41,18 @@ class Test_Foreign_Copy_Paths extends WP_UnitTestCase
         $this->assertStringContainsString('attach-to="F"', $html);
     }
 
+    /**
+     * awm_date() is new in 1.15: when another (older) copy's includes/functions/init.php was loaded by a root
+     * Composer autoloader, Composer skips this copy's, so extend-wp.php requires date.php by path
+     * (incident 2026-11-03, Call to undefined function awm_date() in wp-admin).
+     */
+    public function test_awm_date_required_by_main_file()
+    {
+        $this->assertTrue(function_exists('awm_date'));
+        $this->assertStringContainsString("'includes/functions/date.php'", file_get_contents(self::root() . 'extend-wp.php'));
+        $this->assertStringNotContainsString('function awm_date(', file_get_contents(self::root() . 'includes/functions/library.php'));
+    }
+
     /** Re-run the three checks with awm_path pointing at a directory without templates. */
     public function test_with_foreign_awm_path()
     {

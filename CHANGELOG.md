@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **`wporg`: `main` 1.14.3 merged** (4bf22034; `EWP_PLUGIN_DIR` paths kept with wporg's phpcs justifications, `Requires at least: 6.8`, readme Stable tag 1.14.3). Review report updated: tests and Plugin Check after the merge (`2026-11-03`).
 
+### Fixed
+- **`wporg`: `Call to undefined function awm_date()` on every wp-admin page when another Extend WP copy is installed via Composer** (`2026-11-04`):
+  - **Question/Prompt**: 16-site runtime comparison, corfuairportshuttle.com with Filox wporg: HTTP 500 in wp-admin (ewp-logger viewer).
+  - **Root cause**: 15 of the 16 test sites install standalone `motivar/extend-wp` via Composer (often inactive). The root `vendor/autoload.php` loads that copy's `includes/functions/init.php` at boot, and Composer then skips the bundled copy's same file (same file identifier). Functions come from the older copy, classes from the bundled one; `awm_date()` is the only global function new on wporg.
+  - **Fix**: `awm_date()` moved to `includes/functions/date.php` (`function_exists` guarded), required by `library.php` and directly by path from `extend-wp.php`, so it no longer depends on the Composer `files` list.
+  - **Files**: `includes/functions/date.php` (new), `includes/functions/library.php`, `extend-wp.php`, `tests/test-foreign-copy-paths-test.php`.
+  - **Tests**: PHPUnit 565 OK (new `test_awm_date_required_by_main_file`), self-test 15 passed, phpcs clean.
+
 ## [1.14.3] - 2026-11-02
 
 ### Fixed
