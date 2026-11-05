@@ -1005,3 +1005,16 @@ msgstr "Το αναγνωριστικό του φίλτρου αναζήτηση
 
 msgid "Invalid table or data for table: %s."
 msgstr "Μη έγκυρος πίνακας ή δεδομένα για τον πίνακα: %s."
+
+#: includes/classes/class-extend-wp.php (datepicker)
+msgid "Close"
+msgstr "Κλείσιμο"
+
+msgid "Today"
+msgstr "Σήμερα"
+
+msgid "Next"
+msgstr "Επόμενο"
+
+msgid "Previous"
+msgstr "Προηγούμενο"

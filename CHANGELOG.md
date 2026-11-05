@@ -25,6 +25,11 @@ First version from the `wporg` branch (WordPress.org preparation), merged with `
 - **`wporg`: `main` 1.14.3 merged** (4bf22034; `EWP_PLUGIN_DIR` paths kept with wporg's phpcs justifications, `Requires at least: 6.8`, readme Stable tag 1.14.3). Review report updated: tests and Plugin Check after the merge (`2026-11-03`).
 
 ### Fixed
+- **`wporg`: datepicker labels from 1.15.0 get the `extend-wp` text domain** (`2026-11-05`):
+  - **Question/Prompt**: "continue on filox"; Plugin Check on the merged `wporg` package reported 4 new `WordPress.WP.I18n.MissingArgDomain` errors.
+  - **Root cause**: `Extend_WP::datepicker_regional()` (1.15.0, lazy-loaded calendar) reused core's strings with `__('Close')`, `__('Today')`, `__('Next')`, `__('Previous')`; WordPress.org requires the plugin's own text domain.
+  - **Fix**: `extend-wp` domain on the four strings; Greek translations added (Κλείσιμο, Σήμερα, Επόμενο, Προηγούμενο), `extend-wp-el.mo` recompiled. Other locales fall back to English for these four labels until translated.
+  - **Files**: `includes/classes/class-extend-wp.php`, `languages/extend-wp-el.po`, `languages/extend-wp-el.mo`.
 - **`wporg`: admin Thumb column keeps the thumbnail's `srcset`, `sizes`, `decoding`** (`2026-11-04`):
   - **Question/Prompt**: 16-site runtime comparison (corfu.gr, onparnassos, vanakee): the 50 px `ewp-list-thumb` lost its responsive attributes; user: "yes fix them".
   - **Root cause**: the column echoed `awm_show_featured_image()` through `wp_kses_post()`, whose `img` allow-list has no `srcset` / `sizes` / `decoding` / `fetchpriority`.

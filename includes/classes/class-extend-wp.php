@@ -487,12 +487,12 @@ class AWM_Meta
         global $wp_locale;
 
         return array(
-            'closeText'       => __('Close'),
-            'currentText'     => __('Today'),
+            'closeText'       => __('Close', 'extend-wp'),
+            'currentText'     => __('Today', 'extend-wp'),
             'monthNames'      => array_values($wp_locale->month),
             'monthNamesShort' => array_values($wp_locale->month_abbrev),
-            'nextText'        => __('Next'),
-            'prevText'        => __('Previous'),
+            'nextText'        => __('Next', 'extend-wp'),
+            'prevText'        => __('Previous', 'extend-wp'),
             'dayNames'        => array_values($wp_locale->weekday),
             'dayNamesShort'   => array_values($wp_locale->weekday_abbrev),
             'dayNamesMin'     => array_values($wp_locale->weekday_initial),
