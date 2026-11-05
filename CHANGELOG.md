@@ -7,13 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- **Front-end jQuery UI datepicker and calendar code are lazy-loaded by the Dynamic Asset Loader** (`2026-11-05`):
-  - **Question/Prompt**: on single.motivar.dev WP Rocket delayed jQuery, so `awm-inputs-module` threw `jQuery is not a function` at page load; "can we lazy load the datepicker from `awm_create_calendar`, via dynamic assets, with the calendar functions in their own script?"
-  - **Summary**: the calendar code moved out of the inputs chunk into the standalone `awm-calendar` script (`build/modules/awm-calendar.js`). `AWM_Meta::register_calendar_assets()` registers jQuery UI core, the datepicker, `jquery-ui-awm` and `awm-calendar` against `.awm_cl_date` (front end; admin still enqueues the datepicker itself). `awm_create_calendar()` in the inputs module is now a thin wrapper: it calls `window.awmCalendarInit()` when the calendar script is loaded, else asks the loader to re-check the DOM. The calendar script waits for `jQuery.fn.datepicker` (10 s) before initialising and applies the localized regional defaults (`awmCalendar.regional`) core would otherwise print. Pages without date fields no longer load the datepicker at all. `EWP_WP_Rocket` now also excludes `jquery.min.js` and `jquery-migrate.min.js` from Delay JS, because the lazily injected scripts need a running jQuery.
-  - **Files**: `assets/js/modules/awm-calendar.js` (new), `assets/js/modules/awm-calendar/date-utils.js` (new, shared `awm_timestamp`), `assets/js/modules/awm-inputs-module.js`, `includes/classes/class-extend-wp.php`, `includes/classes/ewp-third-party/class-wp-rocket.php`, `tests/test-calendar-assets-test.php` (new), `HOOKS.md`, rebuilt `build/`.
-  - **New**: JS globals `window.awmCalendarInit()` and `awmCalendar` (localized regional defaults); `AWM_Meta::register_calendar_assets()` on `ewp_register_dynamic_assets`.
-  - **Backwards compatibility**: `awm_create_calendar()` and `awm_timestamp()` stay global; `awm_create_calendar()` now initialises asynchronously (the datepicker may not exist yet when it returns). `awm_jquery_load_filter` now controls whether the front end provides the datepicker lazily (it no longer enqueues it up front). Theme/plugin code that relied on `jquery-ui-datepicker` being printed on every front-end page must enqueue it itself.
+### Added
+- **Tags from the shared plugin-release CI template** (`2026-11-05`):
+  - **Question/Prompt**: "can we use the GitLab CI from filox in order to have releases and tags?", then "why not use the CI template from filox?"
+  - **Summary**: `.gitlab-ci.yml` now includes `.gitlab-ci-plugin-release.yml` from `tools/motivar-cicd-files` (as Filox does): a manual `release_build` job on the default branch tags the merged commit from the `Version:` header of `extend-wp.php` (`php_lint` runs on every push). `RELEASE_SKIP_BUILD: "1"` tells the shared script to tag without building, because `build/` is committed on the branch; that variable was added to `scripts/plugin_release.sh` in motivar-cicd-files (MR !14). `composer version-bump [patch|minor|major|X.Y.Z]` (`tools/bump-version.sh`) sets the version in the header and `package.json`, rebuilds so `build/version.php` matches and turns `[Unreleased]` into a dated section.
+  - **Files**: `.gitlab-ci.yml` (1.3.0), `tools/bump-version.sh`, `docs/release.md`, `composer.json`, `.gitignore`.
+  - **Backwards compatibility**: removed the stale `"version": "1.7.0"` from `composer.json`; Composer now takes the version from the release tag (the repo had no tags before). Needs the motivar-cicd-files change from MR !14 (merged).
 
 ## [1.14.3] - 2026-11-02
 
