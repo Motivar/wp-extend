@@ -54,6 +54,7 @@ if (!defined('ABSPATH')) {
                 <option value="rest">REST</option>
                 <option value="cli">WP-CLI</option>
                 <option value="ability"><?php esc_html_e('Abilities', 'wp-self-test'); ?></option>
+                <option value="browser"><?php esc_html_e('Browser', 'wp-self-test'); ?></option>
             </select>
         </label>
         <label class="mmwp-self-test__select-all">

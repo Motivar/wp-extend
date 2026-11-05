@@ -14,6 +14,12 @@
 #        - `composer run-script test` when composer.json defines a "test" script,
 #        - otherwise tests/pre-push.sh when it exists,
 #        - otherwise warns that no test command is configured and passes.
+#   4. Browser layer (only when package.json depends on @mammothwp/wp-self-test-e2e):
+#      runs `wp mmwp self-test run --layer=browser` through DDEV (or through
+#      MMWP_SELF_TEST_BROWSER_CMD for another site) — blocks when a browser
+#      check fails; when DDEV is stopped or Node is missing it warns and skips,
+#      like a stopped DDEV is treated everywhere else. MMWP_SELF_TEST_BROWSER=0
+#      turns the step off.
 #
 # `git push --no-verify` bypasses any client hook, so treat that as a deliberate decision.
 #
@@ -64,6 +70,38 @@ has_composer_test() {
     [ -f composer.json ] && php -r '$j=json_decode(file_get_contents("composer.json"),true); exit(isset($j["scripts"]["test"])?0:1);'
 }
 
+# 4. Browser layer: Playwright admin smoke tests, when the plugin opted in.
+# Prints a warning and returns 0 when the site or Node cannot be reached.
+run_browser_layer() {
+    [ "${MMWP_SELF_TEST_BROWSER:-1}" = "0" ] && return 0
+    [ -f package.json ] && grep -q '@mammothwp/wp-self-test-e2e' package.json || return 0
+
+    local cmd="${MMWP_SELF_TEST_BROWSER_CMD:-}"
+
+    if [ -z "$cmd" ]; then
+        if [ ! -f .ddev/config.yaml ]; then
+            echo "[pre-push] WARNING: browser layer skipped: no .ddev/config.yaml and MMWP_SELF_TEST_BROWSER_CMD is not set."
+            return 0
+        fi
+        if ! command -v ddev >/dev/null 2>&1 || ! ddev describe >/dev/null 2>&1; then
+            echo "[pre-push] WARNING: browser layer skipped: DDEV is not running (ddev start)."
+            return 0
+        fi
+        if ! ddev exec node --version >/dev/null 2>&1; then
+            echo "[pre-push] WARNING: browser layer skipped: Node.js is not available in the DDEV web container (set nodejs_version in .ddev/config.yaml)."
+            return 0
+        fi
+        cmd="ddev wp mmwp self-test run --layer=browser"
+    fi
+
+    echo "[pre-push] Running the browser layer (\`$cmd\`)..."
+    if ! bash -c "$cmd"; then
+        echo "[pre-push] Aborting push: a browser check failed. Fix it, or run with --no-verify if you are certain this push should bypass tests."
+        return 1
+    fi
+    return 0
+}
+
 if has_composer_test; then
     echo "[pre-push] Running \`composer run-script test\`..."
     if ! composer run-script test; then
@@ -78,8 +116,9 @@ elif [ -x tests/pre-push.sh ]; then
     fi
 else
     echo "[pre-push] No test command configured (composer.json scripts.test or tests/pre-push.sh) — skipping tests (not blocking the push)."
-    exit 0
 fi
+
+run_browser_layer || exit 1
 
 echo "[pre-push] All tests passed."
 exit 0

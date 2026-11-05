@@ -114,7 +114,7 @@ final class Abilities
             self::NAME_PREFIX . 'run' => self::definition(
                 __('Run self-tests', Config::TEXT_DOMAIN),
                 __('Run the given cases (default: all), validate every surface and store the report. Creates test data on this site unless cleanup is true; pass confirm: true.', Config::TEXT_DOMAIN),
-                ['type' => 'object', 'properties' => $ids + ['cleanup' => ['type' => 'boolean', 'description' => __('Remove the test data right after each case.', Config::TEXT_DOMAIN)]] + $confirm, 'required' => ['confirm']],
+                ['type' => 'object', 'properties' => $ids + ['cleanup' => ['type' => 'boolean', 'description' => __('Remove the test data right after each case.', Config::TEXT_DOMAIN)], 'layer' => ['type' => 'string', 'description' => __('Only the cases declaring this layer (rest, cli, ability, core, browser).', Config::TEXT_DOMAIN)]] + $confirm, 'required' => ['confirm']],
                 $any,
                 'run_run',
                 false
@@ -195,7 +195,7 @@ final class Abilities
             return $confirmed;
         }
 
-        return self::$runner->run(self::ids($input), !empty($input['cleanup']), self::plugin($input));
+        return self::$runner->run(self::ids($input), !empty($input['cleanup']), self::plugin($input), isset($input['layer']) ? (string) $input['layer'] : '');
     }
 
     public static function run_cleanup($input = null)

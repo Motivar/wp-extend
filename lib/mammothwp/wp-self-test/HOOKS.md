@@ -19,6 +19,8 @@ near-duplicate.
 | [`mmwp_self_test_abilities_available`](#mmwp_self_test_abilities_available) | filter | 0.1.0 | `src/Config.php` — `Config::abilities_available()` |
 | [`mmwp_self_test_asset_url`](#mmwp_self_test_asset_url) | filter | 0.1.0 | `src/Config.php` — `Config::asset_url()` |
 | [`mmwp_self_test_ability_definitions`](#mmwp_self_test_ability_definitions) | filter | 0.1.0 | `src/Surfaces/Abilities.php` — `Abilities::register_abilities()` |
+| [`mmwp_self_test_admin_menu_exclusions`](#mmwp_self_test_admin_menu_exclusions) | filter | 2.1.0 | `src/Browser/Menu_Inventory.php` — `Menu_Inventory::exclusions()` |
+| [`mmwp_self_test_browser_command`](#mmwp_self_test_browser_command) | filter | 2.1.0 | `src/Browser/Browser_Runner.php` — `Browser_Runner::plan()` |
 | [`mmwp_self_test_completed`](#mmwp_self_test_completed) | action | 0.1.0 | `src/Runner.php` — `Runner::run()` |
 
 ## Lifecycle
@@ -137,3 +139,28 @@ WP-CLI, abilities, `bin/run.php`).
 | Param | Type | Description |
 |---|---|---|
 | `$report` | `array` | The stored report (`started_at`, `finished_at`, `duration_ms`, `user_id`, `site`, `package`, `plugin`, `cleanup`, `summary`, `results`). |
+
+## Browser layer
+
+### `mmwp_self_test_admin_menu_exclusions`
+
+**Filter.** Case-insensitive substrings that keep an admin URL out of the
+`admin-menu` inventory, and so out of the crawl. Return the defaults plus your
+own, or remove a default you accept to crawl (e.g. `post-new.php`, which
+creates an auto-draft).
+
+| Param | Type | Description |
+|---|---|---|
+| `$needles` | `string[]` | Default: `action=`, `nonce`, `customize.php`, `update.php`, `update-core.php`, `plugin-install.php`, `theme-install.php`, `post-new.php`, `logout`. |
+
+### `mmwp_self_test_browser_command`
+
+**Filter.** The command that starts the Node runner. Change it to use another
+Node binary (`['/opt/node/bin/node', $script]`) or wrapper. The first element
+is also probed with `--version` to decide between running and skipping.
+
+| Param | Type | Description |
+|---|---|---|
+| `$command` | `string[]` | Default: `['node', '<package>/e2e/bin/run.js']`. |
+| `$package` | `string` | Directory of the installed `@mammothwp/wp-self-test-e2e` package. |
+| `$definition` | `array` | The case definition (including `browser`). |

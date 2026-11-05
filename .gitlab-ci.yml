@@ -1,10 +1,22 @@
-# Version: 1.2.0
+# Version: 1.3.0
 #
 # No test job: the pre-push hook (installed by lib/mammothwp/wp-self-test/bin/install-hooks
 # via `composer install`) runs `composer test` — PHP lint, the PHPUnit suite
 # (tests/) and every self-test manifest — inside DDEV before anything reaches
 # the remote. A push that passed the hook is the gate.
+#
+# php_lint on every push and a manual release_build on default-branch pipelines, both from
+# motivar-cicd-files (.gitlab-ci-plugin-release.yml, README "Plugin release"). build/ is committed
+# on the branch, so the release only tags the merged commit. See docs/release.md.
 include:
   - project: "tools/motivar-cicd-files"
     ref: main
     file: ".gitlab-ci-mtv-plugins-wiki.yml"
+  - project: "tools/motivar-cicd-files"
+    ref: main
+    file: "/.gitlab-ci-plugin-release.yml"
+
+variables:
+  # build/ lives on the branch: tag the merged commit instead of building a release commit.
+  # Needs RELEASE_SKIP_BUILD support in scripts/plugin_release.sh (motivar-cicd-files).
+  RELEASE_SKIP_BUILD: "1"

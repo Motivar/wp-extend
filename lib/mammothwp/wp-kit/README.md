@@ -1,4 +1,9 @@
-# Mammoth WP Kit
+<h1 align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.svg">
+  <img alt="Mammoth WP Kit — Define a feature once. Get a REST route, a WP-CLI command and an Ability." src="docs/assets/banner-light.svg" width="100%">
+</picture>
+</h1>
 
 Declare a WordPress feature once and expose it as a REST route, a WP-CLI
 command and a WordPress Ability from the same definition. Parameters,
@@ -10,6 +15,13 @@ The kit has no dependency on any plugin. Install it with
 `https://github.com/mammothwp/wp-kit`); it is a runtime dependency,
 because the adapters register routes, commands and abilities inside
 WordPress.
+
+## How it works
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/diagram-dark.svg">
+  <img alt="How one operation definition becomes a REST route, a WP-CLI command and an Ability." src="docs/assets/diagram-light.svg" width="100%">
+</picture>
 
 ## Loading
 

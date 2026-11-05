@@ -3,7 +3,8 @@
  * One plugin's manifest.json: the list of its self-test cases.
  *
  * Shape: `{"version": 1, "cases": [{id, label, category, layers, class,
- * requires, args, covers: {rest, cli, ability}}]}`.
+ * requires, args, covers: {rest, cli, ability}, browser: {crawl, specs,
+ * allow, timeout}}]}`.
  *
  * @package MammothWP\SelfTest
  * @since   0.1.0
@@ -80,6 +81,7 @@ final class Manifest
                 return $problem;
             }
             $seen[] = $entry['id'];
+            $decoded['cases'][$index] = $this->normalise_browser($entry);
         }
 
         /**
@@ -113,6 +115,7 @@ final class Manifest
         $definitions = [];
         foreach ($data['cases'] as $entry) {
             $entry['plugin']         = $this->plugin;
+            $entry['manifest_dir']   = dirname($this->path);
             $definitions[$entry['id']] = $entry;
         }
 
@@ -147,6 +150,113 @@ final class Manifest
             }
         }
 
+        return $this->validate_browser($entry);
+    }
+
+    /**
+     * Validate an optional `browser` entry:
+     * `{crawl?: bool, specs?: string[], allow?: {console|requests|pages: string[]}, timeout?: int}`
+     * with at least one of `crawl` / `specs`.
+     *
+     * @param array $entry Raw entry.
+     *
+     * @return true|\WP_Error
+     *
+     * @since 2.1.0
+     */
+    private function validate_browser(array $entry)
+    {
+        if (!array_key_exists('browser', $entry)) {
+            return true;
+        }
+
+        $browser = $entry['browser'];
+        $id      = $entry['id'];
+        $invalid = function ($message) use ($id) {
+            return new \WP_Error('mmwp_self_test_manifest_invalid', sprintf(__('Manifest case "%1$s": %2$s', Config::TEXT_DOMAIN), $id, $message));
+        };
+
+        if (!is_array($browser) || ($browser !== [] && array_keys($browser) === range(0, count($browser) - 1))) {
+            return $invalid(__('"browser" must be an object.', Config::TEXT_DOMAIN));
+        }
+
+        $unknown = array_diff(array_keys($browser), ['crawl', 'specs', 'allow', 'timeout']);
+        if ($unknown !== []) {
+            return $invalid(sprintf(__('unknown "browser" key(s): %s.', Config::TEXT_DOMAIN), implode(', ', $unknown)));
+        }
+
+        if (empty($browser['crawl']) && empty($browser['specs'])) {
+            return $invalid(__('"browser" needs "crawl": true and/or a non-empty "specs" list.', Config::TEXT_DOMAIN));
+        }
+
+        if (isset($browser['crawl']) && !is_bool($browser['crawl'])) {
+            return $invalid(__('"browser.crawl" must be true or false.', Config::TEXT_DOMAIN));
+        }
+
+        foreach (isset($browser['specs']) ? (is_array($browser['specs']) ? $browser['specs'] : [null]) : [] as $spec) {
+            if (!is_string($spec) || $spec === '' || $spec[0] === '/' || strpos($spec, '..') !== false) {
+                return $invalid(__('"browser.specs" must be relative paths (no "..") inside the plugin.', Config::TEXT_DOMAIN));
+            }
+        }
+
+        if (isset($browser['timeout']) && (!is_int($browser['timeout']) || $browser['timeout'] < 1)) {
+            return $invalid(__('"browser.timeout" must be a positive number of seconds.', Config::TEXT_DOMAIN));
+        }
+
+        return $this->validate_allow(isset($browser['allow']) ? $browser['allow'] : [], $invalid);
+    }
+
+    /**
+     * Validate `browser.allow`: lists of regular-expression strings.
+     *
+     * @param mixed    $allow   Raw value.
+     * @param callable $invalid Builds the WP_Error for a message.
+     *
+     * @return true|\WP_Error
+     *
+     * @since 2.1.0
+     */
+    private function validate_allow($allow, callable $invalid)
+    {
+        if (!is_array($allow)) {
+            return $invalid(__('"browser.allow" must be an object.', Config::TEXT_DOMAIN));
+        }
+
+        foreach ($allow as $kind => $patterns) {
+            if (!in_array($kind, ['console', 'requests', 'pages'], true) || !is_array($patterns) || $patterns !== array_filter($patterns, 'is_string')) {
+                return $invalid(__('"browser.allow" accepts "console", "requests" and "pages", each a list of regular-expression strings.', Config::TEXT_DOMAIN));
+            }
+        }
+
         return true;
+    }
+
+    /**
+     * A case with `browser` checks always lists the `browser` layer, and
+     * the optional keys get defaults.
+     *
+     * @param array $entry Validated entry.
+     *
+     * @return array
+     *
+     * @since 2.1.0
+     */
+    private function normalise_browser(array $entry)
+    {
+        if (!isset($entry['browser'])) {
+            return $entry;
+        }
+
+        $entry['browser'] = [
+            'crawl'   => !empty($entry['browser']['crawl']),
+            'specs'   => isset($entry['browser']['specs']) ? array_values($entry['browser']['specs']) : [],
+            'allow'   => array_merge(['console' => [], 'requests' => [], 'pages' => []], isset($entry['browser']['allow']) ? $entry['browser']['allow'] : []),
+            'timeout' => isset($entry['browser']['timeout']) ? $entry['browser']['timeout'] : 300,
+        ];
+
+        $layers          = isset($entry['layers']) ? (array) $entry['layers'] : [];
+        $entry['layers'] = array_values(array_unique(array_merge($layers, ['browser'])));
+
+        return $entry;
     }
 }

@@ -7,12 +7,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/mammothwp/wp-kit.git",
-                "reference": "4eba441a43b7b8fec1af6c7b3157f8e4e980a401"
+                "reference": "24ce69ce66bc756d93fdcc74d1022f6553c6173d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mammothwp/wp-kit/zipball/4eba441a43b7b8fec1af6c7b3157f8e4e980a401",
-                "reference": "4eba441a43b7b8fec1af6c7b3157f8e4e980a401",
+                "url": "https://api.github.com/repos/mammothwp/wp-kit/zipball/24ce69ce66bc756d93fdcc74d1022f6553c6173d",
+                "reference": "24ce69ce66bc756d93fdcc74d1022f6553c6173d",
                 "shasum": ""
             },
             "require": {
@@ -27,7 +27,7 @@
                 "squizlabs/php_codesniffer": "^3.7",
                 "wp-coding-standards/wpcs": "^3.0"
             },
-            "time": "2026-10-20T11:10:53+00:00",
+            "time": "2026-10-31T19:09:12+00:00",
             "default-branch": true,
             "type": "library",
             "installation-source": "dist",
@@ -71,12 +71,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/mammothwp/wp-self-test.git",
-                "reference": "f99f6a291acdf8f5c07c8508268d84f48ddaab47"
+                "reference": "8becc52218bc602d913463a08a583f7af55b1643"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mammothwp/wp-self-test/zipball/f99f6a291acdf8f5c07c8508268d84f48ddaab47",
-                "reference": "f99f6a291acdf8f5c07c8508268d84f48ddaab47",
+                "url": "https://api.github.com/repos/mammothwp/wp-self-test/zipball/8becc52218bc602d913463a08a583f7af55b1643",
+                "reference": "8becc52218bc602d913463a08a583f7af55b1643",
                 "shasum": ""
             },
             "require": {
@@ -93,7 +93,7 @@
                 "szepeviktor/phpstan-wordpress": "^1.3",
                 "wp-coding-standards/wpcs": "^3.1"
             },
-            "time": "2026-10-20T11:11:18+00:00",
+            "time": "2026-10-31T19:11:25+00:00",
             "default-branch": true,
             "bin": [
                 "bin/run.php",

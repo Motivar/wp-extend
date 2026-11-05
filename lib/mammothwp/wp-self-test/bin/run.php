@@ -8,7 +8,7 @@
  * runs every registered manifest — or one plugin's, or given case ids —
  * and exits 1 when any case fails or errors, so a hook or CI job blocks.
  *
- *   php bin/run.php [--bootstrap=tests/bootstrap.php] [--autoload=tests/vendor/autoload.php] [--plugin=<slug>] [case,ids]
+ *   php bin/run.php [--bootstrap=tests/bootstrap.php] [--autoload=tests/vendor/autoload.php] [--plugin=<slug>] [--layer=<layer>] [case,ids]
  *
  * Environment: MMWP_SELF_TEST_BOOTSTRAP and MMWP_SELF_TEST_AUTOLOAD provide
  * the same two paths. Relative paths resolve against the working directory.
@@ -21,13 +21,13 @@ if (PHP_SAPI !== 'cli') {
     exit(1);
 }
 
-$options   = getopt('', ['bootstrap::', 'autoload::', 'plugin::', 'help']);
+$options   = getopt('', ['bootstrap::', 'autoload::', 'plugin::', 'layer::', 'help']);
 $arguments = array_values(array_filter(array_slice($argv, 1), function ($arg) {
     return strpos($arg, '--') !== 0;
 }));
 
 if (isset($options['help'])) {
-    fwrite(STDOUT, "Usage: php bin/run.php [--bootstrap=FILE] [--autoload=FILE] [--plugin=SLUG] [case,ids]\n");
+    fwrite(STDOUT, "Usage: php bin/run.php [--bootstrap=FILE] [--autoload=FILE] [--plugin=SLUG] [--layer=LAYER] [case,ids]\n");
     exit(0);
 }
 
@@ -61,7 +61,8 @@ if (!class_exists('MammothWP\\SelfTest\\Self_Test')) {
 $ids    = isset($arguments[0]) ? array_values(array_filter(explode(',', $arguments[0]))) : [];
 $plugin = isset($options['plugin']) ? (string) $options['plugin'] : '';
 $runner = \MammothWP\SelfTest\Self_Test::instance()->runner();
-$report = $runner->run($ids, true, $plugin);
+$layer  = isset($options['layer']) ? (string) $options['layer'] : '';
+$report = $runner->run($ids, true, $plugin, $layer);
 
 if (is_wp_error($report)) {
     fwrite(STDERR, 'Self-test could not run: ' . $report->get_error_message() . PHP_EOL);

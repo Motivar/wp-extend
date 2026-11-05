@@ -76,10 +76,45 @@ abstract class Case_Base
         return isset($this->definition['category']) ? (string) $this->definition['category'] : 'general';
     }
 
-    /** @return string[] Surfaces this case covers: rest, cli, ability. */
+    /** @return string[] Surfaces this case covers: rest, cli, ability, core, browser. */
     public function layers()
     {
         return isset($this->definition['layers']) ? (array) $this->definition['layers'] : [];
+    }
+
+    /**
+     * Browser checks the manifest declares for this case.
+     *
+     * @return array Normalised `browser` entry (crawl, specs, allow, timeout); empty when none.
+     *
+     * @since 2.1.0
+     */
+    public function browser()
+    {
+        return isset($this->definition['browser']) && is_array($this->definition['browser']) ? $this->definition['browser'] : [];
+    }
+
+    /**
+     * Human-readable steps of the declared browser checks, for previews.
+     *
+     * @return string[]
+     *
+     * @since 2.1.0
+     */
+    protected function browser_steps()
+    {
+        $browser = $this->browser();
+        $steps   = [];
+
+        if (!empty($browser['crawl'])) {
+            $steps[] = __('Browser: open every admin menu page and check for PHP errors, console errors and failed REST/ajax calls.', Config::TEXT_DOMAIN);
+        }
+
+        foreach (isset($browser['specs']) ? $browser['specs'] : [] as $spec) {
+            $steps[] = sprintf(__('Browser: run Playwright spec %s.', Config::TEXT_DOMAIN), $spec);
+        }
+
+        return $steps;
     }
 
     /** @return array Free-form args from the manifest. */
@@ -142,7 +177,7 @@ abstract class Case_Base
     /**
      * Build one check result.
      *
-     * @param string $layer  rest|cli|ability|core.
+     * @param string $layer  rest|cli|ability|core|browser.
      * @param string $label  What was checked.
      * @param bool   $pass   Outcome.
      * @param string $detail Extra information shown in the report.
@@ -162,7 +197,7 @@ abstract class Case_Base
     /**
      * Build a skipped check (feature not available on this site).
      *
-     * @param string $layer  rest|cli|ability|core.
+     * @param string $layer  rest|cli|ability|core|browser.
      * @param string $label  What would have been checked.
      * @param string $reason Why it was skipped.
      *

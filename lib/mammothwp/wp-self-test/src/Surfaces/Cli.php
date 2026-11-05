@@ -71,6 +71,9 @@ final class Cli
      * [--plugin=<slug>]
      * : Only the cases registered by this plugin.
      *
+     * [--layer=<layer>]
+     * : Only the cases declaring this layer (rest, cli, ability, core, browser). `browser` runs only the Playwright checks.
+     *
      * [--cleanup]
      * : Remove the test data right after each case (what pre-push and CI use).
      *
@@ -200,6 +203,9 @@ final class Cli
      * [--plugin=<slug>]
      * : Only the cases registered by this plugin.
      *
+     * [--layer=<layer>]
+     * : Only the cases declaring this layer (rest, cli, ability, core, browser). `browser` runs only the Playwright checks.
+     *
      * [--cleanup]
      * : Remove the test data right after each case (what pre-push and CI use).
      *
@@ -210,6 +216,7 @@ final class Cli
      *
      *     wp mmwp self-test run --cleanup
      *     wp mmwp self-test run --cases=logger --format=json
+     *     wp mmwp self-test run --layer=browser
      *
      * @param array $args       Positional arguments.
      * @param array $assoc_args Named arguments.
@@ -218,7 +225,7 @@ final class Cli
      */
     public static function run($args, $assoc_args)
     {
-        $report = self::unwrap(self::$runner->run(self::ids($assoc_args), isset($assoc_args['cleanup']), self::plugin($assoc_args)));
+        $report = self::unwrap(self::$runner->run(self::ids($assoc_args), isset($assoc_args['cleanup']), self::plugin($assoc_args), isset($assoc_args['layer']) ? (string) $assoc_args['layer'] : ''));
         $format = isset($assoc_args['format']) ? $assoc_args['format'] : 'table';
 
         if ($format === 'json') {

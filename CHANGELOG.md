@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.15.0] - 2026-11-05
+## [1.16.0] - 2026-11-05
 
-First version from the `wporg` branch (WordPress.org preparation), merged with `main` up to 1.14.3. Tested on the 16 test sites (local copies, live vs this build) and in Filox 0.10.0.
+First version from the `wporg` branch (WordPress.org preparation), merged with `main` up to 1.15.0. Tested on the 16 test sites (local copies, live vs this build) and in Filox 0.10.0.
 
 ### Summary
 - **WordPress.org package**: GPL licence header, `readme.txt`, `Requires at least: 6.8`, `tools/build-wporg.sh` (package without `mammothwp/wp-self-test`, Composer autoloader patched). Plugin Check: Extend WP's own code at 0 errors.
@@ -21,6 +21,7 @@ First version from the `wporg` branch (WordPress.org preparation), merged with `
 - Detailed entries: below, and the `wporg` entries recorded under [1.14.2] by the earlier `main` merges; review report in `docs/wporg-review.md`.
 
 ### Changed
+- **`wporg`: `main` 1.15.0 merged** (`2026-11-05`; tag `1.15.0` = 258dbb82 was released from `main` the same day, so this `wporg` version moves from 1.15.0 to 1.16.0; conflicts only in this file and the `extend-wp.php` header, kept `Requires at least: 6.8`).
 - **`wporg`: `main` 1.14.3 merged** (4bf22034; `EWP_PLUGIN_DIR` paths kept with wporg's phpcs justifications, `Requires at least: 6.8`, readme Stable tag 1.14.3). Review report updated: tests and Plugin Check after the merge (`2026-11-03`).
 
 ### Fixed
@@ -36,6 +37,15 @@ First version from the `wporg` branch (WordPress.org preparation), merged with `
   - **Fix**: `awm_date()` moved to `includes/functions/date.php` (`function_exists` guarded), required by `library.php` and directly by path from `extend-wp.php`, so it no longer depends on the Composer `files` list.
   - **Files**: `includes/functions/date.php` (new), `includes/functions/library.php`, `extend-wp.php`, `tests/test-foreign-copy-paths-test.php`.
   - **Tests**: PHPUnit 565 OK (new `test_awm_date_required_by_main_file`), self-test 15 passed, phpcs clean.
+
+## [1.15.0] - 2026-11-05
+
+### Added
+- **Tags from the shared plugin-release CI template** (`2026-11-05`):
+  - **Question/Prompt**: "can we use the GitLab CI from filox in order to have releases and tags?", then "why not use the CI template from filox?"
+  - **Summary**: `.gitlab-ci.yml` now includes `.gitlab-ci-plugin-release.yml` from `tools/motivar-cicd-files` (as Filox does): a manual `release_build` job on the default branch tags the merged commit from the `Version:` header of `extend-wp.php` (`php_lint` runs on every push). `RELEASE_SKIP_BUILD: "1"` tells the shared script to tag without building, because `build/` is committed on the branch; that variable was added to `scripts/plugin_release.sh` in motivar-cicd-files (MR !14). `composer version-bump [patch|minor|major|X.Y.Z]` (`tools/bump-version.sh`) sets the version in the header and `package.json`, rebuilds so `build/version.php` matches and turns `[Unreleased]` into a dated section.
+  - **Files**: `.gitlab-ci.yml` (1.3.0), `tools/bump-version.sh`, `docs/release.md`, `composer.json`, `.gitignore`.
+  - **Backwards compatibility**: removed the stale `"version": "1.7.0"` from `composer.json`; Composer now takes the version from the release tag (the repo had no tags before). Needs the motivar-cicd-files change from MR !14 (merged).
 
 ## [1.14.3] - 2026-11-02
 
