@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- CI: include `publish.gitlab-ci.yml` from ci-templates (GitHub publishing) and run pipelines for `vX.Y.Z` tags.
+
+## [2.0.2] - 2026-10-30
+
+### Changed
+- Docs cleanup: removed private references from the changelog and CI/export config.
+- Removed `CLAUDE.md` from the repository (now git-ignored).
+
+## [2.0.1] - 2026-10-30
+
+### Changed
+- Docs: removed private-host references and hosting wording from public files.
+- CI: `check` job now uses the `composer:2` image (the custom registry image does not exist); pipelines run on merge requests and the `develop` and `main` branches, never on tag pipelines.
+- Removed the GitHub Actions workflow (`.github/`); CI now runs the same checks (`php -l`, `composer validate`, PHPUnit, PHPCS, PHPStan) on merge requests and the default branch.
+
 ## [2.0.0] - 2026-10-20
 
 ### Removed
@@ -12,14 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Tests: replaced the compatibility-layer tests with a `Registry` hook test.
-
-## [Unreleased]
-
-Prompt: CI must run on GitLab only, GitHub is just a push mirror.
-
-### Changed
-- CI: `check` job now uses the `composer:2` image (the custom registry image does not exist); pipelines run on merge requests and the `develop` and `main` branches, never on tags.
-- Removed the GitHub Actions workflow (`.github/`); `.gitlab-ci.yml` now runs the same checks (`php -l`, `composer validate`, PHPUnit, PHPCS, PHPStan) on merge requests and the default branch.
 
 ## [1.0.0] - 2026-10-20
 

@@ -96,6 +96,7 @@ final class Self_Test
             return;
         }
 
+        Browser\Menu_Inventory::init();
         (new Surfaces\Rest($this->runner))->init();
         (new Admin($this->runner))->init();
     }

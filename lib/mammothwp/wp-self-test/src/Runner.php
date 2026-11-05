@@ -24,12 +24,17 @@ final class Runner
     /** @var Registry */
     private $registry;
 
+    /** @var Browser\Browser_Runner */
+    private $browser;
+
     /**
-     * @param Registry $registry The registered manifests.
+     * @param Registry                     $registry The registered manifests.
+     * @param Browser\Browser_Runner|null $browser  Browser layer runner; default shells out to Node.
      */
-    public function __construct(Registry $registry)
+    public function __construct(Registry $registry, ?Browser\Browser_Runner $browser = null)
     {
         $this->registry = $registry;
+        $this->browser  = $browser ?: new Browser\Browser_Runner();
     }
 
     /** @return Registry */
@@ -118,15 +123,24 @@ final class Runner
      * @param string[] $ids     Empty for all.
      * @param bool     $cleanup Remove test data straight after each case.
      * @param string   $plugin  Restrict to one plugin slug; empty for all.
+     * @param string   $layer   Restrict to the cases declaring this layer; `browser` runs only
+     *                          the browser checks, any other layer skips them. Empty for all.
      *
      * @return array|\WP_Error Report.
      */
-    public function run(array $ids = [], $cleanup = false, $plugin = '')
+    public function run(array $ids = [], $cleanup = false, $plugin = '', $layer = '')
     {
         $cases = $this->registry->cases($ids, $plugin);
 
         if (is_wp_error($cases)) {
             return $cases;
+        }
+
+        $layer = sanitize_key((string) $layer);
+        if ($layer !== '') {
+            $cases = array_filter($cases, function ($case) use ($layer) {
+                return in_array($layer, $case->layers(), true);
+            });
         }
 
         $user = $this->ensure_user();
@@ -141,7 +155,7 @@ final class Runner
         $results = [];
 
         foreach ($cases as $id => $case) {
-            $result = $this->run_case($case, $cleanup);
+            $result = $this->run_case($case, $cleanup, $layer);
 
             if ($result['status'] !== 'skipped' && !$cleanup && !empty($result['context'])) {
                 $state['pending'][$id] = $result['context'];
@@ -161,6 +175,7 @@ final class Runner
             'site'        => home_url(),
             'package'     => Loader::version(),
             'plugin'      => (string) $plugin,
+            'layer'       => $layer,
             'cleanup'     => (bool) $cleanup,
             'summary'     => $this->summarise($results),
             'results'     => $results,
@@ -268,11 +283,12 @@ final class Runner
      * Execute one case through its phases.
      *
      * @param Case_Base $case    Case.
-     * @param bool               $cleanup Whether to clean up immediately.
+     * @param bool      $cleanup Whether to clean up immediately.
+     * @param string    $layer   Layer filter: `browser` runs only the browser checks, another layer skips them.
      *
      * @return array Result entry.
      */
-    private function run_case(Case_Base $case, $cleanup)
+    private function run_case(Case_Base $case, $cleanup, $layer = '')
     {
         $started = microtime(true);
         $entry   = [
@@ -300,9 +316,15 @@ final class Runner
         }
 
         try {
-            $context          = $case->run();
-            $entry['context'] = is_array($context) ? $context : [];
-            $entry['checks']  = $case->validate($entry['context']);
+            if ($layer !== 'browser') {
+                $context          = $case->run();
+                $entry['context'] = is_array($context) ? $context : [];
+                $entry['checks']  = $case->validate($entry['context']);
+            }
+
+            if ($case->browser() !== [] && ($layer === '' || $layer === 'browser')) {
+                $entry['checks'] = array_merge($entry['checks'], $this->browser->run($case->definition(), get_current_user_id()));
+            }
         } catch (\Throwable $e) {
             $entry['status']  = 'error';
             $entry['message'] = get_class($e) . ': ' . $e->getMessage() . ' (' . basename($e->getFile()) . ':' . $e->getLine() . ')';

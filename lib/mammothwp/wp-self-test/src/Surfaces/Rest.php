@@ -2,6 +2,8 @@
 
 namespace MammothWP\SelfTest\Surfaces;
 
+use MammothWP\SelfTest\Browser\Login_Token;
+use MammothWP\SelfTest\Browser\Menu_Inventory;
 use MammothWP\SelfTest\Config;
 use MammothWP\SelfTest\Runner;
 
@@ -20,6 +22,8 @@ if (!defined('ABSPATH')) {
  *   POST /self-test/run                      → runner->run()   {ids: [], cleanup: bool, plugin: string}
  *   POST /self-test/cleanup                  → runner->cleanup() {ids: []}
  *   GET  /self-test/report                   → runner->report()
+ *   GET  /self-test/admin-menu               → Menu_Inventory::current() (browser layer crawler)
+ *   POST /self-test/browser-login            → exchanges a single-use login token for auth cookies {token: string}
  *
  * @package MammothWP\SelfTest
  * @since   0.1.0
@@ -107,6 +111,14 @@ final class Rest
                     'sanitize_callback' => 'rest_sanitize_boolean',
                     'validate_callback' => 'rest_is_boolean',
                 ],
+                'layer'   => [
+                    'description'       => __('Run only the cases declaring this layer (rest, cli, ability, core, browser).', Config::TEXT_DOMAIN),
+                    'type'              => 'string',
+                    'required'          => false,
+                    'default'           => '',
+                    'sanitize_callback' => 'sanitize_key',
+                    'validate_callback' => 'rest_validate_request_arg',
+                ],
             ],
         ]);
 
@@ -121,6 +133,25 @@ final class Rest
             'methods'             => \WP_REST_Server::READABLE,
             'callback'            => [$this, 'report'],
             'permission_callback' => [$this, 'check_permission'],
+        ]);
+
+        register_rest_route($namespace, $base . '/admin-menu', [
+            'methods'             => \WP_REST_Server::READABLE,
+            'callback'            => [$this, 'admin_menu'],
+            'permission_callback' => [$this, 'check_permission'],
+        ]);
+
+        register_rest_route($namespace, $base . '/browser-login', [
+            'methods'             => \WP_REST_Server::CREATABLE,
+            'callback'            => [$this, 'browser_login'],
+            'permission_callback' => [$this, 'check_login_token'],
+            'args'                => [
+                'token' => [
+                    'description' => __('Single-use login token issued by the runner for the browser layer.', Config::TEXT_DOMAIN),
+                    'type'        => 'string',
+                    'required'    => true,
+                ],
+            ],
         ]);
     }
 
@@ -181,7 +212,7 @@ final class Rest
 
     public function run(\WP_REST_Request $request)
     {
-        return $this->respond($request, $this->runner->run((array) $request->get_param('ids'), (bool) $request->get_param('cleanup'), (string) $request->get_param('plugin')));
+        return $this->respond($request, $this->runner->run((array) $request->get_param('ids'), (bool) $request->get_param('cleanup'), (string) $request->get_param('plugin'), (string) $request->get_param('layer')));
     }
 
     public function cleanup(\WP_REST_Request $request)
@@ -194,5 +225,66 @@ final class Rest
         $report = $this->runner->report();
 
         return $this->respond($request, $report ?: ['results' => [], 'summary' => null, 'pending' => $this->runner->pending_ids()]);
+    }
+
+    /**
+     * The current user's admin pages for the browser crawler.
+     *
+     * @param \WP_REST_Request $request Current request.
+     *
+     * @return \WP_REST_Response|\WP_Error
+     *
+     * @since 2.1.0
+     */
+    public function admin_menu(\WP_REST_Request $request)
+    {
+        return $this->respond($request, Menu_Inventory::current());
+    }
+
+    /**
+     * Permission of the login exchange: the token is the credential.
+     *
+     * @param \WP_REST_Request $request Current request.
+     *
+     * @return true|\WP_Error
+     *
+     * @since 2.1.0
+     */
+    public function check_login_token(\WP_REST_Request $request)
+    {
+        if (!Config::ui_enabled() || !Login_Token::is_valid((string) $request->get_param('token'))) {
+            return new \WP_Error('mmwp_self_test_login_refused', __('Login token invalid, expired, used or not available here.', Config::TEXT_DOMAIN), ['status' => 403]);
+        }
+
+        return true;
+    }
+
+    /**
+     * Redeem a login token once and set the auth cookies of its user.
+     * The session it creates is recorded so the runner can revoke it.
+     *
+     * @param \WP_REST_Request $request Current request.
+     *
+     * @return \WP_REST_Response|\WP_Error
+     *
+     * @since 2.1.0
+     */
+    public function browser_login(\WP_REST_Request $request)
+    {
+        $token   = (string) $request->get_param('token');
+        $user_id = Login_Token::consume($token);
+
+        if ($user_id === 0 || !user_can($user_id, Config::capability())) {
+            return new \WP_Error('mmwp_self_test_login_refused', __('Login token invalid, expired, used or not available here.', Config::TEXT_DOMAIN), ['status' => 403]);
+        }
+
+        add_action('set_logged_in_cookie', function ($cookie, $expire, $expiration, $uid, $scheme, $session = '') use ($token) {
+            Login_Token::attach_session($token, $session);
+        }, 10, 6);
+
+        wp_set_current_user($user_id);
+        wp_set_auth_cookie($user_id, false);
+
+        return $this->respond($request, ['ok' => true, 'user_id' => $user_id]);
     }
 }
