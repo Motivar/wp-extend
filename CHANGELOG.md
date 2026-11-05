@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-11-05
+
 ### Added
 - **Tags from the shared plugin-release CI template** (`2026-11-05`):
   - **Question/Prompt**: "can we use the GitLab CI from filox in order to have releases and tags?", then "why not use the CI template from filox?"
