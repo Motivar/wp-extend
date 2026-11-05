@@ -4,7 +4,7 @@ Tags: custom fields, meta boxes, options pages, custom tables, developer
 Requires at least: 6.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.14.3
+Stable tag: 1.15.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -53,5 +53,8 @@ Field groups, post types and taxonomies can be built from the admin. Custom cont
 
 == Changelog ==
 
-= 1.14.3 =
+= 1.15.0 =
 * First release on WordPress.org.
+* Output escaping and i18n for WordPress.org; Swagger UI served from the plugin.
+* Fix: `awm_date()` available when another Extend WP copy is loaded by Composer.
+* Fix: admin thumbnails keep `srcset`, `sizes` and `decoding`.

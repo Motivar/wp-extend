@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-11-05
+
+First version from the `wporg` branch (WordPress.org preparation), merged with `main` up to 1.14.3. Tested on the 16 test sites (local copies, live vs this build) and in Filox 0.10.0.
+
+### Summary
+- **WordPress.org package**: GPL licence header, `readme.txt`, `Requires at least: 6.8`, `tools/build-wporg.sh` (package without `mammothwp/wp-self-test`, Composer autoloader patched). Plugin Check: Extend WP's own code at 0 errors.
+- **Output escaping** in Extend WP's own code (Plugin Check late escaping 99 → 0); `awm_show_content()` escapes the values it puts into its markup.
+- **i18n**: Plugin Check i18n errors → 0; Greek translations batch 1.
+- **`date()` → `awm_date()`** (same output in PHP's default timezone), in its own file required by path, so a second Extend WP copy loaded by a site's Composer autoloader cannot hide it (wp-admin HTTP 500 on 15 of 16 test sites before the fix).
+- **REST API Health**: Swagger UI 5.34.0 served from the plugin, not unpkg.
+- **Fixes**: no second `name` attribute when a field passes `attributes['name']`; content search no longer matches multi-value (serialized) fields by accident; `content-crud` self-test under real WP-CLI; dynamic asset loader waits for injected dependencies; admin Thumb column keeps `srcset` / `sizes` / `decoding`.
+- Detailed entries: below, and the `wporg` entries recorded under [1.14.2] by the earlier `main` merges; review report in `docs/wporg-review.md`.
+
 ### Changed
 - **`wporg`: `main` 1.14.3 merged** (4bf22034; `EWP_PLUGIN_DIR` paths kept with wporg's phpcs justifications, `Requires at least: 6.8`, readme Stable tag 1.14.3). Review report updated: tests and Plugin Check after the merge (`2026-11-03`).
 
