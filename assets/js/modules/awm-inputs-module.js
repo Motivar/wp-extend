@@ -6,6 +6,7 @@
 
 import SlimSelect from 'slim-select';
 import 'slim-select/styles';
+import { awm_timestamp } from './awm-calendar/date-utils.js';
 
 /**
  * Parse select with SlimSelect
@@ -309,90 +310,26 @@ function awmToggleDisabledInputs(container, disable) {
 }
 
 /**
- * Create calendar date pickers
+ * Create calendar date pickers.
+ *
+ * The datepicker and its code are not bundled here: the Dynamic Asset Loader loads jQuery UI and
+ * `awm-calendar` when a `.awm_cl_date` field exists. This asks the loader to check the DOM again,
+ * or re-runs the already loaded calendar script for fields added later.
+ *
+ * @return {void}
  */
 function awm_create_calendar() {
-    var values = [];
-    jQuery('.awm_cl_date:not(.hasDatepicker)').each(function () {
-        var idd = jQuery(this).attr('id');
-        var extra_parameters = jQuery(this).attr('date-params') ? jQuery.parseJSON(jQuery(this).attr('date-params').replace(/\'/g, '\"')) : {};
-        var value = jQuery('#' + idd).val();
-        var default_parameters = {
-            dateFormat: 'dd-mm-yy',
-            changeMonth: false,
-            altFormat: 'YYYY-DD-MM',
-            minDate: '-24M',
-            maxDate: '+24M',
-        };
-
-
-        const parameters = {
-            ...default_parameters,
-            ...extra_parameters,
-        };
-        if (jQuery(this).hasClass('awm-no-limit-date')) {
-            parameters.minDate = null;
-        }
-
-        parameters.onSelect = function (d, i) {
-            if (d !== i.lastVal) {
-                /*check for jquery events*/
-                var stop = false;
-                var date = jQuery('#' + idd).datepicker('getDate');
-                if (date !== null) {
-                    var change = jQuery('#' + idd).attr('data-change');
-                    var max_days = jQuery('#' + idd).attr('data-maxDays');
-                    if (change != '' && change) {
-                        var next_date = jQuery('#' + change).datepicker('getDate');
-                        var add_days = jQuery('#' + change).attr('data-days') ? parseInt(jQuery('#' + change).attr('data-days')) : 1;
-                        if (next_date !== null) {
-                            if (awm_timestamp(date) > awm_timestamp(next_date)) {
-                                stop = true;
-                            }
-                        }
-                        date.setDate(date.getDate() + add_days);
-                        jQuery('#' + change).datepicker('option', 'minDate', date);
-                        if (stop) {
-                            jQuery('#' + change).datepicker('setDate', date);
-                        }
-
-                        if (max_days) {
-                            /*var date2 = jQuery('#' + change).datepicker('getDate', '+' + parseInt(max_days) + 'd');
-                            date2.setDate(date2.getDate() + 1);
-                            jQuery('#' + change).datepicker('option', 'maxDate', date2);*/
-                        }
-                    }
-                }
-
-                document.getElementById(idd).dispatchEvent(new Event('change'));
-            }
-        };
-
-        values.push({ 'id': idd, 'value': jQuery('#' + idd).val() });
-        jQuery('#' + idd).datepicker(parameters);
-
-    });
-
-
-
-    values.forEach(function (val) {
-
-        jQuery('#' + val.id).datepicker('setDate', '');
-        if (val.value != '' && val.value != 0) {
-            jQuery('#' + val.id).datepicker('setDate', val.value);
-            jQuery('#' + val.id).change();
-        }
-    });
-}
-
-/**
- * Get timestamp from date
- */
-function awm_timestamp(d) {
-    "use strict";
-    d = new Date(d);
-    d = d.setUTCHours(24, 0, 0, 0);
-    return (d / 1000);
+    if (!document.querySelector('.awm_cl_date:not(.hasDatepicker)')) {
+        return;
+    }
+    if (typeof window.awmCalendarInit === 'function') {
+        window.awmCalendarInit();
+        return;
+    }
+    const loader = window.EWPDynamicAssetLoader && window.EWPDynamicAssetLoader.instance;
+    if (loader) {
+        loader.checkAssets();
+    }
 }
 
 /**

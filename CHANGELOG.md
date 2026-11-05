@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Front-end jQuery UI datepicker and calendar code are lazy-loaded by the Dynamic Asset Loader** (`2026-11-05`):
+  - **Question/Prompt**: on single.motivar.dev WP Rocket delayed jQuery, so `awm-inputs-module` threw `jQuery is not a function` at page load; "can we lazy load the datepicker from `awm_create_calendar`, via dynamic assets, with the calendar functions in their own script?"
+  - **Summary**: the calendar code moved out of the inputs chunk into the standalone `awm-calendar` script (`build/modules/awm-calendar.js`). `AWM_Meta::register_calendar_assets()` registers jQuery UI core, the datepicker, `jquery-ui-awm` and `awm-calendar` against `.awm_cl_date` (front end; admin still enqueues the datepicker itself). `awm_create_calendar()` in the inputs module is now a thin wrapper: it calls `window.awmCalendarInit()` when the calendar script is loaded, else asks the loader to re-check the DOM. The calendar script waits for `jQuery.fn.datepicker` (10 s) before initialising and applies the localized regional defaults (`awmCalendar.regional`) core would otherwise print. Pages without date fields no longer load the datepicker at all. `EWP_WP_Rocket` now also excludes `jquery.min.js` and `jquery-migrate.min.js` from Delay JS, because the lazily injected scripts need a running jQuery.
+  - **Files**: `assets/js/modules/awm-calendar.js` (new), `assets/js/modules/awm-calendar/date-utils.js` (new, shared `awm_timestamp`), `assets/js/modules/awm-inputs-module.js`, `includes/classes/class-extend-wp.php`, `includes/classes/ewp-third-party/class-wp-rocket.php`, `tests/test-calendar-assets-test.php` (new), `HOOKS.md`, rebuilt `build/`.
+  - **New**: JS globals `window.awmCalendarInit()` and `awmCalendar` (localized regional defaults); `AWM_Meta::register_calendar_assets()` on `ewp_register_dynamic_assets`.
+  - **Backwards compatibility**: `awm_create_calendar()` and `awm_timestamp()` stay global; `awm_create_calendar()` now initialises asynchronously (the datepicker may not exist yet when it returns). `awm_jquery_load_filter` now controls whether the front end provides the datepicker lazily (it no longer enqueues it up front). Theme/plugin code that relied on `jquery-ui-datepicker` being printed on every front-end page must enqueue it itself.
+
 ## [1.14.3] - 2026-11-02
 
 ### Fixed

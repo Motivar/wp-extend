@@ -29,6 +29,7 @@ class AWM_Meta
 
         // Register modal field assets early (before Dynamic Asset Loader collects at init priority 1)
         add_filter('ewp_register_dynamic_assets', array($this, 'register_modal_field_assets'));
+        add_filter('ewp_register_dynamic_assets', array($this, 'register_calendar_assets'));
         add_filter('ewp_register_dynamic_assets', array($this, 'register_content_form_assets'));
 
         add_action('init', array($this, 'awm_init'), 10);
@@ -208,10 +209,8 @@ class AWM_Meta
      */
     public function enqueue_styles_script()
     {
-        if (AWM_JQUERY_LOAD) {
-            wp_enqueue_script('jquery-ui-datepicker');
-            wp_enqueue_style('jquery-ui-awm');
-        }
+        // The datepicker is no longer enqueued here: register_calendar_assets() hands it to the
+        // Dynamic Asset Loader, which loads it only when a .awm_cl_date field is in the DOM.
         wp_enqueue_style('awm-global-style');
         wp_enqueue_script('awm-global-script');
     }
@@ -386,6 +385,120 @@ class AWM_Meta
             'context'  => 'admin',
         );
         return $assets;
+    }
+
+    /**
+     * Register the calendar assets with the Dynamic Asset Loader.
+     *
+     * On the front end jQuery UI core, the datepicker and its stylesheet are loaded only when a
+     * `.awm_cl_date` field exists (the admin still enqueues the datepicker itself). The `awm-calendar`
+     * script then initialises the fields. Skipped on the front end when `AWM_JQUERY_LOAD` is false.
+     *
+     * @since 1.15.0
+     *
+     * @param array $assets Registered assets array.
+     * @return array Modified assets array.
+     */
+    public function register_calendar_assets($assets)
+    {
+        $selector = '.awm_cl_date';
+
+        if (AWM_JQUERY_LOAD) {
+            $assets[] = array(
+                'handle'       => 'jquery-ui-core',
+                'selector'     => $selector,
+                'type'         => 'script',
+                'src'          => self::core_script_src('jquery-ui-core'),
+                'version'      => self::core_script_version('jquery-ui-core'),
+                'context'      => 'frontend',
+                'dependencies' => array('jquery'),
+            );
+            $assets[] = array(
+                'handle'       => 'jquery-ui-datepicker',
+                'selector'     => $selector,
+                'type'         => 'script',
+                'src'          => self::core_script_src('jquery-ui-datepicker'),
+                'version'      => self::core_script_version('jquery-ui-datepicker'),
+                'context'      => 'frontend',
+                'dependencies' => array('jquery-ui-core'),
+            );
+            $assets[] = array(
+                'handle'   => 'jquery-ui-awm',
+                'selector' => $selector,
+                'type'     => 'style',
+                'src'      => EWP_PLUGIN_URL . 'assets/css/global/jquery-ui.min.css',
+                'version'  => AWM_ASSET_VERSION,
+                'context'  => 'frontend',
+            );
+        }
+
+        $assets[] = array(
+            'handle'       => 'awm-calendar',
+            'selector'     => $selector,
+            'type'         => 'script',
+            'src'          => EWP_PLUGIN_URL . 'build/modules/awm-calendar.js',
+            'version'      => AWM_ASSET_VERSION,
+            'context'      => 'both',
+            'dependencies' => array('jquery-ui-datepicker'),
+            'localize'     => array(
+                'objectName' => 'awmCalendar',
+                'data'       => array('regional' => self::datepicker_regional()),
+            ),
+        );
+
+        return $assets;
+    }
+
+    /**
+     * Absolute URL of a script WordPress core registered.
+     *
+     * @param string $handle Registered script handle.
+     * @return string Script URL, or an empty string when the handle is not registered.
+     */
+    private static function core_script_src($handle)
+    {
+        $script = wp_scripts()->registered[$handle] ?? null;
+        if (!$script || !$script->src) {
+            return '';
+        }
+        return preg_match('|^(https?:)?//|', $script->src) ? $script->src : wp_scripts()->base_url . $script->src;
+    }
+
+    /**
+     * Version of a script WordPress core registered.
+     *
+     * @param string $handle Registered script handle.
+     * @return string Version string (the WordPress version when the script has none).
+     */
+    private static function core_script_version($handle)
+    {
+        $script = wp_scripts()->registered[$handle] ?? null;
+        return ($script && $script->ver) ? (string) $script->ver : get_bloginfo('version');
+    }
+
+    /**
+     * Localized datepicker defaults (month and day names, first day), as core's
+     * wp_localize_jquery_ui_datepicker() builds them for an enqueued datepicker.
+     *
+     * @return array Options for `$.datepicker.setDefaults()`.
+     */
+    private static function datepicker_regional()
+    {
+        global $wp_locale;
+
+        return array(
+            'closeText'       => __('Close'),
+            'currentText'     => __('Today'),
+            'monthNames'      => array_values($wp_locale->month),
+            'monthNamesShort' => array_values($wp_locale->month_abbrev),
+            'nextText'        => __('Next'),
+            'prevText'        => __('Previous'),
+            'dayNames'        => array_values($wp_locale->weekday),
+            'dayNamesShort'   => array_values($wp_locale->weekday_abbrev),
+            'dayNamesMin'     => array_values($wp_locale->weekday_initial),
+            'firstDay'        => (int) get_option('start_of_week'),
+            'isRTL'           => (bool) $wp_locale->is_rtl(),
+        );
     }
 
     /**

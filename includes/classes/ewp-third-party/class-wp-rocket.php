@@ -32,6 +32,10 @@ class EWP_WP_Rocket
 		// defines awmGlobals). Both must run on page load for modules to initialize.
 		'awm-global-script',
 		'class-dynamic-asset-loader',
+		// The loader injects jQuery UI and the calendar script at runtime and they need jQuery
+		// itself already running; a delayed jQuery makes the calendar fail ("jQuery is not a function").
+		'/wp-includes/js/jquery/jquery.min.js',
+		'/wp-includes/js/jquery/jquery-migrate.min.js',
 	);
 
 	/**
