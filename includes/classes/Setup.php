@@ -87,6 +87,7 @@ class Setup
    require_once 'wp-cli/class-cli-commands.php';
   }
   require_once 'dev-tools/init.php';
+  require_once 'class-critical-css-file.php';
   require_once 'class-dynamic-asset-loader.php';
   require_once 'ewp-logger/class-ewp-logger.php';
   /*admin page, REST and CLI only; EWP_Surfaces::boot() requires it again on demand for Options_Resource*/

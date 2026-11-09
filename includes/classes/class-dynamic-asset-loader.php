@@ -177,7 +177,7 @@ class Dynamic_Asset_Loader
             self::LOADER_HANDLE,
             'ewpDynamicAssets',
             array(
-                'assets' => array_values($filtered_assets),
+                'assets' => $this->get_client_assets($filtered_assets),
                 'nonce' => wp_create_nonce('ewp_dynamic_assets'),
                 'ajaxUrl' => admin_url('admin-ajax.php'),
                 'debug' => apply_filters('ewp_dynamic_assets_debug_filter', defined('WP_DEBUG') && WP_DEBUG),
@@ -257,7 +257,9 @@ class Dynamic_Asset_Loader
          * - lazy (bool, optional): Use Intersection Observer for lazy loading
          * - critical (bool, optional): Mark as critical (loads immediately)
          * - critical_css (string, optional): Inline critical CSS content (styles only)
-         * - critical_src (string, optional): URL to external critical CSS file to inline (styles only)
+         * - critical_path (string, optional): Absolute path to a local critical .css file to inline (styles only, preferred)
+         * - critical_src (string, optional): URL to a critical CSS file to inline (styles only). A URL on this site
+         *   is read from disk and never requested over HTTP; a URL on another host is fetched and cached
          * - critical_conditions (array, optional): Conditions for when to inline critical CSS (styles only)
          * - minify_critical (bool, optional): Minify critical CSS (styles only, default: true)
          * - inline_css (string, optional): Inline CSS to inject dynamically (styles only)
@@ -378,6 +380,11 @@ class Dynamic_Asset_Loader
             // Support critical CSS from external file
             if (isset($asset['critical_src']) && !empty($asset['critical_src'])) {
                 $sanitized['critical_src'] = esc_url($asset['critical_src']);
+            }
+
+            // Support critical CSS from a local file path (preferred over critical_src)
+            if (isset($asset['critical_path']) && is_string($asset['critical_path']) && $asset['critical_path'] !== '') {
+                $sanitized['critical_path'] = wp_normalize_path($asset['critical_path']);
             }
 
             // Support inline CSS injection
@@ -573,6 +580,13 @@ class Dynamic_Asset_Loader
             }
         }
 
+        /**
+         * Filter the resource hints printed in the head
+         *
+         * @since 1.0.0
+         *
+         * @param array $hints Origins keyed by hint type: `preconnect` and `dns-prefetch`, each a list of origins
+         */
         $hints = apply_filters('ewp_dynamic_assets_resource_hints', $hints);
 
         foreach ($hints['preconnect'] as $origin) {
@@ -607,6 +621,13 @@ class Dynamic_Asset_Loader
             }
         }
 
+        /**
+         * Filter the assets that get a preload link in the head
+         *
+         * @since 1.0.0
+         *
+         * @param array $preload_assets Sanitized assets registered with `preload` true
+         */
         $preload_assets = apply_filters('ewp_dynamic_assets_preload', $preload_assets);
 
         foreach ($preload_assets as $asset) {
@@ -660,23 +681,10 @@ class Dynamic_Asset_Loader
                 continue;
             }
 
-            $css = '';
-
-            // Load critical CSS from external file if specified
-            if (isset($asset['critical_src']) && !empty($asset['critical_src'])) {
-                $css = $this->load_critical_css_file($asset['critical_src']);
-                if ($css === false) {
-                    continue;
-                }
-            }
-
-            // Use inline critical CSS if provided (takes precedence)
-            if (isset($asset['critical_css']) && !empty($asset['critical_css'])) {
-                $css = $asset['critical_css'];
-            }
+            $css = $this->get_asset_critical_css($asset);
 
             // Skip if no critical CSS available
-            if (empty($css)) {
+            if ($css === '') {
                 continue;
             }
 
@@ -779,46 +787,42 @@ class Dynamic_Asset_Loader
     }
 
     /**
-     * Load critical CSS from external file
-     * 
-     * @param string $url URL to the critical CSS file
-     * @return string|false CSS content or false on failure
+     * Get the critical CSS of a style asset
+     *
+     * Inline `critical_css` takes precedence, so its file is not read at all.
+     * Otherwise the file comes from Critical_CSS_File (`critical_path`, then
+     * `critical_src`), which never requests a file on this site over HTTP.
+     *
+     * @param array $asset Sanitized asset configuration
+     * @return string CSS content, empty string when the asset has none
      */
-    private function load_critical_css_file($url)
+    private function get_asset_critical_css($asset)
     {
-        // Convert URL to local path if it's a local file
-        $parsed_url = wp_parse_url($url);
-        $home_url = wp_parse_url(home_url());
-
-        if (isset($parsed_url['host']) && isset($home_url['host']) && $parsed_url['host'] === $home_url['host']) {
-            // Local file - convert to file path
-            $file_path = str_replace(
-                array(content_url(), plugins_url(), get_template_directory_uri(), get_stylesheet_directory_uri()),
-                array(WP_CONTENT_DIR, WP_PLUGIN_DIR, get_template_directory(), get_stylesheet_directory()),
-                $url
-            );
-
-            // Try to read local file
-            if (file_exists($file_path) && is_readable($file_path)) {
-                $css = file_get_contents($file_path);
-                if ($css !== false) {
-                    return $css;
-                }
-            }
+        if (!empty($asset['critical_css'])) {
+            return $asset['critical_css'];
         }
 
-        // Fallback to remote request for external files or if local read failed
-        $response = wp_remote_get($url, array(
-            'timeout' => 5,
-            'sslverify' => true
-        ));
-
-        if (is_wp_error($response)) {
-            return false;
+        if (empty($asset['critical_path']) && empty($asset['critical_src'])) {
+            return '';
         }
 
-        $css = wp_remote_retrieve_body($response);
-        return !empty($css) ? $css : false;
+        $css = (new Critical_CSS_File())->load($asset);
+
+        return $css === false ? '' : $css;
+    }
+
+    /**
+     * Remove server-only keys from the configuration sent to the browser
+     *
+     * @param array $assets Sanitized assets
+     * @return array Assets without `critical_path` (an absolute server path)
+     */
+    private function get_client_assets($assets)
+    {
+        return array_map(function ($asset) {
+            unset($asset['critical_path']);
+            return $asset;
+        }, array_values($assets));
     }
 
     /**

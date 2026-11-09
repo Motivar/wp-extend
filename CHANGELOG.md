@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Dynamic Asset Loader requested its own site over HTTP for critical CSS on every page view** (`2026-11-09`):
+  - **Question/Prompt**: "Extend-WP Dynamic_Asset_Loader::load_critical_css_file() — never wp_remote_get() a same-host URL; return false when the local file is missing, and cache results. This is the amplifier; it's in every site that ships Extend-WP, not just corfuwheels.", then "why we use file_get_contents? is it the right way or not?" and "is this way optimized?"
+  - **Root cause**: `load_critical_css_file()` mapped a same-host `critical_src` to a path with a `str_replace` on the full URL (broken by `?ver=`, an http/https mismatch or a rewritten host) and, whenever the local read failed, fell through to `wp_remote_get()` on the site's own URL with a 5 second timeout, uncached, on every front-end render (`wp_head` priority 3). Each page view could spawn another request to the same PHP pool; a 404 or error page body was inlined as CSS because only `is_wp_error()` was checked.
+  - **Fix**: file loading moved to the new `EWP\DynamicAssets\Critical_CSS_File` (`includes/classes/class-critical-css-file.php`, loaded from `Setup.php` before the loader). A `critical_src` on this site (no host, or the host of the home, site, content or plugins URL) is mapped by URL **path** to the active theme(s), the plugins directory, `mu-plugins` or the content directory and read with `file_get_contents()`; when it maps to nothing or the file is missing the result is `false` and no HTTP request is made. Only a `critical_src` on another host is fetched: `wp_safe_remote_get()`, 3 second timeout, 200 responses only, a body containing `</style` rejected, cached in a transient (`ewp_critical_css_{md5(url)}`) for a day, failures for 5 minutes. Local files must be readable, non-empty `.css` files without `..` segments or stream wrappers.
+  - **Added**: `critical_path` key on style registrations (`ewp_register_dynamic_assets`): absolute path to a local critical `.css` file, preferred over `critical_src` and removed from the `ewpDynamicAssets` configuration sent to the browser.
+  - **Changed**: inline `critical_css` is now checked first, so its `critical_src` file is no longer read (and a missing file no longer drops the inline CSS).
+  - **Not cached on purpose**: local reads and minification. A transient lookup is a database query without a persistent object cache, which costs more than reading and minifying a few KB the OS already has in memory.
+  - **Files**: `includes/classes/class-critical-css-file.php` (new), `includes/classes/class-dynamic-asset-loader.php`, `includes/classes/Setup.php`, `tests/test-critical-css-file-test.php` (new), `includes/classes/CRITICAL-CSS-GUIDE.md`, `HOOKS.md` (the loader's ten existing hooks declared; docblocks added above `ewp_dynamic_assets_resource_hints` and `ewp_dynamic_assets_preload`).
+  - **Hooks/routes/settings**: none new. New transient `ewp_critical_css_{md5}` for remote files only.
+  - **Backwards compatibility**: a same-host `critical_src` that used to work only through the loopback request (a file outside the theme, plugins, mu-plugins and content directories, or a non-`.css` file) now yields no critical CSS; pass `critical_path`. Remote files are refreshed daily instead of on every request. Filox's two registrations (`Filox_Asset_Path::get_css_url()`) map to plugin files and are unaffected.
+  - **Tests**: `tests/test-critical-css-file-test.php` (URL mapping with query/scheme/relative/encoded paths, no HTTP for present and missing same-host files, `critical_path` precedence, rejected paths, remote success/failure caching, 404 and `</style` rejection, loader output and localized configuration).
+
 ## [1.15.0] - 2026-11-05
 
 ### Added

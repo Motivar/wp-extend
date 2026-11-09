@@ -92,9 +92,23 @@ add_filter('ewp_register_dynamic_assets', function($assets) {
 
 **Benefits**:
 - Keep critical CSS in a separate file for easier maintenance
-- Works with local files (faster) or remote URLs
-- Automatically handles file reading and HTTP requests
-- If `critical_css` is also provided, it takes precedence over `critical_src`
+- If `critical_css` is also provided, it takes precedence and the file is not read
+
+**Prefer `critical_path` for a file on this site.** It is the absolute path to the `.css` file, so nothing has to be guessed from a URL:
+
+```php
+'critical_path' => plugin_dir_path(__FILE__) . 'css/hero-critical.css',
+```
+
+**How the file is read** (`EWP\DynamicAssets\Critical_CSS_File`, `includes/classes/class-critical-css-file.php`):
+
+| Registration | What happens |
+|---|---|
+| `critical_path` | Read from disk on each page render. Must be a readable, non-empty `.css` file; no `..` segments or stream wrappers. Wins over `critical_src`. Never sent to the browser. |
+| `critical_src` on this site (no host, or the host of the home, site, content or plugins URL) | Mapped to a file under the active theme(s), the plugins directory, `mu-plugins` or the content directory and read from disk. Scheme, `?ver=` and `#fragment` are ignored. **Never requested over HTTP**: when the file is missing or the URL is outside those directories, the asset simply gets no critical CSS. |
+| `critical_src` on another host | Fetched with `wp_safe_remote_get()` (3 second timeout) and cached in a transient for a day. A failure (error, non-200, empty body, a body containing `</style`) is cached for 5 minutes, so an unreachable host costs one timeout and not one per page view. |
+
+A local file is not cached in a transient: reading a small file the OS already holds in memory is cheaper than the database query a transient costs without a persistent object cache.
 
 ---
 
