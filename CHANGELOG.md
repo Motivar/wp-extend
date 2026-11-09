@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.15.1] - 2026-11-09
+
 ### Fixed
 - **Dynamic Asset Loader requested its own site over HTTP for critical CSS on every page view** (`2026-11-09`):
   - **Question/Prompt**: "Extend-WP Dynamic_Asset_Loader::load_critical_css_file() — never wp_remote_get() a same-host URL; return false when the local file is missing, and cache results. This is the amplifier; it's in every site that ships Extend-WP, not just corfuwheels.", then "why we use file_get_contents? is it the right way or not?" and "is this way optimized?"
