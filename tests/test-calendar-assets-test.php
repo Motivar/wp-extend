@@ -54,4 +54,44 @@ class Test_Calendar_Assets extends WP_UnitTestCase
 
         $this->assertContains('/wp-includes/js/jquery/jquery.min.js', $exclusions);
     }
+
+    public function test_wp_rocket_keeps_the_loader_inline_data_out_of_defer_and_delay()
+    {
+        $rocket = new EWP_WP_Rocket();
+
+        $this->assertContains('ewpDynamicAssets', $rocket->exclude_inline_from_defer(array()));
+        $this->assertContains('ewpDynamicAssets', $rocket->exclude_from_delay_js(array()));
+    }
+
+    public function test_wp_rocket_inline_defer_exclusions_accept_the_string_form()
+    {
+        $exclusions = (new EWP_WP_Rocket())->exclude_inline_from_defer('someOtherData|more');
+
+        $this->assertContains('someOtherData', $exclusions);
+        $this->assertContains('more', $exclusions);
+        $this->assertContains('ewpDynamicAssets', $exclusions);
+    }
+
+    public function test_wp_rocket_inline_exclusions_can_be_extended_by_other_plugins()
+    {
+        $add = function ($patterns) {
+            $patterns[] = 'myPluginData';
+            return $patterns;
+        };
+        add_filter('ewp_wp_rocket_inline_exclusions', $add);
+
+        $rocket = new EWP_WP_Rocket();
+        $this->assertContains('myPluginData', $rocket->exclude_inline_from_defer(array()));
+        $this->assertContains('myPluginData', $rocket->exclude_from_delay_js(array()));
+        $this->assertNotContains('myPluginData', $rocket->exclude_from_minify_combine(array()));
+
+        remove_filter('ewp_wp_rocket_inline_exclusions', $add);
+    }
+
+    public function test_wp_rocket_does_not_duplicate_patterns()
+    {
+        $once = (new EWP_WP_Rocket())->exclude_inline_from_defer(array('ewpDynamicAssets'));
+
+        $this->assertSame(1, count(array_keys($once, 'ewpDynamicAssets', true)));
+    }
 }

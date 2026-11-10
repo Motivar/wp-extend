@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.15.2] - 2026-11-10
+
+### Fixed
+- **Dynamic Asset Loader never started on sites with WP Rocket "Load JavaScript deferred"** (`2026-11-10`):
+  - **Question/Prompt**: support task 42071842 (Filox "Urgent filox widget issue"): date pickers and search dead on single.motivar.dev; "check the site's WP Rocket settings and the wp-extend WP Rocket compatibility library".
+  - **Root cause**: WP Rocket's defer wraps an inline script in `window.addEventListener('DOMContentLoaded', function(){ ... })` when its content matches `jQuery|$(` (case-insensitive). The loader's registration tag (`var ewpDynamicAssets = {...}`) lists jQuery UI handles (`jquery-ui-core`, `jquery-ui-datepicker`, since the 1.15.0 lazy calendar), so it was wrapped: the variable became function-local, `typeof ewpDynamicAssets` was `undefined` when the (deferred) loader ran, and no dynamic asset (Tippy, custom inputs, booking engine) was ever injected. The existing exclusions are file-name patterns and never apply to an inline script's content.
+  - **Fix**: new `ewp_wp_rocket_inline_exclusions` filter (content patterns, default `['ewpDynamicAssets']`) merged into `rocket_defer_inline_exclusions` and `rocket_delay_js_exclusions` by `EWP_WP_Rocket`. Plugins that print inline data other scripts depend on add a pattern with this filter and the existing `ewp_wp_rocket_js_exclusions` (file names) instead of shipping their own Rocket integration. Verified on single.motivar.dev by adding the same exclusion through a must-use plugin: the inline tag is no longer wrapped and the loader starts.
+  - **Added**: filter `ewp_wp_rocket_inline_exclusions` (see `HOOKS.md`); `EWP_WP_Rocket::exclude_inline_from_defer()`.
+  - **Files**: `includes/classes/ewp-third-party/class-wp-rocket.php`, `tests/test-calendar-assets-test.php`, `HOOKS.md`.
+  - **Backwards compatibility**: no existing filter or exclusion changed. `rocket_defer_inline_exclusions` is accepted as an array or a `|` string, as WP Rocket does.
+  - **Not included**: the loader still treats a script tag that is in the DOM but delayed or deferred as a loaded dependency (separate hardening, not needed once the exclusions are in place).
+
 ## [1.15.1] - 2026-11-09
 
 ### Fixed
