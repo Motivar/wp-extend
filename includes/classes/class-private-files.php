@@ -135,6 +135,6 @@ class Private_Files
                 return;
             }
         }
-        @unlink($legacy_path);
+        wp_delete_file($legacy_path);
     }
 }

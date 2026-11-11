@@ -382,7 +382,7 @@ final class Config_Sync
             /* translators: %s: directory. */
             return new \WP_Error('ewp_config_sync_path', sprintf(__('The path %s does not exist.', 'extend-wp'), $dir));
         }
-        if (!is_writable($dir)) {
+        if (!wp_is_writable($dir)) {
             /* translators: %s: directory. */
             return new \WP_Error('ewp_config_sync_path', sprintf(__('The path %s is not writable.', 'extend-wp'), $dir));
         }
@@ -721,7 +721,7 @@ final class Config_Sync
 
         $removed = 0;
         foreach ((array) glob($type_dir . '/*.json') as $file) {
-            if (!isset($expected[basename($file)]) && @unlink($file)) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- counted below.
+            if (!isset($expected[basename($file)]) && wp_delete_file($file)) {
                 $removed++;
             }
         }
@@ -1275,7 +1275,7 @@ final class Config_Sync
         }
         $backup = $dir . self::LEGACY_BACKUP;
         if (is_file($backup)) {
-            @unlink($backup); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- replaced by the rename.
+            wp_delete_file($backup);
         }
         if (!@rename($legacy, $backup)) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename -- the administrator's chosen folder under wp-content (configuration kept with a theme, for example); WP_Filesystem may ask for FTP credentials in a background save.
             /* translators: %s: file path. */

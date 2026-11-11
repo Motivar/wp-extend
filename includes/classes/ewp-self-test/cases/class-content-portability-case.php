@@ -145,11 +145,11 @@ class Content_Portability_Case extends Case_Base
     public function cleanup(array $context)
     {
         if (!empty($context['file']) && file_exists($context['file'])) {
-            @unlink($context['file']);
+            wp_delete_file($context['file']);
         }
 
         if (!empty($context['php_file']) && file_exists($context['php_file'])) {
-            @unlink($context['php_file']);
+            wp_delete_file($context['php_file']);
         }
 
         if (!empty($context['files_dir']) && is_dir($context['files_dir'])) {

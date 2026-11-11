@@ -7,6 +7,9 @@ if (!defined('ABSPATH')) {
 /*OOP field renderers (EWP\Fields) used by awm_show_content()*/
 require_once dirname(__DIR__) . '/classes/ewp-field-engine/init.php';
 
+/*awm_date(): own file, extend-wp.php also requires it (see date.php)*/
+require_once __DIR__ . '/date.php';
+
 // Initialize global field config registry for encryption/decryption
 if (!isset($GLOBALS['awm_field_configs'])) {
     $GLOBALS['awm_field_configs'] = array();
@@ -41,7 +44,7 @@ if (!function_exists('awm_show_explanation')) {
     function awm_show_explanation($data)
     {
         if (isset($data['explanation']) && !empty($data['explanation'])) {
-            return '<div class="awm-box-explanation">' . __($data['explanation'], 'extend-wp') . '</div>';
+            return '<div class="awm-box-explanation">' . wp_kses_post(__($data['explanation'], 'extend-wp')) . '</div>'; // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
         }
         return '';
     }
@@ -702,7 +705,7 @@ function awm_create_form($options)
         'method' => 'post',
         'action' => '',
         'submit' => true,
-        'submit_label' => __('Register', 'awm'),
+        'submit_label' => __('Register', 'extend-wp'),
         'nonce' => true
     );
 
@@ -717,10 +720,10 @@ function awm_create_form($options)
             wp_nonce_field($settings['id'], 'awm_form_nonce_field');
         }
         ?>
- <?php $form_fields = awm_show_content($library); echo is_string($form_fields) ? $form_fields : ''; ?>
+ <?php $form_fields = awm_show_content($library); echo is_string($form_fields) ? $form_fields : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- awm_show_content() output, escaped inside it. ?>
  <?php if ($settings['submit']) {
         ?>
- <input type="submit" id="awm-submit-<?php echo $settings['id'] ?>" value="<?php echo $settings['submit_label']; ?>" />
+ <input type="submit" id="awm-submit-<?php echo esc_attr($settings['id']) ?>" value="<?php echo esc_attr($settings['submit_label']); ?>" />
  <?php
         }
         ?>

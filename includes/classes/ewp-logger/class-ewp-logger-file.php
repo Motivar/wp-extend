@@ -8,6 +8,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Log files are appended to, read line by line and rewritten under an exclusive lock; WP_Filesystem has
+// no append, streaming or locking, so this class uses PHP's file handles on files under uploads/.
+// phpcs:disable WordPress.WP.AlternativeFunctions.file_system_operations_fopen, WordPress.WP.AlternativeFunctions.file_system_operations_fwrite, WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
 /**
  * File storage backend for the EWP Logger.
  *
@@ -127,7 +131,7 @@ class EWP_Logger_File extends EWP_Logger_Storage
                 stream_copy_to_stream($in, $out);
                 fclose($in);
                 fclose($out);
-                unlink($file);
+                wp_delete_file($file);
                 unset($index[$m[1]]);
             }
             return $index;
@@ -521,7 +525,7 @@ class EWP_Logger_File extends EWP_Logger_Storage
         foreach ($this->list_files() as $file => $parsed) {
             $file_time = strtotime($parsed['date']);
 
-            if ($file_time !== false && $file_time < $cutoff && unlink($file)) {
+            if ($file_time !== false && $file_time < $cutoff && wp_delete_file($file)) {
                 $deleted++;
             }
         }
@@ -615,7 +619,7 @@ class EWP_Logger_File extends EWP_Logger_Storage
 
         // Rewrite or remove the file
         if (empty($keep_lines)) {
-            unlink($file);
+            wp_delete_file($file);
             return $deleted;
         }
 
