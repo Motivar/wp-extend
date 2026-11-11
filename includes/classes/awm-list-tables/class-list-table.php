@@ -586,7 +586,7 @@ class AWM_List_Table extends WP_List_Table
             case 'delete':
                 // Verify nonce for delete action using our centralized method with correct type
                 if (!$this->verify_nonce('delete', $nonce_type)) {
-                    wp_die(__('Invalid delete request.', 'extend-wp'));
+                    wp_die(esc_html__('Invalid delete request.', 'extend-wp'));
                 }
 
                 // Ensure IDs are provided and sanitize
@@ -617,17 +617,17 @@ class AWM_List_Table extends WP_List_Table
                             $this->notice('error', $result->get_error_code() === 'ewp_content_surface_disabled' ? $result->get_error_message() : __('Failed to delete items.', 'extend-wp'));
                         }
                     } else {
-                        wp_die(__('Invalid item IDs for deletion.', 'extend-wp'));
+                        wp_die(esc_html__('Invalid item IDs for deletion.', 'extend-wp'));
                     }
                 } else {
-                    wp_die(__('No items selected for deletion.', 'extend-wp'));
+                    wp_die(esc_html__('No items selected for deletion.', 'extend-wp'));
                 }
                 break;
 
             case 'duplicate':
                 // Verify nonce for duplicate action using our centralized method with correct type
                 if (!$this->verify_nonce('duplicate', $nonce_type)) {
-                    wp_die(__('Invalid duplicate request.', 'extend-wp'));
+                    wp_die(esc_html__('Invalid duplicate request.', 'extend-wp'));
                 }
 
                 // Ensure ID is provided and sanitize
@@ -659,10 +659,10 @@ class AWM_List_Table extends WP_List_Table
                             $this->notice('error', $copy->get_error_code() === 'ewp_content_surface_disabled' ? $copy->get_error_message() : __('Failed to duplicate item.', 'extend-wp'));
                         }
                     } else {
-                        wp_die(__('Invalid item ID for duplication.', 'extend-wp'));
+                        wp_die(esc_html__('Invalid item ID for duplication.', 'extend-wp'));
                     }
                 } else {
-                    wp_die(__('No item selected for duplication.', 'extend-wp'));
+                    wp_die(esc_html__('No item selected for duplication.', 'extend-wp'));
                 }
                 break;
         }

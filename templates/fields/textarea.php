@@ -27,5 +27,5 @@ endif;
     id="<?php echo esc_attr($context->id()); ?>"
     class="<?php echo esc_attr($context->classes()); ?>"
     <?php echo $context->required() ? 'required="true"' : ''; ?>
-    <?php echo \EWP\Fields\Field_Attributes::render($context->attributes()); ?>
+    <?php echo \EWP\Fields\Field_Attributes::render($context->attributes()); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Field_Attributes::render(), escaped per pair. ?>
     ><?php echo esc_textarea($context->value()); ?></textarea><?php

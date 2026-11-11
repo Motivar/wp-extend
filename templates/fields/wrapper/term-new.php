@@ -23,6 +23,6 @@ if (!defined('ABSPATH')) {
     exit;
 }
 ?>
-<div class="form-field term-group awm-term-meta-row awm-meta-term-field <?php echo esc_attr($variables['classes']); ?>" <?php echo $variables['attributes']; ?>><?php
+<div class="form-field term-group awm-term-meta-row awm-meta-term-field <?php echo esc_attr($variables['classes']); ?>" <?php echo $variables['attributes']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wrapper attributes built in Field_Renderer::field_row() and the field types: static pairs, and show-when JSON with every double quote turned into a single one. ?>><?php
 echo $variables['html']; // phpcs:ignore WordPress.Security.EscapeOutput -- rendered field.
 ?></div><?php

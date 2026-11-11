@@ -9,7 +9,7 @@ if (!defined('ABSPATH')) {
 
 global $post;
 ?>
-<div class="ewp-search-result" id="<?php echo $post->ID; ?>">
+<div class="ewp-search-result" id="<?php echo esc_attr($post->ID); ?>">
  <h2><?php echo esc_html(get_the_title($post)); ?></h2>
- <a href="<?php echo get_permalink(($post->ID)); ?>" target="_blank"><?php echo __('view more', 'extend-wp'); ?></a>
+ <a href="<?php echo esc_url(get_permalink(($post->ID))); ?>" target="_blank"><?php echo esc_html__('view more', 'extend-wp'); ?></a>
 </div>

@@ -238,7 +238,7 @@ class EWP_WP_Content_Installer
     }
     if (!empty($this->taxonomies)) {
       foreach ($this->taxonomies as $tax => $tax_data) {
-        $slugs[$tax] = isset($tax_data['label']) ? __($tax_data['label'], 'extend-wp') : $tax;
+        $slugs[$tax] = isset($tax_data['label']) ? __($tax_data['label'], 'extend-wp') : $tax; // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
       }
     }
 
@@ -255,7 +255,7 @@ class EWP_WP_Content_Installer
       /*register the setting*/
       add_settings_field(
         $slug . '_slug',
-        __($title . ' Slug', 'extend-wp'),
+        __($title . ' Slug', 'extend-wp'), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
         function ($views) use ($slug) {
           echo awm_parse_template(EWP_PLUGIN_DIR . 'templates/admin-view/slug-field.php', array('slug' => (string) $slug, 'value' => (string) get_option($slug . '_slug'))); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the template.
         },
@@ -418,8 +418,8 @@ class EWP_WP_Content_Installer
       /**this is in case the term has not been registered */
       if (isset($term_data['name'])) {
         $labels = $args = array();
-        $name = __($term_data['name'], 'extend-wp');
-        $label = __($term_data['label'], 'extend-wp');
+        $name = __($term_data['name'], 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
+        $label = __($term_data['label'], 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
         $labels = array(
           'name' => $name,
           'label' => $label,
@@ -545,7 +545,7 @@ class EWP_WP_Content_Installer
             ? $type['custom_status'][$post_status]['label']
             : ucfirst(str_replace('_', ' ', $post_status));
 
-          $states[] = __($label, 'extend-wp');
+          $states[] = __($label, 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
         }
         break;
       }
@@ -666,8 +666,8 @@ class EWP_WP_Content_Installer
         $general_slug = isset($type['slug']) ? $type['slug'] : Slug_Manager::get_slug($type['post'], $type['post']);
         $chk = (isset($type['flx_custom_template']) && $type['flx_custom_template']) ? true : false;
         $labels = $args = array();
-        $type['sn'] = __(ucwords(($type['sn'])), 'extend-wp');
-        $type['pl'] = __(ucwords(($type['pl'])), 'extend-wp');
+        $type['sn'] = __(ucwords(($type['sn'])), 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
+        $type['pl'] = __(ucwords(($type['pl'])), 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
         $labels = array(
           'name' => $type['pl'],
           'singular_name' => $type['sn'],
@@ -724,7 +724,7 @@ class EWP_WP_Content_Installer
           foreach ($type['custom_status'] as $k => $v) {
             // Build status args with defaults that can be overridden
             $status_args = array(
-              'label' => isset($v['label']) ? __($v['label'], 'extend-wp') : __($k, 'extend-wp'),
+              'label' => isset($v['label']) ? __($v['label'], 'extend-wp') : __($k, 'extend-wp'), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
               'public' => isset($v['public']) ? $v['public'] : true,
               'exclude_from_search' => isset($v['exclude_from_search']) ? $v['exclude_from_search'] : false,
               'show_in_admin_all_list' => isset($v['show_in_admin_all_list']) ? $v['show_in_admin_all_list'] : true,
@@ -737,8 +737,8 @@ class EWP_WP_Content_Installer
             // Add label_count if label is provided
             if (isset($v['label'])) {
               $status_args['label_count'] = _n_noop(
-                $v['label'] . ' <span class="count">(%s)</span>',
-                $v['label'] . ' <span class="count">(%s)</span>',
+                $v['label'] . ' <span class="count">(%s)</span>', // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralSingular -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
+                $v['label'] . ' <span class="count">(%s)</span>', // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralPlural -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
                 'extend-wp'
               );
             }

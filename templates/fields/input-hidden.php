@@ -21,6 +21,6 @@ $context = $variables['context'];
     name="<?php echo esc_attr($context->name()); ?>"
     id="<?php echo esc_attr($context->id()); ?>"
     value="<?php echo esc_attr($context->value()); ?>"
-    <?php echo \EWP\Fields\Field_Attributes::render($context->attributes()); ?>
+    <?php echo \EWP\Fields\Field_Attributes::render($context->attributes()); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Field_Attributes::render(), escaped per pair. ?>
     class="<?php echo esc_attr($context->classes()); ?>"
     <?php echo $context->required() ? 'required="true"' : ''; ?>/><?php

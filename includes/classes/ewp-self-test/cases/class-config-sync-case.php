@@ -237,6 +237,6 @@ class Config_Sync_Case extends Case_Base
             $path = $dir . '/' . $entry;
             is_dir($path) ? $this->remove_dir($path) : @unlink($path); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- best effort cleanup.
         }
-        @rmdir($dir); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- best effort cleanup.
+        @rmdir($dir); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- best effort cleanup of the test's own folder; WP_Filesystem may ask for FTP credentials.
     }
 }

@@ -355,7 +355,7 @@ final class Where
     private function fail($message)
     {
         if ($this->strict) {
-            throw new Invalid_Where('Invalid WHERE: ' . $message);
+            throw new Invalid_Where('Invalid WHERE: ' . $message); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- message for REST / CLI errors (JSON / text), escaped where it is printed.
         }
         $this->errors[] = $message;
         return '1=0';

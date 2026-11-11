@@ -146,7 +146,7 @@ class AWM_Meta
                                             add_action('manage_' . $postType . '_posts_custom_column', function ($column) use ($data) {
                                                 global $post;
                                                 if ($data['key'] == $column) {
-                                                    echo awm_display_meta_value($data['key'], $data, $post->ID, '', 'post_type');
+                                                    echo wp_kses_post(awm_display_meta_value($data['key'], $data, $post->ID, '', 'post_type'));
                                                 }
                                             }, 10, 1);
                                             /*add the sortables*/
@@ -755,7 +755,7 @@ class AWM_Meta
                     $library['awm-id'] = $optionKey;
                     $library['awm_restict_post_list[]'] = array('case' => 'input', 'type' => 'hidden', 'exclude_meta' => true, 'attributes' => array('value' => $optionKey));
 
-                    echo awm_show_content($library, 0, 'restrict_manage_posts');
+                    echo awm_show_content($library, 0, 'restrict_manage_posts'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside awm_show_content().
                 }
             }
         }

@@ -121,7 +121,7 @@ class AWM_Add_Custom_List
   {
     if (isset($_REQUEST['ewp_updated'])) { ?>
 <div class="notice notice-success">
- <p><?php _e('Content updated!', 'extend-wp'); ?></p>
+ <p><?php esc_html_e('Content updated!', 'extend-wp'); ?></p>
 </div>
 <?php
       unset($_REQUEST['ewp_updated']);
@@ -282,7 +282,7 @@ class AWM_Add_Custom_List
       $this->require_capability();
       $id = awm_custom_content_save($this->custom_id, $_POST);
       if (is_wp_error($id)) {
-        echo $id->get_error_message();
+        echo esc_html($id->get_error_message());
         exit;
       }
       wp_redirect($this->page_link . '_form&id=' . $id . '&ewp_updated=1');
@@ -425,7 +425,7 @@ class AWM_Add_Custom_List
       'flx_list_custom_submit_' . $this->page_hook,
       __('Update actions', 'extend-wp'), // $title
       function () use ($update_metas) {
-        echo $this->update_box($update_metas);
+        echo $this->update_box($update_metas); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- awm_show_content() output, escaped inside it.
       },
       array($this->page_hook), // $page
       'side', // $context
@@ -544,6 +544,6 @@ class AWM_Add_Custom_List
     global $ewp_args;
     $args['page_hook'] = $this->page_hook;
     $ewp_args = $args + $this->get_current_view_data();
-    echo awm_parse_template(EWP_PLUGIN_DIR . 'templates/admin-view/edit-post.php');
+    echo awm_parse_template(EWP_PLUGIN_DIR . 'templates/admin-view/edit-post.php'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Extend WP template output; the templates escape their own values.
   }
 }

@@ -10,7 +10,7 @@ if (!function_exists('awm_options_callback')) {
      */
     function awm_options_callback()
     {
-        echo awm_parse_template(EWP_PLUGIN_DIR . 'templates/settings.php');
+        echo awm_parse_template(EWP_PLUGIN_DIR . 'templates/settings.php'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Extend WP template output; the templates escape their own values.
     }
 }
 
@@ -235,7 +235,7 @@ if (!function_exists('awmUserRolesFieldsForInput')) {
         $editable_roles = get_editable_roles();
         foreach ($editable_roles as $role => $details) {
             if (!in_array($role, $exclude)) {
-                $options[$role] = array('label' => __($details['name'], 'extend-wp'));
+                $options[$role] = array('label' => __($details['name'], 'extend-wp')); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
             }
         }
         return apply_filters('awmUserRolesFieldsForInput', $options);
@@ -361,7 +361,7 @@ if (!function_exists('ewp_debug')) {
             wp_enqueue_style('ewp-debug', EWP_PLUGIN_URL . 'assets/css/global/ewp-debug.min.css', array(), defined('AWM_ASSET_VERSION') ? AWM_ASSET_VERSION : false);
         }
         echo '<pre class="ewp-debug">';
-        echo htmlspecialchars(print_r($data, true), ENT_QUOTES, 'UTF-8');
+        echo esc_html(print_r($data, true));
         echo '</pre>';
         if ($exit) {
             die('end-of-debug');

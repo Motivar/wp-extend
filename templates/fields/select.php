@@ -25,18 +25,18 @@ $context = $variables['context'];
 <select name="<?php echo esc_attr($variables['name']); ?>"
     id="<?php echo esc_attr($context->id()); ?>"
     class="<?php echo esc_attr($context->classes()); ?>"
-    <?php echo $variables['attributes']; ?>
+    <?php echo $variables['attributes']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Field_Attributes::render(), escaped per pair. ?>
     <?php echo $context->required() ? 'required="true"' : ''; ?>><?php
 if ($variables['placeholder']) :
-?><option value="" data-html="<?php echo $variables['placeholder']['data_html']; ?>" data-placeholder="true"><?php echo wp_kses_post($variables['placeholder']['label']); ?></option><?php
+?><option value="" data-html="<?php echo $variables['placeholder']['data_html']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Select_Field::data_html(): htmlspecialchars() + JSON, no double quotes. ?>" data-placeholder="true"><?php echo wp_kses_post($variables['placeholder']['label']); ?></option><?php
 endif;
 foreach ($variables['entries'] as $entry) :
     if ('group_end' === $entry['kind']) :
 ?></optgroup><?php
     elseif ('group_start' === $entry['kind']) :
-?><optgroup id="<?php echo esc_attr($entry['id']); ?>" label="<?php echo esc_attr($entry['label']); ?>" data-html="<?php echo $entry['data_html']; ?>" options="<?php echo esc_attr($entry['options']); ?>"><?php
+?><optgroup id="<?php echo esc_attr($entry['id']); ?>" label="<?php echo esc_attr($entry['label']); ?>" data-html="<?php echo $entry['data_html']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Select_Field::data_html(): htmlspecialchars() + JSON, no double quotes. ?>" options="<?php echo esc_attr($entry['options']); ?>"><?php
     else :
-?><option value="<?php echo esc_attr($entry['value']); ?>" <?php echo $entry['selected'] ? 'selected' : ''; ?> <?php echo $entry['extra']; ?> <?php echo $entry['data_html'] ? 'data-html="' . $entry['data_html'] . '"' : ''; ?> ><?php echo wp_kses_post($entry['label']); ?></option><?php
+?><option value="<?php echo esc_attr($entry['value']); ?>" <?php echo $entry['selected'] ? 'selected' : ''; ?> <?php echo $entry['extra']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Field_Attributes::render(), escaped per pair. ?> <?php echo $entry['data_html'] ? 'data-html="' . $entry['data_html'] . '"' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Select_Field::data_html(): htmlspecialchars() + JSON, no double quotes. ?> ><?php echo wp_kses_post($entry['label']); ?></option><?php
     endif;
 endforeach;
 ?></select><?php

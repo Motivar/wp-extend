@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 ?>
-<tr data-input="<?php echo esc_attr($variables['dom_id']); ?>" <?php echo $variables['attributes']; ?> class="<?php echo esc_attr($variables['classes']); ?>" data-input="<?php echo esc_attr($variables['dom_id']); ?>" data-type="<?php echo esc_attr($variables['case']); ?>"><th><label for="<?php echo esc_attr($variables['dom_id']); ?>" class="awm-input-label"><span><?php echo wp_kses_post($variables['label']); ?></span></label><?php
+<tr data-input="<?php echo esc_attr($variables['dom_id']); ?>" <?php echo $variables['attributes']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wrapper attributes built in Field_Renderer::field_row() and the field types: static pairs, and show-when JSON with every double quote turned into a single one. ?> class="<?php echo esc_attr($variables['classes']); ?>" data-input="<?php echo esc_attr($variables['dom_id']); ?>" data-type="<?php echo esc_attr($variables['case']); ?>"><th><label for="<?php echo esc_attr($variables['dom_id']); ?>" class="awm-input-label"><span><?php echo wp_kses_post($variables['label']); ?></span></label><?php
 echo $variables['explanation']; // phpcs:ignore WordPress.Security.EscapeOutput -- rendered by fields/explanation.
 ?></th><td class="awm-user-input"><?php
 echo $variables['html']; // phpcs:ignore WordPress.Security.EscapeOutput -- rendered field.

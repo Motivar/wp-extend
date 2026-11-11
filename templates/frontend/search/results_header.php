@@ -15,7 +15,7 @@ $current_page = max(1, isset($ewp_search_query->query_vars['paged']) ? $ewp_sear
  <?php
  if (isset($ewp_config['show_search_results_number']) && $ewp_config['show_search_results_number']) { ?>
   <div class="ewp-search-header__title">
-   <?php echo sprintf(__('Showing %s of %s', 'extend-wp'), $current_page, $ewp_search_query->found_posts); ?>
+   <?php echo esc_html(sprintf(/* translators: %1$s: current page, %2$s: total results */ __('Showing %1$s of %2$s', 'extend-wp'), $current_page, $ewp_search_query->found_posts)); ?>
   </div>
  <?php } ?>
  <?php
@@ -23,7 +23,7 @@ $current_page = max(1, isset($ewp_search_query->query_vars['paged']) ? $ewp_sear
   <div class="ewp-search-header__sorting">
    <?php
    $box = ewp_search_sorting_filter($ewp_config['sorting'], $ewp_params);
-   echo awm_show_content($box);
+   echo awm_show_content($box); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside awm_show_content().
    ?>
   </div>
  <?php } ?>

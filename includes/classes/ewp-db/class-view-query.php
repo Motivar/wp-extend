@@ -154,7 +154,7 @@ final class View_Query
         $negated  = isset(self::NEGATE[$operator]);
         $positive = $negated ? self::NEGATE[$operator] : $operator;
         if (!isset(self::COMPARE[$positive])) {
-            throw new Invalid_Where('Unknown filter operator "' . substr($operator, 0, 40) . '".');
+            throw new Invalid_Where('Unknown filter operator "' . substr($operator, 0, 40) . '".'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- message for REST / CLI errors (JSON / text), escaped where it is printed.
         }
         $value = self::value($field, $positive, $value);
         self::check_allowed($field, $positive, $value);
@@ -184,7 +184,7 @@ final class View_Query
             }
         }
         if ($list && count($vals) > self::MAX_VALUES) {
-            throw new Invalid_Where('A filter takes at most ' . self::MAX_VALUES . ' values.');
+            throw new Invalid_Where('A filter takes at most ' . self::MAX_VALUES . ' values.'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- message for REST / CLI errors (JSON / text), escaped where it is printed.
         }
         if ($operator === 'between' && count($vals) !== 2) {
             throw new Invalid_Where('`between` needs two values.');
@@ -197,7 +197,7 @@ final class View_Query
             return $vals;
         }
         if (count($vals) !== 1) {
-            throw new Invalid_Where('Operator "' . $operator . '" takes one value.');
+            throw new Invalid_Where('Operator "' . $operator . '" takes one value.'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- message for REST / CLI errors (JSON / text), escaped where it is printed.
         }
         return $vals[0];
     }
@@ -219,7 +219,7 @@ final class View_Query
         $allowed = array_map('strval', $field['values']);
         foreach ((array) $value as $item) {
             if (!in_array((string) $item, $allowed, true)) {
-                throw new Invalid_Where('Value "' . substr((string) $item, 0, 40) . '" is not allowed for this filter.');
+                throw new Invalid_Where('Value "' . substr((string) $item, 0, 40) . '" is not allowed for this filter.'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- message for REST / CLI errors (JSON / text), escaped where it is printed.
             }
         }
     }
@@ -459,7 +459,7 @@ final class View_Query
         $field     = self::field($fields, $sort['field']);
         $direction = strtoupper(isset($sort['direction']) ? (string) $sort['direction'] : 'desc');
         if ($field['source'] !== 'column' || empty($field['sortable'])) {
-            throw new Invalid_Where('Field "' . substr((string) $sort['field'], 0, 40) . '" cannot be sorted.');
+            throw new Invalid_Where('Field "' . substr((string) $sort['field'], 0, 40) . '" cannot be sorted.'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- message for REST / CLI errors (JSON / text), escaped where it is printed.
         }
         if (!in_array($direction, array('ASC', 'DESC'), true)) {
             throw new Invalid_Where('Sort direction must be asc or desc.');
@@ -479,7 +479,7 @@ final class View_Query
     {
         $id = is_scalar($id) ? (string) $id : '';
         if (!isset($fields[$id]['source'], $fields[$id]['key']) || !in_array($fields[$id]['source'], array('column', 'meta'), true)) {
-            throw new Invalid_Where('Unknown field "' . substr($id, 0, 40) . '".');
+            throw new Invalid_Where('Unknown field "' . substr($id, 0, 40) . '".'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- message for REST / CLI errors (JSON / text), escaped where it is printed.
         }
         return $fields[$id];
     }

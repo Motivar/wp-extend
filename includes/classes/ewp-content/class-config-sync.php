@@ -852,8 +852,8 @@ final class Config_Sync
             /* translators: %s: file path. */
             return new \WP_Error('ewp_config_sync_write', sprintf(__('Failed to save exported content to %s.', 'extend-wp'), $file));
         }
-        if (!@rename($tmp, $file)) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- reported below.
-            @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- best effort.
+        if (!@rename($tmp, $file)) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename -- atomic replace in the administrator's chosen folder under wp-content (configuration kept with a theme, for example); WP_Filesystem may ask for FTP credentials in a background save.
+            wp_delete_file($tmp);
             /* translators: %s: file path. */
             return new \WP_Error('ewp_config_sync_write', sprintf(__('Failed to save exported content to %s.', 'extend-wp'), $file));
         }
@@ -1277,7 +1277,7 @@ final class Config_Sync
         if (is_file($backup)) {
             @unlink($backup); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- replaced by the rename.
         }
-        if (!@rename($legacy, $backup)) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- reported below.
+        if (!@rename($legacy, $backup)) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename -- the administrator's chosen folder under wp-content (configuration kept with a theme, for example); WP_Filesystem may ask for FTP credentials in a background save.
             /* translators: %s: file path. */
             return new \WP_Error('ewp_config_sync_write', sprintf(__('Could not rename %s.', 'extend-wp'), $legacy));
         }

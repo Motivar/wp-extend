@@ -279,7 +279,7 @@ class Extend_WP_Search_Filters
         $ewp_search_query_terms = $args['terms'];
         $content[] = awm_parse_template(EWP_PLUGIN_DIR . 'templates/frontend/search/results-terms.php');
       }
-      $main_content = __($conf['empty_results_message'], 'extend-wp');
+      $main_content = __($conf['empty_results_message'], 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
       if (!empty($ewp_search_query->posts)) {
         $main_content = awm_parse_template(EWP_PLUGIN_DIR . 'templates/frontend/search/results.php');
       }
@@ -355,7 +355,7 @@ class Extend_WP_Search_Filters
       if ($field['apply_all_label'] === '') {
         unset($field['apply_all_label']);
       } else {
-        $field['apply_all_label'] = __($field['apply_all_label'], 'extend-wp');
+        $field['apply_all_label'] = __($field['apply_all_label'], 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
       }
     }
     return $field;
@@ -369,7 +369,7 @@ class Extend_WP_Search_Filters
       $field['exclude_meta'] = true;
       /*check for archives to pre-select the values*/
       if (isset($field['label'])) {
-        $field['label'] = __($field['label'], 'extend-wp');
+        $field['label'] = __($field['label'], 'extend-wp'); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
       }
       /*fix the attributes*/
       $attributes = array();
@@ -401,7 +401,7 @@ class Extend_WP_Search_Filters
           $options = array();
           if (!empty($field['options'])) {
             foreach ($field['options'] as $option) {
-              $options[$option['option']] = array('label' => __($option['label'], 'extend-wp'));
+              $options[$option['option']] = array('label' => __($option['label'], 'extend-wp')); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
             }
           }
           $field['options'] = $options;
@@ -507,8 +507,8 @@ class Extend_WP_Search_Filters
       'orientation' => $orientation,
       'options' => $fields,
       'form_html' => awm_show_content($form_fields),
-      'button_apply' => isset($fields['button_apply']) ? __($fields['button_apply'], 'extend-wp') : '',
-      'button_reset' => isset($fields['button_reset']) ? __($fields['button_reset'], 'extend-wp') : '',
+      'button_apply' => isset($fields['button_apply']) ? __($fields['button_apply'], 'extend-wp') : '', // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
+      'button_reset' => isset($fields['button_reset']) ? __($fields['button_reset'], 'extend-wp') : '', // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
     ));
   }
 
