@@ -43,5 +43,7 @@ define('AWM_ASSET_VERSION', file_exists($_awm_version_file) ? require $_awm_vers
 unset($_awm_version_file);
 
 require_once(plugin_dir_path(__FILE__) . '/lib/autoload.php');
+/* Not left to the autoloader: see includes/functions/date.php. */
+require_once(plugin_dir_path(__FILE__) . 'includes/functions/date.php');
 
 new \EWP\Setup();

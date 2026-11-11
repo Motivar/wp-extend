@@ -197,10 +197,10 @@ class Extend_WP_Search_Filters
                 $args['s'] = $param_value;
                 break;
               case 'date_from':
-                $args['date_query']['after'] = date('c', strtotime($param_value));
+                $args['date_query']['after'] = awm_date('c', strtotime($param_value));
                 break;
               case 'date_to':
-                $args['date_query']['before'] = date(
+                $args['date_query']['before'] = awm_date(
                   'c',
                   strtotime($param_value)
                 );

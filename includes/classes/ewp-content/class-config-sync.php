@@ -424,7 +424,7 @@ final class Config_Sync
         $data = $this->portability->export(array_values($types), ['log' => false]);
         if (is_wp_error($data) && $data->get_error_code() === 'no_data') {
             /* Every row was deleted: keep the file, empty, so importing sites drop what they imported. */
-            $data = ['modified' => date('Y-m-d H:i:s')];
+            $data = ['modified' => awm_date('Y-m-d H:i:s')];
         }
         if (is_wp_error($data)) {
             /* translators: %s: error message. */

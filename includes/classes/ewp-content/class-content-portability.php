@@ -146,7 +146,7 @@ final class Content_Portability
             return new \WP_Error('no_data', __('No data to export', 'extend-wp'), ['status' => 400]);
         }
 
-        $data['modified'] = date('Y-m-d H:i:s');
+        $data['modified'] = awm_date('Y-m-d H:i:s');
         if ($paged) {
             $data['pagination'] = $pagination;
         }
@@ -225,7 +225,7 @@ final class Content_Portability
                 $counts[$content_type] = $count;
             }
         }
-        $modified = date('Y-m-d H:i:s');
+        $modified = awm_date('Y-m-d H:i:s');
         fwrite($handle, "\n\"modified\": " . wp_json_encode($modified) . "\n}\n");
         fclose($handle);
 

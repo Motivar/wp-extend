@@ -74,10 +74,10 @@ class EWP_Logger_Viewer
 
 
         $fields = [];
-        $week = date('d-m-Y', strtotime('-1 week'));
-        $today = date('d-m-Y');
-        $maxDate = date('d-m-Y', strtotime('now'));
-        $minDate = date('d-m-Y', strtotime('-' .  $retentions_months . ' months'));
+        $week = awm_date('d-m-Y', strtotime('-1 week'));
+        $today = awm_date('d-m-Y');
+        $maxDate = awm_date('d-m-Y', strtotime('now'));
+        $minDate = awm_date('d-m-Y', strtotime('-' .  $retentions_months . ' months'));
         /* add date restricitons*/
         // Date From filter
         $fields['date_from'] = [
