@@ -54,7 +54,7 @@ Field groups, post types and taxonomies can be built from the admin. Custom cont
 == Changelog ==
 
 = 1.16.0 =
-* First release on WordPress.org (includes 1.15.0: datepicker and calendar script load only on pages with date fields).
-* Output escaping and i18n for WordPress.org; Swagger UI served from the plugin.
+* First release on WordPress.org (includes 1.15.0–1.15.2: datepicker and calendar load only on pages with date fields; WP Rocket inline exclusion).
+* Output escaping and i18n for WordPress.org.
 * Fix: `awm_date()` available when another Extend WP copy is loaded by Composer.
 * Fix: admin thumbnails keep `srcset`, `sizes` and `decoding`.
