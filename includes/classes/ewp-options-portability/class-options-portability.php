@@ -32,7 +32,7 @@ class EWP_Options_Portability
 	 *
 	 * @var string
 	 */
-	private static $version = '1.0.0';
+	private static $version = '1.0.1';
 
 	/**
 	 * Export format version.
