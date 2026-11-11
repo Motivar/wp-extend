@@ -246,7 +246,7 @@ final class Field_Renderer
             return null;
         }
 
-        $explanation = isset($field['explanation']) ? $this->templates->render('fields/explanation', array('text' => __($field['explanation'], 'extend-wp'))) : '';
+        $explanation = isset($field['explanation']) ? $this->templates->render('fields/explanation', array('text' => __($field['explanation'], 'extend-wp'))) : ''; // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- labels defined by the plugin registering the field / content type, translated with that plugin's .po (intended).
         $is_html     = 'html' === $field['case'];
         if (!$is_html) {
             $field = awm_prepare_field($field, $args['container_id']);
@@ -375,6 +375,13 @@ final class Field_Renderer
             $field['attributes']['disable-elements'] = str_replace('"', '\'', wp_json_encode($field['disable-elements']));
         }
         $attributes = (!empty($field['attributes']) && is_array($field['attributes'])) ? Field_Attributes::prepare($field['attributes']) : array();
+        /*
+         * These cases print their own name="" first; a second one from the
+         * attributes was invalid HTML and ignored by browsers (they use the first).
+         */
+        if (in_array($field['case'], array('input', 'select', 'textarea', 'checkbox_multiple'), true)) {
+            unset($attributes['name']);
+        }
         $value      = (isset($attributes['min']) && $state['value'] == 0) ? $attributes['min'] : $state['value'];
 
         $output = $this->render_type($key, $field, $value, $attributes, $state, $explanation, $args);

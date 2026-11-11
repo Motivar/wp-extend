@@ -142,6 +142,31 @@ class Test_Field_Renderer extends WP_UnitTestCase
     }
 
     /**
+     * input, select, textarea and checkbox_multiple print their own name="" once;
+     * attributes['name'] adds no second one (Filox's rates calendar passes it).
+     *
+     * @return void
+     */
+    public function test_attributes_name_is_not_printed_twice()
+    {
+        $fields = array(
+            'n_input'    => array('case' => 'input', 'type' => 'text'),
+            'n_select'   => array('case' => 'select', 'options' => array('a' => array('label' => 'A'))),
+            'n_textarea' => array('case' => 'textarea'),
+            'n_checks'   => array('case' => 'checkbox_multiple', 'options' => array('a' => array('label' => 'A'))),
+        );
+        foreach ($fields as $key => $field) {
+            $field['label']      = $key;
+            $field['attributes'] = array('name' => 'other_name', 'data-keep' => 'yes');
+            $html = awm_show_content(array($key => $field), 0, 'option');
+
+            $this->assertStringNotContainsString('name="other_name"', $html, $key);
+            $this->assertStringContainsString('data-keep="yes"', $html, $key);
+            $this->assertMatchesRegularExpression('/name="' . $key . '(\[\])?"/', $html, $key);
+        }
+    }
+
+    /**
      * Fields render through the registry: nested libraries (section) re-enter
      * the shared renderer safely.
      *

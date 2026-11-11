@@ -139,7 +139,7 @@ class EWP_Gallery_Meta_Box
         }
 
         /* Use the unified media field function */
-        echo awm_media_field_html($this->meta_key(), $ids, 0);
+        echo awm_media_field_html($this->meta_key(), $ids, 0); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- awm_media_field_html() escapes every value it prints.
     }
 
     /* ----------------------------------------------------------
@@ -247,9 +247,25 @@ class EWP_Gallery_Meta_Box
             }
             global $post;
             if (function_exists('awm_show_featured_image')) {
-                echo awm_show_featured_image($post->ID);
+                echo wp_kses(awm_show_featured_image($post->ID), self::thumb_allowed_html());
             }
         }, 10, 1);
+    }
+
+    /**
+     * Allowed HTML for the Thumb column: post HTML plus the img attributes
+     * wp_get_attachment_image() prints and wp_kses_post() strips (srcset, sizes, decoding, fetchpriority).
+     *
+     * @return array wp_kses() allowed-HTML array.
+     */
+    public static function thumb_allowed_html()
+    {
+        $allowed = wp_kses_allowed_html('post');
+        $allowed['img'] = array_merge(
+            isset($allowed['img']) ? $allowed['img'] : array(),
+            array_fill_keys(array('srcset', 'sizes', 'decoding', 'fetchpriority', 'loading'), true)
+        );
+        return $allowed;
     }
 
     /* ----------------------------------------------------------

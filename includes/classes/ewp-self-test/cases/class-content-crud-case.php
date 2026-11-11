@@ -187,7 +187,8 @@ class Content_Crud_Case extends Case_Base
             $checks[] = $this->skip('cli', 'generic_write false: wp ewp content create is refused', __('WP-CLI wrappers are not loaded in this process.', 'extend-wp'));
         } else {
             $r        = isset($o['routed_cli_create']) ? $o['routed_cli_create'] : ['ok' => true, 'error' => ''];
-            $checks[] = $this->check('cli', 'generic_write false: wp ewp content create is refused', empty($r['ok']) && strpos((string) $r['error'], 'does not allow') !== false, (string) $r['error']);
+            // Under real WP-CLI, WP_CLI::error() lands in stderr without throwing, so the result can keep ok: true; judge by the error.
+            $checks[] = $this->check('cli', 'generic_write false: wp ewp content create is refused', strpos((string) $r['error'], 'does not allow') !== false, (string) $r['error']);
         }
         $checks[] = $ability_refused('routed_ability_create', 'generic_write false: ewp-content/create-item is refused');
         $checks[] = $ability_refused('routed_ability_update', 'generic_write false: ewp-content/update-item is refused');
