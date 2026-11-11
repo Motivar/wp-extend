@@ -365,7 +365,7 @@ class AWM_DB_Creator
             foreach ($dbData as $table => $tableData) {
                 // Validate table name and data
                 if (empty($table) || empty($tableData)) {
-                    throw new Exception(sprintf(__('Invalid table or data for table: %s.', 'filox'), $table));
+                    throw new Exception(sprintf(/* translators: %s: table name */ __('Invalid table or data for table: %s.', 'extend-wp'), $table));
                 }
 
                 /* Check table version */
@@ -477,7 +477,7 @@ class AWM_DB_Creator
 
                     // Check for errors
                     if (!empty($wpdb->last_error)) {
-                        $message = sprintf(__('Table "%s" not updated! The error is: <strong>%s</strong>.', 'filox'), $table, $wpdb->last_error);
+                        $message = sprintf(/* translators: %1$s: table name, %2$s: database error */ __('Table "%1$s" not updated! The error is: <strong>%2$s</strong>.', 'extend-wp'), $table, $wpdb->last_error);
                         $databasesNotUpdated[] = $message;
                         continue; // Skip to the next table
                     }
@@ -488,7 +488,7 @@ class AWM_DB_Creator
                     unset(self::$table_existence_cache[$wpdb->prefix . $table]);
                     \EWP\Db\Table_Columns::forget($table);
                     \EWP\Db\Read_Cache::invalidate($table);
-                    $message = sprintf(__('Table "%s" just updated! Current version is %s.', 'filox'), $table, $currentVersion);
+                    $message = sprintf(/* translators: %1$s: table name, %2$s: schema version */ __('Table "%1$s" just updated! Current version is %2$s.', 'extend-wp'), $table, $currentVersion);
                     $databasesUpdated[] = $message;
                     /**
                      * Fires after a custom table was created or upgraded to a new schema version.
@@ -504,7 +504,7 @@ class AWM_DB_Creator
             }
         } catch (Exception $e) {
             error_log('Error in dbUpdate: ' . $e->getMessage());
-            $databasesNotUpdated[] = sprintf(__('Error in table "%s": %s', 'filox'), $table, $e->getMessage());
+            $databasesNotUpdated[] = sprintf(/* translators: %1$s: table name, %2$s: error message */ __('Error in table "%1$s": %2$s', 'extend-wp'), $table, $e->getMessage());
 
             // Log the DB error via EWP Logger
             ewp_log(

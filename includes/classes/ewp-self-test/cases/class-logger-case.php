@@ -146,6 +146,6 @@ class Logger_Case extends Case_Base
         $before = $storage->count(['owner' => self::OWNER]);
         $storage->delete_by_filters(['owner' => self::OWNER]);
 
-        return [sprintf(__('Deleted %d log entr(y/ies) owned by %s.', 'extend-wp'), (int) $before, self::OWNER)];
+        return [sprintf(/* translators: %1$d: number of entries, %2$s: owner plugin */ __('Deleted %1$d log entr(y/ies) owned by %2$s.', 'extend-wp'), (int) $before, self::OWNER)];
     }
 }

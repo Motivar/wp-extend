@@ -62,7 +62,7 @@ class Extend_WP_Search_Filters
         'public' => true,
         'args' => array(
           'id' => array(
-            'description'       => sprintf(__('The id of the search filter', 'ewp'), $filter['content_id']),
+            'description'       => sprintf(__('The id of the search filter', 'extend-wp'), $filter['content_id']),
             'sanitize_callback' => 'sanitize_text_field',
             'default'           => $filter['content_id'],
             'required' => true
@@ -209,7 +209,7 @@ class Extend_WP_Search_Filters
 
             break;
         }
-        $ewp_search_query_terms[$request_key] = (isset($constructor['explanation']) && !empty($constructor['explanation'])) ? sprintf(__('%s %s', 'extend-wp'), $constructor['explanation'], $search_term) : $search_term;
+        $ewp_search_query_terms[$request_key] = (isset($constructor['explanation']) && !empty($constructor['explanation'])) ? sprintf(/* translators: %1$s: action label, %2$s: item name */ __('%1$s %2$s', 'extend-wp'), $constructor['explanation'], $search_term) : $search_term;
       }
     }
     /*check for wpml and language parameter*/
@@ -602,7 +602,7 @@ class Extend_WP_Search_Filters
         'case' => 'html',
         'label' => __('How to user the search filter', 'extend-wp'),
         'show_label' => true,
-        'value' => '<div class="awm-dev-info"><div>' . sprintf(__('Use the shortcode <strong>[ewp_search id="%s"]</strong> or <strong>[ewp_search hash="%s"]</strong>, and place it where you wish. If the dom element which you have set to show the results does not exists, then no action will be triggered as you interact with the form.', 'extend-wp'), (isset($_REQUEST['id']) ? $_REQUEST['id'] : '-'), $hash) . '</div></div>'
+        'value' => '<div class="awm-dev-info"><div>' . sprintf(/* translators: %1$s: search form id, %2$s: search form hash */ __('Use the shortcode <strong>[ewp_search id="%1$s"]</strong> or <strong>[ewp_search hash="%2$s"]</strong>, and place it where you wish. If the dom element which you have set to show the results does not exists, then no action will be triggered as you interact with the form.', 'extend-wp'), (isset($_REQUEST['id']) ? $_REQUEST['id'] : '-'), $hash) . '</div></div>'
       ),
       'html2' => array(
         'case' => 'html',
@@ -904,7 +904,7 @@ class Extend_WP_Search_Filters
           ),
           'attributes' => array(
             'label' => __('Attributes', 'extend-wp'),
-            'explanation' => __('like min=0 / onchange=action etc'),
+            'explanation' => __('like min=0 / onchange=action etc', 'extend-wp'),
             'minrows' => 0,
             'case' => 'repeater',
             'item_name' => __('Attribute', 'extend-wp'),

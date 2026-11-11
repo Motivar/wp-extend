@@ -266,7 +266,7 @@ if (!function_exists('awm_fields_configuration')) {
           ),
           'attributes' => array(
             'label' => __('Attributes', 'extend-wp'),
-            'explanation' => __('like min=0 / onchange=action etc'),
+            'explanation' => __('like min=0 / onchange=action etc', 'extend-wp'),
             'minrows' => 0,
             'case' => 'repeater',
             'item_name' => __('Attribute', 'extend-wp'),
@@ -475,13 +475,13 @@ if (!function_exists('awm_dev_notes')) {
         'case' => 'html',
         'label' => __('How to get variables', 'extend-wp'),
         'show_label' => true,
-        'value' => '<div class="awm-dev-info"><div>' . __('Depending on your fields position choice, you can use the ordinary WordPress functions like get_post_meta, get_term_meta, get_user_meta, get_option with the <b>Meta Key</b> specified.') . '</div><div class="">' . __('If you want to get all the variables at once you can use the function <b>awm_get_library_values($awm_field_id,$case,$post_id)', 'extend-wp') . '</b>, where:<br></brr><strong>$awm_field_id</strong>=the post id of this screen<br><strong>$case</strong> = either post/term/user/option (depending on your fields position)<br><b>$post_id</b>= the id of the post/user/term you want to get the values for. </div></div>'
+        'value' => '<div class="awm-dev-info"><div>' . __('Depending on your fields position choice, you can use the ordinary WordPress functions like get_post_meta, get_term_meta, get_user_meta, get_option with the <b>Meta Key</b> specified.', 'extend-wp') . '</div><div class="">' . __('If you want to get all the variables at once you can use the function <b>awm_get_library_values($awm_field_id,$case,$post_id)', 'extend-wp') . '</b>, where:<br></brr><strong>$awm_field_id</strong>=the post id of this screen<br><strong>$case</strong> = either post/term/user/option (depending on your fields position)<br><b>$post_id</b>= the id of the post/user/term you want to get the values for. </div></div>'
       ),
       'html2' => array(
         'case' => 'html',
         'label' => __('How to apply_filters in admin view', 'extend-wp'),
         'show_label' => true,
-        'value' => '<div class="awm-dev-info"><div>' . __('You can use the filter \'awm_create_library_filter\', with variables:$metas, $awm_field_id where:<br><strong>$metas</strong>=then array with the field structure<br><strong>$awm_field_id</strong> =the post id of this screen</div></div>')
+        'value' => '<div class="awm-dev-info"><div>' . __('You can use the filter \'awm_create_library_filter\', with variables:$metas, $awm_field_id where:<br><strong>$metas</strong>=then array with the field structure<br><strong>$awm_field_id</strong> =the post id of this screen</div></div>', 'extend-wp')
       )
     );
   }
@@ -526,7 +526,7 @@ if (!function_exists('awm_create_boxes')) {
       switch ($case) {
         case 'ewp_block':
           $version = strtotime($awm_field['modified']);
-          $title = (isset($awm_field['content_title']) && !empty($awm_field['content_title'])) ? $awm_field['content_title'] : sprintf(__('Ewp Dynamic block %s', 'wp-extend'), $awm_field['content_id']);
+          $title = (isset($awm_field['content_title']) && !empty($awm_field['content_title'])) ? $awm_field['content_title'] : sprintf(/* translators: %s: block name */ __('Ewp Dynamic block %s', 'extend-wp'), $awm_field['content_id']);
           $namespace = (isset($awm_field['position']['namespace']) && !empty($awm_field['position']['namespace'])) ? awm_clean_string($awm_field['position']['namespace']) : 'ewp-block';
           $name = (isset($awm_field['position']['name']) && !empty($awm_field['position']['name'])) ? awm_clean_string($awm_field['position']['name']) : awm_clean_string($title);
           $dependencies = (isset($awm_field['position']['dependencies']) && !empty($awm_field['position']['dependencies'])) ? explode(',', $awm_field['position']['dependencies']) : array();
@@ -769,9 +769,9 @@ if (!function_exists('awm_position_options')) {
         ),
 
       )),
-      'existing_awm_fields' => array('label' => __('Existing meta fields', 'filox'), 'field-choices' => array(
+      'existing_awm_fields' => array('label' => __('Existing meta fields', 'extend-wp'), 'field-choices' => array(
         'page_ids' => array(
-          'label' => __('Select meta libraries', 'filox'),
+          'label' => __('Select meta libraries', 'extend-wp'),
           'case' => 'select',
           'attibutes' => array('multiple' => 1),
           'callback' => 'all_awm_meta_libraries',

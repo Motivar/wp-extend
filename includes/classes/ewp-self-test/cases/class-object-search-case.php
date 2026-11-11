@@ -105,7 +105,7 @@ class Object_Search_Case extends Case_Base
         foreach (['post_id', 'page_id'] as $key) {
             if (!empty($context[$key])) {
                 wp_delete_post((int) $context[$key], true);
-                $notes[] = sprintf(__('Deleted post #%d.', 'extend-wp'), (int) $context[$key]);
+                $notes[] = sprintf(/* translators: %d: ID */ __('Deleted post #%d.', 'extend-wp'), (int) $context[$key]);
             }
         }
 

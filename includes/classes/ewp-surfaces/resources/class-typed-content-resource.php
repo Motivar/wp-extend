@@ -141,7 +141,7 @@ abstract class Typed_Content_Resource extends Resource
 
         $ops = [
             'list-' . $entity['plural'] => Operation::read('list_items')
-                ->label(sprintf(__('List %s', 'extend-wp'), $entity['label_plural']))
+                ->label(sprintf(/* translators: %s: item / content type name */ __('List %s', 'extend-wp'), $entity['label_plural']))
                 ->description($this->describe($entity, 'list'))
                 ->input(Content_Schema::list_fields())
                 ->output(Content_Schema::row_collection())
@@ -158,7 +158,7 @@ abstract class Typed_Content_Resource extends Resource
                 ->ability('list-' . $entity['plural']),
 
             'get-' . $entity['singular'] => Operation::read('get_item')
-                ->label(sprintf(__('Get a %s', 'extend-wp'), $entity['label_singular']))
+                ->label(sprintf(/* translators: %s: item / content type name */ __('Get a %s', 'extend-wp'), $entity['label_singular']))
                 ->description($this->describe($entity, 'get'))
                 ->input([$this->id_field($entity)])
                 ->output(Content_Schema::row())
@@ -191,7 +191,7 @@ abstract class Typed_Content_Resource extends Resource
 
         return [
             'create-' . $entity['singular'] => Operation::write('create_item')
-                ->label(sprintf(__('Create a %s', 'extend-wp'), $entity['label_singular']))
+                ->label(sprintf(/* translators: %s: item / content type name */ __('Create a %s', 'extend-wp'), $entity['label_singular']))
                 ->description($this->describe($entity, 'create'))
                 ->input(array_merge($this->common_fields($entity, true), Library_Fields::from_library($library, true)))
                 ->output(Content_Schema::row())
@@ -204,7 +204,7 @@ abstract class Typed_Content_Resource extends Resource
 
             'update-' . $entity['singular'] => Operation::write('update_item')
                 ->annotations(['idempotent' => true])
-                ->label(sprintf(__('Update a %s', 'extend-wp'), $entity['label_singular']))
+                ->label(sprintf(/* translators: %s: item / content type name */ __('Update a %s', 'extend-wp'), $entity['label_singular']))
                 ->description($this->describe($entity, 'update'))
                 ->input(array_merge([$this->id_field($entity)], $this->common_fields($entity, false), Library_Fields::from_library($library, false)))
                 ->output(Content_Schema::row())
@@ -216,7 +216,7 @@ abstract class Typed_Content_Resource extends Resource
                 ->ability('update-' . $entity['singular']),
 
             'delete-' . $entity['singular'] => Operation::destructive('delete_items')
-                ->label(sprintf(__('Delete %s', 'extend-wp'), $entity['label_plural']))
+                ->label(sprintf(/* translators: %s: item / content type name */ __('Delete %s', 'extend-wp'), $entity['label_plural']))
                 ->description($this->describe($entity, 'delete'))
                 ->input([Field::int_list('ids')->required()->describe(__('Ids of the items to delete.', 'extend-wp'))])
                 ->output(Content_Schema::delete_result())

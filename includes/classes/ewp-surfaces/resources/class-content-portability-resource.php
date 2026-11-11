@@ -250,7 +250,7 @@ final class Content_Portability_Resource extends Resource
         if ($ctx->surface() === Context::CLI && !empty($input['file'])) {
             $file = (string) $input['file'];
             if (!file_exists($file)) {
-                return new \WP_Error('ewp_content_file_not_found', sprintf(__('File not found: %s', 'extend-wp'), $file), ['status' => 400]);
+                return new \WP_Error('ewp_content_file_not_found', sprintf(/* translators: %s: file path */ __('File not found: %s', 'extend-wp'), $file), ['status' => 400]);
             }
             $decoded = json_decode((string) file_get_contents($file), true);
             if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
@@ -301,7 +301,7 @@ final class Content_Portability_Resource extends Resource
         $file = !empty($input['file']) ? (string) $input['file'] : './ewp-content-export.json';
         $json = wp_json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($json === false || file_put_contents($file, $json) === false) {
-            \WP_CLI::error(sprintf(__('Failed to write to %s.', 'extend-wp'), $file));
+            \WP_CLI::error(sprintf(/* translators: %s: error message */ __('Failed to write to %s.', 'extend-wp'), $file));
             return;
         }
 
@@ -321,7 +321,7 @@ final class Content_Portability_Resource extends Resource
     {
         $file = !empty($input['file']) ? (string) $input['file'] : './ewp-content-export.php';
         if (file_put_contents($file, (string) $data['code']) === false) {
-            \WP_CLI::error(sprintf(__('Failed to write to %s.', 'extend-wp'), $file));
+            \WP_CLI::error(sprintf(/* translators: %s: file path */ __('Failed to write to %s.', 'extend-wp'), $file));
             return;
         }
         $skipped = !empty($data['skipped']) ? ' Skipped (no PHP generator): ' . implode(', ', (array) $data['skipped']) . '.' : '';
@@ -342,7 +342,7 @@ final class Content_Portability_Resource extends Resource
         foreach ((array) $data['files'] as $path => $contents) {
             $target = $root . '/' . $path;
             if (strpos((string) $path, '..') !== false || !wp_mkdir_p(dirname($target)) || file_put_contents($target, (string) $contents) === false) {
-                \WP_CLI::error(sprintf(__('Failed to write to %s.', 'extend-wp'), $target));
+                \WP_CLI::error(sprintf(/* translators: %s: file path */ __('Failed to write to %s.', 'extend-wp'), $target));
                 return;
             }
         }

@@ -103,7 +103,7 @@ function flx_table_list_page_handler($args)
             $count = count(explode(',', $ids));
         }
 
-        $message = '<div class="updated below-h2" id="message"><p>' . sprintf(__('Items deleted: %d', 'custom_table_example'), $count) . '</p></div>';
+        $message = '<div class="updated below-h2" id="message"><p>' . sprintf(/* translators: %d: number */ __('Items deleted: %d', 'extend-wp'), $count) . '</p></div>';
     }
 ?>
     <div class="wrap filox-custom-list">

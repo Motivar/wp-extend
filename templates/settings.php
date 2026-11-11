@@ -104,7 +104,7 @@ if (!empty($page)) {
         if (isset($awm_settings['rest']) && isset($awm_settings['rest']['endpoint'])) {
             $method = (isset($awm_settings['rest']['method']) && !empty($awm_settings['rest']['method'])) ? $awm_settings['rest']['method'] : 'get';
             $callback = (isset($awm_settings['rest']['js_callback']) && !empty($awm_settings['rest']['js_callback'])) ? $awm_settings['rest']['js_callback'] : 'awm_rest_options_callback';
-            $button = (isset($awm_settings['rest']['button']) && !empty($awm_settings['rest']['button'])) ? $awm_settings['rest']['button'] : __('Show results', 'filox');
+            $button = (isset($awm_settings['rest']['button']) && !empty($awm_settings['rest']['button'])) ? $awm_settings['rest']['button'] : __('Show results', 'extend-wp');
             $namespace = isset($awm_settings['rest']['namespace']) ? $awm_settings['rest']['namespace'] : 'awm-dynamic-api/v1';
         ?>
             <!-- REST API actions wrapper -->
